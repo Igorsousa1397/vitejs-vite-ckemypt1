@@ -1,3 +1,4 @@
+import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc, getDoc } from './firebase';
 import { useState, useMemo, useEffect } from 'react';
 
 const G = {
@@ -687,172 +688,43 @@ function Splash({ done }) {
 }
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
-function Login({ onLogin, users, setUsers }) {
-  const [n, setN] = useState('');
-  const [s, setS] = useState('');
-  const [e, setE] = useState('');
-  const [fu, setFu] = useState(null);
-  const [ns, setNs] = useState('');
-  const [cs, setCs] = useState('');
-  const go = () => {
-    const f = users.find(
-      (u) => u.nome.toLowerCase() === n.toLowerCase() && u.senha === s
-    );
-    if (!f) {
-      setE('Nome ou senha incorretos.');
-      return;
+function Login({ onLogin }){
+  const [email,setEmail]=useState('');
+  const [senha,setSenha]=useState('');
+  const [e,setE]=useState('');
+  const [load,setLoad]=useState(false);
+
+  const go=async()=>{
+    if(!email.trim()||!senha.trim()){setE('Preencha todos os campos.');return;}
+    setLoad(true);setE('');
+    try{
+      const cred=await signInWithEmailAndPassword(auth,email,senha);
+      const snap=await getDoc(doc(db,'users',cred.user.uid));
+      if(!snap.exists()){setE('Usuário não encontrado no sistema.');setLoad(false);return;}
+      onLogin({id:cred.user.uid,...snap.data()});
+    }catch(err){
+      setE('Email ou senha incorretos.');
     }
-    if (f.primeiro) {
-      setFu(f);
-      return;
-    }
-    onLogin(f);
+    setLoad(false);
   };
-  const save = () => {
-    if (ns.length < 6) {
-      setE('Mínimo 6 caracteres.');
-      return;
-    }
-    if (ns !== cs) {
-      setE('Senhas não conferem.');
-      return;
-    }
-    const upd = users.map((u) =>
-      u.id === fu.id ? { ...u, senha: ns, primeiro: false } : u
-    );
-    setUsers(upd);
-    onLogin({ ...fu, senha: ns, primeiro: false });
-  };
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
-    >
+
+  return(
+    <div style={{minHeight:'100vh',background:'#000',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
       <style>{css}</style>
-      <div style={{ width: '100%', maxWidth: 360 }}>
-        <div style={{ marginBottom: 36, textAlign: 'center' }}>
-          <div
-            style={{
-              fontSize: 48,
-              fontWeight: 900,
-              color: '#fff',
-              letterSpacing: -3,
-            }}
-          >
-            servos<span style={{ color: G.green }}>.</span>
-          </div>
-          <div
-            style={{
-              color: G.tm,
-              fontSize: 12,
-              marginTop: 8,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-            }}
-          >
-            {fu ? 'Primeiro Acesso' : 'Portal do Encontro'}
-          </div>
+      <div style={{width:'100%',maxWidth:360}}>
+        <div style={{marginBottom:36,textAlign:'center'}}>
+          <div style={{fontSize:48,fontWeight:900,color:'#fff',letterSpacing:-3}}>servos<span style={{color:G.green}}>.</span></div>
+          <div style={{color:G.tm,fontSize:12,marginTop:8,letterSpacing:2,textTransform:'uppercase'}}>Portal do Encontro</div>
         </div>
-        {fu ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div
-              style={{
-                background: 'rgba(0,200,81,.08)',
-                border: '1px solid rgba(0,200,81,.2)',
-                borderRadius: 12,
-                padding: '12px 14px',
-                color: G.green,
-                fontSize: 13,
-              }}
-            >
-              Olá, {fu.nome.split(' ')[0]}! Crie sua senha pessoal.
-            </div>
-            <input
-              placeholder="Nova senha (mín. 6)"
-              type="password"
-              value={ns}
-              onChange={(e) => setNs(e.target.value)}
-              style={I}
-            />
-            <input
-              placeholder="Confirmar senha"
-              type="password"
-              value={cs}
-              onChange={(e) => setCs(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && save()}
-              style={I}
-            />
-            {e && (
-              <div
-                style={{
-                  color: '#ff3b30',
-                  fontSize: 12,
-                  background: 'rgba(255,59,48,.1)',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                }}
-              >
-                {e}
-              </div>
-            )}
-            <button
-              onClick={save}
-              style={BG({ width: '100%', padding: 14, borderRadius: 14 })}
-            >
-              Criar Senha e Entrar
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <input
-              placeholder="Nome completo"
-              value={n}
-              onChange={(e) => setN(e.target.value)}
-              style={I}
-            />
-            <input
-              placeholder="Senha"
-              type="password"
-              value={s}
-              onChange={(e) => setS(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && go()}
-              style={I}
-            />
-            {e && (
-              <div
-                style={{
-                  color: '#ff3b30',
-                  fontSize: 12,
-                  background: 'rgba(255,59,48,.1)',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                }}
-              >
-                {e}
-              </div>
-            )}
-            <button
-              onClick={go}
-              style={BG({
-                width: '100%',
-                padding: 14,
-                borderRadius: 14,
-                marginTop: 4,
-              })}
-            >
-              Entrar
-            </button>
-            <div style={{ color: G.tm, fontSize: 12, textAlign: 'center' }}>
-              Solicite acesso ao administrador
-            </div>
-          </div>
-        )}
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} style={I}/>
+          <input placeholder="Senha" type="password" value={senha} onChange={e=>setSenha(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()} style={I}/>
+          {e&&<div style={{color:'#ff3b30',fontSize:12,background:'rgba(255,59,48,.1)',borderRadius:10,padding:'10px 14px'}}>{e}</div>}
+          <button onClick={go} disabled={load} style={BG({width:'100%',padding:14,borderRadius:14,marginTop:4,opacity:load?0.7:1})}>
+            {load?'Entrando...':'Entrar'}
+          </button>
+          <div style={{color:G.tm,fontSize:12,textAlign:'center'}}>Solicite acesso ao administrador</div>
+        </div>
       </div>
     </div>
   );
