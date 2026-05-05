@@ -2,9 +2,6 @@ import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc,
 import { useState, useMemo, useEffect } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
 
-const [sp, setSp] = useState(true);
-const [scr, setScr] = useState('welcome');
-
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 const iniciarNotificacoes = async (userId = null) => {
@@ -905,7 +902,7 @@ function Inscricao({ onVoltar }) {
 // ── MAIN ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [sp, setSp] = useState(true);
-  const [scr, setScr] = useState('login');
+  const [scr, setScr] = useState('welcome');
   const [user, setUser] = useState(null);
   const [pg, setPg] = useState('home');
   const [menu, setMenu] = useState(false);
