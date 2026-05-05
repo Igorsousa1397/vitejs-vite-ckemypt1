@@ -4,13 +4,18 @@ import { messaging, getToken, onMessage } from './firebase';
 
 const VAPID_KEY = 'BBVluqF6EX97RYmDoQDIIS1C4UB7aFocmFR3sZIEkcXeB2L81JCov9407bX6HEDlBguNflnrhLVgSDUeeYXLQ_4';
 
-const iniciarNotificacoes = async () => {
+const iniciarNotificacoes = async (userId = null) => {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return null;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-    // Salva o token no Firestore vinculado ao usuário
-    if (token) await setDoc(doc(db, 'tokens', token), { token, data: new Date().toISOString() }, { merge: true });
+    if (token) {
+      await setDoc(doc(db, 'tokens', token), { 
+        token, 
+        userId: userId || 'unknown',
+        data: new Date().toISOString() 
+      }, { merge: true });
+    }
     return token;
   } catch (err) {
     console.error('Erro FCM:', err);
@@ -774,10 +779,10 @@ export default function App() {
         setScr('app');
         if (snap.data().perfil === 'servo') setPg('smins');
         if (Notification.permission === 'granted') {
-          iniciarNotificacoes().then(token => {
-            if (token) setNotif(true);
-          });
-        }
+        iniciarNotificacoes(firebaseUser.uid).then(token => {
+          if (token) setNotif(true);
+        });
+      }
       }
     }
     setSp(false);
@@ -889,7 +894,7 @@ export default function App() {
       </span>
       <button
         onClick={async () => {
-          const token = await iniciarNotificacoes();
+          const token = await iniciarNotificacoes(user?.id);;
           if (token) {
             setNotif(true);
             showT('Notificações ativas!', 'n');
@@ -1097,7 +1102,7 @@ export default function App() {
             <Pill c={PERFIS[role].l} bg="rgba(99,99,102,.2)" tc={G.tm} />
             <button
               onClick={async () => {
-                const token = await iniciarNotificacoes();
+                const token = await iniciarNotificacoes(user?.id);
                 if (token) {
                   setNotif(true);
                   showT('Notificações ativas!', 'n');
