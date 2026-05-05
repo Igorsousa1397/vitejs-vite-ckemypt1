@@ -4181,28 +4181,21 @@ function SvV({ users, setUsers, esc, edit, t }) {
     if (!f.fn) { t('Selecione uma equipe/função', 'w'); return; }
     setLoading(true);
     try {
-      // Cria usuário no Firebase Auth com senha temporária
-      const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth');
-      const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), 'Temp@' + Date.now());
-      // Gera link de reset via Firebase
-      await sendPasswordResetEmail(auth, f.email.trim());
-      // Envia email bonito via Resend
       const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
-      
-      // Salva no Firestore
-      const { setDoc, doc: firestoreDoc } = await import('firebase/firestore');
+      const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), 'Temp@2026!');
+      await sendPasswordResetEmail(auth, f.email.trim());
       const novoUser = {
         nome: nm, email: f.email.trim(), perfil: f.perfil,
         funcoes: f.fn ? [f.fn] : [], ativo: true, pago: false, primeiro: true,
       };
-      await setDoc(firestoreDoc(db, 'users', cred.user.uid), novoUser);
+      await setDoc(doc(db, 'users', cred.user.uid), novoUser);
       setUsers([...users, { id: cred.user.uid, ...novoUser }]);
       setF({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
       setSh(false);
       t('Servo adicionado! Email de acesso enviado ✉️');
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') t('Email já cadastrado', 'w');
-      else t('Erro ao cadastrar: ' + err.message, 'w');
+      else t('Erro: ' + err.message, 'w');
     }
     setLoading(false);
   };
