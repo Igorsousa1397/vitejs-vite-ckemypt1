@@ -4133,6 +4133,22 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   );
   const [saving, setSaving] = useState(false);
 
+  const precoItem = (item, tam) => {
+    if (!tam) return 0;
+    const grande = ['G1', 'G2', 'G3', 'G4'].includes(tam);
+    if (item === 'camisa') return grande ? 43 : 37;
+    if (item === 'blusa') return grande ? 105 : 90;
+    if (item === 'calca') return grande ? 75 : 70;
+    return 0;
+  };
+  
+  const totalPedido = () => {
+    const camisa = precoItem('camisa', form.camisa) * (form.qtdCamisas || 1);
+    const calca = precoItem('calca', form.calca) * (form.qtdCalcas || 1);
+    const blusa = precoItem('blusa', form.blusa) * (form.qtdBlusas || 1);
+    return camisa + calca + blusa;
+  };
+
   const salvarPedido = async () => {
     if (!form.camisa) { t('Selecione o tamanho da camiseta', 'w'); return; }
     setSaving(true);
@@ -4141,7 +4157,9 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
       camisa: form.camisa,
       qtdCamisas: form.qtdCamisas || 1,
       calca: form.calca || '',
+      qtdCalcas: form.qtdCalcas || 1,
       blusa: form.blusa || '',
+      qtdBlusas: form.qtdBlusas || 1,
       status: 'bloqueado',
       data: new Date().toLocaleString('pt-BR'),
     };
@@ -4219,8 +4237,8 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
               {/* CALÇA */}
               <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Calca</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                  <button onClick={() => !bloqueado && setForm({ ...form, calca: '' })}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
+                  <button onClick={() => !bloqueado && setForm({ ...form, calca: '', qtdCalcas: 1 })}
                     style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.calca ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.calca ? '#ff6b6b' : G.td, cursor: bloqueado ? 'default' : 'pointer' }}>
                     Nao quero
                   </button>
@@ -4231,13 +4249,27 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                     </button>
                   ))}
                 </div>
+                {form.calca && (
+                  <>
+                    <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Quantidade (max. 3)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                      <button onClick={() => !bloqueado && setForm({ ...form, qtdCalcas: Math.max(1, (form.qtdCalcas || 1) - 1) })}
+                        style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>−</button>
+                      <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: 'center' }}>
+                        {form.qtdCalcas || 1}
+                      </span>
+                      <button onClick={() => !bloqueado && setForm({ ...form, qtdCalcas: Math.min(3, (form.qtdCalcas || 1) + 1) })}
+                        style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>+</button>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* BLUSA DE FRIO */}
               <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Blusa de Frio</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                  <button onClick={() => !bloqueado && setForm({ ...form, blusa: '' })}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
+                  <button onClick={() => !bloqueado && setForm({ ...form, blusa: '', qtdBlusas: 1 })}
                     style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.blusa ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.blusa ? '#ff6b6b' : G.td, cursor: bloqueado ? 'default' : 'pointer' }}>
                     Nao quero
                   </button>
@@ -4248,7 +4280,58 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                     </button>
                   ))}
                 </div>
+                {form.blusa && (
+                  <>
+                    <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Quantidade (max. 3)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                      <button onClick={() => !bloqueado && setForm({ ...form, qtdBlusas: Math.max(1, (form.qtdBlusas || 1) - 1) })}
+                        style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>−</button>
+                      <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: 'center' }}>
+                        {form.qtdBlusas || 1}
+                      </span>
+                      <button onClick={() => !bloqueado && setForm({ ...form, qtdBlusas: Math.min(3, (form.qtdBlusas || 1) + 1) })}
+                        style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>+</button>
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* RESUMO DE VALORES */}
+              {(form.camisa || form.calca || form.blusa) && (
+                <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
+                  <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Resumo do Pedido</div>
+                  {form.camisa && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ color: G.td, fontSize: 13 }}>Camiseta {form.camisa} × {form.qtdCamisas || 1}</span>
+                      <span style={{ color: G.t, fontWeight: 600, fontSize: 13 }}>
+                        R$ {(precoItem('camisa', form.camisa) * (form.qtdCamisas || 1)).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  )}
+                  {form.calca && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ color: G.td, fontSize: 13 }}>Calca {form.calca}</span>
+                      <span style={{ color: G.t, fontWeight: 600, fontSize: 13 }}>R$ {precoItem('calca', form.calca).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
+                  {form.blusa && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ color: G.td, fontSize: 13 }}>Blusa de Frio {form.blusa}</span>
+                      <span style={{ color: G.t, fontWeight: 600, fontSize: 13 }}>R$ {precoItem('blusa', form.blusa).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
+                  <div style={{ height: 1, background: '#2a2a2a', margin: '10px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>Total</span>
+                    <span style={{ color: G.t, fontWeight: 800, fontSize: 14 }}>R$ {totalPedido().toFixed(2).replace('.', ',')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: G.green, fontWeight: 700, fontSize: 13 }}>Sinal (50%)</span>
+                    <span style={{ color: G.green, fontWeight: 800, fontSize: 13 }}>R$ {(totalPedido() * 0.5).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>* Encomenda mediante 50% do valor</div>
+                </div>
+              )}
 
               {/* BOTOES */}
               {!meuPedido && (
