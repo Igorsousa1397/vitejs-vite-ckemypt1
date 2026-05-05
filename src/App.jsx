@@ -2257,9 +2257,9 @@ function CkV({ ck, setCk, on, edit, t }) {
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
         {[
-          [encM.length + encH.length, 'Total Geral', '#636366'],
-          [lista.filter(e => e.pago).length, 'Pagos', G.green],
-          [lista.filter(e => !e.pago).length, 'Pendentes', '#ff3b30'],
+          [ck.length, 'Total', '#636366'],
+          [ck.filter((c) => c.ok).length, 'Chegaram', G.green],
+          [ck.filter((c) => !c.ok).length, 'Pendentes', '#ff9f0a'],
         ].map(([n, l, c]) => (
           <div key={l} style={{ background: '#111', borderRadius: 14, padding: '12px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
             <div style={ns(n)}>{n}</div>
