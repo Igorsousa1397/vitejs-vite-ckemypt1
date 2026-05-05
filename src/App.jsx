@@ -4127,7 +4127,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   const prazoDefinido = !!dataLimite;
   const prazoOk = prazoDefinido && hoje <= dataLimite;
   const meuPedido = uni.find((u) => u.userId === user.id);
-  const bloqueado = meuPedido && meuPedido.status !== 'aberto';
+  const bloqueado = meuPedido && meuPedido.status !== 'aberto' || (meuPedido && !meuPedido.status);
   const [form, setForm] = useState(
     meuPedido || { camisa: '', qtdCamisas: 1, calca: '', blusa: '' }
   );
@@ -4263,7 +4263,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                   {saving ? 'Salvando...' : 'Salvar Alteracao'}
                 </button>
               )}
-              {meuPedido && meuPedido.status === 'bloqueado' && (
+              {meuPedido && (meuPedido.status === 'bloqueado' || !meuPedido.status) && (
                 <button onClick={solicitarAlteracao}
                   style={{ ...BK({ width: '100%', padding: 14, borderRadius: 14 }), borderColor: 'rgba(255,159,10,.4)', color: '#ff9f0a' }}>
                   Solicitar Alteracao
@@ -4287,6 +4287,16 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   }), {});
 
   const pendentes = uni.filter(u => u.status === 'pendente').length;
+  const [dataTemp, setDataTemp] = useState(dataLimite);
+  const [savingData, setSavingData] = useState(false);
+
+  const salvarData = async () => {
+    if (!dataTemp) { t('Selecione uma data', 'w'); return; }
+    setSavingData(true);
+    await setDataLimite(dataTemp);
+    setSavingData(false);
+    t('Data limite salva!');
+  };
 
   const aprovar = async (userId) => {
     await setDoc(doc(db, 'uniformes', userId), { status: 'aberto' }, { merge: true });
@@ -4303,8 +4313,12 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
       {/* DATA LIMITE */}
       <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
         <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Data Limite para Solicitacoes</div>
-        <input type="date" value={dataLimite} onChange={(e) => setDataLimite(e.target.value)} style={I} />
-        {!dataLimite && (
+        <input type="date" value={dataTemp} onChange={(e) => setDataTemp(e.target.value)} style={{ ...I, marginBottom: 10 }} />
+        <button onClick={salvarData} disabled={savingData}
+          style={BG({ width: '100%', padding: 12, borderRadius: 12, opacity: savingData ? 0.7 : 1 })}>
+          {savingData ? 'Salvando...' : 'Salvar Data'}
+        </button>
+        {!dataTemp && (
           <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>Defina uma data para liberar solicitacoes aos servos.</div>
         )}
       </div>
