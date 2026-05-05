@@ -2906,12 +2906,8 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t }) {
 function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
   const [g, setG] = useState('M');
   const lista = g === 'M' ? encM : encH;
-  const setL = g === 'M' ? setEncM : setEncH;
   const dist = () => {
-    if (!lista.length) {
-      t('Nenhum encontrista', 'w');
-      return;
-    }
+    if (!lista.length) { t('Nenhum encontrista', 'w'); return; }
     const qs = (g === 'H' ? qh : qm).filter((q) => !q.maes);
     const sh = [...lista].sort(() => Math.random() - 0.5);
     const cp = qs.map((q) => ({ ...q, enc: [...q.enc] }));
@@ -2925,85 +2921,54 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
   };
   return (
     <div>
-      <Seg
-        opts={[
-          ['M', '♀ Mulheres'],
-          ['H', '♂ Homens'],
-        ]}
-        val={g}
-        set={setG}
-      />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+        {[
+          [lista.length, 'Total', '#636366'],
+          [lista.filter(e => e.pago).length, 'Pagos', G.green],
+        ].map(([n, l, c]) => (
+          <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
+            <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{n}</div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={g} set={setG} />
       <div style={{ marginTop: 10 }}>
-        {edit && (
-          <AddIn
-            ph="Adicionar encontrista..."
-            onAdd={(n) => {
-              setL([...lista, { id: Date.now(), nome: n }]);
-              t('✓');
-            }}
-            mt={0}
-          />
-        )}
-        <button
-          onClick={dist}
-          style={{
-            ...BG({
-              width: '100%',
-              padding: 12,
-              marginTop: 10,
-              marginBottom: 14,
-              borderRadius: 13,
-            }),
-            background: 'rgba(10,132,255,.15)',
-            border: '1px solid rgba(10,132,255,.3)',
-            color: '#64b5f6',
-          }}
-        >
+        <button onClick={dist}
+          style={{ ...BG({ width: '100%', padding: 12, marginTop: 10, marginBottom: 14, borderRadius: 13 }), background: 'rgba(10,132,255,.15)', border: '1px solid rgba(10,132,255,.3)', color: '#64b5f6' }}>
           🎲 Distribuir nos Quartos
         </button>
         {lista.length === 0 && (
-          <div
-            style={{
-              color: G.tm,
-              textAlign: 'center',
-              padding: 28,
-              fontSize: 13,
-            }}
-          >
-            Nenhum encontrista.
-          </div>
+          <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum encontrista.</div>
         )}
-        {lista.map((e, i) => (
-          <div
-            key={e.id}
-            className="fu"
-            style={{
-              background: G.card,
-              border: `1px solid ${G.cb}`,
-              borderLeft: `3px solid ${G.green}`,
-              borderRadius: 13,
-              padding: '12px 14px',
-              marginBottom: 7,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-              {e.nome}
-            </span>
-            {edit && (
-              <span
-                onClick={() => setL(lista.filter((_, j) => j !== i))}
-                style={{
-                  color: 'rgba(255,59,48,.5)',
-                  cursor: 'pointer',
-                  fontSize: 16,
-                }}
-              >
-                ×
-              </span>
-            )}
+        {lista.map((e) => (
+          <div key={e.id} className="fu"
+            style={{ background: G.card, border: `1px solid ${e.pago ? 'rgba(0,200,81,.3)' : 'rgba(255,59,48,.2)'}`, borderLeft: `3px solid ${e.pago ? G.green : '#ff3b30'}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{e.nome}</div>
+                {e.whatsapp && <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>📱 {e.whatsapp}</div>}
+                {e.cpf && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📋 {e.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</div>}
+                {e.celula && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>⛪ {e.celula}</div>}
+                {e.camiseta && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>👕 Camiseta {e.camiseta}</div>}
+                {e.igreja && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>🏛 {e.igreja}</div>}
+              </div>
+              <div style={{ marginLeft: 12, flexShrink: 0 }}>
+                <div
+                  onClick={async () => {
+                    if (!edit) return;
+                    await setDoc(doc(db, 'encontristas', e.id), { pago: !e.pago }, { merge: true });
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: edit ? 'pointer' : 'default', userSelect: 'none' }}>
+                  <div style={{ width: 42, height: 24, borderRadius: 20, background: e.pago ? G.green : '#ff3b30', transition: 'background .2s', position: 'relative', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 3, left: e.pago ? 19 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+                  </div>
+                  <span style={{ color: e.pago ? G.green : '#ff3b30', fontSize: 11, fontWeight: 700 }}>
+                    {e.pago ? 'Pago' : 'Pendente'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
