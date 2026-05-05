@@ -11,7 +11,7 @@ exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => 
 
   if (!tokens.length) return null;
 
-    const message = {
+  const message = {
     notification: {
       title: `${aviso.autor || 'Admin'} — Novo aviso`,
       body: aviso.txt,
@@ -23,3 +23,4 @@ exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => 
   console.log(`${response.successCount} notificações enviadas`);
   return null;
 });
+// v4

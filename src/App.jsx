@@ -779,10 +779,17 @@ export default function App() {
         setUser({ id: firebaseUser.uid, ...snap.data() });
         setScr('app');
         if (snap.data().perfil === 'servo') setPg('smins');
-        // Ativa notificações automaticamente para todos
-        iniciarNotificacoes(firebaseUser.uid).then(token => {
-          if (token) setNotif(true);
-        });
+        
+        if (Notification.permission === 'granted') {
+          iniciarNotificacoes(firebaseUser.uid).then(token => {
+            if (token) setNotif(true);
+          });
+        } else if (Notification.permission === 'default') {
+          // Primeira vez — pede permissão automaticamente
+          iniciarNotificacoes(firebaseUser.uid).then(token => {
+            if (token) setNotif(true);
+          });
+        }
       }
     }
     setSp(false);
