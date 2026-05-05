@@ -843,12 +843,12 @@ function Inscricao({ onVoltar }) {
 
       <div style={{ padding: '20px 20px 0', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '12px 14px', marginBottom: 8, color: G.green, fontSize: 13, lineHeight: 1.6 }}>
-          Dias 14, 15 e 16 de Novembro · Estrada do Tronco 485, Itaquaquecetuba
+          Dias 26, 27 e 28 de Junho · Estrada do Tronco 485, Itaquaquecetuba
         </div>
 
         <SLi c="Igreja *" />
         <Radio val={form.igreja} set={v => setForm({ ...form, igreja: v })}
-          opts={['Fonte Cajamar', 'Fonte Itajaí', 'Outro']} />
+          opts={['Fonte Cajamar', 'Fonte Itajaí', 'Fonte Barueri']} />
 
         <SLi c="Nome completo *" />
         <input placeholder="Sem abreviações" value={form.nome}
