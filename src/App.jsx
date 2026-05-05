@@ -660,23 +660,8 @@ const LABELS = {
 
 // ── SPLASH ───────────────────────────────────────────────────────────────────
 function Splash({ done }) {
-  useEffect(() => {
-    const t = setTimeout(done, 2000);
-    return () => clearTimeout(t);
-  }, []);
   return (
-    <div
-      className="splash"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
+    <div className="splash" style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <style>{css}</style>
       <div style={{ textAlign: 'center' }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus"
@@ -788,6 +773,11 @@ export default function App() {
         setUser({ id: firebaseUser.uid, ...snap.data() });
         setScr('app');
         if (snap.data().perfil === 'servo') setPg('smins');
+        if (Notification.permission === 'granted') {
+          iniciarNotificacoes().then(token => {
+            if (token) setNotif(true);
+          });
+        }
       }
     }
     setSp(false);
