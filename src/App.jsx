@@ -685,6 +685,7 @@ function Splash({ done }) {
 function Login({ onLogin }){
   const [email,setEmail]=useState('');
   const [senha,setSenha]=useState('');
+  const [showSenha,setShowSenha]=useState(false);
   const [e,setE]=useState('');
   const [load,setLoad]=useState(false);
 
@@ -706,14 +707,29 @@ function Login({ onLogin }){
     <div style={{minHeight:'100vh',background:'#000',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
       <style>{css}</style>
       <div style={{width:'100%',maxWidth:360}}>
-      <div style={{marginBottom:36,textAlign:'center'}}>
-        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-          style={{width:180,mixBlendMode:'screen',display:'block',margin:'0 auto 4px'}}/>
-        <div style={{color:G.tm,fontSize:12,letterSpacing:2,textTransform:'uppercase'}}>Portal do Encontro</div>
+        <div style={{marginBottom:36,textAlign:'center'}}>
+          <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+            style={{width:180,mixBlendMode:'screen',display:'block',margin:'0 auto 4px'}}/>
+          <div style={{color:G.tm,fontSize:12,letterSpacing:2,textTransform:'uppercase'}}>Portal do Encontro</div>
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} style={I}/>
-          <input placeholder="Senha" type="password" value={senha} onChange={e=>setSenha(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()} style={I}/>
+          <div style={{position:'relative'}}>
+            <input 
+              placeholder="Senha" 
+              type={showSenha ? 'text' : 'password'} 
+              value={senha} 
+              onChange={e=>setSenha(e.target.value)} 
+              onKeyDown={e=>e.key==='Enter'&&go()} 
+              style={{...I, paddingRight:44}}
+            />
+            <button
+              onClick={()=>setShowSenha(!showSenha)}
+              style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:G.tm,cursor:'pointer',fontSize:16,padding:4}}
+            >
+              {showSenha ? '🙈' : '👁'}
+            </button>
+          </div>
           {e&&<div style={{color:'#ff3b30',fontSize:12,background:'rgba(255,59,48,.1)',borderRadius:10,padding:'10px 14px'}}>{e}</div>}
           <button onClick={() => { vibrar(); go(); }} disabled={load} style={BG({width:'100%',padding:14,borderRadius:14,marginTop:4,opacity:load?0.7:1})}>
             {load?'Entrando...':'Entrar'}
