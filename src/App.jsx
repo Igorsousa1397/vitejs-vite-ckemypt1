@@ -748,11 +748,29 @@ export default function App() {
   ]);
   const [encH, setEncH] = useState([]);
   const [encM, setEncM] = useState([]);
-  const [uni, setUni] = useState(UNI_INIT);
-  const [dataLimiteUni, setDataLimiteUni] = useState(DATA_LIMITE_UNI);
+  const [uni, setUni] = useState([]);
+  const [dataLimiteUni, setDataLimiteUni] = useState('');
   const [toast, setToast] = useState(null);
   const [notif, setNotif] = useState(false);
-
+  
+  useEffect(() => {
+    const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
+      if (snap.exists()) {
+        const d = snap.data();
+        if (d.dataLimite) setDataLimiteUni(d.dataLimite);
+      }
+    });
+    const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
+      setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
+    });
+    return () => { unsubConfig(); unsubUni(); };
+  }, []);
+  
+  const salvarDataLimite = async (data) => {
+    setDataLimiteUni(data);
+    await setDoc(doc(db, 'config', 'uniformes'), { dataLimite: data }, { merge: true });
+  };
+  
   const showT = (m, tp = 's') => {
     setToast({ m, tp });
     setTimeout(() => setToast(null), 2500);
@@ -773,17 +791,13 @@ export default function App() {
   };
   const role = user?.perfil || 'servo';
   const isAdm = role === 'admin';
-
+  
   const uQH = (n, fn) => setQh(qh.map((q) => (q.num === n ? fn(q) : q)));
   const uQM = (n, fn) => setQm(qm.map((q) => (q.num === n ? fn(q) : q)));
   const uOn = (n, fn) => setOn(on.map((o) => (o.num === n ? fn(o) : o)));
   const uEs = (id, fn) => setEsc(esc.map((e) => (e.id === id ? fn(e) : e)));
   const broadcast = (msg) => {
-    if (
-      notif &&
-      'Notification' in window &&
-      Notification.permission === 'granted'
-    )
+    if (notif && 'Notification' in window && Notification.permission === 'granted')
       new Notification('🔔 servos.', { body: msg });
   };
   const sN = (nm, hr) => {
@@ -794,7 +808,7 @@ export default function App() {
     broadcast(msg);
     showT(msg, 'n');
   };
-
+  
   if (sp) return <Splash done={() => setSp(false)} />;
   if (scr === 'login')
     return <Login onLogin={login} users={users} setUsers={setUsers} />;
@@ -1104,7 +1118,7 @@ export default function App() {
               uni={uni}
               setUni={setUni}
               dataLimite={dataLimiteUni}
-              setDataLimite={() => {}}
+              setDataLimite={salvarDataLimite}
               user={user}
               role="servo"
               edit={false}
@@ -1387,7 +1401,7 @@ export default function App() {
             uni={uni}
             setUni={setUni}
             dataLimite={dataLimiteUni}
-            setDataLimite={setDataLimiteUni}
+            setDataLimite={salvarDataLimite}
             user={user}
             role={role}
             edit={isAdm}
@@ -4104,14 +4118,7 @@ function SvV({ users, setUsers, esc, edit, t }) {
   );
 }
 
-// ── UNIFORMES ────────────────────────────────────────────────────────────────
 const TAMANHOS = ['P', 'M', 'G', 'G1', 'G2', 'G3'];
-const ITENS_UNI = [
-  { k: 'camisa', l: 'Camiseta (inclusa)', incluso: true },
-  { k: 'camisa2', l: 'Camiseta extra' },
-  { k: 'calca', l: 'Calça' },
-  { k: 'blusa', l: 'Blusa de frio' },
-];
 
 function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   const isAdm = edit;
@@ -4120,276 +4127,173 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   const prazoOk = prazoDefinido && hoje <= dataLimite;
   const meuPedido = uni.find((u) => u.userId === user.id);
   const [form, setForm] = useState(
-    meuPedido || { camisa: 'M', camisa2: '', calca: '', blusa: '' }
+    meuPedido || { camisa: '', qtdCamisas: 1, calca: '', blusa: '' }
   );
+  const [saving, setSaving] = useState(false);
 
-  const salvarPedido = () => {
+  const salvarPedido = async () => {
+    if (!form.camisa) { t('Selecione o tamanho da camiseta', 'w'); return; }
+    setSaving(true);
     const pedido = {
-      userId: user.id,
       nome: user.nome,
-      ...form,
+      camisa: form.camisa,
+      qtdCamisas: form.qtdCamisas || 1,
+      calca: form.calca || '',
+      blusa: form.blusa || '',
       data: new Date().toLocaleString('pt-BR'),
     };
-    setUni(uni.filter((u) => u.userId !== user.id).concat(pedido));
+    await setDoc(doc(db, 'uniformes', user.id), pedido);
+    setSaving(false);
     t('Pedido salvo! ✓');
   };
 
   // SERVO VIEW
-  if (!isAdm)
-    return (
-      <div>
-        {!prazoDefinido && (
-          <div
-            style={{
-              background: 'rgba(99,99,102,.1)',
-              border: '1px solid #2a2a2a',
-              borderRadius: 14,
-              padding: '20px',
-              textAlign: 'center',
-              color: G.tm,
-              fontSize: 13,
-            }}
-          >
-            📋 As solicitações de uniforme ainda não foram abertas.
-            <br />
-            Aguarde a data ser definida pelo admin.
-          </div>
-        )}
-        {prazoDefinido && (
-          <>
-            <div
-              style={{
-                background: prazoOk
-                  ? 'rgba(0,200,81,.08)'
-                  : 'rgba(255,59,48,.08)',
-                border: `1px solid ${
-                  prazoOk ? 'rgba(0,200,81,.2)' : 'rgba(255,59,48,.2)'
-                }`,
-                borderRadius: 14,
-                padding: '12px 14px',
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  color: prazoOk ? G.green : '#ff6b6b',
-                  fontWeight: 700,
-                  fontSize: 13,
-                }}
-              >
-                {prazoOk ? '📅 Prazo aberto' : '⏰ Prazo encerrado'}
-              </div>
-              <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
-                Data limite:{' '}
-                {new Date(dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}
-              </div>
+  if (!isAdm) return (
+    <div>
+      {!prazoDefinido && (
+        <div style={{ background: 'rgba(99,99,102,.1)', border: '1px solid #2a2a2a', borderRadius: 14, padding: 20, textAlign: 'center', color: G.tm, fontSize: 13 }}>
+          📋 As solicitações de uniforme ainda não foram abertas.<br />
+          Aguarde a data ser definida pelo admin.
+        </div>
+      )}
+      {prazoDefinido && (
+        <>
+          <div style={{ background: prazoOk ? 'rgba(0,200,81,.08)' : 'rgba(255,59,48,.08)', border: `1px solid ${prazoOk ? 'rgba(0,200,81,.2)' : 'rgba(255,59,48,.2)'}`, borderRadius: 14, padding: '12px 14px', marginBottom: 14 }}>
+            <div style={{ color: prazoOk ? G.green : '#ff6b6b', fontWeight: 700, fontSize: 13 }}>
+              {prazoOk ? '📅 Prazo aberto' : '⏰ Prazo encerrado'}
             </div>
-            {prazoOk && (
-              <div
-                style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-              >
-                <div
-                  style={{
-                    background: 'rgba(0,200,81,.06)',
-                    border: '1px solid rgba(0,200,81,.15)',
-                    borderRadius: 12,
-                    padding: '11px 14px',
-                    color: G.td,
-                    fontSize: 12,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  👕 Todo servo recebe{' '}
-                  <strong style={{ color: G.green }}>1 camiseta inclusa</strong>
-                  . Itens extras têm custo.
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
+              Data limite: {new Date(dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}
+            </div>
+          </div>
+
+          {prazoOk && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: 'rgba(0,200,81,.06)', border: '1px solid rgba(0,200,81,.15)', borderRadius: 12, padding: '11px 14px', color: G.td, fontSize: 12, lineHeight: 1.6 }}>
+                👕 Todo servo recebe <strong style={{ color: G.green }}>1 camiseta inclusa</strong>. Itens extras têm custo.
+              </div>
+
+              {/* CAMISETA */}
+              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  👕 Camiseta <Pill c="Inclusa" bg="rgba(0,200,81,.12)" tc={G.green} />
                 </div>
-                {ITENS_UNI.map((item) => (
-                  <div
-                    key={item.k}
-                    style={{
-                      background: G.card,
-                      border: `1px solid ${G.cb}`,
-                      borderRadius: 14,
-                      padding: '14px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: G.t,
-                        fontWeight: 600,
-                        fontSize: 13,
-                        marginBottom: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      {item.l}
-                      {item.incluso && (
-                        <Pill
-                          c="Inclusa"
-                          bg="rgba(0,200,81,.12)"
-                          tc={G.green}
-                        />
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                      {!item.incluso && (
-                        <button
-                          onClick={() => setForm({ ...form, [item.k]: '' })}
-                          style={{
-                            ...BK({
-                              padding: '7px 13px',
-                              borderRadius: 50,
-                              fontSize: 12,
-                            }),
-                            borderColor: !form[item.k]
-                              ? 'rgba(0,200,81,.5)'
-                              : '#2a2a2a',
-                            color: !form[item.k] ? G.green : G.td,
-                          }}
-                        >
-                          Não quero
-                        </button>
-                      )}
-                      {TAMANHOS.map((tm) => (
-                        <button
-                          key={tm}
-                          onClick={() => setForm({ ...form, [item.k]: tm })}
-                          style={{
-                            ...BK({
-                              padding: '7px 13px',
-                              borderRadius: 50,
-                              fontSize: 12,
-                              fontWeight: 700,
-                            }),
-                            borderColor:
-                              form[item.k] === tm
-                                ? 'rgba(0,200,81,.5)'
-                                : '#2a2a2a',
-                            color: form[item.k] === tm ? G.green : G.td,
-                            background:
-                              form[item.k] === tm
-                                ? 'rgba(0,200,81,.08)'
-                                : 'transparent',
-                          }}
-                        >
-                          {tm}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <button
-                  onClick={salvarPedido}
-                  style={BG({ width: '100%', padding: 14, borderRadius: 14 })}
-                >
-                  💾 Salvar Pedido
-                </button>
+                <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Tamanho</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
+                  {TAMANHOS.map((tm) => (
+                    <button key={tm} onClick={() => setForm({ ...form, camisa: tm })}
+                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.camisa === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.camisa === tm ? G.green : G.td, background: form.camisa === tm ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+                      {tm}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Quantidade (máx. 3)</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                  <button onClick={() => setForm({ ...form, qtdCamisas: Math.max(1, (form.qtdCamisas || 1) - 1) })}
+                    style={BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 })}>−</button>
+                  <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: 'center' }}>
+                    {form.qtdCamisas || 1}
+                  </span>
+                  <button onClick={() => setForm({ ...form, qtdCamisas: Math.min(3, (form.qtdCamisas || 1) + 1) })}
+                    style={BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 })}>+</button>
+                </div>
               </div>
-            )}
-            {!prazoOk && (
-              <div
-                style={{
-                  color: G.tm,
-                  textAlign: 'center',
-                  padding: 28,
-                  fontSize: 13,
-                }}
-              >
-                O prazo para solicitação encerrou.
+
+              {/* CALÇA */}
+              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>👖 Calça</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  <button onClick={() => setForm({ ...form, calca: '' })}
+                    style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.calca ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.calca ? '#ff6b6b' : G.td }}>
+                    Não quero
+                  </button>
+                  {TAMANHOS.map((tm) => (
+                    <button key={tm} onClick={() => setForm({ ...form, calca: tm })}
+                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.calca === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.calca === tm ? G.green : G.td, background: form.calca === tm ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+                      {tm}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
-    );
+
+              {/* BLUSA DE FRIO */}
+              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>🧥 Blusa de Frio</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  <button onClick={() => setForm({ ...form, blusa: '' })}
+                    style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.blusa ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.blusa ? '#ff6b6b' : G.td }}>
+                    Não quero
+                  </button>
+                  {TAMANHOS.map((tm) => (
+                    <button key={tm} onClick={() => setForm({ ...form, blusa: tm })}
+                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.blusa === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.blusa === tm ? G.green : G.td, background: form.blusa === tm ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+                      {tm}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {meuPedido && (
+                <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '10px 14px', color: G.green, fontSize: 12 }}>
+                  ✓ Pedido já registrado — salve novamente para atualizar.
+                </div>
+              )}
+
+              <button onClick={salvarPedido} disabled={saving}
+                style={BG({ width: '100%', padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
+                {saving ? 'Salvando...' : '💾 Salvar Pedido'}
+              </button>
+            </div>
+          )}
+          {!prazoOk && (
+            <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+              O prazo para solicitação encerrou.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 
   // ADMIN VIEW
+  const resumo = (key) => TAMANHOS.reduce((a, tm) => ({
+    ...a, [tm]: uni.filter(u => u[key] === tm).length
+  }), {});
+
   return (
     <div>
-      <div
-        style={{
-          background: G.card,
-          border: `1px solid ${G.cb}`,
-          borderRadius: 14,
-          padding: 14,
-          marginBottom: 14,
-        }}
-      >
-        <div
-          style={{
-            color: G.t,
-            fontWeight: 700,
-            fontSize: 14,
-            marginBottom: 10,
-          }}
-        >
-          📅 Data Limite para Solicitações
-        </div>
-        <input
-          type="date"
-          value={dataLimite}
-          onChange={(e) => setDataLimite(e.target.value)}
-          style={I}
-        />
+      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>📅 Data Limite para Solicitações</div>
+        <input type="date" value={dataLimite} onChange={(e) => setDataLimite(e.target.value)} style={I} />
         {!dataLimite && (
-          <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>
-            ⚠️ Defina uma data para liberar solicitações aos servos.
-          </div>
+          <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>⚠️ Defina uma data para liberar solicitações aos servos.</div>
         )}
       </div>
-      {/* resumo */}
+
       {uni.length > 0 && (
-        <div
-          style={{
-            background: G.card,
-            border: `1px solid ${G.cb}`,
-            borderRadius: 14,
-            padding: 14,
-            marginBottom: 14,
-          }}
-        >
-          <div
-            style={{
-              color: G.t,
-              fontWeight: 700,
-              fontSize: 13,
-              marginBottom: 10,
-            }}
-          >
-            Resumo de Pedidos ({uni.length})
-          </div>
-          {ITENS_UNI.map((item) => {
-            const pedidos = uni.filter((u) => u[item.k]);
-            if (!pedidos.length) return null;
-            const cnt = TAMANHOS.reduce(
-              (a, tm) => ({
-                ...a,
-                [tm]: pedidos.filter((u) => u[item.k] === tm).length,
-              }),
-              {}
-            );
+        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+          <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>📊 Resumo ({uni.length} pedidos)</div>
+          {[
+            { key: 'camisa', label: '👕 Camisetas' },
+            { key: 'calca', label: '👖 Calças' },
+            { key: 'blusa', label: '🧥 Blusas de Frio' },
+          ].map(({ key, label }) => {
+            const r = resumo(key);
+            const total = Object.values(r).reduce((a, b) => a + b, 0);
+            if (!total) return null;
             return (
-              <div key={item.k} style={{ marginBottom: 10 }}>
-                <div
-                  style={{
-                    color: G.td,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    marginBottom: 6,
-                  }}
-                >
-                  {item.l}
+              <div key={key} style={{ marginBottom: 12 }}>
+                <div style={{ color: G.td, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                  {label}
+                  {key === 'camisa' && (
+                    <span style={{ color: G.tm, marginLeft: 8 }}>
+                      (total camisetas: {uni.reduce((a, u) => a + (u.qtdCamisas || 1), 0)})
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {TAMANHOS.filter((tm) => cnt[tm] > 0).map((tm) => (
-                    <Pill
-                      key={tm}
-                      c={`${tm}: ${cnt[tm]}`}
-                      bg="#1e1e1e"
-                      tc={G.td}
-                    />
+                  {TAMANHOS.filter(tm => r[tm] > 0).map(tm => (
+                    <Pill key={tm} c={`${tm}: ${r[tm]}`} bg="#1e1e1e" tc={G.td} />
                   ))}
                 </div>
               </div>
@@ -4397,57 +4301,20 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
           })}
         </div>
       )}
+
       <SL c={`Pedidos (${uni.length})`} mt={0} />
       {uni.length === 0 && (
-        <div
-          style={{
-            color: G.tm,
-            textAlign: 'center',
-            padding: 28,
-            fontSize: 13,
-          }}
-        >
-          Nenhum pedido ainda.
-        </div>
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum pedido ainda.</div>
       )}
       {uni.map((u, i) => (
-        <div
-          key={i}
-          className="fu"
-          style={{
-            background: G.card,
-            border: `1px solid ${G.cb}`,
-            borderLeft: `3px solid ${G.green}`,
-            borderRadius: 13,
-            padding: '12px 14px',
-            marginBottom: 7,
-          }}
-        >
-          <div
-            style={{
-              color: G.t,
-              fontWeight: 700,
-              fontSize: 13,
-              marginBottom: 8,
-            }}
-          >
-            {u.nome}
-          </div>
+        <div key={i} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>
+          <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{u.nome}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {ITENS_UNI.map((item) =>
-              u[item.k] ? (
-                <Pill
-                  key={item.k}
-                  c={`${item.l.split(' ')[0]}: ${u[item.k]}`}
-                  bg="#1e1e1e"
-                  tc={G.td}
-                />
-              ) : null
-            )}
+            <Pill c={`👕 ${u.camisa} × ${u.qtdCamisas || 1}`} bg="#1e1e1e" tc={G.td} />
+            {u.calca && <Pill c={`👖 ${u.calca}`} bg="#1e1e1e" tc={G.td} />}
+            {u.blusa && <Pill c={`🧥 ${u.blusa}`} bg="#1e1e1e" tc={G.td} />}
           </div>
-          <div style={{ color: G.tm, fontSize: 11, marginTop: 6 }}>
-            🕐 {u.data}
-          </div>
+          <div style={{ color: G.tm, fontSize: 11, marginTop: 6 }}>🕐 {u.data}</div>
         </div>
       ))}
     </div>
