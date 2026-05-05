@@ -2,6 +2,9 @@ import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc,
 import { useState, useMemo, useEffect } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
 
+const [sp, setSp] = useState(true);
+const [scr, setScr] = useState('welcome'); 
+
 const vibrar = (ms = 50) => {
   if ('vibrate' in navigator) navigator.vibrate(ms);
 };
@@ -681,6 +684,163 @@ function Splash({ done }) {
   );
 }
 
+// ── WELCOME ──────────────────────────────────────────────────────────────────
+function Welcome({ onServos, onEncontrista }) {
+  return (
+    <div style={{ minHeight: '100vh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: 32, paddingBottom: 48 }}>
+      <style>{css}</style>
+      {/* Fundo */}
+      <img src="/campo.jpg" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+      {/* Overlay escuro */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.75) 100%)', zIndex: 1 }} />
+      {/* Conteúdo */}
+      <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 360, textAlign: 'center' }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{ width: 200, mixBlendMode: 'screen', display: 'block', margin: '0 auto 8px' }} />
+        <div style={{ color: 'rgba(255,255,255,.6)', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 40 }}>
+          Comunidade Peniel
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button onClick={onEncontrista}
+            style={BG({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 })}>
+            Sou Encontrista
+          </button>
+          <button onClick={onServos}
+            style={{ ...BK({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 }), borderColor: 'rgba(255,255,255,.3)', color: '#fff' }}>
+            Sou Servo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── INSCRIÇÃO ─────────────────────────────────────────────────────────────────
+function Inscricao({ onVoltar }) {
+  const [form, setForm] = useState({
+    igreja: '', nome: '', cpf: '', nascimento: '', sexo: '',
+    whatsapp: '', celula: '', camiseta: '', emergencia: '',
+    medicamento: '', doenca: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const salvar = async () => {
+    if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
+      alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
+      return;
+    }
+    setSaving(true);
+    try {
+      await addDoc(collection(db, 'encontristas'), {
+        ...form,
+        criadoEm: new Date().toLocaleString('pt-BR'),
+      });
+      setDone(true);
+    } catch (err) {
+      alert('Erro ao enviar. Tente novamente.');
+    }
+    setSaving(false);
+  };
+
+  if (done) return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ textAlign: 'center', maxWidth: 360 }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🙏</div>
+        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Inscrição realizada!</div>
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
+          Sua inscrição foi recebida com sucesso.<br />Em breve entraremos em contato.
+        </div>
+        <button onClick={onVoltar} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
+          Voltar
+        </button>
+      </div>
+    </div>
+  );
+
+  const iI = { ...I, marginBottom: 0 };
+  const SLi = ({ c }) => <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{c}</div>;
+  const Radio = ({ name, val, set, opts }) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {opts.map(o => (
+        <button key={o} onClick={() => set(o)}
+          style={{ ...BK({ padding: '8px 14px', borderRadius: 50, fontSize: 13 }), borderColor: val === o ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: val === o ? G.green : G.td, background: val === o ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#000', paddingBottom: 40 }}>
+      <style>{css}</style>
+      {/* Header */}
+      <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 50 }}>
+        <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+        <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Inscrição — Encontro com Deus</span>
+      </div>
+
+      <div style={{ padding: '20px 20px 0', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '12px 14px', marginBottom: 8, color: G.green, fontSize: 13, lineHeight: 1.6 }}>
+          Dias 14, 15 e 16 de Novembro · Estrada do Tronco 485, Itaquaquecetuba
+        </div>
+
+        <SLi c="Igreja *" />
+        <Radio val={form.igreja} set={v => setForm({ ...form, igreja: v })}
+          opts={['Fonte Cajamar', 'Fonte Itajaí', 'Outro']} />
+
+        <SLi c="Nome completo *" />
+        <input placeholder="Sem abreviações" value={form.nome}
+          onChange={e => setForm({ ...form, nome: e.target.value })} style={iI} />
+
+        <SLi c="CPF" />
+        <input placeholder="Sem ponto e dígito" value={form.cpf}
+          onChange={e => setForm({ ...form, cpf: e.target.value })} style={iI} />
+
+        <SLi c="Data de Nascimento" />
+        <input type="date" value={form.nascimento}
+          onChange={e => setForm({ ...form, nascimento: e.target.value })} style={iI} />
+
+        <SLi c="Sexo *" />
+        <Radio val={form.sexo} set={v => setForm({ ...form, sexo: v })}
+          opts={['Feminino', 'Masculino']} />
+
+        <SLi c="WhatsApp *" />
+        <input placeholder="(11) 99999-9999" value={form.whatsapp} type="tel"
+          onChange={e => setForm({ ...form, whatsapp: e.target.value })} style={iI} />
+
+        <SLi c="Célula / Como está indo" />
+        <input placeholder="Nome da célula ou como chegou ao encontro" value={form.celula}
+          onChange={e => setForm({ ...form, celula: e.target.value })} style={iI} />
+
+        <SLi c="Tamanho da Camiseta *" />
+        <Radio val={form.camiseta} set={v => setForm({ ...form, camiseta: v })}
+          opts={['P', 'M', 'G', 'GG', 'EXG', 'G1', 'G2', 'G3']} />
+
+        <SLi c="Contato de Emergência" />
+        <input placeholder="Nome e telefone" value={form.emergencia}
+          onChange={e => setForm({ ...form, emergencia: e.target.value })} style={iI} />
+
+        <SLi c="Toma algum medicamento?" />
+        <input placeholder="Qual?" value={form.medicamento}
+          onChange={e => setForm({ ...form, medicamento: e.target.value })} style={iI} />
+
+        <SLi c="Tem alguma doença crônica?" />
+        <input placeholder="Qual?" value={form.doenca}
+          onChange={e => setForm({ ...form, doenca: e.target.value })} style={iI} />
+
+        <button onClick={salvar} disabled={saving}
+          style={BG({ width: '100%', padding: 16, borderRadius: 16, marginTop: 28, fontSize: 15, opacity: saving ? 0.7 : 1 })}>
+          {saving ? 'Enviando...' : 'Enviar Inscrição'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── LOGIN ────────────────────────────────────────────────────────────────────
 function Login({ onLogin }){
   const [email,setEmail]=useState('');
@@ -868,8 +1028,16 @@ export default function App() {
   };
   
   if (sp) return <Splash done={() => setSp(false)} />;
-  if (scr === 'login')
-    return <Login onLogin={login} users={users} setUsers={setUsers} />;
+  if (scr === 'welcome') return (
+    <Welcome
+      onServos={() => setScr('login')}
+      onEncontrista={() => setScr('inscricao')}
+    />
+  );
+  if (scr === 'inscricao') return (
+    <Inscricao onVoltar={() => setScr('welcome')} />
+  );
+  if (scr === 'login') return <Login onLogin={login} users={users} setUsers={setUsers} />;
 
   // shared top bar
   const TB = () => (
