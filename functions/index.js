@@ -24,89 +24,69 @@ exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => 
 });
 
 // ── CRIAR PAGAMENTO MERCADO PAGO ─────────────────────────────────────────────
-exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
+    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const { encontristaId, nome, email } = req.body;
-  if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
+    const { encontristaId, nome, email } = req.body;
+    if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
 
-  const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
-
-  const body = JSON.stringify({
-    items: [{
-      title: 'Inscrição Encontro com Deus',
-      quantity: 1,
-      unit_price: 1.00, // R$ 1,00 para teste
-      currency_id: 'BRL',
-    }],
-    payer: { name: nome || 'Encontrista', email: email || 'test@test.com' },
-    external_reference: encontristaId,
-    back_urls: {
-      success: 'https://servos-peniel.vercel.app',
-      failure: 'https://servos-peniel.vercel.app',
-      pending: 'https://servos-peniel.vercel.app',
-    },
-    auto_return: 'approved',
-    notification_url: `https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento`,
-  });
-
-  const options = {
-    hostname: 'api.mercadopago.com',
-    path: '/checkout/preferences',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ACCESS_TOKEN}`,
-    },
-  };
-
-  const mpReq = https.request(options, (mpRes) => {
-    let data = '';
-    mpRes.on('data', chunk => data += chunk);
-    mpRes.on('end', () => {
-      const response_data = JSON.parse(data);
-      res.json({ init_point: response_data.init_point, id: response_data.id });
-    });
-  });
-
-  mpReq.on('error', (e) => res.status(500).json({ error: e.message }));
-  mpReq.write(body);
-  mpReq.end();
-});
-
-// ── WEBHOOK PAGAMENTO ────────────────────────────────────────────────────────
-exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
-  const { type, data } = req.body;
-
-  if (type === 'payment') {
-    const paymentId = data.id;
     const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+
+    const body = JSON.stringify({
+      items: [{
+        title: 'Inscrição Encontro com Deus',
+        quantity: 1,
+        unit_price: 1.00,
+        currency_id: 'BRL',
+      }],
+      payer: {
+        name: nome || 'Encontrista',
+        email: email || 'pagador@email.com', // ← email padrão válido
+      },
+      external_reference: encontristaId,
+      back_urls: {
+        success: 'https://servos-peniel.vercel.app',
+        failure: 'https://servos-peniel.vercel.app',
+        pending: 'https://servos-peniel.vercel.app',
+      },
+      auto_return: 'approved',
+      notification_url: 'https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento',
+    });
 
     const options = {
       hostname: 'api.mercadopago.com',
-      path: `/v1/payments/${paymentId}`,
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` },
+      path: '/checkout/preferences',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Length': Buffer.byteLength(body),
+      },
     };
 
-    https.get(options, (mpRes) => {
+    const mpReq = https.request(options, (mpRes) => {
       let data = '';
       mpRes.on('data', chunk => data += chunk);
-      mpRes.on('end', async () => {
-        const payment = JSON.parse(data);
-        if (payment.status === 'approved') {
-          const encontristaId = payment.external_reference;
-          await admin.firestore()
-            .collection('encontristas')
-            .doc(encontristaId)
-            .update({ pago: true, pagamentoId: paymentId });
-          console.log(`Encontrista ${encontristaId} marcado como pago!`);
+      mpRes.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          console.log('MP Response:', JSON.stringify(parsed));
+          if (parsed.init_point) {
+            res.json({ init_point: parsed.init_point, id: parsed.id });
+          } else {
+            res.status(500).json({ error: 'init_point não retornado', details: parsed });
+          }
+        } catch (e) {
+          res.status(500).json({ error: 'Erro ao parsear resposta', raw: data });
         }
-        res.sendStatus(200);
       });
-    }).on('error', () => res.sendStatus(500));
-  } else {
-    res.sendStatus(200);
-  }
-});
-// v5
+    });
+
+    mpReq.on('error', (e) => {
+      console.error('Erro MP:', e.message);
+      res.status(500).json({ error: e.message });
+    });
+    mpReq.write(body);
+    mpReq.end();
+  });
+  // v6
