@@ -4,12 +4,12 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, se
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCC5a-yhc0myEnlhcs5pgCXOSx1h6b5CmU",
-  authDomain: "servos-peniel.firebaseapp.com",
-  projectId: "servos-peniel",
-  storageBucket: "servos-peniel.firebasestorage.app",
-  messagingSenderId: "743267134560",
-  appId: "1:743267134560:web:b3a1b2282eb3970f856705"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);

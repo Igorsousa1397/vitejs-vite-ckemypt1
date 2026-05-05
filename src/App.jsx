@@ -6,7 +6,7 @@ const vibrar = (ms = 50) => {
   if ('vibrate' in navigator) navigator.vibrate(ms);
 };
 
-const VAPID_KEY = 'BBVluqF6EX97RYmDoQDIIS1C4UB7aFocmFR3sZIEkcXeB2L81JCov9407bX6HEDlBguNflnrhLVgSDUeeYXLQ_4';
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 const iniciarNotificacoes = async (userId = null) => {
   try {
@@ -4041,46 +4041,7 @@ function SvV({ users, setUsers, esc, edit, t }) {
       await sendPasswordResetEmail(auth, f.email.trim());
       // Envia email bonito via Resend
       const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer re_MtPh49dU_G1HyboAVP2wCDCtGDCXzhxHw',
-        },
-        body: JSON.stringify({
-          from: 'onboarding@resend.dev',
-          to: f.email.trim(),
-          subject: '🙏 Seu acesso ao Portal dos Servos está pronto',
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;color:#fff;border-radius:16px;overflow:hidden">
-              <div style="background:#000;padding:32px;text-align:center;border-bottom:3px solid #00c851">
-                <div style="font-size:36px;font-weight:900;letter-spacing:-2px">servos<span style="color:#00c851">.</span></div>
-                <div style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:6px">Encontro com Deus</div>
-              </div>
-              <div style="padding:32px">
-                <p style="font-size:18px;font-weight:700;margin-bottom:8px">Olá, ${nm.split(' ')[0]}! 👋</p>
-                <p style="color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:24px">
-                  Você foi cadastrado como servo do <strong style="color:#fff">Encontro com Deus</strong> — Comunidade Peniel.<br><br>
-                  Clique no botão abaixo para criar sua senha e acessar o portal dos servos.
-                </p>
-                <div style="text-align:center;margin:28px 0">
-                  <a href="https://servos-peniel.vercel.app" style="background:#00c851;color:#000;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;display:inline-block">
-                    Acessar o Portal dos Servos →
-                  </a>
-                </div>
-                <p style="color:rgba(255,255,255,.4);font-size:12px;line-height:1.6;margin-top:24px;border-top:1px solid #1a1a1a;padding-top:20px">
-                  Você recebeu esse email porque foi cadastrado como servo do Encontro com Deus.<br>
-                  Em caso de dúvidas, fale com o administrador.
-                </p>
-              </div>
-              <div style="background:#000;padding:20px;text-align:center">
-                <div style="font-size:13px;font-weight:700;color:#00c851">servos. — Comunidade Peniel</div>
-                <div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:4px">Encontro com Deus · Sexta · Sábado · Domingo</div>
-              </div>
-            </div>
-          `,
-        }),
-      });
+      
       // Salva no Firestore
       const { setDoc, doc: firestoreDoc } = await import('firebase/firestore');
       const novoUser = {
