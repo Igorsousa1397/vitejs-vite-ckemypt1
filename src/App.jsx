@@ -755,11 +755,8 @@ function Welcome({ onServos, onEncontrista }) {
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.75) 100%)', zIndex: 1 }} />
       <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 360, textAlign: 'center' }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-          style={{ width: 280, mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
-        <div style={{ color: 'rgba(255,255,255,.6)', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 40 }}>
-          Igreja Fonte
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          style={{ width: 280, mixBlendMode: 'screen', display: 'block', margin: '0 auto 40px' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
           <button onClick={onEncontrista}
             style={BG({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 })}>
             Sou Encontrista
@@ -769,6 +766,8 @@ function Welcome({ onServos, onEncontrista }) {
             Sou Servo
           </button>
         </div>
+        <img src="/IMG_2409.PNG" alt="Fonte - Comunidade Peniel"
+          style={{ width: 90, mixBlendMode: 'screen', opacity: 0.8, margin: '0 auto' }} />
       </div>
     </div>
   );
