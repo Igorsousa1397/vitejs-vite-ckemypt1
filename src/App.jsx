@@ -1223,12 +1223,6 @@ export default function App() {
       >
         🔔
       </button>
-      <button
-        onClick={logout}
-        style={BK({ padding: '8px 11px', borderRadius: 10, fontSize: 12 })}
-      >
-        Sair
-      </button>
     </div>
   );
 
@@ -1428,16 +1422,6 @@ export default function App() {
               })}
             >
               🔔
-            </button>
-            <button
-              onClick={logout}
-              style={BK({
-                padding: '7px 11px',
-                borderRadius: 10,
-                fontSize: 12,
-              })}
-            >
-              Sair
             </button>
           </div>
         </div>
