@@ -535,6 +535,25 @@ const MINS_INIT = [
   { id: 8, dia: 'Domingo', nome: '4ª Ministração', hora: '09:00', sent: false },
   { id: 9, dia: 'Domingo', nome: 'Ato Final', hora: '10:30', sent: false },
 ];
+
+const AVISOS_TEMPLATES = [
+  { txt: '🙏 Sexta-feira — Encontro com o Mundo e Encontro com Deus às 23h. Duração: 1 hora.' },
+  { txt: '🙏 Sábado — Ministração Peniel às 8h30. Duração: 1 hora.' },
+  { txt: '🙏 Sábado — Ministração Cura às 10h30. Duração: 1h30.' },
+  { txt: '🍽️ Almoço às 13h. Retorno às 15h30.' },
+  { txt: '🙏 Sábado — Ministração Escamas às 15h30. Duração: 1 hora.' },
+  { txt: '☕ Café da tarde às 16h40. Ministração Libertação começa às 17h.' },
+  { txt: '🙏 Sábado — Ministração Libertação às 17h. Duração: 1h30.' },
+  { txt: '🍽️ Jantar às 20h.' },
+  { txt: '🙏 Sábado — Ministração Amor de Deus às 21h30. Duração: 1 hora.' },
+  { txt: '🙏 Domingo — Ministração Sonhos às 8h30. Duração: 1 hora.' },
+  { txt: '🙏 Domingo — Unção de Multiplicação às 9h30. Duração: 1 hora.' },
+  { txt: '🙏 Domingo — Batismo com Espírito Santo às 10h30. Duração: 1 hora.' },
+  { txt: '🍽️ Almoço às 13h30. Retorno às 15h.' },
+  { txt: '🙏 Domingo — Oração Estilo de Vida às 15h.' },
+  { txt: '📢 Recados pós encontro. Obrigado por servir!' },
+];
+
 const REST_INIT = [
   {
     id: 1,
