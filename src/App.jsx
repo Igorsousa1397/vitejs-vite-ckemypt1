@@ -778,6 +778,14 @@ function Welcome({ onServos, onEncontrista }) {
 }
 
 // ── INSCRIÇÃO ─────────────────────────────────────────────────────────────────
+const CELULAS = [
+  'Betesda', 'Beraká', 'Reobote', 'Baluarte', 'Emaús', 'Lavi', 'Fire',
+  'Kerygma', 'Ebenézer', 'Betel', 'Transbordo', 'Ekklesia', 'Atos 29',
+  'Yeshua', 'Identidade', 'Pedra Angular', 'Carta Viva', 'Luz do mundo',
+  'Gileade', 'Ekballo', 'A Forja', 'Nahal', 'Deus Forte', 'Essência',
+  'Jeova Rafah', 'Fonte', 'Peniel - Santa Catarina', 'Outra', 'Não faço parte de célula',
+];
+
 function Inscricao({ onVoltar }) {
   const [form, setForm] = useState({
     igreja: '', nome: '', cpf: '', nascimento: '', sexo: '',
@@ -813,9 +821,21 @@ function Inscricao({ onVoltar }) {
           style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
         <div style={{ fontSize: 48, marginBottom: 16 }}>🙏</div>
         <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Inscrição realizada!</div>
-        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
-          Sua inscrição foi recebida com sucesso.<br />Em breve entraremos em contato.
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          Sua inscrição foi recebida com sucesso!<br />
+          Para confirmar sua vaga, realize o pagamento de <strong style={{ color: G.green }}>R$ 360,00</strong> via PIX e envie o comprovante no WhatsApp.
         </div>
+        <div style={{ background: G.card, border: '1px solid #222', borderRadius: 16, padding: 16, marginBottom: 24, textAlign: 'left' }}>
+          <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Chave PIX</div>
+          <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>igrejafontecajamar@gmail.com</div>
+          <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Valor</div>
+          <div style={{ color: G.green, fontSize: 20, fontWeight: 800 }}>R$ 360,00</div>
+        </div>
+        <a href="https://wa.me/5511982222149?text=Olá!%20Acabei%20de%20me%20inscrever%20no%20Encontro%20com%20Deus%20e%20gostaria%20de%20enviar%20o%20comprovante%20de%20pagamento."
+          target="_blank" rel="noopener noreferrer"
+          style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+          Enviar comprovante no WhatsApp
+        </a>
         <button onClick={onVoltar} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
           Voltar
         </button>
@@ -825,7 +845,7 @@ function Inscricao({ onVoltar }) {
 
   const iI = { ...I, marginBottom: 0 };
   const SLi = ({ c }) => <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{c}</div>;
-  const Radio = ({ name, val, set, opts }) => (
+  const Radio = ({ val, set, opts }) => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {opts.map(o => (
         <button key={o} onClick={() => set(o)}
@@ -839,7 +859,6 @@ function Inscricao({ onVoltar }) {
   return (
     <div style={{ minHeight: '100vh', background: '#000', paddingBottom: 40 }}>
       <style>{css}</style>
-      {/* Header */}
       <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 50 }}>
         <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
         <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Inscrição — Encontro com Deus</span>
@@ -874,9 +893,11 @@ function Inscricao({ onVoltar }) {
         <input placeholder="(11) 99999-9999" value={form.whatsapp} type="tel"
           onChange={e => setForm({ ...form, whatsapp: e.target.value })} style={iI} />
 
-        <SLi c="Célula / Como está indo" />
-        <input placeholder="Nome da célula ou como chegou ao encontro" value={form.celula}
-          onChange={e => setForm({ ...form, celula: e.target.value })} style={iI} />
+        <SLi c="Célula" />
+        <select value={form.celula} onChange={e => setForm({ ...form, celula: e.target.value })} style={iI}>
+          <option value="">Selecione sua célula...</option>
+          {CELULAS.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
 
         <SLi c="Tamanho da Camiseta *" />
         <Radio val={form.camiseta} set={v => setForm({ ...form, camiseta: v })}
