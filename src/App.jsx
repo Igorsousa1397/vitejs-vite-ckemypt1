@@ -760,7 +760,7 @@ function Welcome({ onServos, onEncontrista }) {
         <img src="/IMG_2408.PNG" alt="Encontro com Deus"
           style={{ width: 200, mixBlendMode: 'screen', display: 'block', margin: '0 auto 8px' }} />
         <div style={{ color: 'rgba(255,255,255,.6)', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 40 }}>
-          Comunidade Peniel
+          Igreja Fonte
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button onClick={onEncontrista}
