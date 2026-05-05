@@ -950,6 +950,19 @@ export default function App() {
     setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
   });
 
+  const unsubEnc = onSnapshot(collection(db, 'encontristas'), (snap) => {
+    const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setEncM(lista.filter(e => e.sexo === 'Feminino'));
+    setEncH(lista.filter(e => e.sexo === 'Masculino'));
+    setCk(lista.map(e => ({
+      id: e.id,
+      nome: e.nome,
+      gen: e.sexo === 'Feminino' ? 'M' : 'H',
+      ok: e.chegou || false,
+      on: e.onibus || null,
+    })));
+  });
+
   const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
@@ -957,18 +970,20 @@ export default function App() {
         setUser({ id: firebaseUser.uid, ...snap.data() });
         setScr('app');
         if (snap.data().perfil === 'servo') setPg('smins');
-        
         if (Notification.permission === 'granted') {
           iniciarNotificacoes(firebaseUser.uid).then(token => {
             if (token) setNotif(true);
           });
         } else if (Notification.permission === 'default') {
-          // Primeira vez — pede permissão automaticamente
           iniciarNotificacoes(firebaseUser.uid).then(token => {
             if (token) setNotif(true);
           });
         }
+      } else {
+        setScr('welcome');
       }
+    } else {
+      setScr('welcome');
     }
     setSp(false);
   });
@@ -977,6 +992,7 @@ export default function App() {
     unsubConfig();
     unsubUni();
     unsubAvs();
+    unsubEnc();
     unsubAuth();
   };
 }, []);
@@ -2138,246 +2154,93 @@ function CkV({ ck, setCk, on, edit, t }) {
       fontSize: s.length > 5 ? 16 : s.length > 3 ? 20 : 24,
     };
   };
-  const add = () => {
+  const add = async () => {
     if (!f.nome.trim()) return;
-    setCk([
-      ...ck,
-      {
-        id: Date.now(),
-        nome: `${f.nome.trim()} ${f.sob.trim()}`.trim(),
-        gen: f.gen,
-        ok: false,
-        on: null,
-      },
-    ]);
+    const novoEnc = {
+      nome: `${f.nome.trim()} ${f.sob.trim()}`.trim(),
+      sexo: f.gen === 'M' ? 'Feminino' : 'Masculino',
+      chegou: false,
+      onibus: null,
+      criadoEm: new Date().toLocaleString('pt-BR'),
+    };
+    await addDoc(collection(db, 'encontristas'), novoEnc);
     setF({ nome: '', sob: '', gen: 'M' });
     setSh(false);
     t('Encontrista adicionado!');
   };
   return (
     <div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr',
-          gap: 8,
-          marginBottom: 14,
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
         {[
           [ck.length, 'Total', '#636366'],
           [ck.filter((c) => c.ok).length, 'Chegaram', G.green],
           [ck.filter((c) => !c.ok).length, 'Pendentes', '#ff9f0a'],
         ].map(([n, l, c]) => (
-          <div
-            key={l}
-            style={{
-              background: '#111',
-              borderRadius: 14,
-              padding: '12px 8px',
-              textAlign: 'center',
-              borderTop: `2px solid ${c}`,
-            }}
-          >
+          <div key={l} style={{ background: '#111', borderRadius: 14, padding: '12px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
             <div style={ns(n)}>{n}</div>
-            <div
-              style={{
-                color: G.tm,
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                marginTop: 3,
-              }}
-            >
-              {l}
-            </div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
           </div>
         ))}
       </div>
       {edit && (
-        <button
-          onClick={() => setSh(true)}
-          style={BG({
-            width: '100%',
-            padding: 13,
-            marginBottom: 12,
-            borderRadius: 14,
-          })}
-        >
+        <button onClick={() => setSh(true)} style={BG({ width: '100%', padding: 13, marginBottom: 12, borderRadius: 14 })}>
           + Adicionar Encontrista
         </button>
       )}
-      <Seg
-        opts={[
-          ['M', '♀ Mulheres'],
-          ['H', '♂ Homens'],
-        ]}
-        val={gen}
-        set={setGen}
-      />
+      <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={gen} set={setGen} />
       <div style={{ display: 'flex', gap: 6, margin: '8px 0' }}>
-        <button
-          onClick={() => setSub('pend')}
-          style={{
-            flex: 1,
-            background: sub === 'pend' ? '#ff9f0a' : '#111',
-            color: sub === 'pend' ? '#000' : G.td,
-            border: 'none',
-            borderRadius: 10,
-            padding: '9px',
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => setSub('pend')}
+          style={{ flex: 1, background: sub === 'pend' ? '#ff9f0a' : '#111', color: sub === 'pend' ? '#000' : G.td, border: 'none', borderRadius: 10, padding: '9px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
           Pendentes ({cnt(gen, false)})
         </button>
-        <button
-          onClick={() => setSub('conf')}
-          style={{
-            flex: 1,
-            background: sub === 'conf' ? G.green : '#111',
-            color: sub === 'conf' ? '#000' : G.td,
-            border: 'none',
-            borderRadius: 10,
-            padding: '9px',
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => setSub('conf')}
+          style={{ flex: 1, background: sub === 'conf' ? G.green : '#111', color: sub === 'conf' ? '#000' : G.td, border: 'none', borderRadius: 10, padding: '9px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
           Confirmados ({cnt(gen, true)})
         </button>
       </div>
-      <input
-        value={s}
-        onChange={(e) => setS(e.target.value)}
-        placeholder="🔍 Buscar..."
-        style={{ ...I, marginBottom: 10 }}
-      />
+      <input value={s} onChange={(e) => setS(e.target.value)} placeholder="🔍 Buscar..." style={{ ...I, marginBottom: 10 }} />
       {lista.length === 0 && (
-        <div
-          style={{
-            color: G.tm,
-            textAlign: 'center',
-            padding: 28,
-            fontSize: 13,
-          }}
-        >
-          Nenhum encontrista aqui.
-        </div>
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum encontrista aqui.</div>
       )}
       {lista.map((c) => (
-        <div
-          key={c.id}
-          className="fu"
-          style={{
-            background: G.card,
-            border: `1px solid ${c.ok ? 'rgba(0,200,81,.3)' : G.cb}`,
-            borderLeft: `3px solid ${c.ok ? G.green : '#2a2a2a'}`,
-            borderRadius: 13,
-            padding: '12px 14px',
-            marginBottom: 7,
-          }}
-        >
+        <div key={c.id} className="fu"
+          style={{ background: G.card, border: `1px solid ${c.ok ? 'rgba(0,200,81,.3)' : G.cb}`, borderLeft: `3px solid ${c.ok ? G.green : '#2a2a2a'}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <button
-              onClick={() => {
+              onClick={async () => {
                 vibrar(30);
-                setCk(ck.map((x) => (x.id === c.id ? { ...x, ok: !x.ok } : x)));
+                const novoOk = !c.ok;
+                await setDoc(doc(db, 'encontristas', c.id), { chegou: novoOk }, { merge: true });
               }}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: '50%',
-                border: `2px solid ${c.ok ? G.green : '#333'}`,
-                background: c.ok ? 'rgba(0,200,81,.15)' : 'transparent',
-                color: G.green,
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
+              style={{ width: 30, height: 30, borderRadius: '50%', border: `2px solid ${c.ok ? G.green : '#333'}`, background: c.ok ? 'rgba(0,200,81,.15)' : 'transparent', color: G.green, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {c.ok ? '✓' : ''}
             </button>
             <div style={{ flex: 1 }}>
-              <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-                {c.nome}
-              </div>
-              {c.on && (
-                <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                  🚌 Ônibus {c.on}
-                </div>
-              )}
+              <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{c.nome}</div>
+              {c.on && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>🚌 Ônibus {c.on}</div>}
             </div>
             {c.ok && (
               <select
                 value={c.on || ''}
-                onChange={(e) =>
-                  setCk(
-                    ck.map((x) =>
-                      x.id === c.id ? { ...x, on: e.target.value || null } : x
-                    )
-                  )
-                }
-                style={{
-                  ...I,
-                  width: 'auto',
-                  padding: '6px 10px',
-                  fontSize: 11,
-                  borderRadius: 9,
+                onChange={async (e) => {
+                  await setDoc(doc(db, 'encontristas', c.id), { onibus: e.target.value || null }, { merge: true });
                 }}
-              >
+                style={{ ...I, width: 'auto', padding: '6px 10px', fontSize: 11, borderRadius: 9 }}>
                 <option value="">Ônibus?</option>
                 {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>
-                    Ônibus {n}
-                  </option>
+                  <option key={n} value={n}>Ônibus {n}</option>
                 ))}
               </select>
             )}
           </div>
         </div>
       ))}
-      <Sheet
-        open={sh}
-        onClose={() => setSh(false)}
-        title="Adicionar Encontrista"
-      >
+      <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Encontrista">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <input
-            placeholder="Nome *"
-            value={f.nome}
-            onChange={(e) => setF({ ...f, nome: e.target.value })}
-            style={I}
-          />
-          <input
-            placeholder="Sobrenome"
-            value={f.sob}
-            onChange={(e) => setF({ ...f, sob: e.target.value })}
-            style={I}
-          />
-          <Seg
-            opts={[
-              ['M', '♀ Feminino'],
-              ['H', '♂ Masculino'],
-            ]}
-            val={f.gen}
-            set={(v) => setF({ ...f, gen: v })}
-          />
-          <button
-            onClick={add}
-            style={BG({
-              width: '100%',
-              padding: 14,
-              borderRadius: 14,
-              marginTop: 4,
-            })}
-          >
+          <input placeholder="Nome *" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} style={I} />
+          <input placeholder="Sobrenome" value={f.sob} onChange={(e) => setF({ ...f, sob: e.target.value })} style={I} />
+          <Seg opts={[['M', '♀ Feminino'], ['H', '♂ Masculino']]} val={f.gen} set={(v) => setF({ ...f, gen: v })} />
+          <button onClick={add} style={BG({ width: '100%', padding: 14, borderRadius: 14, marginTop: 4 })}>
             Confirmar
           </button>
         </div>
