@@ -765,16 +765,41 @@ export default function App() {
   const [notif, setNotif] = useState(false);
   
   useEffect(() => {
-    const unsubAvs = onSnapshot(collection(db, 'avisos'), (snap) => {
-      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
-    });
-    return () => { unsubConfig(); unsubUni(); unsubAvs(); };
-    const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
-      setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
-    });
-    return () => { unsubConfig(); unsubUni(); };
-  }, []);
+  const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.dataLimite) setDataLimiteUni(d.dataLimite);
+    }
+  });
+
+  const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
+    setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
+  });
+
+  const unsubAvs = onSnapshot(collection(db, 'avisos'), (snap) => {
+    const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
+  });
+
+  const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    if (firebaseUser) {
+      const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+      if (snap.exists()) {
+        setUser({ id: firebaseUser.uid, ...snap.data() });
+        setScr('app');
+        if (snap.data().perfil === 'servo') setPg('smins');
+      }
+    }
+    setSp(false);
+  });
+
+  return () => {
+    unsubConfig();
+    unsubUni();
+    unsubAvs();
+    unsubAuth();
+  };
+}, []);
   
   const salvarDataLimite = async (data) => {
     setDataLimiteUni(data);
@@ -789,11 +814,12 @@ export default function App() {
     setPg(p);
     setMenu(false);
   };
-  const logout = () => {
-    setUser(null);
-    setScr('login');
-    setPg('home');
-  };
+  const logout = async () => {
+  await signOut(auth);
+  setUser(null);
+  setScr('login');
+  setPg('home');
+};
   const login = (f) => {
     setUser(f);
     setScr('app');
