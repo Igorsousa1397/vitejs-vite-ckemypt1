@@ -2924,17 +2924,17 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-        {[
-          [lista.length, 'Total', '#636366'],
-          [lista.filter(e => e.pago).length, 'Pagos', G.green],
-          [lista.filter(e => !e.pago).length, 'Pendentes', '#ff3b30'],
-        ].map(([n, l, c]) => (
-          <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
-            <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{n}</div>
-            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
-          </div>
-        ))}
-      </div>
+      {[
+        [encM.length + encH.length, 'Total Geral', '#636366'],
+        [lista.filter(e => e.pago).length, 'Pagos', G.green],
+        [lista.filter(e => !e.pago).length, 'Pendentes', '#ff3b30'],
+      ].map(([n, l, c]) => (
+        <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
+          <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{n}</div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
+        </div>
+      ))}
+    </div>
       <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={g} set={setG} />
       <div style={{ marginTop: 10 }}>
         <button onClick={dist}
