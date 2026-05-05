@@ -1,6 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "firebase/auth";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
+export const messaging = getMessaging(app);
+export { getToken, onMessage };
 
 const firebaseConfig = {
   apiKey: "AIzaSyCC5a-yhc0myEnlhcs5pgCXOSx1h6b5CmU",

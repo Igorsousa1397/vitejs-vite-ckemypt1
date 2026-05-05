@@ -1,5 +1,22 @@
 import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc, createUserWithEmailAndPassword, sendPasswordResetEmail } from './firebase';
 import { useState, useMemo, useEffect } from 'react';
+import { messaging, getToken, onMessage } from './firebase';
+
+const VAPID_KEY = 'BBVluqF6EX97RYmDoQDIIS1C4UB7aFocmFR3sZIEkcXeB2L81JCov9407bX6HEDlBguNflnrhLVgSDUeeYXLQ_4';
+
+const iniciarNotificacoes = async () => {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return null;
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    // Salva o token no Firestore vinculado ao usuário
+    if (token) await setDoc(doc(db, 'tokens', token), { token, data: new Date().toISOString() }, { merge: true });
+    return token;
+  } catch (err) {
+    console.error('Erro FCM:', err);
+    return null;
+  }
+};
 
 
 const G = {
@@ -864,13 +881,13 @@ export default function App() {
       </span>
       <button
         onClick={async () => {
-          if (!notif && 'Notification' in window) {
-            const p = await Notification.requestPermission();
-            if (p === 'granted') {
-              setNotif(true);
-              showT('Notificações ativas!', 'n');
-            } else showT('Permissão negada', 'w');
-          } else showT('Notificações já ativas', 'n');
+          const token = await iniciarNotificacoes();
+          if (token) {
+            setNotif(true);
+            showT('Notificações ativas!', 'n');
+          } else {
+            showT('Permissão negada', 'w');
+          }
         }}
         style={BK({
           padding: '8px 11px',

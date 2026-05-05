@@ -1,27 +1,23 @@
-const CACHE_NAME = 'servos-peniel-v1';
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-self.addEventListener('install', (e) => {
-  self.skipWaiting();
+firebase.initializeApp({
+  apiKey: "AIzaSyCC5a-yhc0myEnlhcs5pgCXOSx1h6b5CmU",
+  authDomain: "servos-peniel.firebaseapp.com",
+  projectId: "servos-peniel",
+  storageBucket: "servos-peniel.firebasestorage.app",
+  messagingSenderId: "743267134560",
+  appId: "1:743267134560:web:b3a1b2282eb3970f856705"
 });
 
-self.addEventListener('activate', (e) => {
-  clients.claim();
-});
+const messaging = firebase.messaging();
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
-});
-
-self.addEventListener('push', (e) => {
-  const data = e.data?.json() || {};
-  e.waitUntil(
-    self.registration.showNotification(data.title || 'servos.', {
-      body: data.body || '',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [200, 100, 200],
-    })
-  );
+messaging.onBackgroundMessage((payload) => {
+  const { title, body } = payload.notification;
+  self.registration.showNotification(title, {
+    body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [200, 100, 200],
+  });
 });
