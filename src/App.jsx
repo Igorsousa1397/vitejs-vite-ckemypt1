@@ -1080,6 +1080,26 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Pill c={PERFIS[role].l} bg="rgba(99,99,102,.2)" tc={G.tm} />
             <button
+              onClick={async () => {
+                const token = await iniciarNotificacoes();
+                if (token) {
+                  setNotif(true);
+                  showT('Notificações ativas!', 'n');
+                } else {
+                  showT('Permissão negada', 'w');
+                }
+              }}
+              style={BK({
+                padding: '8px 11px',
+                borderRadius: 10,
+                fontSize: 13,
+                borderColor: notif ? 'rgba(0,200,81,.4)' : '#2a2a2a',
+                color: notif ? G.green : G.td,
+              })}
+            >
+              🔔
+            </button>
+            <button
               onClick={logout}
               style={BK({
                 padding: '7px 11px',
