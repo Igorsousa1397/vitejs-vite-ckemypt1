@@ -3972,7 +3972,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
     if (!f.fn) { t('Selecione uma equipe/função', 'w'); return; }
     setLoading(true);
     try {
-      const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
       // Cria usuário no Firebase Auth com senha temporária
       const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth');
       const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), 'Temp@' + Date.now());
