@@ -682,7 +682,7 @@ function Splash({ done }) {
 }
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
-function Login({ onLogin }){
+function Login({ onLogin, onVoltar }){
   const [email,setEmail]=useState('');
   const [senha,setSenha]=useState('');
   const [showSenha,setShowSenha]=useState(false);
@@ -706,6 +706,11 @@ function Login({ onLogin }){
   return(
     <div style={{minHeight:'100vh',background:'#000',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
       <style>{css}</style>
+      {/* Botão voltar */}
+      <button onClick={onVoltar}
+        style={{position:'fixed',top:16,left:16,background:'transparent',border:'1px solid #2a2a2a',color:'rgba(255,255,255,.6)',borderRadius:10,padding:'8px 13px',fontSize:13,fontWeight:700,cursor:'pointer',zIndex:10}}>
+        ←
+      </button>
       <div style={{width:'100%',maxWidth:360}}>
         <div style={{marginBottom:36,textAlign:'center'}}>
           <img src="/IMG_2408.PNG" alt="Encontro com Deus"
@@ -715,20 +720,18 @@ function Login({ onLogin }){
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} style={I}/>
           <div style={{position:'relative'}}>
-            <input 
-              placeholder="Senha" 
-              type={showSenha ? 'text' : 'password'} 
-              value={senha} 
-              onChange={e=>setSenha(e.target.value)} 
-              onKeyDown={e=>e.key==='Enter'&&go()} 
+            <input
+              placeholder="Senha"
+              type={showSenha ? 'text' : 'password'}
+              value={senha}
+              onChange={e=>setSenha(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&go()}
               style={{...I, paddingRight:44}}
             />
-            <button
-            onClick={()=>setShowSenha(!showSenha)}
-            style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:G.tm,cursor:'pointer',fontSize:16,padding:4}}
-          >
-            {showSenha ? '◯' : '◉'}
-          </button>
+            <button onClick={()=>setShowSenha(!showSenha)}
+              style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:G.tm,cursor:'pointer',fontSize:16,padding:4}}>
+              {showSenha ? '◯' : '◉'}
+            </button>
           </div>
           {e&&<div style={{color:'#ff3b30',fontSize:12,background:'rgba(255,59,48,.1)',borderRadius:10,padding:'10px 14px'}}>{e}</div>}
           <button onClick={() => { vibrar(); go(); }} disabled={load} style={BG({width:'100%',padding:14,borderRadius:14,marginTop:4,opacity:load?0.7:1})}>
@@ -1133,7 +1136,7 @@ export default function App() {
   if (scr === 'inscricao') return (
     <Inscricao onVoltar={() => setScr('welcome')} />
   );
-  if (scr === 'login') return <Login onLogin={login} users={users} setUsers={setUsers} />;
+  if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welcome')} users={users} setUsers={setUsers} />;
 
   // shared top bar
   const TB = () => (
