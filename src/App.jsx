@@ -661,28 +661,12 @@ function Splash({ done }) {
     >
       <style>{css}</style>
       <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            fontSize: 52,
-            fontWeight: 900,
-            color: '#fff',
-            letterSpacing: -3,
-          }}
-        >
-          servos<span style={{ color: G.green }}>.</span>
-        </div>
-        <div
-          style={{
-            color: G.tm,
-            fontSize: 12,
-            marginTop: 10,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-          }}
-        >
-          Encontro com Deus
-        </div>
-      </div>
+  <img src="/IMG_2408.PNG" alt="Encontro com Deus" 
+    style={{ width: 200, mixBlendMode: 'screen', display: 'block', margin: '0 auto' }} />
+  <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', letterSpacing: -3, marginTop: 16 }}>
+    servos<span style={{ color: G.green }}>.</span>
+  </div>
+</div>
     </div>
   );
 }
@@ -713,6 +697,8 @@ function Login({ onLogin }){
       <style>{css}</style>
       <div style={{width:'100%',maxWidth:360}}>
         <div style={{marginBottom:36,textAlign:'center'}}>
+          <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+            style={{width:180,mixBlendMode:'screen',display:'block',margin:'0 auto 16px'}}/>
           <div style={{fontSize:48,fontWeight:900,color:'#fff',letterSpacing:-3}}>servos<span style={{color:G.green}}>.</span></div>
           <div style={{color:G.tm,fontSize:12,marginTop:8,letterSpacing:2,textTransform:'uppercase'}}>Portal do Encontro</div>
         </div>
@@ -724,6 +710,10 @@ function Login({ onLogin }){
             {load?'Entrando...':'Entrar'}
           </button>
           <div style={{color:G.tm,fontSize:12,textAlign:'center'}}>Solicite acesso ao administrador</div>
+        </div>
+        <div style={{textAlign:'center',marginTop:40}}>
+          <img src="/IMG_2409.PNG" alt="Fonte - Comunidade Peniel"
+            style={{width:110,mixBlendMode:'screen',opacity:0.85}}/>
         </div>
       </div>
     </div>
