@@ -2,6 +2,10 @@ import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc,
 import { useState, useMemo, useEffect } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
 
+const vibrar = (ms = 50) => {
+  if ('vibrate' in navigator) navigator.vibrate(ms);
+};
+
 const VAPID_KEY = 'BBVluqF6EX97RYmDoQDIIS1C4UB7aFocmFR3sZIEkcXeB2L81JCov9407bX6HEDlBguNflnrhLVgSDUeeYXLQ_4';
 
 const iniciarNotificacoes = async (userId = null) => {
@@ -711,7 +715,7 @@ function Login({ onLogin }){
           <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} style={I}/>
           <input placeholder="Senha" type="password" value={senha} onChange={e=>setSenha(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()} style={I}/>
           {e&&<div style={{color:'#ff3b30',fontSize:12,background:'rgba(255,59,48,.1)',borderRadius:10,padding:'10px 14px'}}>{e}</div>}
-          <button onClick={go} disabled={load} style={BG({width:'100%',padding:14,borderRadius:14,marginTop:4,opacity:load?0.7:1})}>
+          <button onClick={() => { vibrar(); go(); }} disabled={load} style={BG({width:'100%',padding:14,borderRadius:14,marginTop:4,opacity:load?0.7:1})}>
             {load?'Entrando...':'Entrar'}
           </button>
           <div style={{color:G.tm,fontSize:12,textAlign:'center'}}>Solicite acesso ao administrador</div>
@@ -1786,16 +1790,17 @@ function HomeV({
                   style={{ ...I, flex: 1 }}
                 />
                 <button
-                  onClick={() => {
-                    if (av.trim()) {
-                      addAv(av.trim());
-                      setAv('');
-                    }
-                  }}
-                  style={BG({ padding: '13px 15px', borderRadius: 12 })}
-                >
-                  +
-                </button>
+                onClick={() => {
+                  if (av.trim()) {
+                    vibrar(100);
+                    addAv(av.trim());
+                    setAv('');
+                  }
+                }}
+                style={BG({ padding: '13px 15px', borderRadius: 12 })}
+              >
+                +
+              </button>
               </div>
             )}
             {avs.map((a) => (
@@ -2096,9 +2101,10 @@ function CkV({ ck, setCk, on, edit, t }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <button
-              onClick={() =>
-                setCk(ck.map((x) => (x.id === c.id ? { ...x, ok: !x.ok } : x)))
-              }
+              onClick={() => {
+                vibrar(30);
+                setCk(ck.map((x) => (x.id === c.id ? { ...x, ok: !x.ok } : x)));
+              }}
               style={{
                 width: 30,
                 height: 30,
@@ -3267,7 +3273,7 @@ function InfoV({ ocorr, setOcorr, t, notifyAll }) {
             onChange={(e) => setF({ ...f, desc: e.target.value })}
           />
           <button
-            onClick={registrar}
+            onClick={() => { vibrar(80); registrar(); }}
             style={BG({ padding: 12, borderRadius: 12 })}
           >
             Registrar
@@ -4389,9 +4395,9 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
 
               {/* BOTOES */}
               {!meuPedido && (
-                <button onClick={salvarPedido} disabled={saving}
-                  style={BG({ width: '100%', padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
-                  {saving ? 'Salvando...' : 'Salvar Pedido'}
+                <button onClick={() => { vibrar(50); salvarPedido(); }} disabled={saving}
+                style={BG({ width: '100%', padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
+                {saving ? 'Salvando...' : 'Salvar Pedido'}
                 </button>
               )}
               {meuPedido && meuPedido.status === 'aberto' && (
