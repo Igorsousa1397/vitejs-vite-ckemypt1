@@ -1337,10 +1337,7 @@ export default function App() {
                     width: '100%',
                     background: pg === p ? 'rgba(0,200,81,.08)' : 'transparent',
                     border: 'none',
-                    borderLeft:
-                      pg === p
-                        ? `3px solid ${G.green}`
-                        : '3px solid transparent',
+                    borderLeft: pg === p ? `3px solid ${G.green}` : '3px solid transparent',
                     padding: '12px 16px',
                     color: pg === p ? G.green : G.td,
                     fontSize: 13,
@@ -1349,14 +1346,15 @@ export default function App() {
                     textAlign: 'left',
                   }}
                 >
-                  <span
-                    style={{ fontSize: 14, width: 18, textAlign: 'center' }}
-                  >
-                    {ic}
-                  </span>
+                  <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>{ic}</span>
                   {lb}
                 </button>
               ))}
+              <button onClick={() => { setMenu(false); logout(); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: 'transparent', border: 'none', borderLeft: '3px solid transparent', borderTop: '1px solid #1a1a1a', padding: '12px 16px', color: 'rgba(255,59,48,.6)', fontSize: 13, fontWeight: 500, cursor: 'pointer', textAlign: 'left', marginTop: 8 }}>
+                <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>↪</span>
+                Sair
+              </button>
             </div>
           </div>
         )}
@@ -1611,8 +1609,7 @@ export default function App() {
                   width: '100%',
                   background: pg === p ? 'rgba(0,200,81,.08)' : 'transparent',
                   border: 'none',
-                  borderLeft:
-                    pg === p ? `3px solid ${G.green}` : '3px solid transparent',
+                  borderLeft: pg === p ? `3px solid ${G.green}` : '3px solid transparent',
                   padding: '12px 16px',
                   color: pg === p ? G.green : G.td,
                   fontSize: 13,
@@ -1621,12 +1618,15 @@ export default function App() {
                   textAlign: 'left',
                 }}
               >
-                <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>
-                  {ic}
-                </span>
+                <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>{ic}</span>
                 {LABELS[p]}
               </button>
             ))}
+            <button onClick={() => { setMenu(false); logout(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: 'transparent', border: 'none', borderLeft: '3px solid transparent', borderTop: '1px solid #1a1a1a', padding: '12px 16px', color: 'rgba(255,59,48,.6)', fontSize: 13, fontWeight: 500, cursor: 'pointer', textAlign: 'left', marginTop: 8 }}>
+              <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>↪</span>
+              Sair
+            </button>
           </div>
         </div>
       )}
