@@ -661,12 +661,9 @@ function Splash({ done }) {
     >
       <style>{css}</style>
       <div style={{ textAlign: 'center' }}>
-  <img src="/IMG_2408.PNG" alt="Encontro com Deus" 
-    style={{ width: 200, mixBlendMode: 'screen', display: 'block', margin: '0 auto' }} />
-  <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', letterSpacing: -3, marginTop: 16 }}>
-    servos<span style={{ color: G.green }}>.</span>
-  </div>
-</div>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{ width: 200, mixBlendMode: 'screen', display: 'block', margin: '0 auto' }} />
+      </div>
     </div>
   );
 }
