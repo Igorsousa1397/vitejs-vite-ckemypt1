@@ -800,6 +800,25 @@ function Inscricao({ onVoltar }) {
       alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
       return;
     }
+
+    // Valida CPF — só números
+    if (form.cpf.trim() && !/^\d+$/.test(form.cpf.trim())) {
+      alert('CPF deve conter apenas números, sem pontos ou traços.');
+      return;
+    }
+
+    // Valida idade mínima de 14 anos
+    if (form.nascimento) {
+      const nascimento = new Date(form.nascimento);
+      const hoje = new Date();
+      const idade = hoje.getFullYear() - nascimento.getFullYear() -
+        (hoje < new Date(hoje.getFullYear(), nascimento.getMonth(), nascimento.getDate()) ? 1 : 0);
+      if (idade < 14) {
+        alert('É necessário ter pelo menos 14 anos para se inscrever.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const snap = await getDocs(collection(db, 'encontristas'));
