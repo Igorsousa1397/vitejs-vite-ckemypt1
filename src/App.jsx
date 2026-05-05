@@ -808,20 +808,17 @@ function Inscricao({ onVoltar }) {
   });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [encId, setEncId] = useState(null);
 
   const salvar = async () => {
     if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
       alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
       return;
     }
-
-    // Valida CPF — só números
     if (form.cpf.trim() && !/^\d+$/.test(form.cpf.trim())) {
       alert('CPF deve conter apenas números, sem pontos ou traços.');
       return;
     }
-
-    // Valida idade mínima de 14 anos
     if (form.nascimento) {
       const nascimento = new Date(form.nascimento);
       const hoje = new Date();
@@ -832,7 +829,6 @@ function Inscricao({ onVoltar }) {
         return;
       }
     }
-
     setSaving(true);
     try {
       const snap = await getDocs(collection(db, 'encontristas'));
@@ -850,10 +846,11 @@ function Inscricao({ onVoltar }) {
         setSaving(false);
         return;
       }
-      await addDoc(collection(db, 'encontristas'), {
+      const docRef = await addDoc(collection(db, 'encontristas'), {
         ...form,
         criadoEm: new Date().toLocaleString('pt-BR'),
       });
+      setEncId(docRef.id);
       setDone(true);
     } catch (err) {
       alert('Erro ao enviar. Tente novamente.');
@@ -870,11 +867,29 @@ function Inscricao({ onVoltar }) {
         <div style={{ fontSize: 48, marginBottom: 16 }}>🙏</div>
         <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Inscrição realizada!</div>
         <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-          Para confirmar sua vaga, realize o pagamento via PIX e envie o comprovante no WhatsApp.
+          Para confirmar sua vaga, realize o pagamento abaixo.
         </div>
-        <div style={{ background: G.card, border: '1px solid #222', borderRadius: 16, padding: 16, marginBottom: 24 }}>
-          <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Valor</div>
-          <div style={{ color: G.green, fontSize: 28, fontWeight: 800, marginBottom: 16 }}>R$ 360,00</div>
+        <button
+          onClick={async () => {
+            vibrar(50);
+            try {
+              const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '' }),
+              });
+              const data = await res.json();
+              if (data.init_point) window.open(data.init_point, '_blank');
+            } catch (err) {
+              alert('Erro ao gerar pagamento. Tente o PIX.');
+            }
+          }}
+          style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
+          Pagar com Cartão ou Boleto
+        </button>
+        <div style={{ background: G.card, border: '1px solid #222', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+          <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Ou pague via PIX</div>
+          <div style={{ color: G.green, fontSize: 24, fontWeight: 800, marginBottom: 12 }}>R$ 360,00</div>
           <button
             onClick={() => {
               navigator.clipboard.writeText('igrejafontecajamar@gmail.com');
@@ -918,27 +933,22 @@ function Inscricao({ onVoltar }) {
         <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
         <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Inscrição — Encontro com Deus</span>
       </div>
-
       <div style={{ padding: '20px 20px 0', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '12px 14px', marginBottom: 8, color: G.green, fontSize: 13, lineHeight: 1.6 }}>
           Dias 26, 27 e 28 de Junho · Estrada do Tronco 485, Itaquaquecetuba
         </div>
-
         <SLi c="Igreja *" />
         <Radio val={form.igreja} set={v => setForm({ ...form, igreja: v })}
           opts={['Fonte Cajamar', 'Fonte Itajaí', 'Fonte Barueri']} />
-
         <SLi c="Nome completo *" />
         <input placeholder="Sem abreviações" value={form.nome}
           onChange={e => setForm({ ...form, nome: e.target.value })} style={iI} />
-
         <SLi c="CPF" />
         <input placeholder="Sem ponto e dígito" value={form.cpf}
           onChange={e => setForm({ ...form, cpf: e.target.value })} style={iI} />
-
         <SLi c="Data de Nascimento" />
         <div style={{ display: 'flex', gap: 8 }}>
-          <select value={form.nascimento?.split('-')[2] || ''} 
+          <select value={form.nascimento?.split('-')[2] || ''}
             onChange={e => setForm({ ...form, nascimento: `${form.nascimento?.split('-')[0] || ''}-${form.nascimento?.split('-')[1] || ''}-${e.target.value}` })}
             style={{ ...iI, flex: 1 }}>
             <option value="">Dia</option>
@@ -963,37 +973,29 @@ function Inscricao({ onVoltar }) {
             ))}
           </select>
         </div>
-
         <SLi c="Sexo *" />
         <Radio val={form.sexo} set={v => setForm({ ...form, sexo: v })}
           opts={['Feminino', 'Masculino']} />
-
         <SLi c="WhatsApp *" />
         <input placeholder="(11) 99999-9999" value={form.whatsapp} type="tel"
           onChange={e => setForm({ ...form, whatsapp: e.target.value })} style={iI} />
-
         <SLi c="Célula" />
         <select value={form.celula} onChange={e => setForm({ ...form, celula: e.target.value })} style={iI}>
           <option value="">Selecione sua célula...</option>
           {CELULAS.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-
         <SLi c="Tamanho da Camiseta *" />
         <Radio val={form.camiseta} set={v => setForm({ ...form, camiseta: v })}
           opts={['P', 'M', 'G', 'GG', 'EXG', 'G1', 'G2', 'G3']} />
-
         <SLi c="Contato de Emergência" />
         <input placeholder="Nome e telefone" value={form.emergencia}
           onChange={e => setForm({ ...form, emergencia: e.target.value })} style={iI} />
-
         <SLi c="Toma algum medicamento?" />
         <input placeholder="Qual?" value={form.medicamento}
           onChange={e => setForm({ ...form, medicamento: e.target.value })} style={iI} />
-
         <SLi c="Tem alguma doença crônica?" />
         <input placeholder="Qual?" value={form.doenca}
           onChange={e => setForm({ ...form, doenca: e.target.value })} style={iI} />
-
         <button onClick={salvar} disabled={saving}
           style={BG({ width: '100%', padding: 16, borderRadius: 16, marginTop: 28, fontSize: 15, opacity: saving ? 0.7 : 1 })}>
           {saving ? 'Enviando...' : 'Enviar Inscrição'}
@@ -1002,7 +1004,6 @@ function Inscricao({ onVoltar }) {
     </div>
   );
 }
-
 // ── MAIN ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [sp, setSp] = useState(true);

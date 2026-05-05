@@ -1,16 +1,16 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const https = require('https');
 
 admin.initializeApp();
 
+// ── NOTIFICAR AVISO ──────────────────────────────────────────────────────────
 exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => {
   const aviso = event.data.data();
-
   const tokensSnap = await admin.firestore().collection('tokens').get();
   const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
-
   if (!tokens.length) return null;
-
   const message = {
     notification: {
       title: `${aviso.autor || 'Admin'} — Novo aviso`,
@@ -18,9 +18,95 @@ exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => 
     },
     tokens,
   };
-
   const response = await admin.messaging().sendEachForMulticast(message);
   console.log(`${response.successCount} notificações enviadas`);
   return null;
 });
-// v4
+
+// ── CRIAR PAGAMENTO MERCADO PAGO ─────────────────────────────────────────────
+exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  const { encontristaId, nome, email } = req.body;
+  if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
+
+  const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+
+  const body = JSON.stringify({
+    items: [{
+      title: 'Inscrição Encontro com Deus',
+      quantity: 1,
+      unit_price: 1.00, // R$ 1,00 para teste
+      currency_id: 'BRL',
+    }],
+    payer: { name: nome || 'Encontrista', email: email || 'test@test.com' },
+    external_reference: encontristaId,
+    back_urls: {
+      success: 'https://servos-peniel.vercel.app',
+      failure: 'https://servos-peniel.vercel.app',
+      pending: 'https://servos-peniel.vercel.app',
+    },
+    auto_return: 'approved',
+    notification_url: `https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento`,
+  });
+
+  const options = {
+    hostname: 'api.mercadopago.com',
+    path: '/checkout/preferences',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+    },
+  };
+
+  const mpReq = https.request(options, (mpRes) => {
+    let data = '';
+    mpRes.on('data', chunk => data += chunk);
+    mpRes.on('end', () => {
+      const response_data = JSON.parse(data);
+      res.json({ init_point: response_data.init_point, id: response_data.id });
+    });
+  });
+
+  mpReq.on('error', (e) => res.status(500).json({ error: e.message }));
+  mpReq.write(body);
+  mpReq.end();
+});
+
+// ── WEBHOOK PAGAMENTO ────────────────────────────────────────────────────────
+exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
+  const { type, data } = req.body;
+
+  if (type === 'payment') {
+    const paymentId = data.id;
+    const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+
+    const options = {
+      hostname: 'api.mercadopago.com',
+      path: `/v1/payments/${paymentId}`,
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` },
+    };
+
+    https.get(options, (mpRes) => {
+      let data = '';
+      mpRes.on('data', chunk => data += chunk);
+      mpRes.on('end', async () => {
+        const payment = JSON.parse(data);
+        if (payment.status === 'approved') {
+          const encontristaId = payment.external_reference;
+          await admin.firestore()
+            .collection('encontristas')
+            .doc(encontristaId)
+            .update({ pago: true, pagamentoId: paymentId });
+          console.log(`Encontrista ${encontristaId} marcado como pago!`);
+        }
+        res.sendStatus(200);
+      });
+    }).on('error', () => res.sendStatus(500));
+  } else {
+    res.sendStatus(200);
+  }
+});
+// v5
