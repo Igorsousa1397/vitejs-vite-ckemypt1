@@ -749,16 +749,13 @@ function Login({ onLogin }){
 // ── WELCOME ──────────────────────────────────────────────────────────────────
 function Welcome({ onServos, onEncontrista }) {
   return (
-    <div style={{ minHeight: '100vh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: 32, paddingBottom: 48 }}>
+    <div style={{ minHeight: '100vh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, paddingBottom: 48 }}>
       <style>{css}</style>
-      {/* Fundo */}
       <img src="/campo.jpg" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
-      {/* Overlay escuro */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.75) 100%)', zIndex: 1 }} />
-      {/* Conteúdo */}
       <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 360, textAlign: 'center' }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-          style={{ width: 200, mixBlendMode: 'screen', display: 'block', margin: '0 auto 8px' }} />
+          style={{ width: 280, mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
         <div style={{ color: 'rgba(255,255,255,.6)', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 40 }}>
           Igreja Fonte
         </div>
@@ -923,8 +920,32 @@ function Inscricao({ onVoltar }) {
           onChange={e => setForm({ ...form, cpf: e.target.value })} style={iI} />
 
         <SLi c="Data de Nascimento" />
-        <input type="date" value={form.nascimento}
-          onChange={e => setForm({ ...form, nascimento: e.target.value })} style={iI} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select value={form.nascimento?.split('-')[2] || ''} 
+            onChange={e => setForm({ ...form, nascimento: `${form.nascimento?.split('-')[0] || ''}-${form.nascimento?.split('-')[1] || ''}-${e.target.value}` })}
+            style={{ ...iI, flex: 1 }}>
+            <option value="">Dia</option>
+            {Array.from({length: 31}, (_, i) => i + 1).map(d => (
+              <option key={d} value={String(d).padStart(2, '0')}>{d}</option>
+            ))}
+          </select>
+          <select value={form.nascimento?.split('-')[1] || ''}
+            onChange={e => setForm({ ...form, nascimento: `${form.nascimento?.split('-')[0] || ''}-${e.target.value}-${form.nascimento?.split('-')[2] || ''}` })}
+            style={{ ...iI, flex: 1 }}>
+            <option value="">Mês</option>
+            {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => (
+              <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+            ))}
+          </select>
+          <select value={form.nascimento?.split('-')[0] || ''}
+            onChange={e => setForm({ ...form, nascimento: `${e.target.value}-${form.nascimento?.split('-')[1] || ''}-${form.nascimento?.split('-')[2] || ''}` })}
+            style={{ ...iI, flex: 1 }}>
+            <option value="">Ano</option>
+            {Array.from({length: 80}, (_, i) => new Date().getFullYear() - 14 - i).map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
 
         <SLi c="Sexo *" />
         <Radio val={form.sexo} set={v => setForm({ ...form, sexo: v })}
