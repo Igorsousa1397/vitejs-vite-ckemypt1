@@ -2066,25 +2066,37 @@ function HomeV({
         {tab === 'avs' && (
           <>
             {edit && (
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <input
-                  value={av}
-                  onChange={(e) => setAv(e.target.value)}
-                  placeholder="Escrever aviso..."
-                  style={{ ...I, flex: 1 }}
-                />
-                <button
-                onClick={() => {
-                  if (av.trim()) {
-                    vibrar(100);
-                    addAv(av.trim());
-                    setAv('');
-                  }
-                }}
-                style={BG({ padding: '13px 15px', borderRadius: 12 })}
-              >
-                +
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                <select
+                  onChange={(e) => { if (e.target.value) setAv(e.target.value); }}
+                  style={{ ...I, fontSize: 12 }}
+                  defaultValue=""
+                >
+                  <option value="">Usar template de aviso...</option>
+                  {AVISOS_TEMPLATES.map((a, i) => (
+                    <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    value={av}
+                    onChange={(e) => setAv(e.target.value)}
+                    placeholder="Escrever aviso..."
+                    style={{ ...I, flex: 1 }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (av.trim()) {
+                        vibrar(100);
+                        addAv(av.trim());
+                        setAv('');
+                      }
+                    }}
+                    style={BG({ padding: '13px 15px', borderRadius: 12 })}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             )}
             {avs.map((a) => (
