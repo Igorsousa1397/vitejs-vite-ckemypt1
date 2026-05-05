@@ -696,11 +696,10 @@ function Login({ onLogin }){
     <div style={{minHeight:'100vh',background:'#000',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
       <style>{css}</style>
       <div style={{width:'100%',maxWidth:360}}>
-        <div style={{marginBottom:36,textAlign:'center'}}>
-          <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-            style={{width:180,mixBlendMode:'screen',display:'block',margin:'0 auto 16px'}}/>
-          <div style={{fontSize:48,fontWeight:900,color:'#fff',letterSpacing:-3}}>servos<span style={{color:G.green}}>.</span></div>
-          <div style={{color:G.tm,fontSize:12,marginTop:8,letterSpacing:2,textTransform:'uppercase'}}>Portal do Encontro</div>
+      <div style={{marginBottom:36,textAlign:'center'}}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{width:180,mixBlendMode:'screen',display:'block',margin:'0 auto 4px'}}/>
+        <div style={{color:G.tm,fontSize:12,letterSpacing:2,textTransform:'uppercase'}}>Portal do Encontro</div>
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} style={I}/>
