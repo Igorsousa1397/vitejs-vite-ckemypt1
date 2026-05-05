@@ -4365,9 +4365,13 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   );
 
   // ADMIN VIEW
-  const resumo = (key) => TAMANHOS.reduce((a, tm) => ({
-    ...a, [tm]: uni.filter(u => u[key] === tm).length
-  }), {});
+  const resumo = (key) => TAMANHOS.reduce((a, tm) => {
+  const qtdKey = key === 'camisa' ? 'qtdCamisas' : key === 'calca' ? 'qtdCalcas' : 'qtdBlusas';
+  return {
+    ...a,
+    [tm]: uni.filter(u => u[key] === tm).reduce((s, u) => s + (u[qtdKey] || 1), 0)
+  };
+}, {});
 
   const pendentes = uni.filter(u => u.status === 'pendente').length;
   const [dataTemp, setDataTemp] = useState(dataLimite);
@@ -4396,11 +4400,21 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
       {/* DATA LIMITE */}
       <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
         <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Data Limite para Solicitacoes</div>
-        <input type="date" value={dataTemp} onChange={(e) => setDataTemp(e.target.value)} style={{ ...I, marginBottom: 10 }} />
-        <button onClick={salvarData} disabled={savingData}
-          style={BG({ width: '100%', padding: 12, borderRadius: 12, opacity: savingData ? 0.7 : 1 })}>
-          {savingData ? 'Salvando...' : 'Salvar Data'}
-        </button>
+        <input type="date" value={dataTemp}
+          onChange={(e) => setDataTemp(e.target.value)}
+          disabled={!!dataLimite && dataTemp === dataLimite}
+          style={{ ...I, marginBottom: 10, opacity: (!!dataLimite && dataTemp === dataLimite) ? 0.5 : 1 }} />
+        {!!dataLimite && dataTemp === dataLimite ? (
+          <button onClick={() => setDataTemp('')}
+            style={BK({ width: '100%', padding: 12, borderRadius: 12 })}>
+            Alterar Data
+          </button>
+        ) : (
+          <button onClick={salvarData} disabled={savingData}
+            style={BG({ width: '100%', padding: 12, borderRadius: 12, opacity: savingData ? 0.7 : 1 })}>
+            {savingData ? 'Salvando...' : 'Salvar Data'}
+          </button>
+        )}
         {!dataTemp && (
           <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>Defina uma data para liberar solicitacoes aos servos.</div>
         )}
