@@ -802,6 +802,21 @@ function Inscricao({ onVoltar }) {
     }
     setSaving(true);
     try {
+      const snap = await getDocs(collection(db, 'encontristas'));
+      if (form.cpf.trim()) {
+        const cpfExiste = snap.docs.some(d => d.data().cpf === form.cpf.trim());
+        if (cpfExiste) {
+          alert('Este CPF já está cadastrado!');
+          setSaving(false);
+          return;
+        }
+      }
+      const waExiste = snap.docs.some(d => d.data().whatsapp === form.whatsapp.trim());
+      if (waExiste) {
+        alert('Este WhatsApp já está cadastrado!');
+        setSaving(false);
+        return;
+      }
       await addDoc(collection(db, 'encontristas'), {
         ...form,
         criadoEm: new Date().toLocaleString('pt-BR'),
@@ -816,20 +831,27 @@ function Inscricao({ onVoltar }) {
   if (done) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{css}</style>
-      <div style={{ textAlign: 'center', maxWidth: 360 }}>
+      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus"
           style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
         <div style={{ fontSize: 48, marginBottom: 16 }}>🙏</div>
         <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Inscrição realizada!</div>
         <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-          Sua inscrição foi recebida com sucesso!<br />
-          Para confirmar sua vaga, realize o pagamento de <strong style={{ color: G.green }}>R$ 360,00</strong> via PIX e envie o comprovante no WhatsApp.
+          Para confirmar sua vaga, realize o pagamento via PIX e envie o comprovante no WhatsApp.
         </div>
-        <div style={{ background: G.card, border: '1px solid #222', borderRadius: 16, padding: 16, marginBottom: 24, textAlign: 'left' }}>
-          <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Chave PIX</div>
-          <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>igrejafontecajamar@gmail.com</div>
+        <div style={{ background: G.card, border: '1px solid #222', borderRadius: 16, padding: 16, marginBottom: 24 }}>
           <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Valor</div>
-          <div style={{ color: G.green, fontSize: 20, fontWeight: 800 }}>R$ 360,00</div>
+          <div style={{ color: G.green, fontSize: 28, fontWeight: 800, marginBottom: 16 }}>R$ 360,00</div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText('igrejafontecajamar@gmail.com');
+              vibrar(50);
+              alert('Chave PIX copiada!');
+            }}
+            style={BG({ width: '100%', padding: 12, borderRadius: 12, fontSize: 14 })}>
+            Copiar chave PIX
+          </button>
+          <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>igrejafontecajamar@gmail.com</div>
         </div>
         <a href="https://wa.me/5511982222149?text=Olá!%20Acabei%20de%20me%20inscrever%20no%20Encontro%20com%20Deus%20e%20gostaria%20de%20enviar%20o%20comprovante%20de%20pagamento."
           target="_blank" rel="noopener noreferrer"
