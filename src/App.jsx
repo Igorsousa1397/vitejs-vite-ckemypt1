@@ -1039,7 +1039,8 @@ export default function App() {
     const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     setEncM(lista.filter(e => e.sexo === 'Feminino'));
     setEncH(lista.filter(e => e.sexo === 'Masculino'));
-    setCk(lista.map(e => ({
+    // Check-in só mostra quem pagou
+    setCk(lista.filter(e => e.pago).map(e => ({
       id: e.id,
       nome: e.nome,
       gen: e.sexo === 'Feminino' ? 'M' : 'H',
