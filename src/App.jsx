@@ -783,7 +783,7 @@ const CELULAS = [
   'Kerygma', 'Ebenézer', 'Betel', 'Transbordo', 'Ekklesia', 'Atos 29',
   'Yeshua', 'Identidade', 'Pedra Angular', 'Carta Viva', 'Luz do mundo',
   'Gileade', 'Ekballo', 'A Forja', 'Nahal', 'Deus Forte', 'Essência',
-  'Jeova Rafah', 'Fonte', 'Peniel - Santa Catarina', 'Outra', 'Não faço parte de célula',
+  'Jeova Rafah', 'Peniel - Santa Catarina', 'Outra', 'Não faço parte de célula',
 ];
 
 function Inscricao({ onVoltar }) {
