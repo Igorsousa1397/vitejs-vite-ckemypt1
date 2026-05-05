@@ -2986,19 +2986,26 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {/* Toggle pago */}
-                  <div onClick={async () => {
-                    if (!edit) return;
-                    vibrar(30);
-                    await setDoc(doc(db, 'encontristas', e.id), { pago: !e.pago }, { merge: true });
-                  }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: edit ? 'pointer' : 'default', userSelect: 'none' }}>
-                    <div style={{ width: 38, height: 22, borderRadius: 20, background: e.pago ? G.green : '#ff3b30', transition: 'background .2s', position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: 2, left: e.pago ? 17 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+                  {e.pagamentoId ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#fff' }}>MP</div>
+                      <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago MP</span>
                     </div>
-                    <span style={{ color: e.pago ? G.green : '#ff3b30', fontSize: 11, fontWeight: 700, minWidth: 48 }}>
-                      {e.pago ? 'Pago' : 'Pendente'}
-                    </span>
-                  </div>
+                  ) : (
+                    <div onClick={async () => {
+                      if (!edit) return;
+                      vibrar(30);
+                      await setDoc(doc(db, 'encontristas', e.id), { pago: !e.pago }, { merge: true });
+                    }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: edit ? 'pointer' : 'default', userSelect: 'none' }}>
+                      <div style={{ width: 38, height: 22, borderRadius: 20, background: e.pago ? G.green : '#ff3b30', transition: 'background .2s', position: 'relative' }}>
+                        <div style={{ position: 'absolute', top: 2, left: e.pago ? 17 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+                      </div>
+                      <span style={{ color: e.pago ? G.green : '#ff3b30', fontSize: 11, fontWeight: 700, minWidth: 48 }}>
+                        {e.pago ? 'Pago' : 'Pendente'}
+                      </span>
+                    </div>
+                  )}
                   {/* Seta expandir */}
                   <span onClick={() => toggle(e.id)}
                     style={{ color: G.tm, fontSize: 12, cursor: 'pointer', transition: 'transform .2s', display: 'inline-block', transform: aberto ? 'rotate(180deg)' : 'none' }}>
