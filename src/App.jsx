@@ -9,10 +9,11 @@ const iniciarNotificacoes = async (userId = null) => {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return null;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-    if (token) {
-      await setDoc(doc(db, 'tokens', token), { 
+    if (token && userId) {
+      // Usa userId como chave — garante um único documento por usuário
+      await setDoc(doc(db, 'tokens', userId), { 
         token, 
-        userId: userId || 'unknown',
+        userId,
         data: new Date().toISOString() 
       }, { merge: true });
     }
@@ -778,11 +779,10 @@ export default function App() {
         setUser({ id: firebaseUser.uid, ...snap.data() });
         setScr('app');
         if (snap.data().perfil === 'servo') setPg('smins');
-        if (Notification.permission === 'granted') {
+        // Ativa notificações automaticamente para todos
         iniciarNotificacoes(firebaseUser.uid).then(token => {
           if (token) setNotif(true);
         });
-      }
       }
     }
     setSp(false);
