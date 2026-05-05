@@ -3960,194 +3960,89 @@ function Toggle({
 // ── SERVOS ───────────────────────────────────────────────────────────────────
 function SvV({ users, setUsers, esc, edit, t }) {
   const [sh, setSh] = useState(false);
-  const [f, setF] = useState({ nome: '', sob: '', perfil: 'servo', fn: '' });
+  const [f, setF] = useState({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
   const [filtro, setFiltro] = useState('todos');
-  // funções derivadas das equipes
-  const fnsDasEquipes = useMemo(
-    () => [...new Set(esc.map((e) => e.equipe))],
-    [esc]
-  );
+  const [loading, setLoading] = useState(false);
+  const fnsDasEquipes = useMemo(() => [...new Set(esc.map((e) => e.equipe))], [esc]);
   const upd = (id, fn) => setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
-  const add = () => {
-    if (!f.nome.trim()) return;
-    if (!f.fn) {
-      t('Selecione uma equipe/função', 'w');
-      return;
+
+  const add = async () => {
+    if (!f.nome.trim()) { t('Nome obrigatório', 'w'); return; }
+    if (!f.email.trim() || !f.email.includes('@')) { t('Email inválido', 'w'); return; }
+    if (!f.fn) { t('Selecione uma equipe/função', 'w'); return; }
+    setLoading(true);
+    try {
+      const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
+      // Cria usuário no Firebase Auth com senha temporária
+      const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth');
+      const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), 'Temp@' + Date.now());
+      // Envia email para o servo criar a própria senha
+      await sendPasswordResetEmail(auth, f.email.trim());
+      // Salva no Firestore
+      const { setDoc, doc: firestoreDoc } = await import('firebase/firestore');
+      const novoUser = {
+        nome: nm, email: f.email.trim(), perfil: f.perfil,
+        funcoes: f.fn ? [f.fn] : [], ativo: true, pago: false, primeiro: true,
+      };
+      await setDoc(firestoreDoc(db, 'users', cred.user.uid), novoUser);
+      setUsers([...users, { id: cred.user.uid, ...novoUser }]);
+      setF({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
+      setSh(false);
+      t('Servo adicionado! Email de acesso enviado ✉️');
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') t('Email já cadastrado', 'w');
+      else t('Erro ao cadastrar: ' + err.message, 'w');
     }
-    const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
-    setUsers([
-      ...users,
-      {
-        id: Date.now(),
-        nome: nm,
-        senha: '123456',
-        perfil: f.perfil,
-        primeiro: true,
-        funcoes: f.fn ? [f.fn] : [],
-        ativo: true,
-        pago: false,
-      },
-    ]);
-    setF({ nome: '', sob: '', perfil: 'servo', fn: '' });
-    setSh(false);
-    t('Adicionado! Senha: 123456');
+    setLoading(false);
   };
+
   const lista = users.filter(
-    (u) =>
-      u.perfil !== 'admin' &&
-      (filtro === 'todos' || filtro === 'ativos' ? u.ativo !== false : !u.ativo)
+    (u) => u.perfil !== 'admin' &&
+      (filtro === 'todos' ? true : filtro === 'ativos' ? u.ativo !== false : !u.ativo)
   );
+
   return (
     <div>
       {edit && (
-        <button
-          onClick={() => setSh(true)}
-          style={BG({
-            width: '100%',
-            padding: 13,
-            marginBottom: 12,
-            borderRadius: 14,
-          })}
-        >
+        <button onClick={() => setSh(true)} style={BG({ width: '100%', padding: 13, marginBottom: 12, borderRadius: 14 })}>
           + Adicionar Servo
         </button>
       )}
-      {/* filtro */}
       <div style={{ marginBottom: 14 }}>
-        <Seg
-          opts={[
-            ['todos', 'Todos'],
-            ['ativos', 'Ativos'],
-            ['inativos', 'Inativos'],
-          ]}
-          val={filtro}
-          set={setFiltro}
-        />
+        <Seg opts={[['todos', 'Todos'], ['ativos', 'Ativos'], ['inativos', 'Inativos']]} val={filtro} set={setFiltro} />
       </div>
-      {/* stats */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr',
-          gap: 8,
-          marginBottom: 14,
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
         {[
-          [
-            users.filter((u) => u.perfil !== 'admin').length,
-            'Total',
-            '#636366',
-          ],
-          [
-            users.filter((u) => u.perfil !== 'admin' && u.ativo !== false)
-              .length,
-            'Ativos',
-            G.green,
-          ],
-          [
-            users.filter((u) => u.perfil !== 'admin' && u.pago).length,
-            'Pagos',
-            '#0a84ff',
-          ],
+          [users.filter((u) => u.perfil !== 'admin').length, 'Total', '#636366'],
+          [users.filter((u) => u.perfil !== 'admin' && u.ativo !== false).length, 'Ativos', G.green],
+          [users.filter((u) => u.perfil !== 'admin' && u.pago).length, 'Pagos', '#0a84ff'],
         ].map(([n, l, c]) => (
-          <div
-            key={l}
-            style={{
-              background: '#111',
-              borderRadius: 12,
-              padding: '10px 8px',
-              textAlign: 'center',
-              borderTop: `2px solid ${c}`,
-            }}
-          >
+          <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
             <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>{n}</div>
-            <div
-              style={{
-                color: G.tm,
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                marginTop: 3,
-              }}
-            >
-              {l}
-            </div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
           </div>
         ))}
       </div>
       {lista.map((u, i) => (
-        <Acc
-          key={i}
-          title={u.nome}
-          right={
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {!u.ativo && (
-                <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
-              )}
-              <Pill
-                c={PERFIS[u.perfil]?.l || u.perfil}
-                bg={`${PERFIS[u.perfil]?.c || G.green}18`}
-                tc={PERFIS[u.perfil]?.c || G.green}
-              />
-            </div>
-          }
-        >
+        <Acc key={i} title={u.nome} right={
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {!u.ativo && <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />}
+            <Pill c={PERFIS[u.perfil]?.l || u.perfil} bg={`${PERFIS[u.perfil]?.c || G.green}18`} tc={PERFIS[u.perfil]?.c || G.green} />
+          </div>
+        }>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* toggles — pastor nao tem toggle pago */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: '#111',
-                borderRadius: 12,
-                padding: '12px 14px',
-              }}
-            >
-              <Toggle
-                val={u.ativo !== false}
-                onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))}
-                labelOn="Ativo"
-                labelOff="Inativo"
-              />
+            {u.email && <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}>
+              <Toggle val={u.ativo !== false} onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))} labelOn="Ativo" labelOff="Inativo" />
               {u.perfil !== 'pastor' && (
-                <Toggle
-                  val={!!u.pago}
-                  onToggle={() => upd(u.id, (x) => ({ ...x, pago: !x.pago }))}
-                  labelOn="Pago ✓"
-                  labelOff="Pendente"
-                  colorOn="#0a84ff"
-                />
+                <Toggle val={!!u.pago} onToggle={() => upd(u.id, (x) => ({ ...x, pago: !x.pago }))} labelOn="Pago ✓" labelOff="Pendente" colorOn="#0a84ff" />
               )}
             </div>
-            {u.funcoes?.length > 0 && (
-              <>
-                <SL c="Funções" mt={0} />
-                <Tags items={u.funcoes} />
-              </>
-            )}
-            {u.primeiro && (
-              <Pill
-                c="⚠️ Aguardando 1º acesso"
-                bg="rgba(255,159,10,.12)"
-                tc="#ff9f0a"
-              />
-            )}
+            {u.funcoes?.length > 0 && <><SL c="Funções" mt={0} /><Tags items={u.funcoes} /></>}
+            {u.primeiro && <Pill c="⚠️ Email de acesso enviado — aguardando 1º login" bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}
             {edit && (
-              <span
-                onClick={() => {
-                  setUsers(users.filter((x) => x.id !== u.id));
-                  t('Removido.');
-                }}
-                style={{
-                  color: 'rgba(255,59,48,.4)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  textAlign: 'right',
-                }}
-              >
+              <span onClick={() => { setUsers(users.filter((x) => x.id !== u.id)); t('Removido.'); }}
+                style={{ color: 'rgba(255,59,48,.4)', cursor: 'pointer', fontSize: 12, textAlign: 'right' }}>
                 🗑 Remover
               </span>
             )}
@@ -4156,69 +4051,24 @@ function SvV({ users, setUsers, esc, edit, t }) {
       ))}
       <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Servo">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div
-            style={{
-              background: 'rgba(0,200,81,.08)',
-              border: '1px solid rgba(0,200,81,.2)',
-              borderRadius: 10,
-              padding: '10px 13px',
-              color: G.green,
-              fontSize: 12,
-            }}
-          >
-            Senha padrão: <strong>123456</strong> — servo cria sua senha no 1º
-            acesso.
+          <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 10, padding: '10px 13px', color: G.green, fontSize: 12 }}>
+            ✉️ O servo receberá um email para criar a própria senha.
           </div>
-          <input
-            placeholder="Nome *"
-            value={f.nome}
-            onChange={(e) => setF({ ...f, nome: e.target.value })}
-            style={I}
-          />
-          <input
-            placeholder="Sobrenome"
-            value={f.sob}
-            onChange={(e) => setF({ ...f, sob: e.target.value })}
-            style={I}
-          />
-          <select
-            style={I}
-            value={f.perfil}
-            onChange={(e) => setF({ ...f, perfil: e.target.value })}
-          >
-            {Object.entries(PERFIS)
-              .filter(([k]) => k !== 'admin')
-              .map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v.l}
-                </option>
-              ))}
-          </select>
-          <select
-            style={{
-              ...I,
-              borderColor: !f.fn ? 'rgba(255,59,48,.4)' : '#2a2a2a',
-            }}
-            value={f.fn}
-            onChange={(e) => setF({ ...f, fn: e.target.value })}
-          >
-            <option value="">⚠️ Equipe / Função *</option>
-            {fnsDasEquipes.map((fn) => (
-              <option key={fn} value={fn}>
-                {fn}
-              </option>
+          <input placeholder="Nome *" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} style={I} />
+          <input placeholder="Sobrenome" value={f.sob} onChange={(e) => setF({ ...f, sob: e.target.value })} style={I} />
+          <input placeholder="Email * (será usado para login)" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })}
+            style={{ ...I, borderColor: f.email && !f.email.includes('@') ? 'rgba(255,59,48,.4)' : '#2a2a2a' }} />
+          <select style={I} value={f.perfil} onChange={(e) => setF({ ...f, perfil: e.target.value })}>
+            {Object.entries(PERFIS).filter(([k]) => k !== 'admin').map(([k, v]) => (
+              <option key={k} value={k}>{v.l}</option>
             ))}
           </select>
-          <button
-            onClick={add}
-            style={BG({
-              width: '100%',
-              padding: 14,
-              borderRadius: 14,
-              marginTop: 4,
-            })}
-          >
-            Confirmar
+          <select style={{ ...I, borderColor: !f.fn ? 'rgba(255,59,48,.4)' : '#2a2a2a' }} value={f.fn} onChange={(e) => setF({ ...f, fn: e.target.value })}>
+            <option value="">⚠️ Equipe / Função *</option>
+            {fnsDasEquipes.map((fn) => <option key={fn} value={fn}>{fn}</option>)}
+          </select>
+          <button onClick={add} disabled={loading} style={BG({ width: '100%', padding: 14, borderRadius: 14, marginTop: 4, opacity: loading ? 0.7 : 1 })}>
+            {loading ? 'Cadastrando...' : 'Confirmar e Enviar Email'}
           </button>
         </div>
       </Sheet>
