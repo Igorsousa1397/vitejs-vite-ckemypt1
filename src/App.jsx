@@ -1,5 +1,6 @@
-import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc, getDoc } from './firebase';
+import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc, createUserWithEmailAndPassword, sendPasswordResetEmail } from './firebase';
 import { useState, useMemo, useEffect } from 'react';
+
 
 const G = {
   bg: '#0a0a0a',
