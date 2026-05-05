@@ -756,14 +756,7 @@ export default function App() {
   const [ach, setAch] = useState([]);
   const [crac, setCrac] = useState([]);
   const [sau, setSau] = useState([]);
-  const [avs, setAvs] = useState([
-    {
-      id: 1,
-      txt: 'Bem-vindos ao Encontro com Deus! 🙏',
-      autor: 'Admin',
-      hr: '09:00',
-    },
-  ]);
+  const [avs, setAvs] = useState([]);
   const [encH, setEncH] = useState([]);
   const [encM, setEncM] = useState([]);
   const [uni, setUni] = useState([]);
@@ -772,12 +765,11 @@ export default function App() {
   const [notif, setNotif] = useState(false);
   
   useEffect(() => {
-    const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
-      if (snap.exists()) {
-        const d = snap.data();
-        if (d.dataLimite) setDataLimiteUni(d.dataLimite);
-      }
+    const unsubAvs = onSnapshot(collection(db, 'avisos'), (snap) => {
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
     });
+    return () => { unsubConfig(); unsubUni(); unsubAvs(); };
     const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
       setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
     });
@@ -1300,23 +1292,20 @@ export default function App() {
             on={on}
             nav={nav}
             edit={canG(role)}
-            addAv={(txt) => {
-              setAvs([
-                {
-                  id: Date.now(),
-                  txt,
-                  autor: user.nome,
-                  hr: new Date().toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }),
-                },
-                ...avs,
-              ]);
-              notifyAll(`📢 Aviso: ${txt}`);
+            addAv={async (txt) => {
+              const aviso = {
+                txt,
+                autor: user.nome,
+                hr: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                createdAt: Date.now(),
+              };
+              await addDoc(collection(db, 'avisos'), aviso);
+              notifyAll(`Aviso: ${txt}`);
               showT('Aviso publicado!');
             }}
-            delAv={(id) => setAvs(avs.filter((a) => a.id !== id))}
+            delAv={async (id) => {
+              await deleteDoc(doc(db, 'avisos', id));
+            }}
           />
         )}
         {pg === 'checkin' && (
@@ -4021,7 +4010,7 @@ function SvV({ users, setUsers, esc, edit, t }) {
                   Clique no botão abaixo para criar sua senha e acessar o portal dos servos.
                 </p>
                 <div style="text-align:center;margin:28px 0">
-                  <a href="https://servos-peniel.netlify.app" style="background:#00c851;color:#000;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;display:inline-block">
+                  <a href="https://servos-peniel.vercel.app" style="background:#00c851;color:#000;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;display:inline-block">
                     Acessar o Portal dos Servos →
                   </a>
                 </div>
