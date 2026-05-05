@@ -724,11 +724,11 @@ function Login({ onLogin }){
               style={{...I, paddingRight:44}}
             />
             <button
-              onClick={()=>setShowSenha(!showSenha)}
-              style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:G.tm,cursor:'pointer',fontSize:16,padding:4}}
-            >
-              {showSenha ? '🙈' : '👁'}
-            </button>
+            onClick={()=>setShowSenha(!showSenha)}
+            style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:G.tm,cursor:'pointer',fontSize:16,padding:4}}
+          >
+            {showSenha ? '◯' : '◉'}
+          </button>
           </div>
           {e&&<div style={{color:'#ff3b30',fontSize:12,background:'rgba(255,59,48,.1)',borderRadius:10,padding:'10px 14px'}}>{e}</div>}
           <button onClick={() => { vibrar(); go(); }} disabled={load} style={BG({width:'100%',padding:14,borderRadius:14,marginTop:4,opacity:load?0.7:1})}>
