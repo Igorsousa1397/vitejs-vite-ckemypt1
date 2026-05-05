@@ -4127,6 +4127,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   const prazoDefinido = !!dataLimite;
   const prazoOk = prazoDefinido && hoje <= dataLimite;
   const meuPedido = uni.find((u) => u.userId === user.id);
+  const bloqueado = meuPedido && meuPedido.status !== 'aberto';
   const [form, setForm] = useState(
     meuPedido || { camisa: '', qtdCamisas: 1, calca: '', blusa: '' }
   );
@@ -4141,6 +4142,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
       qtdCamisas: form.qtdCamisas || 1,
       calca: form.calca || '',
       blusa: form.blusa || '',
+      status: 'bloqueado',
       data: new Date().toLocaleString('pt-BR'),
     };
     await setDoc(doc(db, 'uniformes', user.id), pedido);
@@ -4148,12 +4150,17 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
     t('Pedido salvo! ✓');
   };
 
+  const solicitarAlteracao = async () => {
+    await setDoc(doc(db, 'uniformes', user.id), { status: 'pendente' }, { merge: true });
+    t('Solicitação enviada ao admin!');
+  };
+
   // SERVO VIEW
   if (!isAdm) return (
     <div>
       {!prazoDefinido && (
         <div style={{ background: 'rgba(99,99,102,.1)', border: '1px solid #2a2a2a', borderRadius: 14, padding: 20, textAlign: 'center', color: G.tm, fontSize: 13 }}>
-          📋 As solicitações de uniforme ainda não foram abertas.<br />
+          As solicitações de uniforme ainda não foram abertas.<br />
           Aguarde a data ser definida pelo admin.
         </div>
       )}
@@ -4161,7 +4168,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
         <>
           <div style={{ background: prazoOk ? 'rgba(0,200,81,.08)' : 'rgba(255,59,48,.08)', border: `1px solid ${prazoOk ? 'rgba(0,200,81,.2)' : 'rgba(255,59,48,.2)'}`, borderRadius: 14, padding: '12px 14px', marginBottom: 14 }}>
             <div style={{ color: prazoOk ? G.green : '#ff6b6b', fontWeight: 700, fontSize: 13 }}>
-              {prazoOk ? '📅 Prazo aberto' : '⏰ Prazo encerrado'}
+              {prazoOk ? 'Prazo aberto' : 'Prazo encerrado'}
             </div>
             <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
               Data limite: {new Date(dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -4171,46 +4178,55 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
           {prazoOk && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ background: 'rgba(0,200,81,.06)', border: '1px solid rgba(0,200,81,.15)', borderRadius: 12, padding: '11px 14px', color: G.td, fontSize: 12, lineHeight: 1.6 }}>
-                👕 Todo servo recebe <strong style={{ color: G.green }}>1 camiseta inclusa</strong>. Itens extras têm custo.
+                Todo servo recebe <strong style={{ color: G.green }}>1 camiseta inclusa</strong>. Itens extras têm custo.
               </div>
 
+              {/* STATUS DO PEDIDO */}
+              {meuPedido && (
+                <div style={{ background: meuPedido.status === 'pendente' ? 'rgba(255,159,10,.08)' : meuPedido.status === 'aberto' ? 'rgba(0,200,81,.08)' : 'rgba(99,99,102,.1)', border: `1px solid ${meuPedido.status === 'pendente' ? 'rgba(255,159,10,.3)' : meuPedido.status === 'aberto' ? 'rgba(0,200,81,.2)' : '#2a2a2a'}`, borderRadius: 12, padding: '10px 14px' }}>
+                  <div style={{ color: meuPedido.status === 'pendente' ? '#ff9f0a' : meuPedido.status === 'aberto' ? G.green : G.tm, fontWeight: 700, fontSize: 13 }}>
+                    {meuPedido.status === 'pendente' ? 'Solicitacao de alteracao enviada — aguardando aprovacao' : meuPedido.status === 'aberto' ? 'Alteracao aprovada — edite e salve novamente' : 'Pedido registrado'}
+                  </div>
+                </div>
+              )}
+
               {/* CAMISETA */}
-              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
+              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  👕 Camiseta <Pill c="Inclusa" bg="rgba(0,200,81,.12)" tc={G.green} />
+                  Camiseta <Pill c="Inclusa" bg="rgba(0,200,81,.12)" tc={G.green} />
                 </div>
                 <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Tamanho</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
                   {TAMANHOS.map((tm) => (
-                    <button key={tm} onClick={() => setForm({ ...form, camisa: tm })}
-                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.camisa === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.camisa === tm ? G.green : G.td, background: form.camisa === tm ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+                    <button key={tm} onClick={() => !bloqueado && setForm({ ...form, camisa: tm })}
+                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.camisa === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.camisa === tm ? G.green : G.td, background: form.camisa === tm ? 'rgba(0,200,81,.08)' : 'transparent', cursor: bloqueado ? 'default' : 'pointer' }}>
                       {tm}
                     </button>
                   ))}
                 </div>
-                <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Quantidade (máx. 3)</div>
+                <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Quantidade (max. 3)</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                  <button onClick={() => setForm({ ...form, qtdCamisas: Math.max(1, (form.qtdCamisas || 1) - 1) })}
-                    style={BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 })}>−</button>
+                  <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.max(1, (form.qtdCamisas || 1) - 1) })}
+                    style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>−</button>
                   <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: 'center' }}>
                     {form.qtdCamisas || 1}
                   </span>
-                  <button onClick={() => setForm({ ...form, qtdCamisas: Math.min(3, (form.qtdCamisas || 1) + 1) })}
-                    style={BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 })}>+</button>
+                  <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.min(3, (form.qtdCamisas || 1) + 1) })}
+                    style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>+</button>
                 </div>
               </div>
 
               {/* CALÇA */}
-              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>👖 Calça</div>
+              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Calca</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                  <button onClick={() => setForm({ ...form, calca: '' })}
-                    style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.calca ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.calca ? '#ff6b6b' : G.td }}>
-                    Não quero
+                  <button onClick={() => !bloqueado && setForm({ ...form, calca: '' })}
+                    style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.calca ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.calca ? '#ff6b6b' : G.td, cursor: bloqueado ? 'default' : 'pointer' }}>
+                    Nao quero
                   </button>
                   {TAMANHOS.map((tm) => (
-                    <button key={tm} onClick={() => setForm({ ...form, calca: tm })}
-                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.calca === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.calca === tm ? G.green : G.td, background: form.calca === tm ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+                    <button key={tm} onClick={() => !bloqueado && setForm({ ...form, calca: tm })}
+                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.calca === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.calca === tm ? G.green : G.td, background: form.calca === tm ? 'rgba(0,200,81,.08)' : 'transparent', cursor: bloqueado ? 'default' : 'pointer' }}>
                       {tm}
                     </button>
                   ))}
@@ -4218,37 +4234,46 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
               </div>
 
               {/* BLUSA DE FRIO */}
-              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>🧥 Blusa de Frio</div>
+              <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Blusa de Frio</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                  <button onClick={() => setForm({ ...form, blusa: '' })}
-                    style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.blusa ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.blusa ? '#ff6b6b' : G.td }}>
-                    Não quero
+                  <button onClick={() => !bloqueado && setForm({ ...form, blusa: '' })}
+                    style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12 }), borderColor: !form.blusa ? 'rgba(255,59,48,.5)' : '#2a2a2a', color: !form.blusa ? '#ff6b6b' : G.td, cursor: bloqueado ? 'default' : 'pointer' }}>
+                    Nao quero
                   </button>
                   {TAMANHOS.map((tm) => (
-                    <button key={tm} onClick={() => setForm({ ...form, blusa: tm })}
-                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.blusa === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.blusa === tm ? G.green : G.td, background: form.blusa === tm ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+                    <button key={tm} onClick={() => !bloqueado && setForm({ ...form, blusa: tm })}
+                      style={{ ...BK({ padding: '7px 13px', borderRadius: 50, fontSize: 12, fontWeight: 700 }), borderColor: form.blusa === tm ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: form.blusa === tm ? G.green : G.td, background: form.blusa === tm ? 'rgba(0,200,81,.08)' : 'transparent', cursor: bloqueado ? 'default' : 'pointer' }}>
                       {tm}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {meuPedido && (
-                <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '10px 14px', color: G.green, fontSize: 12 }}>
-                  ✓ Pedido já registrado — salve novamente para atualizar.
-                </div>
+              {/* BOTOES */}
+              {!meuPedido && (
+                <button onClick={salvarPedido} disabled={saving}
+                  style={BG({ width: '100%', padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
+                  {saving ? 'Salvando...' : 'Salvar Pedido'}
+                </button>
               )}
-
-              <button onClick={salvarPedido} disabled={saving}
-                style={BG({ width: '100%', padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
-                {saving ? 'Salvando...' : '💾 Salvar Pedido'}
-              </button>
+              {meuPedido && meuPedido.status === 'aberto' && (
+                <button onClick={salvarPedido} disabled={saving}
+                  style={BG({ width: '100%', padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
+                  {saving ? 'Salvando...' : 'Salvar Alteracao'}
+                </button>
+              )}
+              {meuPedido && meuPedido.status === 'bloqueado' && (
+                <button onClick={solicitarAlteracao}
+                  style={{ ...BK({ width: '100%', padding: 14, borderRadius: 14 }), borderColor: 'rgba(255,159,10,.4)', color: '#ff9f0a' }}>
+                  Solicitar Alteracao
+                </button>
+              )}
             </div>
           )}
           {!prazoOk && (
             <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
-              O prazo para solicitação encerrou.
+              O prazo para solicitacao encerrou.
             </div>
           )}
         </>
@@ -4261,23 +4286,43 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
     ...a, [tm]: uni.filter(u => u[key] === tm).length
   }), {});
 
+  const pendentes = uni.filter(u => u.status === 'pendente').length;
+
+  const aprovar = async (userId) => {
+    await setDoc(doc(db, 'uniformes', userId), { status: 'aberto' }, { merge: true });
+    t('Alteracao aprovada!');
+  };
+
+  const reprovar = async (userId) => {
+    await setDoc(doc(db, 'uniformes', userId), { status: 'bloqueado' }, { merge: true });
+    t('Solicitacao reprovada.');
+  };
+
   return (
     <div>
+      {/* DATA LIMITE */}
       <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
-        <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>📅 Data Limite para Solicitações</div>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Data Limite para Solicitacoes</div>
         <input type="date" value={dataLimite} onChange={(e) => setDataLimite(e.target.value)} style={I} />
         {!dataLimite && (
-          <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>⚠️ Defina uma data para liberar solicitações aos servos.</div>
+          <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>Defina uma data para liberar solicitacoes aos servos.</div>
         )}
       </div>
 
+      {/* ALERTA PENDENTES */}
+      {pendentes > 0 && (
+        <div style={{ background: 'rgba(255,159,10,.1)', border: '1px solid rgba(255,159,10,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 14, color: '#ff9f0a', fontWeight: 700, fontSize: 13 }}>
+          {pendentes} solicitacao{pendentes > 1 ? 'oes' : ''} de alteracao pendente{pendentes > 1 ? 's' : ''}
+        </div>
+      )}
+
+      {/* RESUMO */}
       {uni.length > 0 && (
-        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
-          <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>📊 Resumo ({uni.length} pedidos)</div>
+        <Acc title={`Resumo (${uni.length} pedidos)`} def={true}>
           {[
-            { key: 'camisa', label: '👕 Camisetas' },
-            { key: 'calca', label: '👖 Calças' },
-            { key: 'blusa', label: '🧥 Blusas de Frio' },
+            { key: 'camisa', label: 'Camisetas' },
+            { key: 'calca', label: 'Calcas' },
+            { key: 'blusa', label: 'Blusas de Frio' },
           ].map(({ key, label }) => {
             const r = resumo(key);
             const total = Object.values(r).reduce((a, b) => a + b, 0);
@@ -4288,7 +4333,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                   {label}
                   {key === 'camisa' && (
                     <span style={{ color: G.tm, marginLeft: 8 }}>
-                      (total camisetas: {uni.reduce((a, u) => a + (u.qtdCamisas || 1), 0)})
+                      (total: {uni.reduce((a, u) => a + (u.qtdCamisas || 1), 0)})
                     </span>
                   )}
                 </div>
@@ -4300,24 +4345,43 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
               </div>
             );
           })}
-        </div>
+        </Acc>
       )}
 
-      <SL c={`Pedidos (${uni.length})`} mt={0} />
+      {/* PEDIDOS */}
+      <SL c={`Pedidos (${uni.length})`} mt={14} />
       {uni.length === 0 && (
         <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum pedido ainda.</div>
       )}
-      {uni.map((u, i) => (
-        <div key={i} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>
-          <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{u.nome}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <Pill c={`👕 ${u.camisa} × ${u.qtdCamisas || 1}`} bg="#1e1e1e" tc={G.td} />
-            {u.calca && <Pill c={`👖 ${u.calca}`} bg="#1e1e1e" tc={G.td} />}
-            {u.blusa && <Pill c={`🧥 ${u.blusa}`} bg="#1e1e1e" tc={G.td} />}
-          </div>
-          <div style={{ color: G.tm, fontSize: 11, marginTop: 6 }}>🕐 {u.data}</div>
-        </div>
-      ))}
+      {uni.map((u, i) => {
+        const statusColor = u.status === 'pendente' ? '#ff9f0a' : u.status === 'aberto' ? '#0a84ff' : G.green;
+        const statusLabel = u.status === 'pendente' ? 'Aguardando aprovacao' : u.status === 'aberto' ? 'Liberado para editar' : 'Confirmado';
+        return (
+          <Acc key={i} title={u.nome} ax={statusColor}
+            right={<Pill c={statusLabel} bg={`${statusColor}18`} tc={statusColor} />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <Pill c={`Camiseta ${u.camisa} x${u.qtdCamisas || 1}`} bg="#1e1e1e" tc={G.td} />
+                {u.calca && <Pill c={`Calca ${u.calca}`} bg="#1e1e1e" tc={G.td} />}
+                {u.blusa && <Pill c={`Blusa ${u.blusa}`} bg="#1e1e1e" tc={G.td} />}
+              </div>
+              <div style={{ color: G.tm, fontSize: 11 }}>Salvo em: {u.data}</div>
+              {u.status === 'pendente' && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => aprovar(u.userId)}
+                    style={BG({ flex: 1, padding: '10px', borderRadius: 12, fontSize: 13 })}>
+                    Aprovar
+                  </button>
+                  <button onClick={() => reprovar(u.userId)}
+                    style={{ ...BK({ flex: 1, padding: '10px', borderRadius: 12, fontSize: 13 }), borderColor: 'rgba(255,59,48,.4)', color: '#ff6b6b' }}>
+                    Reprovar
+                  </button>
+                </div>
+              )}
+            </div>
+          </Acc>
+        );
+      })}
     </div>
   );
 }
