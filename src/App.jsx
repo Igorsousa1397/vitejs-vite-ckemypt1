@@ -474,7 +474,17 @@ const ESCALAS_INIT = [
   },
 ];
 const QH_INIT = [];
-const QM_INIT = [];
+
+const QM_INIT = [
+  {
+    num: 12,
+    maes: true,
+    lim: 9,
+    servos: [],
+    enc: [],
+  },
+];
+
 const ON_INIT = [
   { num: 1, resp: ['Islany', 'Silas'], templo: ['Tainá', 'Thais'], pass: [] },
   { num: 2, resp: ['Tiago', 'Simone'], templo: ['Tiago', 'Simone'], pass: [] },
@@ -2752,6 +2762,33 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
               <div style={{ background: '#ff9f0a', borderRadius: 5, height: 5, width: `${pct}%` }} />
             </div>
+
+            {/* Edição de número e limite */}
+            {edit && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número</div>
+                  <input
+                    type="number"
+                    value={m.num}
+                    onChange={e => uQM(m.num, q => ({ ...q, num: parseInt(e.target.value) || q.num }))}
+                    style={{ ...I, fontSize: 13, padding: '8px 12px' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Limite de camas</div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={m.lim}
+                    onChange={e => uQM(m.num, q => ({ ...q, lim: parseInt(e.target.value) || q.lim }))}
+                    style={{ ...I, fontSize: 13, padding: '8px 12px' }}
+                  />
+                </div>
+              </div>
+            )}
+
             <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
             <Tags items={m.servos} ax={G.green}
               onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
