@@ -4763,7 +4763,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
               {/* PIX Uniforme */}
               <div style={{ background: G.card, border: '1px solid #2a2a2a', borderRadius: 14, padding: 16, marginTop: 8 }}>
                 <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Pagamento do Uniforme</div>
-                <div style={{ color: G.td, fontSize: 12, marginBottom: 6 }}>💚 PIX Nubank — Thaís Bezerra da Silva Rodrigues</div>
+                <div style={{ color: G.td, fontSize: 12, marginBottom: 6 }}>PIX Nubank — Thaís Bezerra da Silva Rodrigues</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <div style={{ color: G.t, fontWeight: 700, fontSize: 15, flex: 1 }}>40617537895</div>
                   <button
