@@ -1052,58 +1052,8 @@ export default function App() {
   };
 
   
-useEffect(() => {
-
-  inicializarQuartoMaes();
-
-  const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
-    if (snap.exists()) {
-      const d = snap.data();
-      if (d.dataLimite) setDataLimiteUni(d.dataLimite);
-    }
-  });
-
-  const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
-    setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
-  });
-
-  const unsubAvs = onSnapshot(collection(db, 'avisos'), (snap) => {
-    const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
-  });
-
-  const unsubEnc = onSnapshot(collection(db, 'encontristas'), (snap) => {
-    const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    setEncM(lista.filter(e => e.sexo === 'Feminino'));
-    setEncH(lista.filter(e => e.sexo === 'Masculino'));
-    setCk(lista.filter(e => e.pago).map(e => ({
-      id: e.id,
-      nome: e.nome,
-      gen: e.sexo === 'Feminino' ? 'M' : 'H',
-      ok: e.chegou || false,
-      on: e.onibus || null,
-    })));
-  });
-
-  const unsubQH = onSnapshot(collection(db, 'quartos_h'), (snap) => {
-    if (!snap.empty) {
-      const lista = snap.docs.map(d => d.data());
-      setQh(lista.sort((a, b) => a.num - b.num));
-    }
-  });
-
-  const unsubQM = onSnapshot(collection(db, 'quartos_m'), (snap) => {
-    if (!snap.empty) {
-      const lista = snap.docs.map(d => d.data());
-      setQm(lista.sort((a, b) => a.num - b.num));
-    }
-  });
-
- const unsubQHRef = useRef(null);
-  const unsubQMRef = useRef(null);
-  const unsubOnRef = useRef(null);
-
   useEffect(() => {
+
     inicializarQuartoMaes();
 
     const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
@@ -1135,6 +1085,20 @@ useEffect(() => {
       })));
     });
 
+    const unsubQH = onSnapshot(collection(db, 'quartos_h'), (snap) => {
+      if (!snap.empty) {
+        const lista = snap.docs.map(d => d.data());
+        setQh(lista.sort((a, b) => a.num - b.num));
+      }
+    });
+
+    const unsubQM = onSnapshot(collection(db, 'quartos_m'), (snap) => {
+      if (!snap.empty) {
+        const lista = snap.docs.map(d => d.data());
+        setQm(lista.sort((a, b) => a.num - b.num));
+      }
+    });
+
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
@@ -1142,18 +1106,11 @@ useEffect(() => {
           setUser({ id: firebaseUser.uid, ...snap.data() });
           setScr('app');
           if (snap.data().perfil === 'servo') setPg('smins');
-
-          unsubQHRef.current = onSnapshot(collection(db, 'quartos_h'), (snap) => {
-            if (!snap.empty) setQh(snap.docs.map(d => d.data()).sort((a, b) => a.num - b.num));
-          });
-          unsubQMRef.current = onSnapshot(collection(db, 'quartos_m'), (snap) => {
-            if (!snap.empty) setQm(snap.docs.map(d => d.data()).sort((a, b) => a.num - b.num));
-          });
-          unsubOnRef.current = onSnapshot(collection(db, 'onibus'), (snap) => {
-            setOn(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.num - b.num));
-          });
-
-          if (Notification.permission !== 'denied') {
+          if (Notification.permission === 'granted') {
+            iniciarNotificacoes(firebaseUser.uid).then(token => {
+              if (token) setNotif(true);
+            });
+          } else if (Notification.permission === 'default') {
             iniciarNotificacoes(firebaseUser.uid).then(token => {
               if (token) setNotif(true);
             });
@@ -1162,25 +1119,32 @@ useEffect(() => {
           setScr('welcome');
         }
       } else {
-        unsubQHRef.current?.();
-        unsubQMRef.current?.();
-        unsubOnRef.current?.();
         setScr('welcome');
       }
       setSp(false);
     });
+
+    const unsubOn = onSnapshot(collection(db, 'onibus'), (snap) => {
+      if (!snap.empty) {
+        const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setOn(lista.sort((a, b) => a.num - b.num));
+      } else {
+        setOn([]);
+      }
+    });
+
+    inicializarQuartoMaes();
 
     return () => {
       unsubConfig();
       unsubUni();
       unsubAvs();
       unsubEnc();
+      unsubQH();
+      unsubQM();
       unsubAuth();
-      unsubQHRef.current?.();
-      unsubQMRef.current?.();
-      unsubOnRef.current?.();
+      unsubOn();
     };
-  }, []);
   }, []);
   
   const salvarDataLimite = async (data) => {
