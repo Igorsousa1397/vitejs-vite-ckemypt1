@@ -2668,14 +2668,12 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users, salvar
   const servosDisponiveis = (users || []).filter(u =>
     u.perfil !== 'admin' &&
     u.ativo !== false &&
-    !todosServosAlocados.has(u.nome) &&
-    (isH ? u.sexo === 'Masculino' : u.sexo === 'Feminino') // ← novo
+    !todosServosAlocados.has(u.nome)
   );
 
   const list = (isH ? qh : qm.filter(q => !q.maes));
 
   const delQuarto = async (num) => {
-    if (!window.confirm(`Deletar Quarto ${num}? Esta ação não pode ser desfeita.`)) return;
     await deletarQuarto(colecao, num);
     if (isH) setQh(qh.filter(q => q.num !== num));
     else setQm(qm.filter(q => q.num !== num));
@@ -2801,7 +2799,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users, salvar
           👀 Somente visualização
         </div>
       )}
-      <Seg opts={[['Feminino', '♀ Feminino'], ['Masculino', '♂ Masculino']]} val={f.sexo} set={v => setF({ ...f, sexo: v })} />
+      <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={tab} set={setTab} />
 
       {edit && (
         <>
@@ -4163,7 +4161,8 @@ function Toggle({
 // ── SERVOS ───────────────────────────────────────────────────────────────────
 function SvV({ users, setUsers, esc, edit, t }) {
   const [sh, setSh] = useState(false);
-  const [f, setF] = useState({ nome: '', sob: '', email: '', perfil: 'servo', fn: '', sexo: '' });  const [filtro, setFiltro] = useState('todos');
+  const [f, setF] = useState({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
+  const [filtro, setFiltro] = useState('todos');
   const [loading, setLoading] = useState(false);
   const fnsDasEquipes = useMemo(() => [...new Set(esc.map((e) => e.equipe))], [esc]);
   const upd = (id, fn) => setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
@@ -4172,7 +4171,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
     if (!f.nome.trim()) { t('Nome obrigatório', 'w'); return; }
     if (!f.email.trim() || !f.email.includes('@')) { t('Email inválido', 'w'); return; }
     if (!f.fn) { t('Selecione uma equipe/função', 'w'); return; }
-    if (!f.sexo) { t('Selecione o sexo', 'w'); return; } // ← aqui
     setLoading(true);
     try {
       const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
@@ -4181,7 +4179,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
       const novoUser = {
         nome: nm, email: f.email.trim(), perfil: f.perfil,
         funcoes: f.fn ? [f.fn] : [], ativo: true, pago: false, primeiro: true,
-        sexo: f.sexo,
       };
       await setDoc(doc(db, 'users', cred.user.uid), novoUser);
       setUsers([...users, { id: cred.user.uid, ...novoUser }]);
