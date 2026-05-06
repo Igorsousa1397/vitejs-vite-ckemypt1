@@ -3247,7 +3247,6 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
 
   const delOnibus = async (num) => {
     setConfirmDel(num);
-    t('Ônibus removido.');
   };
 
   const upd = async (num, fn) => {
