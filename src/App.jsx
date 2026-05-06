@@ -1018,7 +1018,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [notif, setNotif] = useState(false);
   
-  useEffect(() => {
+useEffect(() => {
   const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
     if (snap.exists()) {
       const d = snap.data();
@@ -1039,7 +1039,6 @@ export default function App() {
     const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     setEncM(lista.filter(e => e.sexo === 'Feminino'));
     setEncH(lista.filter(e => e.sexo === 'Masculino'));
-    // Check-in só mostra quem pagou
     setCk(lista.filter(e => e.pago).map(e => ({
       id: e.id,
       nome: e.nome,
@@ -1047,6 +1046,20 @@ export default function App() {
       ok: e.chegou || false,
       on: e.onibus || null,
     })));
+  });
+
+  const unsubQH = onSnapshot(collection(db, 'quartos_h'), (snap) => {
+    if (!snap.empty) {
+      const lista = snap.docs.map(d => d.data());
+      setQh(lista.sort((a, b) => a.num - b.num));
+    }
+  });
+
+  const unsubQM = onSnapshot(collection(db, 'quartos_m'), (snap) => {
+    if (!snap.empty) {
+      const lista = snap.docs.map(d => d.data());
+      setQm(lista.sort((a, b) => a.num - b.num));
+    }
   });
 
   const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -1079,9 +1092,19 @@ export default function App() {
     unsubUni();
     unsubAvs();
     unsubEnc();
+    unsubQH();
+    unsubQM();
     unsubAuth();
   };
 }, []);
+
+const salvarQuarto = async (colecao, quarto) => {
+  await setDoc(doc(db, colecao, String(quarto.num)), quarto);
+};
+
+const deletarQuarto = async (colecao, num) => {
+  await deleteDoc(doc(db, colecao, String(num)));
+};
   
   const salvarDataLimite = async (data) => {
     setDataLimiteUni(data);
@@ -1643,18 +1666,16 @@ export default function App() {
         )}
         {pg === 'quartos' && (
           <QV
-          qh={qh}
-          qm={qm}
-          uQH={uQH}
-          uQM={uQM}
-          setQh={setQh}
-          setQm={setQm}
-          edit={canQ(role)}
-          t={showT}
-          encH={encH}
-          encM={encM}
-          users={users}  // ← adicionar
-        />
+            qh={qh} qm={qm}
+            uQH={uQH} uQM={uQM}
+            setQh={setQh} setQm={setQm}
+            edit={canQ(role)}
+            t={showT}
+            encH={encH} encM={encM}
+            users={users}
+            salvarQuarto={salvarQuarto}
+            deletarQuarto={deletarQuarto}
+          />
         )}
         {pg === 'enc' && (
           <EncV
