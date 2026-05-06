@@ -3168,7 +3168,7 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
 }
 
 
-function EditOnibus({ o, upd }) {
+function EditOnibus({ o, onSave }) {
   const [aberto, setAberto] = useState(false);
   const [f, setF] = useState({ tipo: o.tipo, poltronas: o.poltronas || 40 });
 
@@ -3201,7 +3201,7 @@ function EditOnibus({ o, upd }) {
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={async () => {
-          await upd(o.num, x => ({ ...x, tipo: f.tipo, poltronas: f.poltronas }));
+          await onSave({ ...o, tipo: f.tipo, poltronas: f.poltronas });
           setAberto(false);
         }}
           style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
@@ -3367,7 +3367,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
 
             {/* EDITAR ÔNIBUS */}
             {edit && (
-              <EditOnibus o={o} upd={upd} />
+              <EditOnibus o={o} onSave={salvarOnibus} />
             )}
 
             {/* Ônibus de Servos — só campo de servos manual */}
