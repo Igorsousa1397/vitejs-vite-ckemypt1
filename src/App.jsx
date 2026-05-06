@@ -1060,10 +1060,10 @@ export default function App() {
 
   
  useEffect(() => {
-  inicializarQuartoMaes();
 
   const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
+      inicializarQuartoMaes()
       const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (snap.exists()) {
         setUser({ id: firebaseUser.uid, ...snap.data() });
