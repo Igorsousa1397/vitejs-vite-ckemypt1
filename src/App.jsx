@@ -3094,7 +3094,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
   const tipoColor = { Feminino: '#bf5af2', Masculino: '#0a84ff', Servos: G.green };
 
   // Componente de mala com dropdown
-  const AddMala = ({ num }) => {
+    const AddMala = ({ num }) => {
     const [tipoMala, setTipoMala] = useState('Feminino');
     if (!edit) return null;
     return (
