@@ -11,15 +11,17 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 const iniciarNotificacoes = async (userId = null) => {
   try {
-    const permission = await Notification.requestPermission();
+    let permission = Notification.permission;
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
+    }
     if (permission !== 'granted') return null;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
     if (token && userId) {
-      // Usa userId como chave — garante um único documento por usuário
-      await setDoc(doc(db, 'tokens', userId), { 
-        token, 
+      await setDoc(doc(db, 'tokens', userId), {
+        token,
         userId,
-        data: new Date().toISOString() 
+        data: new Date().toISOString()
       }, { merge: true });
     }
     return token;
@@ -1154,8 +1156,8 @@ export default function App() {
 
         if (Notification.permission !== 'denied') {
           iniciarNotificacoes(firebaseUser.uid).then(token => {
-            if (token) setNotif(true);
-          });
+          if (token) setNotif(true);
+        });
         }
       } else {
         setScr('welcome');
