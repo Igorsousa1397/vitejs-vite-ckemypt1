@@ -3249,7 +3249,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
             <SL c={`Malas (${malas.length})`} />
             {malas.length > 0 ? (
               <Tags items={malas}
-                ax="#ff9f0a"
+                ax={tipoColor[tipo]}
                 onX={edit ? i => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
             ) : (
               <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
