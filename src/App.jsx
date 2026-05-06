@@ -1573,7 +1573,11 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
           style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}
         >
           {pg === 'savs' && (
-            <div>
+            <div>{avs.length === 0 && (
+              <div style={{ color: G.tm, textAlign: 'center', padding: 48, fontSize: 13 }}>
+                Nenhum aviso no momento. ✓
+              </div>
+            )}
               {avs.map((a) => (
                 <div
                   key={a.id}
