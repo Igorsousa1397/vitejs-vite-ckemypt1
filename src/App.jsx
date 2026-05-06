@@ -1225,9 +1225,18 @@ export default function App() {
     broadcast(`${nm} — ${hr}`);
     showT(`${nm} — ${hr}`, 'n');
   };
-  const notifyAll = (msg) => {
+  const notifyAll = async (msg) => {
     broadcast(msg);
     showT(msg, 'n');
+    try {
+      await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo: msg, horario: '' }),
+      });
+    } catch (err) {
+      console.error('Erro ao notificar:', err);
+    }
   };
   
  if (sp) return <Splash done={() => setSp(false)} />;
