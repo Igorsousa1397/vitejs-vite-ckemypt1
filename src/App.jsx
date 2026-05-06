@@ -4762,24 +4762,28 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
               {/* PIX Uniforme */}
               <div style={{ background: G.card, border: '1px solid #2a2a2a', borderRadius: 14, padding: 16, marginTop: 8 }}>
                 <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Pagamento do Uniforme</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ color: G.td, fontSize: 13 }}>💚 PIX — Nubank</div>
-                  <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>40617537895</div>
-                  <div style={{ color: G.td, fontSize: 12 }}>Thaís Bezerra da Silva Rodrigues</div>
+                
+                <div style={{ color: G.td, fontSize: 12, marginBottom: 6 }}>PIX Nubank — Thaís Bezerra da Silva Rodrigues</div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <div style={{ color: G.t, fontWeight: 700, fontSize: 15, flex: 1 }}>40617537895</div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('40617537895');
+                      vibrar(50);
+                      showT('Chave PIX copiada! ✓');
+                    }}
+                    style={{ ...BK({ padding: '6px 12px', borderRadius: 9, fontSize: 12, fontWeight: 700 }), borderColor: 'rgba(0,200,81,.4)', color: G.green, whiteSpace: 'nowrap' }}>
+                    📋 Copiar
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText('40617537895');
-                    vibrar(50);
-                  }}
-                  style={BG({ width: '100%', padding: 12, borderRadius: 12, marginTop: 12, fontSize: 13 })}>
-                  Copiar CPF/Chave PIX
-                </button>
-                <div style={{ color: G.tm, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
-                  Envie o comprovante para a organizadora após o pagamento
-                </div>
+
+                <a href="https://wa.me/5511997187584?text=Olá%20Thaís!%20Realizei%20o%20pagamento%20do%20uniforme%20e%20gostaria%20de%20enviar%20o%20comprovante."
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                  Enviar comprovante
+                </a>
               </div>
-            </div>
           )}
           {!prazoOk && (
             <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
