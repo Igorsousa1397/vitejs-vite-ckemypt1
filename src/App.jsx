@@ -1121,6 +1121,10 @@ export default function App() {
           if (s.exists() && s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
         });
 
+        onSnapshot(collection(db, 'users'), (s) => {
+          setUsers(s.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+
         unsubUniRef.current = onSnapshot(collection(db, 'uniformes'), (s) => {
           setUni(s.docs.map(d => ({ userId: d.id, ...d.data() })));
         });
