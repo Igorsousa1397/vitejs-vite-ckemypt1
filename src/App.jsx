@@ -845,7 +845,8 @@ function Inscricao({ onVoltar }) {
       setEncId(docRef.id);
       setDone(true);
     } catch (err) {
-      alert('Erro ao enviar. Tente novamente.');
+      console.error('Erro ao salvar:', err);
+      alert('Erro: ' + err.message);
     }
     setSaving(false);
   };
