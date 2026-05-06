@@ -2651,23 +2651,25 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
     );
   };
 
-  const AddEncAutocomplete = ({ quarto }) => {
-    const [busca, setBusca] = useState('');
-    const [aberto, setAberto] = useState(false);
-    const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
-    if (!edit || lv <= 0) return null;
-    const sugestoes = encConfirmados.filter(e =>
-      e.nome.toLowerCase().includes(busca.toLowerCase()) &&
-      !quarto.enc.includes(e.nome) &&
-      busca.length > 0
-    );
-    const confirmar = (nome) => {
-      if (!nome.trim()) return;
-      upd(quarto.num, x => ({ ...x, enc: [...x.enc, nome.trim()] }));
-      setBusca('');
-      setAberto(false);
-      t('✓');
-    };
+  const AddEncAutocomplete = ({ quarto, updFn }) => {
+  const [busca, setBusca] = useState('');
+  const [aberto, setAberto] = useState(false);
+  const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
+  if (!edit || lv <= 0) return null;
+  const fn = updFn || upd; // ← usa updFn se passado, senão usa upd
+  const sugestoes = encConfirmados.filter(e =>
+    e.nome.toLowerCase().includes(busca.toLowerCase()) &&
+    !quarto.enc.includes(e.nome) &&
+    busca.length > 0
+  );
+  const confirmar = (nome) => {
+    if (!nome.trim()) return;
+    fn(quarto.num, x => ({ ...x, enc: [...x.enc, nome.trim()] })); // ← fn no lugar de upd
+    setBusca('');
+    setAberto(false);
+    t('✓');
+  };
+
     return (
       <div style={{ position: 'relative', marginTop: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -2797,7 +2799,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             <Tags items={m.enc} ax="#ff9f0a"
               onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
             {edit && (
-              <AddIn ph="Adicionar mãe..." onAdd={n => { uQM(m.num, q => ({ ...q, enc: [...q.enc, n] })); t('✓'); }} />
+              <AddEncAutocomplete quarto={m} updFn={uQM} />
             )}
           </Acc>
         );
