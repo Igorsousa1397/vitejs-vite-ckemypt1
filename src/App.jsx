@@ -1668,6 +1668,8 @@ useEffect(() => {
             on={on}
             nav={nav}
             edit={canG(role)}
+            encH={encH}
+            encM={encM}
             addAv={async (txt) => {
               const aviso = {
                 txt,
@@ -1999,27 +2001,21 @@ function ServoHomeV({ user, mins, avs, setPg }) {
 }
 
 // ── HOME ─────────────────────────────────────────────────────────────────────
-function HomeV({
-  role,
-  ck,
-  mins,
-  ocorr,
-  avs,
-  qh,
-  qm,
-  on,
-  nav,
-  edit,
-  addAv,
-  delAv,
-}) {
+function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv }) {
   const [tab, setTab] = useState('mins');
   const [av, setAv] = useState('');
   const ch = ck.filter((c) => c.ok).length,
     tot = ck.length;
   const oc = ocorr.filter((o) => !o.res).length;
   const tEnc = [...qh, ...qm].reduce((a, q) => a + q.enc.length, 0);
-  const tPass = on.reduce((a, o) => a + (o.pass?.length || 0), 0);  const prox = mins.find((m) => !m.sent);
+  const tPass = on.reduce((a, o) => {
+    const passCheckin = [...(encH || []), ...(encM || [])].filter(e => 
+      e.onibus === String(o.num) || e.onibus === o.num
+    ).length;
+    const passManual = o.passManual?.length || 0;
+    const servos = o.servos?.length || 0;
+    return a + passCheckin + passManual + servos;
+  }, 0);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const ns = (n) => {
     const s = String(n);
