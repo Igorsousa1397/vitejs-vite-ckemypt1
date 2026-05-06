@@ -98,6 +98,7 @@ const PERFIS = {
   lider_quartos: { l: 'Líder Quartos', c: '#ff6b35' },
   lider_cozinha: { l: 'Líder Cozinha', c: '#ff2d55' },
   servo: { l: 'Servo', c: '#636366' },
+  lider_midia: { l: 'Líder Mídia', c: '#ffd60a' }
 };
 const canG = (p) =>
   ['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(p);
@@ -476,39 +477,10 @@ const ESCALAS_INIT = [
 ];
 const QH_INIT = [];
 
-const QM_INIT = [
-  {
-    num: [],
-    maes: true,
-    lim: [],
-    servos: [],
-    enc: [],
-  },
-];
+const QM_INIT = [{ num: 12, maes: true, lim: 9, servos: [], enc: [] }];
 
-const ON_INIT = [
-  { num: 1, resp: ['Islany', 'Silas'], templo: ['Tainá', 'Thais'], pass: [] },
-  { num: 2, resp: ['Tiago', 'Simone'], templo: ['Tiago', 'Simone'], pass: [] },
-  {
-    num: 3,
-    resp: ['Brenda', 'João Clesio'],
-    templo: ['Brenda', 'Ev. Raimundo'],
-    pass: [],
-  },
-  { num: 4, resp: ['Larissa', 'Felipe'], templo: ['Cris', 'Rodnei'], pass: [] },
-  {
-    num: 5,
-    resp: ['Kelly', 'Sostenes'],
-    templo: ['Samuel', 'Miriam'],
-    pass: [],
-  },
-  {
-    num: 6,
-    resp: ['Letícia', 'Gabriel'],
-    templo: ['Gabriel', 'Pr Amilton'],
-    pass: [],
-  },
-];
+
+const ON_INIT = [];
 const MINS_INIT = [
   { id: 1, dia: 'Sexta', nome: 'Encontro com o Mundo, Encontro com Deus', hora: '23:00', sent: false },
   { id: 2, dia: 'Sábado', nome: 'Ministração Peniel', hora: '08:30', sent: false },
@@ -1032,6 +1004,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [pg, setPg] = useState('home');
   const [menu, setMenu] = useState(false);
+  const [pagamentoId, setPagamentoId] = useState(null);
   const [users, setUsers] = useState(USERS_INIT);
   const [fns, setFns] = useState(FUNCOES_INIT);
   const [esc, setEsc] = useState(ESCALAS_INIT);
@@ -1089,6 +1062,14 @@ export default function App() {
 
   
  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pago = params.get('pago');
+    const id = params.get('id');
+    if (pago === 'true' && id) {
+      setScr('pagamento_confirmado');
+      setPagamentoId(id);
+      window.history.replaceState({}, '', '/');
+    }
 
   const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
@@ -1212,14 +1193,38 @@ export default function App() {
     showT(msg, 'n');
   };
   
-  if (sp) return <Splash done={() => setSp(false)} />;
+ if (sp) return <Splash done={() => setSp(false)} />;
+
+  if (scr === 'pagamento_confirmado') return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
+        <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Pagamento confirmado!</div>
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          Sua vaga está garantida! Envie o comprovante no WhatsApp para finalizar.
+        </div>
+        <a href="https://wa.me/5511982222149?text=Olá!%20Realizei%20o%20pagamento%20do%20Encontro%20com%20Deus%20e%20gostaria%20de%20confirmar%20minha%20inscrição."
+          target="_blank" rel="noopener noreferrer"
+          style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+          Enviar comprovante no WhatsApp
+        </a>
+        <button onClick={() => setScr('welcome')} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
+          Voltar ao início
+        </button>
+      </div>
+    </div>
+  );
+
   if (scr === 'welcome') return (
     <Welcome
       onServos={() => setScr('login')}
       onEncontrista={() => setScr('inscricao')}
     />
   );
-  if (scr === 'inscricao') return (
+    if (scr === 'inscricao') return (
     <Inscricao onVoltar={() => setScr('welcome')} />
   );
   if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welcome')} users={users} setUsers={setUsers} />;
@@ -3057,36 +3062,6 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                       </div>
                     )}
                   </div>
-                  {/* CPF */}
-                  <input
-                    placeholder="000.000.000-00"
-                    value={form.cpf}
-                    maxLength={14}
-                    onChange={e => {
-                      const v = e.target.value.replace(/[^0-9xX]/g, '').slice(0, 11);
-                      const mask = v
-                        .replace(/(\w{3})(\w)/, '$1.$2')
-                        .replace(/(\w{3})(\w)/, '$1.$2')
-                        .replace(/(\w{3})(\w{1,2})$/, '$1-$2');
-                      setForm({ ...form, cpf: mask });
-                    }}
-                    style={iI}
-                  />
-                  {/* WhatsApp */}
-                  <input
-                    placeholder="(11) 99999-9999"
-                    value={form.whatsapp}
-                    type="tel"
-                    maxLength={15}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 11);
-                      const mask = v
-                        .replace(/(\d{2})(\d)/, '($1) $2')
-                        .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
-                      setForm({ ...form, whatsapp: mask });
-                    }}
-                    style={iI}
-                  />
                 </div>
               )}
             </div>
@@ -3133,11 +3108,13 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
   };
 
   const upd = async (num, fn) => {
-    const onibus = on.find(o => o.num === num);
-    if (!onibus) return;
-    const atualizado = fn(onibus);
-    setOn(on.map(o => o.num === num ? atualizado : o));
-    await salvarOnibus(atualizado);
+    const lista = isH ? qh : qm;
+    const quarto = lista.find(q => q.num === num);
+    if (!quarto) return;
+    const atualizado = fn(quarto);
+    if (isH) uQH(num, () => atualizado);
+    else uQM(num, () => atualizado);
+    await salvarQuarto(colecao, atualizado);
   };
 
   const tipoColor = { Feminino: '#bf5af2', Masculino: '#0a84ff', Servos: G.green };
@@ -3227,12 +3204,6 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
         const pct = Math.min(100, Math.round((ocupados / poltronas) * 100));
         const bc = pct >= 100 ? '#ff3b30' : pct >= 80 ? '#ff9f0a' : G.green;
 
-        // Malas agrupadas por tipo
-        const malasPorTipo = { Feminino: [], Masculino: [], Servos: [] };
-        malas.forEach(m => {
-          if (malasPorTipo[m.tipo]) malasPorTipo[m.tipo].push(m.id);
-        });
-
         return (
           <Acc key={o.num} title={`🚌 Ônibus ${o.num}`} ax={tc}
             right={
@@ -3297,9 +3268,13 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
             {/* Malas */}
             <SL c={`Malas (${malas.length})`} />
             {malas.length > 0 ? (
-              <Tags items={malas}
-                ax={tipoColor[tipo]}
-                onX={edit ? i => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {malas.map((tipo, i) => (
+                <Tag key={i} c={`${tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} ${tipo}`}
+                  ax={tipoColor[tipo]}
+                  onX={edit ? () => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
+              ))}
+            </div>
             ) : (
               <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
             )}
