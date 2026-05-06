@@ -2,6 +2,7 @@ import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc,
 import { useState, useMemo, useEffect } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
 
+
 const vibrar = (ms = 50) => {
   if ('vibrate' in navigator) navigator.vibrate(ms);
 };
@@ -2583,21 +2584,9 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
   const [tab, setTab] = useState('M');
   const [s, setS] = useState('');
   const [shN, setShN] = useState(false);
-  const [f, setF] = useState({ num: '', lim: 9, s1: '', s2: '' });
+  const [f, setF] = useState({ num: '', lim: 9 });
   const isH = tab === 'H';
   const upd = isH ? uQH : uQM;
-
-  // Encontristas pagos do gênero ativo
-  const encPagos = (isH ? encH : encM).filter(e => e.pago);
-
-  // Nomes já alocados em algum quarto
-  const alocados = new Set([
-    ...qh.flatMap(q => q.enc),
-    ...qm.flatMap(q => q.enc),
-  ]);
-
-  // Disponíveis = pagos e ainda não alocados
-  const disponiveis = encPagos.filter(e => !alocados.has(e.nome));
 
   // Servos já alocados em algum quarto
   const todosServosAlocados = new Set([
@@ -2647,43 +2636,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         <button
           onClick={() => {
             if (!sel) return;
-            const q = (isH ? qh : qm).find(x => x.num === quarto.num);
-            if (q?.servos.length >= 2) { t('Máximo 2 servos', 'w'); return; }
             updFn(quarto.num, x => ({ ...x, servos: [...x.servos, sel] }));
-            setSel('');
-            t('✓');
-          }}
-          style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}
-        >
-          +
-        </button>
-      </div>
-    );
-  };
-
-  const AddEncSelect = ({ quarto }) => {
-    const [sel, setSel] = useState('');
-    const livresNoQuarto = quarto.lim - quarto.servos.length - quarto.enc.length;
-    if (!edit || livresNoQuarto <= 0) return null;
-    return (
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        <select
-          value={sel}
-          onChange={e => setSel(e.target.value)}
-          style={{ ...I, flex: 1, fontSize: 12, padding: '9px 12px' }}
-        >
-          <option value="">Selecionar encontrista pago...</option>
-          {disponiveis.map(e => (
-            <option key={e.id} value={e.nome}>{e.nome}</option>
-          ))}
-          {disponiveis.length === 0 && (
-            <option disabled>Nenhum disponível</option>
-          )}
-        </select>
-        <button
-          onClick={() => {
-            if (!sel) return;
-            upd(quarto.num, x => ({ ...x, enc: [...x.enc, sel] }));
             setSel('');
             t('✓');
           }}
@@ -2720,13 +2673,12 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
                 <span style={{ color: G.tm, fontSize: 13, whiteSpace: 'nowrap' }}>Limite de camas</span>
                 <input style={{ ...I, flex: 1 }} type="number" min="2" max="20" value={f.lim} onChange={e => setF({ ...f, lim: parseInt(e.target.value) || 9 })} />
               </div>
-              <div style={{ color: G.tm, fontSize: 11 }}>Máximo 2 servos por quarto</div>
               <button onClick={() => {
                 if (!f.num) return;
                 const nv = { num: parseInt(f.num), lim: f.lim, servos: [], enc: [] };
                 if (isH) setQh([...qh, nv]);
                 else setQm([...qm, nv]);
-                setF({ num: '', lim: 9, s1: '', s2: '' });
+                setF({ num: '', lim: 9 });
                 setShN(false);
                 t('Quarto criado!');
               }} style={BG({ padding: 12, borderRadius: 12 })}>
@@ -2749,10 +2701,10 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
               <div style={{ background: '#ff9f0a', borderRadius: 5, height: 5, width: `${pct}%` }} />
             </div>
-           <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
+            <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
             <Tags items={m.servos} ax={G.green}
               onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
-            <AddServoSelect quarto={m} updFn={uQM} />   {/* ← aqui */}
+            <AddServoSelect quarto={m} updFn={uQM} />
             <SL c="Mães" />
             <Tags items={m.enc} ax="#ff9f0a"
               onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
@@ -2784,7 +2736,9 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             <SL c={`Servos (${q.servos.length}/2)`} mt={0} />
             <Tags items={q.servos} ax={G.green}
               onX={edit ? i => upd(q.num, x => ({ ...x, servos: x.servos.filter((_, j) => j !== i) })) : undefined} />
-            {edit && q.servos.length < 2 && <AddServoSelect quarto={q} updFn={upd} />}
+            {edit && q.servos.length >= 2 && (
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>Limite de 2 servos atingido.</div>
+            )}
             <AddServoSelect quarto={q} updFn={upd} />
 
             <SL c="Encontristas" />
@@ -2794,7 +2748,12 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             ) : (
               <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhum ainda</div>
             )}
-            <AddEncSelect quarto={q} />
+            {edit && lv > 0 && (
+              <AddIn ph="Encontrista..." onAdd={n => {
+                upd(q.num, x => ({ ...x, enc: [...x.enc, n] }));
+                t('✓');
+              }} mt={8} />
+            )}
           </Acc>
         );
       })}
