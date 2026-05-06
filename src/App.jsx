@@ -2019,8 +2019,7 @@ function HomeV({
     tot = ck.length;
   const oc = ocorr.filter((o) => !o.res).length;
   const tEnc = [...qh, ...qm].reduce((a, q) => a + q.enc.length, 0);
-  const tPass = on.reduce((a, o) => a + o.pass.length, 0);
-  const prox = mins.find((m) => !m.sent);
+  const tPass = on.reduce((a, o) => a + (o.pass?.length || 0), 0);  const prox = mins.find((m) => !m.sent);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const ns = (n) => {
     const s = String(n);
