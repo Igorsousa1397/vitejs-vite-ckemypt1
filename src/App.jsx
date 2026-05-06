@@ -3033,7 +3033,6 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                       target="_blank" rel="noopener noreferrer"
                       onClick={e2 => e2.stopPropagation()}
                       style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none', flexShrink: 0 }}>
-                      💬
                     </a>
                   )}
                   {/* Toggle pago */}
