@@ -3052,7 +3052,7 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
 // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
 function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus }) {
   const [shN, setShN] = useState(false);
-  const [f, setF] = useState({ num: '', tipo: 'Feminino' });
+  const [f, setF] = useState({ num: '', tipo: 'Feminino', poltronas: 40 });
 
   const passageirosPorOnibus = (num, tipo) => {
     const lista = tipo === 'Feminino' ? encM : tipo === 'Masculino' ? encH : [];
@@ -3063,10 +3063,16 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
     if (!f.num) { t('Informe o número', 'w'); return; }
     const existe = on.find(o => o.num === parseInt(f.num));
     if (existe) { t('Ônibus já existe', 'w'); return; }
-    const novo = { num: parseInt(f.num), tipo: f.tipo, resp: [], templo: [], malas: [] };
+    const novo = {
+      num: parseInt(f.num),
+      tipo: f.tipo,
+      poltronas: parseInt(f.poltronas) || 40,
+      resp: [], templo: [],
+      malas: { Feminino: [], Masculino: [], Servos: [] },
+    };
     await salvarOnibus(novo);
     setOn([...on, novo].sort((a, b) => a.num - b.num));
-    setF({ num: '', tipo: 'Feminino' });
+    setF({ num: '', tipo: 'Feminino', poltronas: 40 });
     setShN(false);
     t('Ônibus criado!');
   };
@@ -3100,10 +3106,20 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
           </button>
           {shN && (
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input style={I} placeholder="Número *" type="number" value={f.num}
-                onChange={e => setF({ ...f, num: e.target.value })} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número *</div>
+                  <input style={I} placeholder="Ex: 1" type="number" value={f.num}
+                    onChange={e => setF({ ...f, num: e.target.value })} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Poltronas</div>
+                  <input style={I} placeholder="Ex: 40" type="number" value={f.poltronas}
+                    onChange={e => setF({ ...f, poltronas: e.target.value })} />
+                </div>
+              </div>
               <div>
-                <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Tipo</div>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Tipo</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {['Feminino', 'Masculino', 'Servos'].map(tipo => (
                     <button key={tipo} onClick={() => setF({ ...f, tipo })}
@@ -3133,17 +3149,31 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
       {on.map(o => {
         const pass = passageirosPorOnibus(o.num, o.tipo);
         const tc = tipoColor[o.tipo] || G.green;
-        const total = o.resp.length + o.templo.length + pass.length;
+        const ocupados = o.resp.length + o.templo.length + pass.length;
+        const poltronas = o.poltronas || 40;
+        const pct = Math.min(100, Math.round((ocupados / poltronas) * 100));
+        const bc = pct >= 100 ? '#ff3b30' : pct >= 80 ? '#ff9f0a' : G.green;
+        const malas = o.malas || { Feminino: [], Masculino: [], Servos: [] };
+        const totalMalas = (malas.Feminino?.length || 0) + (malas.Masculino?.length || 0) + (malas.Servos?.length || 0);
+
         return (
           <Acc key={o.num} title={`🚌 Ônibus ${o.num}`} ax={tc}
             right={
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <Pill c={o.tipo} bg={`${tc}18`} tc={tc} />
-                <Pill c={total} bg="#1e1e1e" tc={G.td} />
+                <Pill c={`${ocupados}/${poltronas}`} bg={`${bc}18`} tc={bc} />
               </div>
             }
             onDel={edit ? () => delOnibus(o.num) : undefined}
           >
+            {/* Barra de ocupação */}
+            <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
+              <div style={{ background: bc, borderRadius: 5, height: 5, width: `${pct}%`, transition: 'width .3s' }} />
+            </div>
+            <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
+              {poltronas - ocupados >= 0 ? `${poltronas - ocupados} vagas` : 'Lotado'}
+            </div>
+
             <SL c="Responsáveis" mt={0} />
             <Tags items={o.resp} ax={G.green}
               onX={edit ? i => upd(o.num, x => ({ ...x, resp: x.resp.filter((_, j) => j !== i) })) : undefined} />
@@ -3167,16 +3197,33 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
               </div>
             )}
 
-            <SL c={`Malas (${o.malas.length})`} />
-            {o.malas.length > 0 ? (
-              <Tags items={o.malas} ax="#ff9f0a"
-                onX={edit ? i => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
-            ) : (
-              <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
-            )}
-            {edit && (
-              <AddIn ph="ID da mala..." onAdd={n => upd(o.num, x => ({ ...x, malas: [...x.malas, n] }))} mt={8} />
-            )}
+            {/* Malas por tipo */}
+            <SL c={`Malas (${totalMalas})`} />
+            {['Feminino', 'Masculino', 'Servos'].map(tipo => {
+              const listaMalas = malas[tipo] || [];
+              const cor = tipoColor[tipo];
+              return (
+                <div key={tipo} style={{ marginBottom: 8 }}>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: cor }}>{tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'}</span>
+                    {tipo} ({listaMalas.length})
+                  </div>
+                  {listaMalas.length > 0 && (
+                    <Tags items={listaMalas} ax={cor}
+                      onX={edit ? i => upd(o.num, x => ({
+                        ...x,
+                        malas: { ...x.malas, [tipo]: x.malas[tipo].filter((_, j) => j !== i) }
+                      })) : undefined} />
+                  )}
+                  {edit && (
+                    <AddIn ph={`ID mala ${tipo}...`} onAdd={n => upd(o.num, x => ({
+                      ...x,
+                      malas: { ...(x.malas || {}), [tipo]: [...(x.malas?.[tipo] || []), n] }
+                    }))} mt={4} />
+                  )}
+                </div>
+              );
+            })}
           </Acc>
         );
       })}
