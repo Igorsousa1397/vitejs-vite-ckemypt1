@@ -1087,6 +1087,8 @@ useEffect(() => {
     setSp(false);
   });
 
+  inicializarQuartoMaes();
+
   return () => {
     unsubConfig();
     unsubUni();
@@ -1105,6 +1107,15 @@ const salvarQuarto = async (colecao, quarto) => {
 const deletarQuarto = async (colecao, num) => {
   await deleteDoc(doc(db, colecao, String(num)));
 };
+
+// Inicializa quarto mães se não existir
+const inicializarQuartoMaes = async () => {
+  const ref = doc(db, 'quartos_m', '12');
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, { num: 12, maes: true, lim: 9, servos: [], enc: [] });
+  }
+};  
   
   const salvarDataLimite = async (data) => {
     setDataLimiteUni(data);
