@@ -3247,9 +3247,6 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
 
   const delOnibus = async (num) => {
     setConfirmDel(num);
-    if (!window.confirm(`Deletar Ônibus ${num}?`)) return;
-    await deletarOnibus(num);
-    setOn(on.filter(o => o.num !== num));
     t('Ônibus removido.');
   };
 
