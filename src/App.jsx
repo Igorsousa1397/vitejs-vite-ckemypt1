@@ -878,7 +878,7 @@ function Inscricao({ onVoltar }) {
             }
           }}
           style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
-          Pagar com Cartão ou Boleto
+          Pagar com Cartão, Boleto ou PIX
         </button>
         <a href="https://wa.me/5511982222149?text=Olá!%20Acabei%20de%20me%20inscrever%20no%20Encontro%20com%20Deus%20e%20gostaria%20de%20enviar%20o%20comprovante%20de%20pagamento."
           target="_blank" rel="noopener noreferrer"
