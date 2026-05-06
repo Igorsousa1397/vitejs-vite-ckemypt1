@@ -2144,7 +2144,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
       >
         {[
           [`${ch}/${tot}`, 'Check-in', 'checkin'],
-          [tPass, 'Ônibus', 'onibus'],
+          [`${tPass}/${on.reduce((a, o) => a + (o.poltronas || 40), 0)}`, 'Ônibus', 'onibus'],
           [tEnc, 'Quartos', 'quartos'],
           [oc, 'Ocorrências', 'info'],
         ].map(([n, l, p]) => (
