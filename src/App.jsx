@@ -1017,8 +1017,28 @@ export default function App() {
   const [dataLimiteUni, setDataLimiteUni] = useState('');
   const [toast, setToast] = useState(null);
   const [notif, setNotif] = useState(false);
+
+  // Inicializa quarto mães se não existir
+  const inicializarQuartoMaes = async () => {
+    const ref = doc(db, 'quartos_m', '12');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, { num: 12, maes: true, lim: 9, servos: [], enc: [] });
+    }
+  };
+
+  const salvarQuarto = async (colecao, quarto) => {
+    await setDoc(doc(db, colecao, String(quarto.num)), quarto);
+  };
+
+  const deletarQuarto = async (colecao, num) => {
+    await deleteDoc(doc(db, colecao, String(num)));
+  };
   
 useEffect(() => {
+
+  inicializarQuartoMaes();
+
   const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
     if (snap.exists()) {
       const d = snap.data();
@@ -1099,23 +1119,6 @@ useEffect(() => {
     unsubAuth();
   };
 }, []);
-
-const salvarQuarto = async (colecao, quarto) => {
-  await setDoc(doc(db, colecao, String(quarto.num)), quarto);
-};
-
-const deletarQuarto = async (colecao, num) => {
-  await deleteDoc(doc(db, colecao, String(num)));
-};
-
-// Inicializa quarto mães se não existir
-const inicializarQuartoMaes = async () => {
-  const ref = doc(db, 'quartos_m', '12');
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    await setDoc(ref, { num: 12, maes: true, lim: 9, servos: [], enc: [] });
-  }
-};  
   
   const salvarDataLimite = async (data) => {
     setDataLimiteUni(data);
@@ -2638,12 +2641,22 @@ function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAu
 }
 
 // ── QUARTOS ──────────────────────────────────────────────────────────────────
-function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
+function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users, salvarQuarto, deletarQuarto }) {
   const [tab, setTab] = useState('M');
   const [shN, setShN] = useState(false);
   const [f, setF] = useState({ num: '', lim: 9 });
   const isH = tab === 'H';
-  const upd = isH ? uQH : uQM;
+  const colecao = isH ? 'quartos_h' : 'quartos_m';
+
+  const upd = async (num, fn) => {
+    const lista = isH ? qh : qm;
+    const quarto = lista.find(q => q.num === num);
+    if (!quarto) return;
+    const atualizado = fn(quarto);
+    if (isH) uQH(num, () => atualizado);
+    else uQM(num, () => atualizado);
+    await salvarQuarto(colecao, atualizado);
+  };
 
   const encConfirmados = (isH ? encH : encM).filter(e => e.chegou);
 
@@ -2660,7 +2673,8 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
 
   const list = (isH ? qh : qm.filter(q => !q.maes));
 
-  const delQuarto = (num) => {
+  const delQuarto = async (num) => {
+    await deletarQuarto(colecao, num);
     if (isH) setQh(qh.filter(q => q.num !== num));
     else setQm(qm.filter(q => q.num !== num));
     t('Quarto removido.');
@@ -2708,7 +2722,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         )}
         {aberto && busca.length > 0 && filtrados.length === 0 && (
           <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
             background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
             marginTop: 4, padding: '10px 14px', color: G.tm, fontSize: 12,
           }}>
@@ -2720,24 +2734,23 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
   };
 
   const AddEncAutocomplete = ({ quarto, updFn }) => {
-  const [busca, setBusca] = useState('');
-  const [aberto, setAberto] = useState(false);
-  const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
-  if (!edit || lv <= 0) return null;
-  const fn = updFn || upd; // ← usa updFn se passado, senão usa upd
-  const sugestoes = encConfirmados.filter(e =>
-    e.nome.toLowerCase().includes(busca.toLowerCase()) &&
-    !quarto.enc.includes(e.nome) &&
-    busca.length > 0
-  );
-  const confirmar = (nome) => {
-    if (!nome.trim()) return;
-    fn(quarto.num, x => ({ ...x, enc: [...x.enc, nome.trim()] })); // ← fn no lugar de upd
-    setBusca('');
-    setAberto(false);
-    t('✓');
-  };
-
+    const [busca, setBusca] = useState('');
+    const [aberto, setAberto] = useState(false);
+    const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
+    if (!edit || lv <= 0) return null;
+    const fn = updFn || upd;
+    const sugestoes = encConfirmados.filter(e =>
+      e.nome.toLowerCase().includes(busca.toLowerCase()) &&
+      !quarto.enc.includes(e.nome) &&
+      busca.length > 0
+    );
+    const confirmar = (nome) => {
+      if (!nome.trim()) return;
+      fn(quarto.num, x => ({ ...x, enc: [...x.enc, nome.trim()] }));
+      setBusca('');
+      setAberto(false);
+      t('✓');
+    };
     return (
       <div style={{ position: 'relative', marginTop: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -2803,9 +2816,10 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
                 <span style={{ color: G.tm, fontSize: 13, whiteSpace: 'nowrap' }}>Limite de camas</span>
                 <input style={{ ...I, flex: 1 }} type="number" min="2" max="20" value={f.lim} onChange={e => setF({ ...f, lim: parseInt(e.target.value) || 9 })} />
               </div>
-              <button onClick={() => {
+              <button onClick={async () => {
                 if (!f.num) return;
                 const nv = { num: parseInt(f.num), lim: f.lim, servos: [], enc: [] };
+                await salvarQuarto(colecao, nv);
                 if (isH) setQh([...qh, nv]);
                 else setQm([...qm, nv]);
                 setF({ num: '', lim: 9 });
@@ -2826,7 +2840,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         const oc = m.servos.length + m.enc.length;
         const pct = Math.min(100, Math.round((oc / m.lim) * 100));
         return <QuartoMaes m={m} oc={oc} pct={pct}
-          edit={edit} uQM={uQM} setQm={setQm} qm={qm}
+          edit={edit} uQM={upd} setQm={setQm} qm={qm}
           AddServoSearch={AddServoSearch}
           AddEncAutocomplete={AddEncAutocomplete}
         />;
@@ -2872,6 +2886,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
     </div>
   );
 }
+
 // ── ENCONTRISTAS ─────────────────────────────────────────────────────────────
 function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
   const [g, setG] = useState('M');
