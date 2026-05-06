@@ -4606,10 +4606,6 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
 
           {prazoOk && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: 'rgba(0,200,81,.06)', border: '1px solid rgba(0,200,81,.15)', borderRadius: 12, padding: '11px 14px', color: G.td, fontSize: 12, lineHeight: 1.6 }}>
-                Todo servo recebe <strong style={{ color: G.green }}>1 camiseta inclusa</strong>. Itens extras têm custo.
-              </div>
-
               {/* STATUS DO PEDIDO */}
               {meuPedido && (
                 <div style={{ background: meuPedido.status === 'pendente' ? 'rgba(255,159,10,.08)' : meuPedido.status === 'aberto' ? 'rgba(0,200,81,.08)' : 'rgba(99,99,102,.1)', border: `1px solid ${meuPedido.status === 'pendente' ? 'rgba(255,159,10,.3)' : meuPedido.status === 'aberto' ? 'rgba(0,200,81,.2)' : '#2a2a2a'}`, borderRadius: 12, padding: '10px 14px' }}>
@@ -4763,6 +4759,26 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                   Solicitar Alteracao
                 </button>
               )}
+              {/* PIX Uniforme */}
+              <div style={{ background: G.card, border: '1px solid #2a2a2a', borderRadius: 14, padding: 16, marginTop: 8 }}>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Pagamento do Uniforme</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ color: G.td, fontSize: 13 }}>💚 PIX — Nubank</div>
+                  <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>40617537895</div>
+                  <div style={{ color: G.td, fontSize: 12 }}>Thaís Bezerra da Silva Rodrigues</div>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('40617537895');
+                    vibrar(50);
+                  }}
+                  style={BG({ width: '100%', padding: 12, borderRadius: 12, marginTop: 12, fontSize: 13 })}>
+                  Copiar CPF/Chave PIX
+                </button>
+                <div style={{ color: G.tm, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+                  Envie o comprovante para a organizadora após o pagamento
+                </div>
+              </div>
             </div>
           )}
           {!prazoOk && (
