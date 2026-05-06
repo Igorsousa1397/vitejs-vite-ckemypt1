@@ -1034,6 +1034,15 @@ export default function App() {
   const deletarQuarto = async (colecao, num) => {
     await deleteDoc(doc(db, colecao, String(num)));
   };
+
+  const salvarOnibus = async (onibus) => {
+    await setDoc(doc(db, 'onibus', String(onibus.num)), onibus);
+  };
+
+  const deletarOnibus = async (num) => {
+    await deleteDoc(doc(db, 'onibus', String(num)));
+  };
+
   
 useEffect(() => {
 
@@ -1107,6 +1116,15 @@ useEffect(() => {
     setSp(false);
   });
 
+  const unsubOn = onSnapshot(collection(db, 'onibus'), (snap) => {
+    if (!snap.empty) {
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setOn(lista.sort((a, b) => a.num - b.num));
+    } else {
+      setOn([]);
+    }
+  });
+
   inicializarQuartoMaes();
 
   return () => {
@@ -1117,6 +1135,7 @@ useEffect(() => {
     unsubQH();
     unsubQM();
     unsubAuth();
+    unsubOn();
   };
 }, []);
   
@@ -1706,7 +1725,17 @@ useEffect(() => {
           />
         )}
         {pg === 'onibus' && (
-          <OnV on={on} uOn={uOn} edit={canG(role)} t={showT} />
+          <OnV
+            on={on}
+            uOn={uOn}
+            setOn={setOn}
+            encH={encH}
+            encM={encM}
+            edit={canG(role)}
+            t={showT}
+            salvarOnibus={salvarOnibus}
+            deletarOnibus={deletarOnibus}
+          />
         )}
         {pg === 'rest' && (
           <RestV
@@ -3021,107 +3050,136 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
 }
 
 // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
-function OnV({ on, uOn, edit, t }) {
+function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus }) {
+  const [shN, setShN] = useState(false);
+  const [f, setF] = useState({ num: '', tipo: 'Feminino' });
+
+  const passageirosPorOnibus = (num, tipo) => {
+    const lista = tipo === 'Feminino' ? encM : tipo === 'Masculino' ? encH : [];
+    return lista.filter(e => e.onibus === String(num) || e.onibus === num);
+  };
+
+  const criarOnibus = async () => {
+    if (!f.num) { t('Informe o número', 'w'); return; }
+    const existe = on.find(o => o.num === parseInt(f.num));
+    if (existe) { t('Ônibus já existe', 'w'); return; }
+    const novo = { num: parseInt(f.num), tipo: f.tipo, resp: [], templo: [], malas: [] };
+    await salvarOnibus(novo);
+    setOn([...on, novo].sort((a, b) => a.num - b.num));
+    setF({ num: '', tipo: 'Feminino' });
+    setShN(false);
+    t('Ônibus criado!');
+  };
+
+  const delOnibus = async (num) => {
+    if (!window.confirm(`Deletar Ônibus ${num}?`)) return;
+    await deletarOnibus(num);
+    setOn(on.filter(o => o.num !== num));
+    t('Ônibus removido.');
+  };
+
+  const upd = async (num, fn) => {
+    const onibus = on.find(o => o.num === num);
+    if (!onibus) return;
+    const atualizado = fn(onibus);
+    setOn(on.map(o => o.num === num ? atualizado : o));
+    await salvarOnibus(atualizado);
+  };
+
+  const tipoColor = { Feminino: '#bf5af2', Masculino: '#0a84ff', Servos: G.green };
+
   return (
     <div>
-      {on.map((o) => (
-        <Acc
-          key={o.num}
-          title={`🚌 Ônibus ${o.num}`}
-          right={
-            <Pill
-              c={o.resp.length + o.templo.length + o.pass.length}
-              bg="#1e1e1e"
-              tc={G.td}
-            />
-          }
-        >
-          <SL c="Responsáveis" mt={0} />
-          <Tags
-            items={o.resp}
-            ax={G.green}
-            onX={
-              edit
-                ? (i) =>
-                    uOn(o.num, (x) => ({
-                      ...x,
-                      resp: x.resp.filter((_, j) => j !== i),
-                    }))
-                : undefined
-            }
-          />
-          {edit && (
-            <AddIn
-              ph="Adicionar responsável..."
-              onAdd={(n) => {
-                uOn(o.num, (x) => ({ ...x, resp: [...x.resp, n] }));
-                t('✓');
-              }}
-              mt={8}
-            />
-          )}
-          <SL c="Servos do Templo" />
-          <Tags
-            items={o.templo}
-            ax="#0a84ff"
-            onX={
-              edit
-                ? (i) =>
-                    uOn(o.num, (x) => ({
-                      ...x,
-                      templo: x.templo.filter((_, j) => j !== i),
-                    }))
-                : undefined
-            }
-          />
-          {edit && (
-            <AddIn
-              ph="Servo do templo..."
-              onAdd={(n) => {
-                uOn(o.num, (x) => ({ ...x, templo: [...x.templo, n] }));
-                t('✓');
-              }}
-              mt={8}
-            />
-          )}
-          <SL c="Passageiros" />
-          {o.pass.length > 0 ? (
-            <Tags
-              items={o.pass}
-              onX={
-                edit
-                  ? (i) =>
-                      uOn(o.num, (x) => ({
-                        ...x,
-                        pass: x.pass.filter((_, j) => j !== i),
-                      }))
-                  : undefined
-              }
-            />
-          ) : (
-            <div
-              style={{
-                color: G.tm,
-                fontSize: 12,
-                fontStyle: 'italic',
-                margin: '4px 0 8px',
-              }}
-            >
-              Nenhum ainda
+      {edit && (
+        <>
+          <button onClick={() => setShN(!shN)}
+            style={shN
+              ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })
+              : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}>
+            {shN ? '✕ Cancelar' : '＋ Novo Ônibus'}
+          </button>
+          {shN && (
+            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input style={I} placeholder="Número *" type="number" value={f.num}
+                onChange={e => setF({ ...f, num: e.target.value })} />
+              <div>
+                <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Tipo</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {['Feminino', 'Masculino', 'Servos'].map(tipo => (
+                    <button key={tipo} onClick={() => setF({ ...f, tipo })}
+                      style={{ ...BK({ padding: '8px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700 }),
+                        borderColor: f.tipo === tipo ? `${tipoColor[tipo]}80` : '#2a2a2a',
+                        color: f.tipo === tipo ? tipoColor[tipo] : G.td,
+                        background: f.tipo === tipo ? `${tipoColor[tipo]}12` : 'transparent' }}>
+                      {tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} {tipo}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={criarOnibus} style={BG({ padding: 12, borderRadius: 12 })}>
+                Criar Ônibus
+              </button>
             </div>
           )}
-          {edit && (
-            <AddIn
-              ph="Passageiro..."
-              onAdd={(n) => {
-                uOn(o.num, (x) => ({ ...x, pass: [...x.pass, n] }));
-                t('✓');
-              }}
-              mt={8}
-            />
-          )}
-        </Acc>
-      ))}
+        </>
+      )}
+
+      {on.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 32, fontSize: 13 }}>
+          Nenhum ônibus cadastrado.
+        </div>
+      )}
+
+      {on.map(o => {
+        const pass = passageirosPorOnibus(o.num, o.tipo);
+        const tc = tipoColor[o.tipo] || G.green;
+        const total = o.resp.length + o.templo.length + pass.length;
+        return (
+          <Acc key={o.num} title={`🚌 Ônibus ${o.num}`} ax={tc}
+            right={
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <Pill c={o.tipo} bg={`${tc}18`} tc={tc} />
+                <Pill c={total} bg="#1e1e1e" tc={G.td} />
+              </div>
+            }
+            onDel={edit ? () => delOnibus(o.num) : undefined}
+          >
+            <SL c="Responsáveis" mt={0} />
+            <Tags items={o.resp} ax={G.green}
+              onX={edit ? i => upd(o.num, x => ({ ...x, resp: x.resp.filter((_, j) => j !== i) })) : undefined} />
+            {edit && (
+              <AddIn ph="Adicionar responsável..." onAdd={n => upd(o.num, x => ({ ...x, resp: [...x.resp, n] }))} mt={8} />
+            )}
+
+            <SL c="Servos do Templo" />
+            <Tags items={o.templo} ax="#0a84ff"
+              onX={edit ? i => upd(o.num, x => ({ ...x, templo: x.templo.filter((_, j) => j !== i) })) : undefined} />
+            {edit && (
+              <AddIn ph="Servo do templo..." onAdd={n => upd(o.num, x => ({ ...x, templo: [...x.templo, n] }))} mt={8} />
+            )}
+
+            <SL c={`Passageiros (${pass.length})`} />
+            {pass.length > 0 ? (
+              <Tags items={pass.map(p => p.nome)} />
+            ) : (
+              <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
+                Nenhum ainda — atribua pelo Check-in
+              </div>
+            )}
+
+            <SL c={`Malas (${o.malas.length})`} />
+            {o.malas.length > 0 ? (
+              <Tags items={o.malas} ax="#ff9f0a"
+                onX={edit ? i => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
+            ) : (
+              <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
+            )}
+            {edit && (
+              <AddIn ph="ID da mala..." onAdd={n => upd(o.num, x => ({ ...x, malas: [...x.malas, n] }))} mt={8} />
+            )}
+          </Acc>
+        );
+      })}
     </div>
   );
 }
