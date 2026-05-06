@@ -851,12 +851,8 @@ function Inscricao({ onVoltar, onPago }) {
           }
         }}
         style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-        <img
-          src="https://imgmp.mlstatic.com/org-img/banners/br/medios/120X240.jpg"
-          onError={e => e.target.style.display = 'none'}
-          style={{ height: 20, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
-        />
-        Pagar com Cartão, Boleto ou PIX
+          <img src="/mp-logo.png" style={{ height: 18, objectFit: 'contain' }} />
+          Pagar com Cartão, Boleto ou PIX
       </button>
       <button
         onClick={async () => {
