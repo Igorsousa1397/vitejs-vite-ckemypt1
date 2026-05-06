@@ -3066,8 +3066,8 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
       num: parseInt(f.num),
       tipo: f.tipo,
       poltronas: parseInt(f.poltronas) || 40,
-      resp: [], templo: [],
-      malas: { Feminino: [], Masculino: [], Servos: [] },
+      resp: [], templo: [], servos: [], passManual: [],
+      malas: [],
     };
     await salvarOnibus(novo);
     setOn([...on, novo].sort((a, b) => a.num - b.num));
@@ -3092,6 +3092,26 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
   };
 
   const tipoColor = { Feminino: '#bf5af2', Masculino: '#0a84ff', Servos: G.green };
+
+  // Componente de mala com dropdown
+  const AddMala = ({ num }) => {
+    const [tipoMala, setTipoMala] = useState('Feminino');
+    if (!edit) return null;
+    return (
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <select value={tipoMala} onChange={e => setTipoMala(e.target.value)}
+          style={{ ...I, fontSize: 12, padding: '9px 10px', borderRadius: 10 }}>
+          <option value="Feminino">♀ Feminino</option>
+          <option value="Masculino">♂ Masculino</option>
+          <option value="Servos">👤 Servos</option>
+        </select>
+        <button onClick={() => {
+          upd(num, x => ({ ...x, malas: [...(x.malas || []), tipoMala] }));
+          t('✓');
+        }} style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}>+</button>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -3148,12 +3168,21 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
       {on.map(o => {
         const pass = passageirosPorOnibus(o.num, o.tipo);
         const tc = tipoColor[o.tipo] || G.green;
-        const ocupados = o.resp.length + o.templo.length + pass.length;
+        const passManual = o.passManual || [];
+        const servos = o.servos || [];
+        const malas = o.malas || [];
+        const ocupados = (o.tipo === 'Servos'
+          ? servos.length
+          : o.resp.length + o.templo.length + pass.length + passManual.length);
         const poltronas = o.poltronas || 40;
         const pct = Math.min(100, Math.round((ocupados / poltronas) * 100));
         const bc = pct >= 100 ? '#ff3b30' : pct >= 80 ? '#ff9f0a' : G.green;
-        const malas = o.malas || { Feminino: [], Masculino: [], Servos: [] };
-        const totalMalas = (malas.Feminino?.length || 0) + (malas.Masculino?.length || 0) + (malas.Servos?.length || 0);
+
+        // Malas agrupadas por tipo
+        const malasPorTipo = { Feminino: [], Masculino: [], Servos: [] };
+        malas.forEach(m => {
+          if (malasPorTipo[m.tipo]) malasPorTipo[m.tipo].push(m.id);
+        });
 
         return (
           <Acc key={o.num} title={`🚌 Ônibus ${o.num}`} ax={tc}
@@ -3165,7 +3194,6 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
             }
             onDel={edit ? () => delOnibus(o.num) : undefined}
           >
-            {/* Barra de ocupação */}
             <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
               <div style={{ background: bc, borderRadius: 5, height: 5, width: `${pct}%`, transition: 'width .3s' }} />
             </div>
@@ -3173,56 +3201,66 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
               {poltronas - ocupados >= 0 ? `${poltronas - ocupados} vagas` : 'Lotado'}
             </div>
 
-            <SL c="Responsáveis" mt={0} />
-            <Tags items={o.resp} ax={G.green}
-              onX={edit ? i => upd(o.num, x => ({ ...x, resp: x.resp.filter((_, j) => j !== i) })) : undefined} />
-            {edit && (
-              <AddIn ph="Adicionar responsável..." onAdd={n => upd(o.num, x => ({ ...x, resp: [...x.resp, n] }))} mt={8} />
-            )}
-
-            <SL c="Servos do Templo" />
-            <Tags items={o.templo} ax="#0a84ff"
-              onX={edit ? i => upd(o.num, x => ({ ...x, templo: x.templo.filter((_, j) => j !== i) })) : undefined} />
-            {edit && (
-              <AddIn ph="Servo do templo..." onAdd={n => upd(o.num, x => ({ ...x, templo: [...x.templo, n] }))} mt={8} />
-            )}
-
-            <SL c={`Passageiros (${pass.length})`} />
-            {pass.length > 0 ? (
-              <Tags items={pass.map(p => p.nome)} />
+            {/* Ônibus de Servos — só campo de servos manual */}
+            {o.tipo === 'Servos' ? (
+              <>
+                <SL c={`Servos (${servos.length})`} mt={0} />
+                <Tags items={servos} ax={G.green}
+                  onX={edit ? i => upd(o.num, x => ({ ...x, servos: x.servos.filter((_, j) => j !== i) })) : undefined} />
+                {edit && (
+                  <AddIn ph="Adicionar servo..." onAdd={n => upd(o.num, x => ({ ...x, servos: [...(x.servos || []), n] }))} mt={8} />
+                )}
+              </>
             ) : (
-              <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
-                Nenhum ainda — atribua pelo Check-in
-              </div>
+              <>
+                <SL c="Responsáveis" mt={0} />
+                <Tags items={o.resp || []} ax={G.green}
+                  onX={edit ? i => upd(o.num, x => ({ ...x, resp: x.resp.filter((_, j) => j !== i) })) : undefined} />
+                {edit && (
+                  <AddIn ph="Adicionar responsável..." onAdd={n => upd(o.num, x => ({ ...x, resp: [...(x.resp || []), n] }))} mt={8} />
+                )}
+
+                <SL c="Servos do Templo" />
+                <Tags items={o.templo || []} ax="#0a84ff"
+                  onX={edit ? i => upd(o.num, x => ({ ...x, templo: x.templo.filter((_, j) => j !== i) })) : undefined} />
+                {edit && (
+                  <AddIn ph="Servo do templo..." onAdd={n => upd(o.num, x => ({ ...x, templo: [...(x.templo || []), n] }))} mt={8} />
+                )}
+
+                <SL c={`Passageiros via Check-in (${pass.length})`} />
+                {pass.length > 0 ? (
+                  <Tags items={pass.map(p => p.nome)} />
+                ) : (
+                  <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
+                    Nenhum ainda — atribua pelo Check-in
+                  </div>
+                )}
+
+                <SL c={`Passageiros Manual (${passManual.length})`} />
+                <Tags items={passManual}
+                  onX={edit ? i => upd(o.num, x => ({ ...x, passManual: x.passManual.filter((_, j) => j !== i) })) : undefined} />
+                {edit && (
+                  <AddIn ph="Adicionar passageiro manual..." onAdd={n => upd(o.num, x => ({ ...x, passManual: [...(x.passManual || []), n] }))} mt={8} />
+                )}
+              </>
             )}
 
-            {/* Malas por tipo */}
-            <SL c={`Malas (${totalMalas})`} />
-            {['Feminino', 'Masculino', 'Servos'].map(tipo => {
-              const listaMalas = malas[tipo] || [];
-              const cor = tipoColor[tipo];
-              return (
-                <div key={tipo} style={{ marginBottom: 8 }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ color: cor }}>{tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'}</span>
-                    {tipo} ({listaMalas.length})
-                  </div>
-                  {listaMalas.length > 0 && (
-                    <Tags items={listaMalas} ax={cor}
-                      onX={edit ? i => upd(o.num, x => ({
-                        ...x,
-                        malas: { ...x.malas, [tipo]: x.malas[tipo].filter((_, j) => j !== i) }
-                      })) : undefined} />
-                  )}
-                  {edit && (
-                    <AddIn ph={`ID mala ${tipo}...`} onAdd={n => upd(o.num, x => ({
-                      ...x,
-                      malas: { ...(x.malas || {}), [tipo]: [...(x.malas?.[tipo] || []), n] }
-                    }))} mt={4} />
-                  )}
-                </div>
-              );
-            })}
+            {/* Malas */}
+            <SL c={`Malas (${malas.length})`} />
+            {malas.length > 0 ? (
+              <Tags items={malas}
+                ax="#ff9f0a"
+                onX={edit ? i => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {malas.map((tipo, i) => (
+                <Tag key={i} c={`${tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} ${tipo}`}
+                  ax={tipoColor[tipo]}
+                  onX={edit ? () => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
+              ))}
+            </div>
+            )}
+            <AddMala num={o.num} />
           </Acc>
         );
       })}
