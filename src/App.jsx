@@ -1083,6 +1083,7 @@ export default function App() {
   
  useEffect(() => {
   const params = new URLSearchParams(window.location.search);
+  console.log('URL params:', window.location.search); // ← adiciona
   const pago = params.get('pago');
   const id = params.get('id');
   const statusMP = params.get('status');
