@@ -4911,6 +4911,29 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
 
       {/* PEDIDOS */}
       <SL c={`Pedidos (${uni.length})`} mt={14} />
+
+      {/* EXPORTAR */}
+      {uni.length > 0 && (
+        <button
+          onClick={() => {
+            const rows = [['Nome', 'Nome na Camiseta', 'Tamanho', 'Quantidade']];
+            uni.forEach(u => {
+              rows.push([u.nome, u.nomeCamiseta || u.nome, u.camisa, u.qtdCamisas || 1]);
+            });
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'uniformes_camisetas.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={{ ...BG({ width: '100%', padding: 12, borderRadius: 13, fontSize: 13, marginBottom: 14 }), background: 'rgba(0,200,81,.15)', border: '1px solid rgba(0,200,81,.3)', color: G.green }}>
+          📥 Exportar para Fornecedor (CSV)
+        </button>
+      )}
+
       {uni.length === 0 && (
         <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum pedido ainda.</div>
       )}
@@ -4923,9 +4946,28 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <Pill c={`Camiseta ${u.camisa} x${u.qtdCamisas || 1}`} bg="#1e1e1e" tc={G.td} />
+                {u.nomeCamiseta && <Pill c={`Nome: ${u.nomeCamiseta}`} bg="rgba(0,200,81,.1)" tc={G.green} />}
                 {u.calca && <Pill c={`Calca ${u.calca}`} bg="#1e1e1e" tc={G.td} />}
                 {u.blusa && <Pill c={`Blusa ${u.blusa}`} bg="#1e1e1e" tc={G.td} />}
               </div>
+
+              {/* FLAG PAGO */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ color: G.tm, fontSize: 12 }}>Pagamento</span>
+                <div
+                  onClick={async () => {
+                    await setDoc(doc(db, 'uniformes', u.userId), { pago: !u.pago }, { merge: true });
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <div style={{ width: 34, height: 20, borderRadius: 20, background: u.pago ? G.green : '#ff3b30', transition: 'background .2s', position: 'relative' }}>
+                    <div style={{ position: 'absolute', top: 2, left: u.pago ? 15 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+                  </div>
+                  <span style={{ color: u.pago ? G.green : '#ff3b30', fontSize: 12, fontWeight: 700 }}>
+                    {u.pago ? 'Pago' : 'Pendente'}
+                  </span>
+                </div>
+              </div>
+
               <div style={{ color: G.tm, fontSize: 11 }}>Salvo em: {u.data}</div>
               {u.status === 'pendente' && (
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -4943,8 +4985,8 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
           </Acc>
         );
       })}
-    </div>
-  );
+      </div>
+      );
 }
 
 // ── BACK OFFICE ──────────────────────────────────────────────────────────────
