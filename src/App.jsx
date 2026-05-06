@@ -2375,9 +2375,9 @@ function CkV({ ck, setCk, on, edit, t }) {
                 }}
                 style={{ ...I, width: 'auto', padding: '6px 10px', fontSize: 11, borderRadius: 9 }}>
                 <option value="">Ônibus?</option>
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>Ônibus {n}</option>
-                ))}
+                {on.map((o) => (
+                <option key={o.num} value={o.num}>Ônibus {o.num} — {o.tipo}</option>
+              ))}
               </select>
             )}
           </div>
