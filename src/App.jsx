@@ -1099,53 +1099,89 @@ useEffect(() => {
     }
   });
 
-  const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-    if (firebaseUser) {
-      const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+ const unsubQHRef = useRef(null);
+  const unsubQMRef = useRef(null);
+  const unsubOnRef = useRef(null);
+
+  useEffect(() => {
+    inicializarQuartoMaes();
+
+    const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
       if (snap.exists()) {
-        setUser({ id: firebaseUser.uid, ...snap.data() });
-        setScr('app');
-        if (snap.data().perfil === 'servo') setPg('smins');
-        if (Notification.permission === 'granted') {
-          iniciarNotificacoes(firebaseUser.uid).then(token => {
-            if (token) setNotif(true);
+        const d = snap.data();
+        if (d.dataLimite) setDataLimiteUni(d.dataLimite);
+      }
+    });
+
+    const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
+      setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
+    });
+
+    const unsubAvs = onSnapshot(collection(db, 'avisos'), (snap) => {
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
+    });
+
+    const unsubEnc = onSnapshot(collection(db, 'encontristas'), (snap) => {
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setEncM(lista.filter(e => e.sexo === 'Feminino'));
+      setEncH(lista.filter(e => e.sexo === 'Masculino'));
+      setCk(lista.filter(e => e.pago).map(e => ({
+        id: e.id,
+        nome: e.nome,
+        gen: e.sexo === 'Feminino' ? 'M' : 'H',
+        ok: e.chegou || false,
+        on: e.onibus || null,
+      })));
+    });
+
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (snap.exists()) {
+          setUser({ id: firebaseUser.uid, ...snap.data() });
+          setScr('app');
+          if (snap.data().perfil === 'servo') setPg('smins');
+
+          unsubQHRef.current = onSnapshot(collection(db, 'quartos_h'), (snap) => {
+            if (!snap.empty) setQh(snap.docs.map(d => d.data()).sort((a, b) => a.num - b.num));
           });
-        } else if (Notification.permission === 'default') {
-          iniciarNotificacoes(firebaseUser.uid).then(token => {
-            if (token) setNotif(true);
+          unsubQMRef.current = onSnapshot(collection(db, 'quartos_m'), (snap) => {
+            if (!snap.empty) setQm(snap.docs.map(d => d.data()).sort((a, b) => a.num - b.num));
           });
+          unsubOnRef.current = onSnapshot(collection(db, 'onibus'), (snap) => {
+            setOn(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.num - b.num));
+          });
+
+          if (Notification.permission !== 'denied') {
+            iniciarNotificacoes(firebaseUser.uid).then(token => {
+              if (token) setNotif(true);
+            });
+          }
+        } else {
+          setScr('welcome');
         }
       } else {
+        unsubQHRef.current?.();
+        unsubQMRef.current?.();
+        unsubOnRef.current?.();
         setScr('welcome');
       }
-    } else {
-      setScr('welcome');
-    }
-    setSp(false);
-  });
+      setSp(false);
+    });
 
-  const unsubOn = onSnapshot(collection(db, 'onibus'), (snap) => {
-    if (!snap.empty) {
-      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setOn(lista.sort((a, b) => a.num - b.num));
-    } else {
-      setOn([]);
-    }
-  });
-
-  inicializarQuartoMaes();
-
-  return () => {
-    unsubConfig();
-    unsubUni();
-    unsubAvs();
-    unsubEnc();
-    unsubQH();
-    unsubQM();
-    unsubAuth();
-    unsubOn();
-  };
-}, []);
+    return () => {
+      unsubConfig();
+      unsubUni();
+      unsubAvs();
+      unsubEnc();
+      unsubAuth();
+      unsubQHRef.current?.();
+      unsubQMRef.current?.();
+      unsubOnRef.current?.();
+    };
+  }, []);
+  }, []);
   
   const salvarDataLimite = async (data) => {
     setDataLimiteUni(data);
