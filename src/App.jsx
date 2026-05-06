@@ -4961,7 +4961,7 @@ function BackV({ users, setUsers, fns, setFns, t }) {
     lider_quartos: 'Edição de quartos',
     lider_cozinha: 'Edição da louça',
     servo: 'Somente visualização',
-    lider_midia: { l: 'Líder Mídia', c: '#ffd60a' },
+    lider_midia: 'Líder Mídia',
   };
   return (
     <div>
