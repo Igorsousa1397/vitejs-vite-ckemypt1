@@ -3218,6 +3218,7 @@ function EditOnibus({ o, onSave }) {
 
 // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
 function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus }) {
+  const [confirmDel, setConfirmDel] = useState(null); 
   const [shN, setShN] = useState(false);
   const [f, setF] = useState({ num: '', tipo: 'Feminino', poltronas: 40 });
 
@@ -3245,6 +3246,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
   };
 
   const delOnibus = async (num) => {
+    setConfirmDel(num);
     if (!window.confirm(`Deletar Ônibus ${num}?`)) return;
     await deletarOnibus(num);
     setOn(on.filter(o => o.num !== num));
@@ -3282,6 +3284,30 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
       </div>
     );
   };
+
+  {confirmDel !== null && (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
+      <div style={{ background: '#1c1c1e', borderRadius: 18, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>🗑</div>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Deletar Ônibus {confirmDel}?</div>
+        <div style={{ color: G.tm, fontSize: 13, marginBottom: 20 }}>Esta ação não pode ser desfeita.</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setConfirmDel(null)}
+            style={BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>
+            Cancelar
+          </button>
+          <button onClick={async () => {
+            await deletarOnibus(confirmDel);
+            setOn(on.filter(o => o.num !== confirmDel));
+            setConfirmDel(null);
+          }}
+            style={{ ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 }), borderColor: 'rgba(255,59,48,.4)', color: '#ff6b6b' }}>
+            Deletar
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 
   return (
     <div>
