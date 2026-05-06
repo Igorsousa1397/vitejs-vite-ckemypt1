@@ -142,8 +142,8 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
 
   const message = {
     notification: {
-      title: `🙏 ${titulo}`,
-      body: `Começa às ${horario} — preparem-se!`,
+      title: titulo,
+      body: horario ? `Começa às ${horario}` : 'Toque para ver detalhes.',
     },
     tokens,
   };

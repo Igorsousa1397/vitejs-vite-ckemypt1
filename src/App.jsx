@@ -1226,7 +1226,6 @@ export default function App() {
     showT(`${nm} — ${hr}`, 'n');
   };
   const notifyAll = async (msg) => {
-    broadcast(msg);
     showT(msg, 'n');
     try {
       await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio', {
@@ -2671,7 +2670,7 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
                             await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ titulo: m.nome, horario: m.hora }),
+                              body: JSON.stringify({ titulo: `🙏 ${m.nome}`, horario: m.hora }),
                             });
                             t('Notificação enviada! 🔔');
                           } catch (err) {
