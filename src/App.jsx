@@ -1840,7 +1840,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
           />
         )}
         {pg === 'onibus' && (
-          <delOnibus
+          <OnV
             on={on}
             uOn={uOn}
             setOn={setOn}
@@ -3247,6 +3247,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
 
   const delOnibus = async (num) => {
     setConfirmDel(num);
+    t('Ônibus removido.');
   };
 
   const upd = async (num, fn) => {
@@ -3301,7 +3302,6 @@ return (
               await deletarOnibus(confirmDel);
               setOn(on.filter(o => o.num !== confirmDel));
               setConfirmDel(null);
-              t('Ônibus removido.');
             }}
               style={{ ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 }), borderColor: 'rgba(255,59,48,.4)', color: '#ff6b6b' }}>
               Deletar
