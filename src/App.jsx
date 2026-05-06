@@ -473,33 +473,8 @@ const ESCALAS_INIT = [
     resp: 'Dona Cris',
   },
 ];
-const QH_INIT = [
-  { num: 6, lim: 12, servos: ['Luan', 'Jeferson'], enc: [] },
-  { num: 7, lim: 12, servos: ['Felipe', 'Sostenes'], enc: [] },
-  { num: 8, lim: 12, servos: ['Bruno', 'Rodnei'], enc: [] },
-  { num: 9, lim: 12, servos: ['Nicolas', 'Denis'], enc: [] },
-  { num: 10, lim: 12, servos: ['Silas', 'João Clesio'], enc: [] },
-  { num: 11, lim: 12, servos: ['Gustavo', 'Thalyson'], enc: [] },
-];
-const QM_INIT = [
-  {
-    num: 12,
-    maes: true,
-    lim: 9,
-    servos: ['Lorenna', 'Rayza'],
-    enc: ['Daniela dos Anjos', 'Gabriela Patucci'],
-  },
-  { num: 13, lim: 9, servos: ['Larissa C.', 'Larissa O.'], enc: [] },
-  { num: 14, lim: 9, servos: ['Eduarda', 'Carolina B.'], enc: [] },
-  { num: 15, lim: 9, servos: ['Caroline G.', 'Tais C.'], enc: [] },
-  { num: 16, lim: 9, servos: ['Tauane', 'Tais'], enc: [] },
-  { num: 17, lim: 9, servos: ['Leia', 'Ev Barbara'], enc: [] },
-  { num: 18, lim: 9, servos: ['Ev Beatriz', 'Jaque'], enc: [] },
-  { num: 19, lim: 9, servos: ['Ana Beatriz', 'Letícia P.'], enc: [] },
-  { num: 20, lim: 9, servos: ['Paulinha', 'Miriam'], enc: [] },
-  { num: 21, lim: 9, servos: ['Tainá', 'Kelly'], enc: [] },
-  { num: 22, lim: 9, servos: ['Raquel', 'Ana Clara'], enc: [] },
-];
+const QH_INIT = [];
+const QM_INIT = [];
 const ON_INIT = [
   { num: 1, resp: ['Islany', 'Silas'], templo: ['Tainá', 'Thais'], pass: [] },
   { num: 2, resp: ['Tiago', 'Simone'], templo: ['Tiago', 'Simone'], pass: [] },
