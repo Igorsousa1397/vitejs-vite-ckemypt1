@@ -1025,6 +1025,13 @@ export default function App() {
   const [dataLimiteUni, setDataLimiteUni] = useState('');
   const [toast, setToast] = useState(null);
   const [notif, setNotif] = useState(false);
+  const unsubConfigRef = useRef(null);
+  const unsubUniRef = useRef(null);
+  const unsubAvsRef = useRef(null);
+  const unsubEncRef = useRef(null);
+  const unsubQHRef = useRef(null);
+  const unsubQMRef = useRef(null);
+  const unsubOnRef = useRef(null);
 
   // Inicializa quarto mães se não existir
   const inicializarQuartoMaes = async () => {
@@ -1052,100 +1059,85 @@ export default function App() {
   };
 
   
-  useEffect(() => {
+ useEffect(() => {
+  inicializarQuartoMaes();
 
-    inicializarQuartoMaes();
-
-    const unsubConfig = onSnapshot(doc(db, 'config', 'uniformes'), (snap) => {
+  const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    if (firebaseUser) {
+      const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (snap.exists()) {
-        const d = snap.data();
-        if (d.dataLimite) setDataLimiteUni(d.dataLimite);
-      }
-    });
+        setUser({ id: firebaseUser.uid, ...snap.data() });
+        setScr('app');
+        if (snap.data().perfil === 'servo') setPg('smins');
 
-    const unsubUni = onSnapshot(collection(db, 'uniformes'), (snap) => {
-      setUni(snap.docs.map(d => ({ userId: d.id, ...d.data() })));
-    });
+        unsubConfigRef.current = onSnapshot(doc(db, 'config', 'uniformes'), (s) => {
+          if (s.exists() && s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
+        });
 
-    const unsubAvs = onSnapshot(collection(db, 'avisos'), (snap) => {
-      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAvs(lista.sort((a, b) => b.createdAt - a.createdAt));
-    });
+        unsubUniRef.current = onSnapshot(collection(db, 'uniformes'), (s) => {
+          setUni(s.docs.map(d => ({ userId: d.id, ...d.data() })));
+        });
 
-    const unsubEnc = onSnapshot(collection(db, 'encontristas'), (snap) => {
-      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setEncM(lista.filter(e => e.sexo === 'Feminino'));
-      setEncH(lista.filter(e => e.sexo === 'Masculino'));
-      setCk(lista.filter(e => e.pago).map(e => ({
-        id: e.id,
-        nome: e.nome,
-        gen: e.sexo === 'Feminino' ? 'M' : 'H',
-        ok: e.chegou || false,
-        on: e.onibus || null,
-      })));
-    });
+        unsubAvsRef.current = onSnapshot(collection(db, 'avisos'), (s) => {
+          setAvs(s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt));
+        });
 
-    const unsubQH = onSnapshot(collection(db, 'quartos_h'), (snap) => {
-      if (!snap.empty) {
-        const lista = snap.docs.map(d => d.data());
-        setQh(lista.sort((a, b) => a.num - b.num));
-      }
-    });
+        unsubEncRef.current = onSnapshot(collection(db, 'encontristas'), (s) => {
+          const lista = s.docs.map(d => ({ id: d.id, ...d.data() }));
+          setEncM(lista.filter(e => e.sexo === 'Feminino'));
+          setEncH(lista.filter(e => e.sexo === 'Masculino'));
+          setCk(lista.filter(e => e.pago).map(e => ({
+            id: e.id, nome: e.nome,
+            gen: e.sexo === 'Feminino' ? 'M' : 'H',
+            ok: e.chegou || false,
+            on: e.onibus || null,
+          })));
+        });
 
-    const unsubQM = onSnapshot(collection(db, 'quartos_m'), (snap) => {
-      if (!snap.empty) {
-        const lista = snap.docs.map(d => d.data());
-        setQm(lista.sort((a, b) => a.num - b.num));
-      }
-    });
+        unsubQHRef.current = onSnapshot(collection(db, 'quartos_h'), (s) => {
+          if (!s.empty) setQh(s.docs.map(d => d.data()).sort((a, b) => a.num - b.num));
+        });
 
-    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (snap.exists()) {
-          setUser({ id: firebaseUser.uid, ...snap.data() });
-          setScr('app');
-          if (snap.data().perfil === 'servo') setPg('smins');
-          if (Notification.permission === 'granted') {
-            iniciarNotificacoes(firebaseUser.uid).then(token => {
-              if (token) setNotif(true);
-            });
-          } else if (Notification.permission === 'default') {
-            iniciarNotificacoes(firebaseUser.uid).then(token => {
-              if (token) setNotif(true);
-            });
-          }
-        } else {
-          setScr('welcome');
+        unsubQMRef.current = onSnapshot(collection(db, 'quartos_m'), (s) => {
+          if (!s.empty) setQm(s.docs.map(d => d.data()).sort((a, b) => a.num - b.num));
+        });
+
+        unsubOnRef.current = onSnapshot(collection(db, 'onibus'), (s) => {
+          setOn(s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.num - b.num));
+        });
+
+        if (Notification.permission !== 'denied') {
+          iniciarNotificacoes(firebaseUser.uid).then(token => {
+            if (token) setNotif(true);
+          });
         }
       } else {
         setScr('welcome');
       }
-      setSp(false);
-    });
+    } else {
+      unsubConfigRef.current?.();
+      unsubUniRef.current?.();
+      unsubAvsRef.current?.();
+      unsubEncRef.current?.();
+      unsubQHRef.current?.();
+      unsubQMRef.current?.();
+      unsubOnRef.current?.();
+      setScr('welcome');
+    }
+    setSp(false);
+  });
 
-    const unsubOn = onSnapshot(collection(db, 'onibus'), (snap) => {
-      if (!snap.empty) {
-        const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setOn(lista.sort((a, b) => a.num - b.num));
-      } else {
-        setOn([]);
-      }
-    });
-
-    inicializarQuartoMaes();
-
-    return () => {
-      unsubConfig();
-      unsubUni();
-      unsubAvs();
-      unsubEnc();
-      unsubQH();
-      unsubQM();
-      unsubAuth();
-      unsubOn();
-    };
-  }, []);
+  return () => {
+    unsubAuth();
+    unsubConfigRef.current?.();
+    unsubUniRef.current?.();
+    unsubAvsRef.current?.();
+    unsubEncRef.current?.();
+    unsubQHRef.current?.();
+    unsubQMRef.current?.();
+    unsubOnRef.current?.();
+  };
+}, []);
   
   const salvarDataLimite = async (data) => {
     setDataLimiteUni(data);
