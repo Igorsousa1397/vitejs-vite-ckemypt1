@@ -2855,11 +2855,9 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users, salvar
             marginTop: 4, maxHeight: 180, overflowY: 'auto',
           }}>
             {sugestoes.map(e => (
-              <div key={e.id}
-                onMouseDown={() => confirmar(e.nome)}
-                style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
-                onMouseEnter={ev => ev.currentTarget.style.background = '#2a2a2a'}
-                onMouseLeave={ev => ev.currentTarget.style.background = 'transparent'}
+              <div
+                onMouseDown={() => toggle(e.id)}
+                style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
               >
                 {e.nome}
               </div>
@@ -3030,11 +3028,12 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                   {/* WhatsApp rápido */}
                   {waNumero && (
                     <a href={`https://wa.me/55${waNumero}`}
-                      target="_blank" rel="noopener noreferrer"
-                      onClick={e2 => e2.stopPropagation()}
-                      style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none', flexShrink: 0 }}>
-                      💬
-                    </a>
+                    target="_blank" rel="noopener noreferrer"
+                    onMouseDown={e2 => e2.stopPropagation()}
+                    onClick={e2 => e2.stopPropagation()}
+                    style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none', flexShrink: 0 }}>
+                    💬
+                  </a>
                   )}
                   {/* Toggle pago */}
                   {e.pagamentoId ? (
