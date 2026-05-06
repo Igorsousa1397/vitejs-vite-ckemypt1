@@ -1082,18 +1082,29 @@ export default function App() {
 
   
  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const pago = params.get('pago');
-    const id = params.get('id');
-    if (pago === 'true' && id) {
-      setScr('pagamento_confirmado');
-      setPagamentoId(id);
-      window.history.replaceState({}, '', '/');
-    } else if (pago === 'pending' && id) { // ← adiciona isso
-      setScr('pagamento_pendente');
-      setPagamentoId(id);
-      window.history.replaceState({}, '', '/');
-    }
+  const params = new URLSearchParams(window.location.search);
+  const pago = params.get('pago');
+  const id = params.get('id');
+  const statusMP = params.get('status');
+  const externalRef = params.get('external_reference');
+
+  if (pago === 'true' && id) {
+    setScr('pagamento_confirmado');
+    setPagamentoId(id);
+    window.history.replaceState({}, '', '/');
+  } else if (pago === 'pending' && id) {
+    setScr('pagamento_pendente');
+    setPagamentoId(id);
+    window.history.replaceState({}, '', '/');
+  } else if (statusMP === 'pending' && externalRef) {
+    setScr('pagamento_pendente');
+    setPagamentoId(externalRef);
+    window.history.replaceState({}, '', '/');
+  } else if (statusMP === 'approved' && externalRef) {
+    setScr('pagamento_confirmado');
+    setPagamentoId(externalRef);
+    window.history.replaceState({}, '', '/');
+  }
 
   const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
