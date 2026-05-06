@@ -2655,27 +2655,33 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
                     {canN(role) &&
                       (!m.sent ? (
                         <button
-                          onClick={() => {
-                            setMins(
-                              mins.map((x) =>
-                                x.id === m.id ? { ...x, sent: true } : x
-                              )
-                            );
-                            sN(m.nome, m.hora);
-                          }}
-                          style={{
-                            background: 'rgba(10,132,255,.15)',
-                            border: '1px solid rgba(10,132,255,.3)',
-                            color: '#64b5f6',
-                            borderRadius: 9,
-                            padding: '6px 11px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          🔔
-                        </button>
+                        onClick={async () => {
+                          vibrar(50);
+                          setMins(mins.map((x) => x.id === m.id ? { ...x, sent: true } : x));
+                          try {
+                            await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarMinistração', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ titulo: m.nome, horario: m.hora }),
+                            });
+                            t('Notificação enviada! 🔔');
+                          } catch (err) {
+                            sN(m.nome, m.hora); // fallback local
+                          }
+                        }}
+                        style={{
+                          background: 'rgba(10,132,255,.15)',
+                          border: '1px solid rgba(10,132,255,.3)',
+                          color: '#64b5f6',
+                          borderRadius: 9,
+                          padding: '6px 11px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🔔
+                      </button>
                       ) : (
                         <button
                           onClick={() =>

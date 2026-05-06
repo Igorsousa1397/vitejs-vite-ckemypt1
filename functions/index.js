@@ -129,5 +129,26 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
   } else {
     res.sendStatus(200);
   }
+  exports.notificarMinistração = onRequest({ cors: true }, async (req, res) => {
+    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+    
+    const { titulo, horario } = req.body;
+    
+    const tokensSnap = await admin.firestore().collection('tokens').get();
+    const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+    if (!tokens.length) return res.json({ enviadas: 0 });
+
+    const message = {
+      notification: {
+        title: `🙏 ${titulo}`,
+        body: `Começa às ${horario} — preparem-se!`,
+      },
+      tokens,
+    };
+    
+    const response = await admin.messaging().sendEachForMulticast(message);
+    console.log(`${response.successCount} notificações enviadas`);
+    res.json({ enviadas: response.successCount });
+  });
 });
-// v7
+// v8
