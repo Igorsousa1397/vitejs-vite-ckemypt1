@@ -1667,8 +1667,9 @@ export default function App() {
           setQm={setQm}
           edit={canQ(role)}
           t={showT}
-          encH={encH}   // ← adicionar
-          encM={encM}   // ← adicionar
+          encH={encH}
+          encM={encM}
+          users={users}  // ← adicionar
         />
         )}
         {pg === 'enc' && (
@@ -2578,7 +2579,7 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
 }
 
 // ── QUARTOS ──────────────────────────────────────────────────────────────────
-function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
+function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
   const [tab, setTab] = useState('M');
   const [s, setS] = useState('');
   const [shN, setShN] = useState(false);
@@ -2598,6 +2599,19 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
   // Disponíveis = pagos e ainda não alocados
   const disponiveis = encPagos.filter(e => !alocados.has(e.nome));
 
+  // Servos já alocados em algum quarto
+  const todosServosAlocados = new Set([
+    ...qh.flatMap(q => q.servos),
+    ...qm.flatMap(q => q.servos),
+  ]);
+
+  // Servos cadastrados, ativos e ainda não alocados
+  const servosDisponiveis = (users || []).filter(u =>
+    u.perfil !== 'admin' &&
+    u.ativo !== false &&
+    !todosServosAlocados.has(u.nome)
+  );
+
   const list = (isH ? qh : qm.filter(q => !q.maes)).filter(
     q =>
       !s ||
@@ -2606,14 +2620,47 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
       String(q.num).includes(s)
   );
 
-  const addS = (num, n) => {
-    const q = (isH ? qh : qm).find(x => x.num === num);
-    if (q?.servos.length >= 2) { t('Máximo 2 servos', 'w'); return; }
-    upd(num, x => ({ ...x, servos: [...x.servos, n] }));
-    t('✓');
+  const delQuarto = (num) => {
+    if (isH) setQh(qh.filter(q => q.num !== num));
+    else setQm(qm.filter(q => q.num !== num));
+    t('Quarto removido.');
   };
 
-  // Componente de select para adicionar encontrista ao quarto
+  const AddServoSelect = ({ quarto, updFn }) => {
+    const [sel, setSel] = useState('');
+    if (!edit || quarto.servos.length >= 2) return null;
+    return (
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <select
+          value={sel}
+          onChange={e => setSel(e.target.value)}
+          style={{ ...I, flex: 1, fontSize: 12, padding: '9px 12px' }}
+        >
+          <option value="">Selecionar servo...</option>
+          {servosDisponiveis.map(u => (
+            <option key={u.id} value={u.nome}>{u.nome}</option>
+          ))}
+          {servosDisponiveis.length === 0 && (
+            <option disabled>Nenhum disponível</option>
+          )}
+        </select>
+        <button
+          onClick={() => {
+            if (!sel) return;
+            const q = (isH ? qh : qm).find(x => x.num === quarto.num);
+            if (q?.servos.length >= 2) { t('Máximo 2 servos', 'w'); return; }
+            updFn(quarto.num, x => ({ ...x, servos: [...x.servos, sel] }));
+            setSel('');
+            t('✓');
+          }}
+          style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}
+        >
+          +
+        </button>
+      </div>
+    );
+  };
+
   const AddEncSelect = ({ quarto }) => {
     const [sel, setSel] = useState('');
     const livresNoQuarto = quarto.lim - quarto.servos.length - quarto.enc.length;
@@ -2648,13 +2695,6 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
     );
   };
 
-  // Deletar quarto
-  const delQuarto = (num) => {
-    if (isH) setQh(qh.filter(q => q.num !== num));
-    else setQm(qm.filter(q => q.num !== num));
-    t('Quarto removido.');
-  };
-
   return (
     <div>
       {!edit && (
@@ -2668,7 +2708,9 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
       {edit && (
         <>
           <button onClick={() => setShN(!shN)}
-            style={shN ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 }) : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}>
+            style={shN
+              ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })
+              : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}>
             {shN ? '✕ Cancelar' : '＋ Novo Quarto'}
           </button>
           {shN && (
@@ -2678,13 +2720,10 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
                 <span style={{ color: G.tm, fontSize: 13, whiteSpace: 'nowrap' }}>Limite de camas</span>
                 <input style={{ ...I, flex: 1 }} type="number" min="2" max="20" value={f.lim} onChange={e => setF({ ...f, lim: parseInt(e.target.value) || 9 })} />
               </div>
-              <input style={I} placeholder="Servo 1 (opcional)" value={f.s1} onChange={e => setF({ ...f, s1: e.target.value })} />
-              <input style={I} placeholder="Servo 2 (opcional)" value={f.s2} onChange={e => setF({ ...f, s2: e.target.value })} />
               <div style={{ color: G.tm, fontSize: 11 }}>Máximo 2 servos por quarto</div>
               <button onClick={() => {
                 if (!f.num) return;
-                const sv = [f.s1, f.s2].filter(Boolean).slice(0, 2);
-                const nv = { num: parseInt(f.num), lim: f.lim, servos: sv, enc: [] };
+                const nv = { num: parseInt(f.num), lim: f.lim, servos: [], enc: [] };
                 if (isH) setQh([...qh, nv]);
                 else setQm([...qm, nv]);
                 setF({ num: '', lim: 9, s1: '', s2: '' });
@@ -2702,28 +2741,32 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
       {!isH && (() => {
         const m = qm.find(q => q.maes);
         if (!m) return null;
-        const oc = m.servos.length + m.enc.length, pct = Math.min(100, Math.round((oc / m.lim) * 100));
+        const oc = m.servos.length + m.enc.length;
+        const pct = Math.min(100, Math.round((oc / m.lim) * 100));
         return (
           <Acc title="🤱 Quarto Mães" ax="#ff9f0a"
             right={<Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}>
             <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
               <div style={{ background: '#ff9f0a', borderRadius: 5, height: 5, width: `${pct}%` }} />
             </div>
-            <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
+           <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
             <Tags items={m.servos} ax={G.green}
               onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
-            {edit && m.servos.length < 2 && <AddIn ph="Servo..." onAdd={n => addS(m.num, n)} mt={8} />}
+            <AddServoSelect quarto={m} updFn={uQM} />   {/* ← aqui */}
             <SL c="Mães" />
             <Tags items={m.enc} ax="#ff9f0a"
               onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
-            {edit && <AddIn ph="Adicionar mãe..." onAdd={n => { uQM(m.num, q => ({ ...q, enc: [...q.enc, n] })); t('✓'); }} />}
+            {edit && (
+              <AddIn ph="Adicionar mãe..." onAdd={n => { uQM(m.num, q => ({ ...q, enc: [...q.enc, n] })); t('✓'); }} />
+            )}
           </Acc>
         );
       })()}
 
       {/* Lista de quartos */}
       {list.map(q => {
-        const oc = q.servos.length + q.enc.length, pct = Math.min(100, Math.round((oc / q.lim) * 100));
+        const oc = q.servos.length + q.enc.length;
+        const pct = Math.min(100, Math.round((oc / q.lim) * 100));
         const lv = q.lim - oc;
         const bc = pct >= 100 ? '#ff3b30' : pct >= 80 ? '#ff9f0a' : G.green;
         return (
@@ -2741,10 +2784,8 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM }) {
             <SL c={`Servos (${q.servos.length}/2)`} mt={0} />
             <Tags items={q.servos} ax={G.green}
               onX={edit ? i => upd(q.num, x => ({ ...x, servos: x.servos.filter((_, j) => j !== i) })) : undefined} />
-            {edit && q.servos.length < 2 && <AddIn ph="Servo..." onAdd={n => addS(q.num, n)} mt={8} />}
-            {edit && q.servos.length >= 2 && (
-              <div style={{ color: G.tm, fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>Limite de 2 servos atingido.</div>
-            )}
+            {edit && q.servos.length < 2 && <AddServoSelect quarto={q} updFn={upd} />}
+            <AddServoSelect quarto={q} updFn={upd} />
 
             <SL c="Encontristas" />
             {q.enc.length > 0 ? (
