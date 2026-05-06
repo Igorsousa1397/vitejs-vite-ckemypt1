@@ -4559,7 +4559,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   const meuPedido = uni.find((u) => u.userId === user.id);
   const bloqueado = meuPedido && meuPedido.status !== 'aberto' || (meuPedido && !meuPedido.status);
   const [form, setForm] = useState(
-    meuPedido || { camisa: '', qtdCamisas: 1, calca: '', blusa: '' }
+    meuPedido || { camisa: '', qtdCamisas: 1, calca: '', blusa: '', nomeCamiseta: '' }
   );
   const [saving, setSaving] = useState(false);
 
@@ -4581,9 +4581,11 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
 
   const salvarPedido = async () => {
     if (!form.camisa) { t('Selecione o tamanho da camiseta', 'w'); return; }
+    if (!form.nomeCamiseta?.trim()) { t('Informe o nome para a camiseta', 'w'); return; }
     setSaving(true);
     const pedido = {
       nome: user.nome,
+      nomeCamiseta: form.nomeCamiseta.trim(),
       camisa: form.camisa,
       qtdCamisas: form.qtdCamisas || 1,
       calca: form.calca || '',
@@ -4649,7 +4651,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                   ))}
                 </div>
                 <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Quantidade (max. 3)</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 14 }}>
                   <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.max(1, (form.qtdCamisas || 1) - 1) })}
                     style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>−</button>
                   <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: 'center' }}>
@@ -4658,6 +4660,14 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
                   <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.min(3, (form.qtdCamisas || 1) + 1) })}
                     style={{ ...BK({ padding: '6px 18px', borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? 'default' : 'pointer' }}>+</button>
                 </div>
+                <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Nome na Camiseta</div>
+                <input
+                  placeholder="Primeiro nome e sobrenome"
+                  value={form.nomeCamiseta || ''}
+                  disabled={bloqueado}
+                  onChange={e => setForm({ ...form, nomeCamiseta: e.target.value })}
+                  style={{ ...I, marginBottom: 0, opacity: bloqueado ? 0.6 : 1, cursor: bloqueado ? 'default' : 'text' }}
+                />
               </div>
 
               {/* CALÇA */}
