@@ -850,7 +850,12 @@ function Inscricao({ onVoltar, onPago }) {
             alert('Erro ao gerar pagamento.');
           }
         }}
-        style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
+        style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <img
+          src="https://imgmp.mlstatic.com/org-img/banners/br/medios/120X240.jpg"
+          onError={e => e.target.style.display = 'none'}
+          style={{ height: 20, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+        />
         Pagar com Cartão, Boleto ou PIX
       </button>
       <button
@@ -3028,7 +3033,7 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                   {/* Toggle pago */}
                   {e.pagamentoId ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e2 => e2.stopPropagation()}>
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff' }}>MP</div>
+                      <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
                       <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago</span>
                     </div>
                   ) : (
@@ -3088,10 +3093,10 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                   {/* Botão WhatsApp contato */}
                   {waNumero && (
                     <a href={`https://wa.me/55${waNumero}${!e.pago ? `?text=${encodeURIComponent(msgPendente(e.nome))}` : ''}`}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-                    💬 Entrar em contato — {e.whatsapp}
-                  </a>
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                  💬 Entrar em contato — {e.whatsapp}
+                </a>
                   )}
                 </div>
               )}
