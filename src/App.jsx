@@ -477,9 +477,9 @@ const QH_INIT = [];
 
 const QM_INIT = [
   {
-    num: 12,
+    num: [],
     maes: true,
-    lim: 9,
+    lim: [],
     servos: [],
     enc: [],
   },
