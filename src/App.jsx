@@ -2588,13 +2588,13 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
   const isH = tab === 'H';
   const upd = isH ? uQH : uQM;
 
-  // Servos já alocados em algum quarto
+  const encConfirmados = (isH ? encH : encM).filter(e => e.chegou);
+
   const todosServosAlocados = new Set([
     ...qh.flatMap(q => q.servos),
     ...qm.flatMap(q => q.servos),
   ]);
 
-  // Servos cadastrados, ativos e ainda não alocados
   const servosDisponiveis = (users || []).filter(u =>
     u.perfil !== 'admin' &&
     u.ativo !== false &&
@@ -2615,35 +2615,113 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
     t('Quarto removido.');
   };
 
-  const AddServoSelect = ({ quarto, updFn }) => {
-    const [sel, setSel] = useState('');
+  const AddServoSearch = ({ quarto, updFn }) => {
+    const [busca, setBusca] = useState('');
+    const [aberto, setAberto] = useState(false);
     if (!edit || quarto.servos.length >= 2) return null;
+    const filtrados = servosDisponiveis.filter(u =>
+      u.nome.toLowerCase().includes(busca.toLowerCase())
+    );
     return (
-      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <select
-          value={sel}
-          onChange={e => setSel(e.target.value)}
-          style={{ ...I, flex: 1, fontSize: 12, padding: '9px 12px' }}
-        >
-          <option value="">Selecionar servo...</option>
-          {servosDisponiveis.map(u => (
-            <option key={u.id} value={u.nome}>{u.nome}</option>
-          ))}
-          {servosDisponiveis.length === 0 && (
-            <option disabled>Nenhum disponível</option>
-          )}
-        </select>
-        <button
-          onClick={() => {
-            if (!sel) return;
-            updFn(quarto.num, x => ({ ...x, servos: [...x.servos, sel] }));
-            setSel('');
-            t('✓');
-          }}
-          style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}
-        >
-          +
-        </button>
+      <div style={{ position: 'relative', marginTop: 8 }}>
+        <input
+          value={busca}
+          onChange={e => { setBusca(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => setTimeout(() => setAberto(false), 150)}
+          placeholder="Buscar servo..."
+          style={{ ...I, fontSize: 12, padding: '9px 12px' }}
+        />
+        {aberto && busca.length > 0 && filtrados.length > 0 && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
+            marginTop: 4, maxHeight: 180, overflowY: 'auto',
+          }}>
+            {filtrados.map(u => (
+              <div key={u.id}
+                onMouseDown={() => {
+                  updFn(quarto.num, x => ({ ...x, servos: [...x.servos, u.nome] }));
+                  setBusca('');
+                  setAberto(false);
+                  t('✓');
+                }}
+                style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                {u.nome}
+              </div>
+            ))}
+          </div>
+        )}
+        {aberto && busca.length > 0 && filtrados.length === 0 && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
+            marginTop: 4, padding: '10px 14px', color: G.tm, fontSize: 12,
+          }}>
+            Nenhum servo disponível
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const AddEncAutocomplete = ({ quarto }) => {
+    const [busca, setBusca] = useState('');
+    const [aberto, setAberto] = useState(false);
+    const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
+    if (!edit || lv <= 0) return null;
+    const sugestoes = encConfirmados.filter(e =>
+      e.nome.toLowerCase().includes(busca.toLowerCase()) &&
+      !quarto.enc.includes(e.nome) &&
+      busca.length > 0
+    );
+    const confirmar = (nome) => {
+      if (!nome.trim()) return;
+      upd(quarto.num, x => ({ ...x, enc: [...x.enc, nome.trim()] }));
+      setBusca('');
+      setAberto(false);
+      t('✓');
+    };
+    return (
+      <div style={{ position: 'relative', marginTop: 8 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setAberto(true); }}
+            onFocus={() => setAberto(true)}
+            onBlur={() => setTimeout(() => setAberto(false), 150)}
+            onKeyDown={e => e.key === 'Enter' && confirmar(busca)}
+            placeholder="Encontrista..."
+            style={{ ...I, flex: 1, fontSize: 12, padding: '9px 12px' }}
+          />
+          <button
+            onMouseDown={() => confirmar(busca)}
+            style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}
+          >
+            +
+          </button>
+        </div>
+        {aberto && sugestoes.length > 0 && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
+            marginTop: 4, maxHeight: 180, overflowY: 'auto',
+          }}>
+            {sugestoes.map(e => (
+              <div key={e.id}
+                onMouseDown={() => confirmar(e.nome)}
+                style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+                onMouseEnter={ev => ev.currentTarget.style.background = '#2a2a2a'}
+                onMouseLeave={ev => ev.currentTarget.style.background = 'transparent'}
+              >
+                {e.nome}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -2704,7 +2782,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
             <Tags items={m.servos} ax={G.green}
               onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
-            <AddServoSelect quarto={m} updFn={uQM} />
+            <AddServoSearch quarto={m} updFn={uQM} />
             <SL c="Mães" />
             <Tags items={m.enc} ax="#ff9f0a"
               onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
@@ -2739,7 +2817,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             {edit && q.servos.length >= 2 && (
               <div style={{ color: G.tm, fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>Limite de 2 servos atingido.</div>
             )}
-            <AddServoSelect quarto={q} updFn={upd} />
+            <AddServoSearch quarto={q} updFn={upd} />
 
             <SL c="Encontristas" />
             {q.enc.length > 0 ? (
@@ -2748,19 +2826,13 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             ) : (
               <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhum ainda</div>
             )}
-            {edit && lv > 0 && (
-              <AddIn ph="Encontrista..." onAdd={n => {
-                upd(q.num, x => ({ ...x, enc: [...x.enc, n] }));
-                t('✓');
-              }} mt={8} />
-            )}
+            <AddEncAutocomplete quarto={q} />
           </Acc>
         );
       })}
     </div>
   );
 }
-
 // ── ENCONTRISTAS ─────────────────────────────────────────────────────────────
 function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
   const [g, setG] = useState('M');
