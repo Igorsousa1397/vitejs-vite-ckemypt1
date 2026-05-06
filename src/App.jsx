@@ -2629,7 +2629,6 @@ function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAu
 // ── QUARTOS ──────────────────────────────────────────────────────────────────
 function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
   const [tab, setTab] = useState('M');
-  const [s, setS] = useState('');
   const [shN, setShN] = useState(false);
   const [f, setF] = useState({ num: '', lim: 9 });
   const isH = tab === 'H';
@@ -2648,13 +2647,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
     !todosServosAlocados.has(u.nome)
   );
 
-  const list = (isH ? qh : qm.filter(q => !q.maes)).filter(
-    q =>
-      !s ||
-      q.servos.some(x => x.toLowerCase().includes(s.toLowerCase())) ||
-      q.enc.some(x => x.toLowerCase().includes(s.toLowerCase())) ||
-      String(q.num).includes(s)
-  );
+  const list = (isH ? qh : qm.filter(q => !q.maes));
 
   const delQuarto = (num) => {
     if (isH) setQh(qh.filter(q => q.num !== num));
@@ -2783,7 +2776,6 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         </div>
       )}
       <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={tab} set={setTab} />
-      <input style={{ ...I, marginTop: 10, marginBottom: 10 }} placeholder="🔍 Buscar..." value={s} onChange={e => setS(e.target.value)} />
 
       {edit && (
         <>
