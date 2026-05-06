@@ -796,17 +796,17 @@ function Inscricao({ onVoltar }) {
   const [encId, setEncId] = useState(null);
 
   const salvar = async () => {
-  if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
-    alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
-    return;
-  }
-  if (!form.autorizaImagem) {
-    alert('Responda sobre o uso de imagem');
-    return;
-  }
-    const cpfLimpo = form.cpf.replace(/\D/g, '');
-    if (form.cpf.trim() && cpfLimpo.length !== 11) {
-      alert('CPF inválido. Verifique os dígitos.');
+    if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
+      alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
+      return;
+    }
+    if (!form.autorizaImagem) {
+      alert('Responda sobre o uso de imagem');
+      return;
+    }
+    const cpfLimpo = form.cpf.replace(/[\.\-]/g, '').trim();
+    if (cpfLimpo && cpfLimpo.length !== 11) {
+      alert('CPF inválido. Deve ter 11 dígitos.');
       return;
     }
     if (form.nascimento) {
@@ -822,15 +822,16 @@ function Inscricao({ onVoltar }) {
     setSaving(true);
     try {
       const snap = await getDocs(collection(db, 'encontristas'));
-      if (form.cpf.trim()) {
-        const cpfExiste = snap.docs.some(d => d.data().cpf === form.cpf.trim());
+      if (cpfLimpo) {
+        const cpfExiste = snap.docs.some(d => d.data().cpf === cpfLimpo);
         if (cpfExiste) {
           alert('Este CPF já está cadastrado!');
           setSaving(false);
           return;
         }
       }
-      const waExiste = snap.docs.some(d => d.data().whatsapp === form.whatsapp.trim());
+      const waLimpo = form.whatsapp.replace(/\D/g, '');
+      const waExiste = snap.docs.some(d => d.data().whatsapp?.replace(/\D/g, '') === waLimpo);
       if (waExiste) {
         alert('Este WhatsApp já está cadastrado!');
         setSaving(false);
@@ -838,7 +839,7 @@ function Inscricao({ onVoltar }) {
       }
       const docRef = await addDoc(collection(db, 'encontristas'), {
         ...form,
-        cpf: cpfLimpo, 
+        cpf: cpfLimpo,
         criadoEm: new Date().toLocaleString('pt-BR'),
       });
       setEncId(docRef.id);
@@ -905,7 +906,9 @@ function Inscricao({ onVoltar }) {
   );
 
   const iI = { ...I, marginBottom: 0 };
-  const SLi = ({ c }) => <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{c}</div>;
+  const SLi = ({ c }) => (
+    <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{c}</div>
+  );
   const Radio = ({ val, set, opts }) => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {opts.map(o => (
@@ -928,15 +931,31 @@ function Inscricao({ onVoltar }) {
         <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '12px 14px', marginBottom: 8, color: G.green, fontSize: 13, lineHeight: 1.6 }}>
           Dias 26, 27 e 28 de Junho · Estrada do Tronco 485, Itaquaquecetuba
         </div>
+
         <SLi c="Igreja *" />
         <Radio val={form.igreja} set={v => setForm({ ...form, igreja: v })}
           opts={['Fonte Cajamar', 'Fonte Itajaí', 'Fonte Barueri']} />
+
         <SLi c="Nome completo *" />
         <input placeholder="Sem abreviações" value={form.nome}
           onChange={e => setForm({ ...form, nome: e.target.value })} style={iI} />
+
         <SLi c="CPF" />
-        <input placeholder="Sem ponto e dígito" value={form.cpf}
-          onChange={e => setForm({ ...form, cpf: e.target.value })} style={iI} />
+        <input
+          placeholder="000.000.000-00"
+          value={form.cpf}
+          maxLength={14}
+          onChange={e => {
+            const v = e.target.value.replace(/[^0-9xX]/g, '').slice(0, 11);
+            const mask = v
+              .replace(/(\w{3})(\w)/, '$1.$2')
+              .replace(/(\w{3})(\w)/, '$1.$2')
+              .replace(/(\w{3})(\w{1,2})$/, '$1-$2');
+            setForm({ ...form, cpf: mask });
+          }}
+          style={iI}
+        />
+
         <SLi c="Data de Nascimento" />
         <div style={{ display: 'flex', gap: 8 }}>
           <select value={form.nascimento?.split('-')[2] || ''}
@@ -964,32 +983,53 @@ function Inscricao({ onVoltar }) {
             ))}
           </select>
         </div>
+
         <SLi c="Sexo *" />
         <Radio val={form.sexo} set={v => setForm({ ...form, sexo: v })}
           opts={['Feminino', 'Masculino']} />
+
         <SLi c="WhatsApp *" />
-        <input placeholder="(11) 99999-9999" value={form.whatsapp} type="tel"
-          onChange={e => setForm({ ...form, whatsapp: e.target.value })} style={iI} />
+        <input
+          placeholder="(11) 99999-9999"
+          value={form.whatsapp}
+          type="tel"
+          maxLength={15}
+          onChange={e => {
+            const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+            const mask = v
+              .replace(/(\d{2})(\d)/, '($1) $2')
+              .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+            setForm({ ...form, whatsapp: mask });
+          }}
+          style={iI}
+        />
+
         <SLi c="Célula" />
         <select value={form.celula} onChange={e => setForm({ ...form, celula: e.target.value })} style={iI}>
           <option value="">Selecione sua célula...</option>
           {CELULAS.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+
         <SLi c="Tamanho da Camiseta *" />
         <Radio val={form.camiseta} set={v => setForm({ ...form, camiseta: v })}
           opts={['P', 'M', 'G', 'GG', 'EXG', 'G1', 'G2', 'G3']} />
+
         <SLi c="Autoriza uso de imagem? *" />
         <Radio val={form.autorizaImagem} set={v => setForm({ ...form, autorizaImagem: v })}
           opts={['Sim', 'Não']} />
+
         <SLi c="Contato de Emergência" />
         <input placeholder="Nome e telefone" value={form.emergencia}
           onChange={e => setForm({ ...form, emergencia: e.target.value })} style={iI} />
+
         <SLi c="Toma algum medicamento?" />
         <input placeholder="Qual?" value={form.medicamento}
           onChange={e => setForm({ ...form, medicamento: e.target.value })} style={iI} />
+
         <SLi c="Tem alguma doença crônica?" />
         <input placeholder="Qual?" value={form.doenca}
           onChange={e => setForm({ ...form, doenca: e.target.value })} style={iI} />
+
         <button onClick={salvar} disabled={saving}
           style={BG({ width: '100%', padding: 16, borderRadius: 16, marginTop: 28, fontSize: 15, opacity: saving ? 0.7 : 1 })}>
           {saving ? 'Enviando...' : 'Enviar Inscrição'}
@@ -3036,11 +3076,11 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                     value={form.cpf}
                     maxLength={14}
                     onChange={e => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      const v = e.target.value.replace(/[^0-9xX]/g, '').slice(0, 11);
                       const mask = v
-                        .replace(/(\d{3})(\d)/, '$1.$2')
-                        .replace(/(\d{3})(\d)/, '$1.$2')
-                        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                        .replace(/(\w{3})(\w)/, '$1.$2')
+                        .replace(/(\w{3})(\w)/, '$1.$2')
+                        .replace(/(\w{3})(\w{1,2})$/, '$1-$2');
                       setForm({ ...form, cpf: mask });
                     }}
                     style={iI}
