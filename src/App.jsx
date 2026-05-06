@@ -3166,6 +3166,56 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
     </div>
   );
 }
+
+
+function EditOnibus({ o, upd }) {
+  const [aberto, setAberto] = useState(false);
+  const [f, setF] = useState({ tipo: o.tipo, poltronas: o.poltronas || 40 });
+
+  if (!aberto) return (
+    <button onClick={() => setAberto(true)}
+      style={{ ...BK({ width: '100%', padding: 8, borderRadius: 10, fontSize: 12, marginBottom: 8 }), borderColor: 'rgba(255,159,10,.3)', color: '#ff9f0a' }}>
+      ✏️ Editar informações
+    </button>
+  );
+
+  return (
+    <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 12, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Editar Ônibus {o.num}</div>
+      <div>
+        <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Tipo</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['Feminino', 'Masculino', 'Servos'].map(tipo => (
+            <button key={tipo} onClick={() => setF({ ...f, tipo })}
+              style={{ ...BK({ padding: '6px 12px', borderRadius: 50, fontSize: 12 }), borderColor: f.tipo === tipo ? 'rgba(0,200,81,.5)' : '#2a2a2a', color: f.tipo === tipo ? G.green : G.td, background: f.tipo === tipo ? 'rgba(0,200,81,.08)' : 'transparent' }}>
+              {tipo}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Poltronas</div>
+        <input type="number" value={f.poltronas}
+          onChange={e => setF({ ...f, poltronas: parseInt(e.target.value) || 40 })}
+          style={{ ...I, marginBottom: 0 }} />
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={async () => {
+          await upd(o.num, x => ({ ...x, tipo: f.tipo, poltronas: f.poltronas }));
+          setAberto(false);
+        }}
+          style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
+          Salvar
+        </button>
+        <button onClick={() => setAberto(false)}
+          style={BK({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
 function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus }) {
   const [shN, setShN] = useState(false);
@@ -3314,6 +3364,11 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
             <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
               {poltronas - ocupados >= 0 ? `${poltronas - ocupados} vagas` : 'Lotado'}
             </div>
+
+            {/* EDITAR ÔNIBUS */}
+            {edit && (
+              <EditOnibus o={o} upd={upd} />
+            )}
 
             {/* Ônibus de Servos — só campo de servos manual */}
             {o.tipo === 'Servos' ? (
