@@ -3252,13 +3252,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
                 ax="#ff9f0a"
                 onX={edit ? i => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {malas.map((tipo, i) => (
-                <Tag key={i} c={`${tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} ${tipo}`}
-                  ax={tipoColor[tipo]}
-                  onX={edit ? () => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
-              ))}
-            </div>
+              <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
             )}
             <AddMala num={o.num} />
           </Acc>
