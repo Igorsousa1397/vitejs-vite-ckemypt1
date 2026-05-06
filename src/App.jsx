@@ -3025,16 +3025,6 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{e.igreja || '—'} · {e.celula || 'Sem célula'}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {/* WhatsApp rápido */}
-                  {waNumero && (
-                    <a href={`https://wa.me/55${waNumero}`}
-                    target="_blank" rel="noopener noreferrer"
-                    onMouseDown={e2 => e2.stopPropagation()}
-                    onClick={e2 => e2.stopPropagation()}
-                    style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none', flexShrink: 0 }}>
-                    💬
-                  </a>
-                  )}
                   {/* Toggle pago */}
                   {e.pagamentoId ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e2 => e2.stopPropagation()}>
