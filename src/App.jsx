@@ -880,20 +880,6 @@ function Inscricao({ onVoltar }) {
           style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
           Pagar com Cartão ou Boleto
         </button>
-        <div style={{ background: G.card, border: '1px solid #222', borderRadius: 16, padding: 16, marginBottom: 12 }}>
-          <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Ou pague via PIX</div>
-          <div style={{ color: G.green, fontSize: 24, fontWeight: 800, marginBottom: 12 }}>R$ 360,00</div>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText('igrejafontecajamar@gmail.com');
-              vibrar(50);
-              alert('Chave PIX copiada!');
-            }}
-            style={BG({ width: '100%', padding: 12, borderRadius: 12, fontSize: 14 })}>
-            Copiar chave PIX
-          </button>
-          <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>igrejafontecajamar@gmail.com</div>
-        </div>
         <a href="https://wa.me/5511982222149?text=Olá!%20Acabei%20de%20me%20inscrever%20no%20Encontro%20com%20Deus%20e%20gostaria%20de%20enviar%20o%20comprovante%20de%20pagamento."
           target="_blank" rel="noopener noreferrer"
           style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
@@ -2410,7 +2396,7 @@ function CkV({ ck, setCk, on, edit, t }) {
                 }}
                 style={{ ...I, width: 'auto', padding: '6px 10px', fontSize: 11, borderRadius: 9 }}>
                 <option value="">Ônibus?</option>
-                {on.map((o) => (
+                {on.filter(o => o.tipo !== 'Servos').map((o) => (
                 <option key={o.num} value={o.num}>Ônibus {o.num} — {o.tipo}</option>
               ))}
               </select>
@@ -2960,7 +2946,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users, salvar
 function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
   const [g, setG] = useState('M');
   const [expandido, setExpandido] = useState({});
-  const lista = g === 'M' ? encM : encH;
+  const lista = (g === 'M' ? encM : encH).sort((a, b) => a.nome.localeCompare(b.nome));
   const dist = () => {
     if (!lista.length) { t('Nenhum encontrista', 'w'); return; }
     const qs = (g === 'H' ? qh : qm).filter((q) => !q.maes);
