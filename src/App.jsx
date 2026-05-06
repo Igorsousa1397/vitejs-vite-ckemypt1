@@ -757,7 +757,7 @@ const CELULAS = [
   'Jeova Rafah', 'Peniel - Santa Catarina', 'Outra', 'Não faço parte de célula',
 ];
 
-function Inscricao({ onVoltar }) {
+function Inscricao({ onVoltar, onPago }) {
   const [form, setForm] = useState({
     igreja: '', nome: '', cpf: '', nascimento: '', sexo: '',
     whatsapp: '', celula: '', camiseta: '', emergencia: '',
@@ -861,6 +861,19 @@ function Inscricao({ onVoltar }) {
           Voltar
         </button>
       </div>
+      <button
+        onClick={async () => {
+          vibrar(50);
+          const snap = await getDoc(doc(db, 'encontristas', encId));
+          if (snap.exists() && snap.data().pago) {
+            onPago();
+          } else {
+            alert('Pagamento ainda não confirmado. Aguarde e tente novamente.');
+          }
+        }}
+        style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}>
+        ✓ Já paguei — verificar
+      </button>
     </div>
   );
 
@@ -1225,7 +1238,10 @@ export default function App() {
     />
   );
     if (scr === 'inscricao') return (
-    <Inscricao onVoltar={() => setScr('welcome')} />
+    <Inscricao
+      onVoltar={() => setScr('welcome')}
+      onPago={() => { setScr('pagamento_confirmado'); }}
+    />
   );
   if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welcome')} users={users} setUsers={setUsers} />;
 
