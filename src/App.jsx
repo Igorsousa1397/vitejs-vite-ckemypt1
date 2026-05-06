@@ -2562,6 +2562,49 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
   );
 }
 
+function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAutocomplete }) {
+  const [numEdit, setNumEdit] = useState(m.num);
+  const [limEdit, setLimEdit] = useState(m.lim);
+
+  return (
+    <Acc title="🤱 Quarto Mães" ax="#ff9f0a"
+      right={<Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}>
+      <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
+        <div style={{ background: '#ff9f0a', borderRadius: 5, height: 5, width: `${pct}%` }} />
+      </div>
+
+      {edit && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número</div>
+            <input type="number" value={numEdit}
+              onChange={e => setNumEdit(e.target.value)}
+              onBlur={() => setQm(qm.map(q => q.maes ? { ...q, num: parseInt(numEdit) || m.num } : q))}
+              style={{ ...I, fontSize: 13, padding: '8px 12px' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Limite</div>
+            <input type="number" min="1" max="30" value={limEdit}
+              onChange={e => setLimEdit(e.target.value)}
+              onBlur={() => setQm(qm.map(q => q.maes ? { ...q, lim: parseInt(limEdit) || m.lim } : q))}
+              style={{ ...I, fontSize: 13, padding: '8px 12px' }} />
+          </div>
+        </div>
+      )}
+
+      <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
+      <Tags items={m.servos} ax={G.green}
+        onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
+      <AddServoSearch quarto={m} updFn={uQM} />
+
+      <SL c="Mães" />
+      <Tags items={m.enc} ax="#ff9f0a"
+        onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
+      <AddEncAutocomplete quarto={m} updFn={uQM} />
+    </Acc>
+  );
+}
+
 // ── QUARTOS ──────────────────────────────────────────────────────────────────
 function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
   const [tab, setTab] = useState('M');
@@ -2758,55 +2801,11 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         if (!m) return null;
         const oc = m.servos.length + m.enc.length;
         const pct = Math.min(100, Math.round((oc / m.lim) * 100));
-        return (
-          <Acc title="🤱 Quarto Mães" ax="#ff9f0a"
-            right={<Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}>
-            <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
-              <div style={{ background: '#ff9f0a', borderRadius: 5, height: 5, width: `${pct}%` }} />
-            </div>
-
-            {edit && (
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número</div>
-                  <input
-                    type="number"
-                    defaultValue={m.num}
-                    onBlur={e => {
-                      const novoNum = parseInt(e.target.value) || m.num;
-                      setQm(qm.map(q => q.maes ? { ...q, num: novoNum } : q));
-                    }}
-                    style={{ ...I, fontSize: 13, padding: '8px 12px' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Limite</div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    defaultValue={m.lim}
-                    onBlur={e => {
-                      const novoLim = parseInt(e.target.value) || m.lim;
-                      setQm(qm.map(q => q.maes ? { ...q, lim: novoLim } : q));
-                    }}
-                    style={{ ...I, fontSize: 13, padding: '8px 12px' }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
-            <Tags items={m.servos} ax={G.green}
-              onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
-            <AddServoSearch quarto={m} updFn={uQM} />
-
-            <SL c="Mães" />
-            <Tags items={m.enc} ax="#ff9f0a"
-              onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
-            <AddEncAutocomplete quarto={m} updFn={uQM} />
-          </Acc>
-        );
+        return <QuartoMaes m={m} oc={oc} pct={pct}
+          edit={edit} uQM={uQM} setQm={setQm} qm={qm}
+          AddServoSearch={AddServoSearch}
+          AddEncAutocomplete={AddEncAutocomplete}
+        />;
       })()}
 
       {/* Lista de quartos */}
