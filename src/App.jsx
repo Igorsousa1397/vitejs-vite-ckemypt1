@@ -31,7 +31,6 @@ const iniciarNotificacoes = async (userId = null) => {
   }
 };
 
-
 const G = {
   bg: '#0a0a0a',
   green: '#00c851',
