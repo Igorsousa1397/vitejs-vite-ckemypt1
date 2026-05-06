@@ -41,7 +41,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     }],
     payer: {
       name: nome || 'Encontrista',
-      email: email || 'pagador@email.com',
+      email: email || 'encontrocomDeus@email.com',
     },
     external_reference: encontristaId,
     back_urls: {

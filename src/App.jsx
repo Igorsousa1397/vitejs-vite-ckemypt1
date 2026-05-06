@@ -1090,6 +1090,10 @@ export default function App() {
       setScr('pagamento_confirmado');
       setPagamentoId(id);
       window.history.replaceState({}, '', '/');
+    } else if (pago === 'pending' && id) { // ← adiciona isso
+      setScr('pagamento_pendente');
+      setPagamentoId(id);
+      window.history.replaceState({}, '', '/');
     }
 
   const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -1239,20 +1243,44 @@ export default function App() {
     </div>
   );
 
+  if (scr === 'pagamento_pendente') return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Pagamento pendente!</div>
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          Seu pagamento está sendo processado. Assim que confirmado sua vaga será garantida!
+        </div>
+        <a href="https://wa.me/5511982222149?text=Olá!%20Realizei%20o%20pagamento%20do%20Encontro%20com%20Deus%20e%20gostaria%20de%20confirmar%20minha%20inscrição."
+          target="_blank" rel="noopener noreferrer"
+          style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+          Enviar comprovante no WhatsApp
+        </a>
+        <button onClick={() => setScr('welcome')} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
+          Voltar ao início
+        </button>
+      </div>
+    </div>
+  );
+
   if (scr === 'welcome') return (
     <Welcome
       onServos={() => setScr('login')}
       onEncontrista={() => setScr('inscricao')}
     />
   );
-    if (scr === 'inscricao') return (
+
+  if (scr === 'inscricao') return (
     <Inscricao
       onVoltar={() => setScr('welcome')}
       onPago={() => { setScr('pagamento_confirmado'); }}
     />
   );
-  if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welcome')} users={users} setUsers={setUsers} />;
 
+if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welcome')} users={users} setUsers={setUsers} />;
   // shared top bar
   const TB = () => (
     <div
