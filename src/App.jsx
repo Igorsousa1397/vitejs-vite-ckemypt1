@@ -104,6 +104,7 @@ const canG = (p) =>
 const canQ = (p) => ['admin', 'lider_quartos'].includes(p);
 const canC = (p) => ['admin', 'lider_cozinha'].includes(p);
 const canN = (p) => ['admin', 'lider_geral', 'pastor'].includes(p);
+const canM = (p) => ['admin', 'lider_geral', 'lider_midia'].includes(p);
 
 // ── tiny components ──────────────────────────────────────────────────────────
 const Pill = ({ c, bg, tc }) => (
@@ -788,17 +789,21 @@ function Inscricao({ onVoltar }) {
   const [form, setForm] = useState({
     igreja: '', nome: '', cpf: '', nascimento: '', sexo: '',
     whatsapp: '', celula: '', camiseta: '', emergencia: '',
-    medicamento: '', doenca: '',
+    medicamento: '', doenca: '', autorizaImagem: '',
   });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [encId, setEncId] = useState(null);
 
   const salvar = async () => {
-    if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
-      alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
-      return;
-    }
+  if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
+    alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
+    return;
+  }
+  if (!form.autorizaImagem) {
+    alert('Responda sobre o uso de imagem');
+    return;
+  }
     if (form.cpf.trim() && !/^\d+$/.test(form.cpf.trim())) {
       alert('CPF deve conter apenas números, sem pontos ou traços.');
       return;
@@ -971,6 +976,9 @@ function Inscricao({ onVoltar }) {
         <SLi c="Tamanho da Camiseta *" />
         <Radio val={form.camiseta} set={v => setForm({ ...form, camiseta: v })}
           opts={['P', 'M', 'G', 'GG', 'EXG', 'G1', 'G2', 'G3']} />
+        <SLi c="Autoriza uso de imagem? *" />
+        <Radio val={form.autorizaImagem} set={v => setForm({ ...form, autorizaImagem: v })}
+          opts={['Sim', 'Não']} />
         <SLi c="Contato de Emergência" />
         <input placeholder="Nome e telefone" value={form.emergencia}
           onChange={e => setForm({ ...form, emergencia: e.target.value })} style={iI} />
@@ -1295,7 +1303,10 @@ useEffect(() => {
       ['👕', 'suni', 'Uniforme'],
       ['⚠️', 'sinfo', 'Ocorrências'],
       ['📋', 'satr', 'Atribuições'],
-    ];
+      ...(role === 'lider_midia' || (user?.funcoes || []).includes('Mídia')
+          ? [['📷', 'simg', 'Uso de Imagem']]
+          : []),
+      ];
     return (
       <div style={{ minHeight: '100vh', background: G.bg, paddingBottom: 60 }}>
         <style>{css}</style>
@@ -1751,15 +1762,7 @@ useEffect(() => {
           />
         )}
         {pg === 'img' && (
-          <ListV
-            icon="📷"
-            color="#ffd60a"
-            items={img}
-            setItems={setImg}
-            edit={canG(role)}
-            t={showT}
-            ph="Nome do encontrista..."
-          />
+          <ImgV encH={encH} encM={encM} />
         )}
         {pg === 'info' && (
           <InfoV
@@ -3397,6 +3400,29 @@ function RestV({ rest, setRest, qm, setQm, edit, role, t }) {
   );
 }
 
+function ImgV({ encH, encM }) {
+  const todos = [...encH, ...encM].filter(e => e.autorizaImagem === 'Não');
+  return (
+    <div>
+      <div style={{ background: 'rgba(255,214,10,.08)', border: '1px solid rgba(255,214,10,.2)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, color: '#ffd60a', fontSize: 12 }}>
+        📷 Encontristas que NÃO autorizaram uso de imagem
+      </div>
+      {todos.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+          Todos autorizaram! ✓
+        </div>
+      )}
+      {todos.map((e, i) => (
+        <div key={e.id} className="fu"
+          style={{ background: G.card, border: '1px solid rgba(255,214,10,.2)', borderLeft: '3px solid #ffd60a', borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>
+          <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{e.nome}</div>
+          <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{e.sexo} · {e.celula || 'Sem célula'}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── LIST (imagem / crachás) ───────────────────────────────────────────────────
 function ListV({ icon, color, items, setItems, edit, t, ph }) {
   return (
@@ -4803,6 +4829,7 @@ function BackV({ users, setUsers, fns, setFns, t }) {
     lider_quartos: 'Edição de quartos',
     lider_cozinha: 'Edição da louça',
     servo: 'Somente visualização',
+    lider_midia: { l: 'Líder Mídia', c: '#ffd60a' },
   };
   return (
     <div>
