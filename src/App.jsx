@@ -3087,7 +3087,7 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
 
                   {/* Botão WhatsApp contato */}
                   {waNumero && (
-                    <a href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(msgPendente(e.nome))}`}
+                    <a href={`https://wa.me/55${waNumero}${!e.pago ? `?text=${encodeURIComponent(msgPendente(e.nome))}` : ''}`}
                     target="_blank" rel="noopener noreferrer"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
                     💬 Entrar em contato — {e.whatsapp}
