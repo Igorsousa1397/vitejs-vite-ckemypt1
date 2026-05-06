@@ -2677,14 +2677,20 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users, salvar
   const colecao = isH ? 'quartos_h' : 'quartos_m';
 
   const upd = async (num, fn) => {
-    const lista = isH ? qh : qm;
-    const quarto = lista.find(q => q.num === num);
-    if (!quarto) return;
-    const atualizado = fn(quarto);
-    if (isH) uQH(num, () => atualizado);
-    else uQM(num, () => atualizado);
-    await salvarQuarto(colecao, atualizado);
+  const onibus = on.find(o => o.num === num);
+  if (!onibus) return;
+  const normalizado = {
+    ...onibus,
+    malas: Array.isArray(onibus.malas) ? onibus.malas : [],
+    resp: Array.isArray(onibus.resp) ? onibus.resp : [],
+    templo: Array.isArray(onibus.templo) ? onibus.templo : [],
+    servos: Array.isArray(onibus.servos) ? onibus.servos : [],
+    passManual: Array.isArray(onibus.passManual) ? onibus.passManual : [],
   };
+  const atualizado = fn(normalizado);
+  setOn(on.map(o => o.num === num ? atualizado : o));
+  await salvarOnibus(atualizado);
+};
 
   const encConfirmados = (isH ? encH : encM).filter(e => e.chegou);
 
@@ -3170,7 +3176,7 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
         const tc = tipoColor[o.tipo] || G.green;
         const passManual = o.passManual || [];
         const servos = o.servos || [];
-        const malas = o.malas || [];
+        const malas = Array.isArray(o.malas) ? o.malas : [];
         const ocupados = (o.tipo === 'Servos'
           ? servos.length
           : o.resp.length + o.templo.length + pass.length + passManual.length);
