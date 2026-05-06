@@ -2984,20 +2984,24 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
     t(`${lista.length} distribuídos!`);
   };
   const toggle = (id) => setExpandido(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const msgPendente = (nome) =>
+    `Olá, ${nome.split(' ')[0]}! 🙏\n\nVi que você se inscreveu no *Encontro com Deus* mas ainda não confirmou sua vaga.\n\nEsse fim de semana pode mudar sua vida de uma forma que você nunca imaginou. Um encontro real com Deus transforma, liberta e renova — e você merece viver isso! 💫\n\nPodemos te ajudar? Ficou com alguma dúvida sobre o pagamento ou sobre o evento? É só falar, estamos aqui! ❤️`;
+
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-      {[
-        [encM.length + encH.length, 'Total Geral', '#636366'],
-        [lista.filter(e => e.pago).length, 'Pagos', G.green],
-        [lista.filter(e => !e.pago).length, 'Pendentes', '#ff3b30'],
-      ].map(([n, l, c]) => (
-        <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
-          <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{n}</div>
-          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
-        </div>
-      ))}
-    </div>
+        {[
+          [encM.length + encH.length, 'Total Geral', '#636366'],
+          [lista.filter(e => e.pago).length, 'Pagos', G.green],
+          [lista.filter(e => !e.pago).length, 'Pendentes', '#ff3b30'],
+        ].map(([n, l, c]) => (
+          <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
+            <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{n}</div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>{l}</div>
+          </div>
+        ))}
+      </div>
       <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={g} set={setG} />
       <div style={{ marginTop: 10 }}>
         <button onClick={dist}
@@ -3009,44 +3013,55 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
         )}
         {lista.map((e) => {
           const aberto = expandido[e.id];
+          const waNumero = e.whatsapp?.replace(/\D/g, '');
           return (
             <div key={e.id} className="fu"
               style={{ background: G.card, border: `1px solid ${e.pago ? 'rgba(0,200,81,.25)' : 'rgba(255,59,48,.2)'}`, borderLeft: `3px solid ${e.pago ? G.green : '#ff3b30'}`, borderRadius: 13, marginBottom: 7, overflow: 'hidden' }}>
-              {/* Header do card */}
-              <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              
+              {/* Header clicável inteiro */}
+              <div
+                onClick={() => toggle(e.id)}
+                style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{e.nome}</div>
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{e.igreja || '—'} · {e.celula || 'Sem célula'}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* WhatsApp rápido */}
+                  {waNumero && (
+                    <a href={`https://wa.me/55${waNumero}`}
+                      target="_blank" rel="noopener noreferrer"
+                      onClick={e2 => e2.stopPropagation()}
+                      style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,.15)', border: '1px solid rgba(37,211,102,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none', flexShrink: 0 }}>
+                      💬
+                    </a>
+                  )}
                   {/* Toggle pago */}
                   {e.pagamentoId ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#fff' }}>MP</div>
-                      <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago MP</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e2 => e2.stopPropagation()}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff' }}>MP</div>
+                      <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago</span>
                     </div>
                   ) : (
-                    <div onClick={async () => {
+                    <div onClick={async (e2) => {
+                      e2.stopPropagation();
                       if (!edit) return;
                       vibrar(30);
                       await setDoc(doc(db, 'encontristas', e.id), { pago: !e.pago }, { merge: true });
                     }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: edit ? 'pointer' : 'default', userSelect: 'none' }}>
-                      <div style={{ width: 38, height: 22, borderRadius: 20, background: e.pago ? G.green : '#ff3b30', transition: 'background .2s', position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: 2, left: e.pago ? 17 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: edit ? 'pointer' : 'default', userSelect: 'none' }}>
+                      <div style={{ width: 34, height: 20, borderRadius: 20, background: e.pago ? G.green : '#ff3b30', transition: 'background .2s', position: 'relative' }}>
+                        <div style={{ position: 'absolute', top: 2, left: e.pago ? 15 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
                       </div>
-                      <span style={{ color: e.pago ? G.green : '#ff3b30', fontSize: 11, fontWeight: 700, minWidth: 48 }}>
+                      <span style={{ color: e.pago ? G.green : '#ff3b30', fontSize: 11, fontWeight: 700, minWidth: 44 }}>
                         {e.pago ? 'Pago' : 'Pendente'}
                       </span>
                     </div>
                   )}
-                  {/* Seta expandir */}
-                  <span onClick={() => toggle(e.id)}
-                    style={{ color: G.tm, fontSize: 12, cursor: 'pointer', transition: 'transform .2s', display: 'inline-block', transform: aberto ? 'rotate(180deg)' : 'none' }}>
-                    ▾
-                  </span>
+                  <span style={{ color: G.tm, fontSize: 12, transition: 'transform .2s', display: 'inline-block', transform: aberto ? 'rotate(180deg)' : 'none' }}>▾</span>
                 </div>
               </div>
+
               {/* Detalhes expandidos */}
               {aberto && (
                 <div style={{ borderTop: '1px solid #1e1e1e', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -3080,6 +3095,24 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                       </div>
                     )}
                   </div>
+
+                  {/* Botão WhatsApp contato */}
+                  {waNumero && (
+                    <a href={`https://wa.me/55${waNumero}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                      💬 Entrar em contato — {e.whatsapp}
+                    </a>
+                  )}
+
+                  {/* Template pendente */}
+                  {!e.pago && waNumero && (
+                    <a href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(msgPendente(e.nome))}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.2)', color: '#ff6b6b', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                      ❤️ Enviar mensagem de incentivo
+                    </a>
+                  )}
                 </div>
               )}
             </div>
@@ -3089,7 +3122,6 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
     </div>
   );
 }
-
 // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
 function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus }) {
   const [shN, setShN] = useState(false);
