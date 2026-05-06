@@ -4860,20 +4860,62 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
       {/* DATA LIMITE */}
       <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
         <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Data Limite para Solicitacoes</div>
-        <input type="date" value={dataTemp}
-          onChange={(e) => setDataTemp(e.target.value)}
-          disabled={!!dataLimite && dataTemp === dataLimite}
-          style={{ ...I, marginBottom: 10, opacity: (!!dataLimite && dataTemp === dataLimite) ? 0.5 : 1 }} />
+        
         {!!dataLimite && dataTemp === dataLimite ? (
-          <button onClick={() => setDataTemp('')}
-            style={BK({ width: '100%', padding: 12, borderRadius: 12 })}>
-            Alterar Data
-          </button>
+          <>
+            <div style={{ color: G.td, fontSize: 14, padding: '10px 0', marginBottom: 10 }}>
+              {new Date(dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}
+            </div>
+            <button onClick={() => setDataTemp('')}
+              style={BK({ width: '100%', padding: 12, borderRadius: 12 })}>
+              Alterar Data
+            </button>
+          </>
         ) : (
-          <button onClick={salvarData} disabled={savingData}
-            style={BG({ width: '100%', padding: 12, borderRadius: 12, opacity: savingData ? 0.7 : 1 })}>
-            {savingData ? 'Salvando...' : 'Salvar Data'}
-          </button>
+          <>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <select
+                value={dataTemp?.split('-')[2] || ''}
+                onChange={e => {
+                  const parts = dataTemp?.split('-') || ['', '', ''];
+                  setDataTemp(`${parts[0]}-${parts[1]}-${e.target.value}`);
+                }}
+                style={{ ...I, flex: 1, marginBottom: 0 }}>
+                <option value="">Dia</option>
+                {Array.from({length: 31}, (_, i) => i + 1).map(d => (
+                  <option key={d} value={String(d).padStart(2, '0')}>{d}</option>
+                ))}
+              </select>
+              <select
+                value={dataTemp?.split('-')[1] || ''}
+                onChange={e => {
+                  const parts = dataTemp?.split('-') || ['', '', ''];
+                  setDataTemp(`${parts[0]}-${e.target.value}-${parts[2]}`);
+                }}
+                style={{ ...I, flex: 1, marginBottom: 0 }}>
+                <option value="">Mês</option>
+                {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => (
+                  <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={dataTemp?.split('-')[0] || ''}
+                onChange={e => {
+                  const parts = dataTemp?.split('-') || ['', '', ''];
+                  setDataTemp(`${e.target.value}-${parts[1]}-${parts[2]}`);
+                }}
+                style={{ ...I, flex: 1, marginBottom: 0 }}>
+                <option value="">Ano</option>
+                {[2025, 2026, 2027].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <button onClick={salvarData} disabled={savingData}
+              style={BG({ width: '100%', padding: 12, borderRadius: 12, opacity: savingData ? 0.7 : 1 })}>
+              {savingData ? 'Salvando...' : 'Salvar Data'}
+            </button>
+          </>
         )}
         {!dataTemp && (
           <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>Defina uma data para liberar solicitacoes aos servos.</div>
