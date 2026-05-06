@@ -1088,6 +1088,7 @@ export default function App() {
   const id = params.get('id');
   const statusMP = params.get('collection_status');
   const externalRef = params.get('external_reference');
+  
 
   if (pago === 'true' && id) {
     setScr('pagamento_confirmado');
