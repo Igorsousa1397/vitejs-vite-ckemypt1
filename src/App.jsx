@@ -3282,180 +3282,175 @@ function OnV({ on, uOn, setOn, encH, encM, edit, t, salvarOnibus, deletarOnibus 
     );
   };
 
-  {confirmDel !== null && (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
-      <div style={{ background: '#1c1c1e', borderRadius: 18, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>🗑</div>
-        <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Deletar Ônibus {confirmDel}?</div>
-        <div style={{ color: G.tm, fontSize: 13, marginBottom: 20 }}>Esta ação não pode ser desfeita.</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => setConfirmDel(null)}
-            style={BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>
-            Cancelar
-          </button>
-          <button onClick={async () => {
-            await deletarOnibus(confirmDel);
-            setOn(on.filter(o => o.num !== confirmDel));
-            setConfirmDel(null);
-          }}
-            style={{ ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 }), borderColor: 'rgba(255,59,48,.4)', color: '#ff6b6b' }}>
-            Deletar
-          </button>
+  
+
+return (
+  <div>
+    {/* MODAL CONFIRMAR DELETE */}
+    {confirmDel !== null && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
+        <div style={{ background: '#1c1c1e', borderRadius: 18, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🗑</div>
+          <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Deletar Ônibus {confirmDel}?</div>
+          <div style={{ color: G.tm, fontSize: 13, marginBottom: 20 }}>Esta ação não pode ser desfeita.</div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => setConfirmDel(null)}
+              style={BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>
+              Cancelar
+            </button>
+            <button onClick={async () => {
+              await deletarOnibus(confirmDel);
+              setOn(on.filter(o => o.num !== confirmDel));
+              setConfirmDel(null);
+            }}
+              style={{ ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 }), borderColor: 'rgba(255,59,48,.4)', color: '#ff6b6b' }}>
+              Deletar
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  )}
+    )}
 
-  return (
-    <div>
-      {edit && (
-        <>
-          <button onClick={() => setShN(!shN)}
-            style={shN
-              ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })
-              : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}>
-            {shN ? '✕ Cancelar' : '＋ Novo Ônibus'}
-          </button>
-          {shN && (
-            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número *</div>
-                  <input style={I} placeholder="Ex: 1" type="number" value={f.num}
-                    onChange={e => setF({ ...f, num: e.target.value })} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Poltronas</div>
-                  <input style={I} placeholder="Ex: 40" type="number" value={f.poltronas}
-                    onChange={e => setF({ ...f, poltronas: e.target.value })} />
-                </div>
+    {edit && (
+      <>
+        <button onClick={() => setShN(!shN)}
+          style={shN
+            ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })
+            : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}>
+          {shN ? '✕ Cancelar' : '＋ Novo Ônibus'}
+        </button>
+        {shN && (
+          <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número *</div>
+                <input style={I} placeholder="Ex: 1" type="number" value={f.num}
+                  onChange={e => setF({ ...f, num: e.target.value })} />
               </div>
-              <div>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Tipo</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {['Feminino', 'Masculino', 'Servos'].map(tipo => (
-                    <button key={tipo} onClick={() => setF({ ...f, tipo })}
-                      style={{ ...BK({ padding: '8px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700 }),
-                        borderColor: f.tipo === tipo ? `${tipoColor[tipo]}80` : '#2a2a2a',
-                        color: f.tipo === tipo ? tipoColor[tipo] : G.td,
-                        background: f.tipo === tipo ? `${tipoColor[tipo]}12` : 'transparent' }}>
-                      {tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} {tipo}
-                    </button>
-                  ))}
-                </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Poltronas</div>
+                <input style={I} placeholder="Ex: 40" type="number" value={f.poltronas}
+                  onChange={e => setF({ ...f, poltronas: e.target.value })} />
               </div>
-              <button onClick={criarOnibus} style={BG({ padding: 12, borderRadius: 12 })}>
-                Criar Ônibus
-              </button>
             </div>
+            <div>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Tipo</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {['Feminino', 'Masculino', 'Servos'].map(tipo => (
+                  <button key={tipo} onClick={() => setF({ ...f, tipo })}
+                    style={{ ...BK({ padding: '8px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700 }),
+                      borderColor: f.tipo === tipo ? `${tipoColor[tipo]}80` : '#2a2a2a',
+                      color: f.tipo === tipo ? tipoColor[tipo] : G.td,
+                      background: f.tipo === tipo ? `${tipoColor[tipo]}12` : 'transparent' }}>
+                    {tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} {tipo}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button onClick={criarOnibus} style={BG({ padding: 12, borderRadius: 12 })}>
+              Criar Ônibus
+            </button>
+          </div>
+        )}
+      </>
+    )}
+
+    {on.length === 0 && (
+      <div style={{ color: G.tm, textAlign: 'center', padding: 32, fontSize: 13 }}>
+        Nenhum ônibus cadastrado.
+      </div>
+    )}
+
+    {on.map(o => {
+      const pass = passageirosPorOnibus(o.num, o.tipo);
+      const tc = tipoColor[o.tipo] || G.green;
+      const passManual = o.passManual || [];
+      const servos = o.servos || [];
+      const malas = Array.isArray(o.malas) ? o.malas : [];
+      const ocupados = (o.tipo === 'Servos'
+        ? servos.length
+        : o.resp.length + o.templo.length + pass.length + passManual.length);
+      const poltronas = o.poltronas || 40;
+      const pct = Math.min(100, Math.round((ocupados / poltronas) * 100));
+      const bc = pct >= 100 ? '#ff3b30' : pct >= 80 ? '#ff9f0a' : G.green;
+
+      return (
+        <Acc key={o.num} title={`🚌 Ônibus ${o.num}`} ax={tc}
+          right={
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <Pill c={o.tipo} bg={`${tc}18`} tc={tc} />
+              <Pill c={`${ocupados}/${poltronas}`} bg={`${bc}18`} tc={bc} />
+            </div>
+          }
+          onDel={edit ? () => delOnibus(o.num) : undefined}
+        >
+          <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
+            <div style={{ background: bc, borderRadius: 5, height: 5, width: `${pct}%`, transition: 'width .3s' }} />
+          </div>
+          <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
+            {poltronas - ocupados >= 0 ? `${poltronas - ocupados} vagas` : 'Lotado'}
+          </div>
+
+          {edit && <EditOnibus o={o} onSave={salvarOnibus} />}
+
+          {o.tipo === 'Servos' ? (
+            <>
+              <SL c={`Servos (${servos.length})`} mt={0} />
+              <Tags items={servos} ax={G.green}
+                onX={edit ? i => upd(o.num, x => ({ ...x, servos: x.servos.filter((_, j) => j !== i) })) : undefined} />
+              {edit && (
+                <AddIn ph="Adicionar servo..." onAdd={n => upd(o.num, x => ({ ...x, servos: [...(x.servos || []), n] }))} mt={8} />
+              )}
+            </>
+          ) : (
+            <>
+              <SL c="Responsáveis" mt={0} />
+              <Tags items={o.resp || []} ax={G.green}
+                onX={edit ? i => upd(o.num, x => ({ ...x, resp: x.resp.filter((_, j) => j !== i) })) : undefined} />
+              {edit && (
+                <AddIn ph="Adicionar responsável..." onAdd={n => upd(o.num, x => ({ ...x, resp: [...(x.resp || []), n] }))} mt={8} />
+              )}
+              <SL c="Servos do Templo" />
+              <Tags items={o.templo || []} ax="#0a84ff"
+                onX={edit ? i => upd(o.num, x => ({ ...x, templo: x.templo.filter((_, j) => j !== i) })) : undefined} />
+              {edit && (
+                <AddIn ph="Servo do templo..." onAdd={n => upd(o.num, x => ({ ...x, templo: [...(x.templo || []), n] }))} mt={8} />
+              )}
+              <SL c={`Passageiros via Check-in (${pass.length})`} />
+              {pass.length > 0 ? (
+                <Tags items={pass.map(p => p.nome)} />
+              ) : (
+                <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
+                  Nenhum ainda — atribua pelo Check-in
+                </div>
+              )}
+              <SL c={`Passageiros Manual (${passManual.length})`} />
+              <Tags items={passManual}
+                onX={edit ? i => upd(o.num, x => ({ ...x, passManual: x.passManual.filter((_, j) => j !== i) })) : undefined} />
+              {edit && (
+                <AddIn ph="Adicionar passageiro manual..." onAdd={n => upd(o.num, x => ({ ...x, passManual: [...(x.passManual || []), n] }))} mt={8} />
+              )}
+            </>
           )}
-        </>
-      )}
 
-      {on.length === 0 && (
-        <div style={{ color: G.tm, textAlign: 'center', padding: 32, fontSize: 13 }}>
-          Nenhum ônibus cadastrado.
-        </div>
-      )}
-
-      {on.map(o => {
-        const pass = passageirosPorOnibus(o.num, o.tipo);
-        const tc = tipoColor[o.tipo] || G.green;
-        const passManual = o.passManual || [];
-        const servos = o.servos || [];
-        const malas = Array.isArray(o.malas) ? o.malas : [];
-        const ocupados = (o.tipo === 'Servos'
-          ? servos.length
-          : o.resp.length + o.templo.length + pass.length + passManual.length);
-        const poltronas = o.poltronas || 40;
-        const pct = Math.min(100, Math.round((ocupados / poltronas) * 100));
-        const bc = pct >= 100 ? '#ff3b30' : pct >= 80 ? '#ff9f0a' : G.green;
-
-        return (
-          <Acc key={o.num} title={`🚌 Ônibus ${o.num}`} ax={tc}
-            right={
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <Pill c={o.tipo} bg={`${tc}18`} tc={tc} />
-                <Pill c={`${ocupados}/${poltronas}`} bg={`${bc}18`} tc={bc} />
-              </div>
-            }
-            onDel={edit ? () => delOnibus(o.num) : undefined}
-          >
-            <div style={{ background: '#1e1e1e', borderRadius: 5, height: 5, marginBottom: 8 }}>
-              <div style={{ background: bc, borderRadius: 5, height: 5, width: `${pct}%`, transition: 'width .3s' }} />
-            </div>
-            <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
-              {poltronas - ocupados >= 0 ? `${poltronas - ocupados} vagas` : 'Lotado'}
-            </div>
-
-            {/* EDITAR ÔNIBUS */}
-            {edit && (
-              <EditOnibus o={o} onSave={salvarOnibus} />
-            )}
-
-            {/* Ônibus de Servos — só campo de servos manual */}
-            {o.tipo === 'Servos' ? (
-              <>
-                <SL c={`Servos (${servos.length})`} mt={0} />
-                <Tags items={servos} ax={G.green}
-                  onX={edit ? i => upd(o.num, x => ({ ...x, servos: x.servos.filter((_, j) => j !== i) })) : undefined} />
-                {edit && (
-                  <AddIn ph="Adicionar servo..." onAdd={n => upd(o.num, x => ({ ...x, servos: [...(x.servos || []), n] }))} mt={8} />
-                )}
-              </>
-            ) : (
-              <>
-                <SL c="Responsáveis" mt={0} />
-                <Tags items={o.resp || []} ax={G.green}
-                  onX={edit ? i => upd(o.num, x => ({ ...x, resp: x.resp.filter((_, j) => j !== i) })) : undefined} />
-                {edit && (
-                  <AddIn ph="Adicionar responsável..." onAdd={n => upd(o.num, x => ({ ...x, resp: [...(x.resp || []), n] }))} mt={8} />
-                )}
-
-                <SL c="Servos do Templo" />
-                <Tags items={o.templo || []} ax="#0a84ff"
-                  onX={edit ? i => upd(o.num, x => ({ ...x, templo: x.templo.filter((_, j) => j !== i) })) : undefined} />
-                {edit && (
-                  <AddIn ph="Servo do templo..." onAdd={n => upd(o.num, x => ({ ...x, templo: [...(x.templo || []), n] }))} mt={8} />
-                )}
-
-                <SL c={`Passageiros via Check-in (${pass.length})`} />
-                {pass.length > 0 ? (
-                  <Tags items={pass.map(p => p.nome)} />
-                ) : (
-                  <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
-                    Nenhum ainda — atribua pelo Check-in
-                  </div>
-                )}
-
-                <SL c={`Passageiros Manual (${passManual.length})`} />
-                <Tags items={passManual}
-                  onX={edit ? i => upd(o.num, x => ({ ...x, passManual: x.passManual.filter((_, j) => j !== i) })) : undefined} />
-                {edit && (
-                  <AddIn ph="Adicionar passageiro manual..." onAdd={n => upd(o.num, x => ({ ...x, passManual: [...(x.passManual || []), n] }))} mt={8} />
-                )}
-              </>
-            )}
-
-            {/* Malas */}
-            <SL c={`Malas (${malas.length})`} />
-            {malas.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          <SL c={`Malas (${malas.length})`} />
+          {malas.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
               {malas.map((tipo, i) => (
                 <Tag key={i} c={`${tipo === 'Feminino' ? '♀' : tipo === 'Masculino' ? '♂' : '👤'} ${tipo}`}
                   ax={tipoColor[tipo]}
                   onX={edit ? () => upd(o.num, x => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined} />
               ))}
             </div>
-            ) : (
-              <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
-            )}
-            <AddMala num={o.num} />
-          </Acc>
-        );
-      })}
-    </div>
-  );
+          ) : (
+            <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>Nenhuma mala</div>
+          )}
+          <AddMala num={o.num} />
+        </Acc>
+      );
+    })}
+  </div>
+);
 }
 
 // ── RESTRIÇÕES ───────────────────────────────────────────────────────────────
