@@ -2016,6 +2016,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
     const servos = o.servos?.length || 0;
     return a + passCheckin + passManual + servos;
   }, 0);
+  const prox = mins.find((m) => !m.sent);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const ns = (n) => {
     const s = String(n);
