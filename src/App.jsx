@@ -850,7 +850,7 @@ function Inscricao({ onVoltar, onPago }) {
             alert('Erro ao gerar pagamento.');
           }
         }}
-        style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}> s
+        style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           Pagar com Cartão, Boleto ou PIX
       </button>
       <button
