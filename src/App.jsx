@@ -824,43 +824,34 @@ function Inscricao({ onVoltar, onPago }) {
   };
 
   if (done) return (
-    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <style>{css}</style>
-      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
-        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-          style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🙏</div>
-        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Inscrição realizada!</div>
-        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-          Para confirmar sua vaga, realize o pagamento abaixo.
-        </div>
-        <button
-          onClick={async () => {
-            vibrar(50);
-            try {
-              const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '' }),
-              });
-              const data = await res.json();
-              if (data.init_point) window.open(data.init_point, '_blank');
-            } catch (err) {
-              alert('Erro ao gerar pagamento. Tente o PIX.');
-            }
-          }}
-          style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
-          Pagar com Cartão, Boleto ou PIX
-        </button>
-        <a href="https://wa.me/5511982222149?text=Olá!%20Acabei%20de%20me%20inscrever%20no%20Encontro%20com%20Deus%20e%20gostaria%20de%20enviar%20o%20comprovante%20de%20pagamento."
-          target="_blank" rel="noopener noreferrer"
-          style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
-          Enviar comprovante no WhatsApp
-        </a>
-        <button onClick={onVoltar} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
-          Voltar
-        </button>
+  <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <style>{css}</style>
+    <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
+      <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+        style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
+      <div style={{ fontSize: 48, marginBottom: 16 }}>🙏</div>
+      <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Inscrição realizada!</div>
+      <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+        Para confirmar sua vaga, realize o pagamento abaixo.
       </div>
+      <button
+        onClick={async () => {
+          vibrar(50);
+          try {
+            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '' }),
+            });
+            const data = await res.json();
+            if (data.init_point) window.open(data.init_point, '_blank');
+          } catch (err) {
+            alert('Erro ao gerar pagamento.');
+          }
+        }}
+        style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
+        Pagar com Cartão, Boleto ou PIX
+      </button>
       <button
         onClick={async () => {
           vibrar(50);
@@ -874,8 +865,12 @@ function Inscricao({ onVoltar, onPago }) {
         style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}>
         ✓ Já paguei — verificar
       </button>
+      <button onClick={onVoltar} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
+        Voltar
+      </button>
     </div>
-  );
+  </div>
+);
 
   const iI = { ...I, marginBottom: 0 };
   const SLi = ({ c }) => (
