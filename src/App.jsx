@@ -766,6 +766,7 @@ function Inscricao({ onVoltar, onPago }) {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [encId, setEncId] = useState(null);
+  const [msgPagamento, setMsgPagamento] = useState('');
 
   const salvar = async () => {
     if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
@@ -859,12 +860,18 @@ function Inscricao({ onVoltar, onPago }) {
           if (snap.exists() && snap.data().pago) {
             onPago();
           } else {
-            alert('Pagamento ainda não confirmado. Aguarde e tente novamente.');
+            setMsgPagamento('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
+            setTimeout(() => setMsgPagamento(''), 4000);
           }
         }}
-        style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}>
+        style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 8 })}>
         ✓ Já paguei — verificar
       </button>
+      {msgPagamento && (
+        <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, color: '#ff6b6b', fontSize: 13, lineHeight: 1.5 }}>
+          {msgPagamento}
+        </div>
+      )}
       <button onClick={onVoltar} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
         Voltar
       </button>
