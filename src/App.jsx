@@ -804,8 +804,9 @@ function Inscricao({ onVoltar }) {
     alert('Responda sobre o uso de imagem');
     return;
   }
-    if (form.cpf.trim() && !/^\d+$/.test(form.cpf.trim())) {
-      alert('CPF deve conter apenas números, sem pontos ou traços.');
+    const cpfLimpo = form.cpf.replace(/\D/g, '');
+    if (form.cpf.trim() && cpfLimpo.length !== 11) {
+      alert('CPF inválido. Verifique os dígitos.');
       return;
     }
     if (form.nascimento) {
@@ -837,6 +838,7 @@ function Inscricao({ onVoltar }) {
       }
       const docRef = await addDoc(collection(db, 'encontristas'), {
         ...form,
+        cpf: cpfLimpo, 
         criadoEm: new Date().toLocaleString('pt-BR'),
       });
       setEncId(docRef.id);
@@ -3028,14 +3030,36 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                       </div>
                     )}
                   </div>
-                  {/* Botão WhatsApp */}
-                  {e.whatsapp && (
-                    <a href={`https://wa.me/55${e.whatsapp.replace(/\D/g, '')}`}
-                      target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none', marginTop: 4 }}>
-                      Entrar em contato — {e.whatsapp}
-                    </a>
-                  )}
+                  {/* CPF */}
+                  <input
+                    placeholder="000.000.000-00"
+                    value={form.cpf}
+                    maxLength={14}
+                    onChange={e => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      const mask = v
+                        .replace(/(\d{3})(\d)/, '$1.$2')
+                        .replace(/(\d{3})(\d)/, '$1.$2')
+                        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                      setForm({ ...form, cpf: mask });
+                    }}
+                    style={iI}
+                  />
+                  {/* WhatsApp */}
+                  <input
+                    placeholder="(11) 99999-9999"
+                    value={form.whatsapp}
+                    type="tel"
+                    maxLength={15}
+                    onChange={e => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      const mask = v
+                        .replace(/(\d{2})(\d)/, '($1) $2')
+                        .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+                      setForm({ ...form, whatsapp: mask });
+                    }}
+                    style={iI}
+                  />
                 </div>
               )}
             </div>
