@@ -2765,26 +2765,31 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
               <div style={{ background: '#ff9f0a', borderRadius: 5, height: 5, width: `${pct}%` }} />
             </div>
 
-            {/* Edição de número e limite */}
             {edit && (
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Número</div>
                   <input
                     type="number"
-                    value={m.num}
-                    onChange={e => uQM(m.num, q => ({ ...q, num: parseInt(e.target.value) || q.num }))}
+                    defaultValue={m.num}
+                    onBlur={e => {
+                      const novoNum = parseInt(e.target.value) || m.num;
+                      setQm(qm.map(q => q.maes ? { ...q, num: novoNum } : q));
+                    }}
                     style={{ ...I, fontSize: 13, padding: '8px 12px' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Limite de camas</div>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Limite</div>
                   <input
                     type="number"
                     min="1"
                     max="30"
-                    value={m.lim}
-                    onChange={e => uQM(m.num, q => ({ ...q, lim: parseInt(e.target.value) || q.lim }))}
+                    defaultValue={m.lim}
+                    onBlur={e => {
+                      const novoLim = parseInt(e.target.value) || m.lim;
+                      setQm(qm.map(q => q.maes ? { ...q, lim: novoLim } : q));
+                    }}
                     style={{ ...I, fontSize: 13, padding: '8px 12px' }}
                   />
                 </div>
@@ -2795,12 +2800,11 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
             <Tags items={m.servos} ax={G.green}
               onX={edit ? i => uQM(m.num, q => ({ ...q, servos: q.servos.filter((_, j) => j !== i) })) : undefined} />
             <AddServoSearch quarto={m} updFn={uQM} />
+
             <SL c="Mães" />
             <Tags items={m.enc} ax="#ff9f0a"
               onX={edit ? i => uQM(m.num, q => ({ ...q, enc: q.enc.filter((_, j) => j !== i) })) : undefined} />
-            {edit && (
-              <AddEncAutocomplete quarto={m} updFn={uQM} />
-            )}
+            <AddEncAutocomplete quarto={m} updFn={uQM} />
           </Acc>
         );
       })()}
