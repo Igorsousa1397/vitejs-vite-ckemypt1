@@ -266,16 +266,14 @@ function AddIn({ onAdd, ph = 'Adicionar...', mt = 12 }) {
 function Acc({ title, right, ax, children, onDel, def = false }) {
   const [o, setO] = useState(def);
   return (
-    <div
-      style={{
-        background: G.card,
-        border: `1px solid ${G.cb}`,
-        borderLeft: ax ? `3px solid ${ax}` : `1px solid ${G.cb}`,
-        borderRadius: 16,
-        marginBottom: 8,
-        overflow: 'hidden',
-      }}
-    >
+    <div style={{
+      background: G.card,
+      border: `1px solid ${G.cb}`,
+      borderLeft: ax ? `3px solid ${ax}` : `1px solid ${G.cb}`,
+      borderRadius: 16,
+      marginBottom: 8,
+      overflow: 'visible', // ← era 'hidden', trocar para 'visible'
+    }}>
       <div
         onClick={() => setO(!o)}
         style={{
@@ -2634,7 +2632,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         />
         {aberto && busca.length > 0 && filtrados.length > 0 && (
           <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
             background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
             marginTop: 4, maxHeight: 180, overflowY: 'auto',
           }}>
@@ -2706,7 +2704,7 @@ function QV({ qh, qm, uQH, uQM, setQh, setQm, edit, t, encH, encM, users }) {
         </div>
         {aberto && sugestoes.length > 0 && (
           <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
             background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
             marginTop: 4, maxHeight: 180, overflowY: 'auto',
           }}>
