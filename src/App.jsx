@@ -2659,7 +2659,7 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
                           vibrar(50);
                           setMins(mins.map((x) => x.id === m.id ? { ...x, sent: true } : x));
                           try {
-                            await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarMinistração', {
+                            await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ titulo: m.nome, horario: m.hora }),
