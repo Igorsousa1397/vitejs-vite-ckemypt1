@@ -1203,7 +1203,7 @@ function TermoAdminV({ encH, encM, t }) {
   const [aba, setAba] = useState('enviar');
   const [s, setS] = useState('');
 
-  const todos = [...encH, ...encM].filter(e => e.pago);
+  const todos = [...encH, ...encM].filter(e => e.pago && e.chegou && e.onibus);
 
   const lista = useMemo(() => {
     const filtrado = todos.filter(e =>
