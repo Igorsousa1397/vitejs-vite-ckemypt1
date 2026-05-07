@@ -626,6 +626,7 @@ const CK_INIT = [
 ];
 const LABELS = {
   home: 'Início',
+  servos: 'Servos',
   checkin: 'Check-in',
   mins: 'Ministrações',
   quartos: 'Quartos',
@@ -639,7 +640,6 @@ const LABELS = {
   saude: 'Saúde',
   louça: 'Louça',
   equipes: 'Equipes',
-  servos: 'Servos',
   back: 'Back Office',
   uniformes: 'Uniformes',
   termo: 'Termo',
