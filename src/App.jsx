@@ -1020,6 +1020,184 @@ function Inscricao({ onVoltar, onPago }) {
     </div>
   );
 }
+
+function Termo({ cpf, onVoltar }) {
+  const [enc, setEnc] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [rg, setRg] = useState('');
+  const [end, setEnd] = useState('');
+  const [aceite, setAceite] = useState(false);
+  const [assinado, setAssinado] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const buscar = async () => {
+      const snap = await getDocs(collection(db, 'encontristas'));
+      const found = snap.docs.find(d => d.data().cpf === cpf.replace(/\D/g, ''));
+      if (found) {
+        const data = found.data();
+        setEnc({ id: found.id, ...data });
+        if (data.termoAssinado) setAssinado(true);
+        if (data.rg) setRg(data.rg);
+        if (data.endereco) setEnd(data.endereco);
+      }
+      setLoading(false);
+    };
+    buscar();
+  }, [cpf]);
+
+  const assinar = async () => {
+    if (!rg.trim() || !end.trim()) {
+      alert('Preencha RG e Endereço.');
+      return;
+    }
+    if (!aceite) {
+      alert('Você precisa aceitar os termos para assinar.');
+      return;
+    }
+    setSaving(true);
+    const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+    await setDoc(doc(db, 'encontristas', enc.id), {
+      rg,
+      endereco: end,
+      termoAssinado: true,
+      termoAssinadoEm: agora,
+    }, { merge: true });
+    setAssinado(true);
+    setSaving(false);
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 14 }}>Carregando...</div>
+    </div>
+  );
+
+  if (!enc) return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>CPF não encontrado</div>
+        <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 13, marginBottom: 24 }}>Verifique o CPF informado ou fale com a organização.</div>
+        <button onClick={onVoltar} style={BK({ padding: '12px 24px', borderRadius: 12 })}>Voltar</button>
+      </div>
+    </div>
+  );
+
+  if (assinado) return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
+          style={{ width: 140, mixBlendMode: 'screen', display: 'block', margin: '0 auto 20px' }} />
+        <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+        <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Termo assinado!</div>
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, lineHeight: 1.6 }}>
+          Seu termo foi registrado com sucesso. Pode fechar esta página.
+        </div>
+      </div>
+    </div>
+  );
+
+  const hoje = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#000', paddingBottom: 60 }}>
+      <style>{css}</style>
+      <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Termo de Concordância</div>
+      </div>
+      <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto' }}>
+
+        {/* Cabeçalho */}
+        <div style={{ color: '#fff', fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: 'center' }}>
+          Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
+        </div>
+        <div style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, textAlign: 'center', marginBottom: 24 }}>
+          Evento "Encontro com Deus" — 26, 27 e 28 de junho de 2026
+        </div>
+
+        {/* Dados do signatário */}
+        <div style={{ background: '#111', borderRadius: 14, padding: '16px', marginBottom: 20, border: '1px solid #222' }}>
+          <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Dados do Signatário</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11 }}>Nome</div>
+              <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{enc.nome}</div>
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11 }}>CPF</div>
+              <div style={{ color: '#fff', fontSize: 14 }}>{enc.cpf}</div>
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>RG *</div>
+              <input
+                placeholder="Digite seu RG"
+                value={rg}
+                onChange={e => setRg(e.target.value)}
+                style={I}
+              />
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Endereço *</div>
+              <input
+                placeholder="Rua, número, bairro, cidade"
+                value={end}
+                onChange={e => setEnd(e.target.value)}
+                style={I}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Texto do termo */}
+        <div style={{ background: '#0d0d0d', borderRadius: 14, padding: '16px', marginBottom: 20, border: '1px solid #1a1a1a' }}>
+          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.8 }}>
+            <p style={{ marginBottom: 12 }}>
+              O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da <strong style={{ color: '#fff' }}>Igreja Apostólica Fonte</strong> (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
+            </p>
+            <p style={{ marginBottom: 12 }}>
+              A autorização é referente a imagens e vídeos do evento <strong style={{ color: '#fff' }}>"Encontro com Deus"</strong>, nos dias 26, 27 e 28 de junho de 2026.
+            </p>
+            <p style={{ marginBottom: 12 }}>
+              Também concorda com as regras do evento, destacando que <strong style={{ color: '#fff' }}>não é permitido nenhum tipo de registro e/ou gravação pelos inscritos</strong> — apenas pela organização.
+            </p>
+            <p style={{ marginBottom: 0 }}>
+              Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.
+            </p>
+          </div>
+        </div>
+
+        {/* Data e organização */}
+        <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, lineHeight: 1.6, marginBottom: 20, textAlign: 'center' }}>
+          Assinado em: Cajamar, {hoje}.<br />
+          Igreja Apostólica Fonte (IF) — Av. Tenente Marques, 5014, Portais (Polvilho), Cajamar/SP, CEP 07790-845 | Tel: (11) 94718-7017
+        </div>
+
+        {/* Checkbox aceite */}
+        <div
+          onClick={() => setAceite(!aceite)}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: '#111', borderRadius: 14, padding: '14px', marginBottom: 20, border: `1px solid ${aceite ? 'rgba(0,200,81,.4)' : '#222'}`, cursor: 'pointer' }}>
+          <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${aceite ? G.green : '#444'}`, background: aceite ? 'rgba(0,200,81,.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+            {aceite && <span style={{ color: G.green, fontSize: 13, fontWeight: 800 }}>✓</span>}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.6 }}>
+            Li e concordo com todos os termos acima, incluindo as regras do evento e a autorização de uso de imagem.
+          </div>
+        </div>
+
+        {/* Botão assinar */}
+        <button
+          onClick={assinar}
+          disabled={saving}
+          style={BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, opacity: saving ? 0.7 : 1 })}>
+          {saving ? 'Assinando...' : 'Assinar Termo'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [sp, setSp] = useState(true);
@@ -1029,6 +1207,7 @@ export default function App() {
   const [menu, setMenu] = useState(false);
   const [pagamentoId, setPagamentoId] = useState(null);
   const [encId, setEncId] = useState(null);
+  const [termoCpf, setTermoCpf] = useState(null);
   const [users, setUsers] = useState([]);
   const [fns, setFns] = useState(FUNCOES_INIT);
   const [esc, setEsc] = useState(ESCALAS_INIT);
@@ -1085,9 +1264,17 @@ export default function App() {
   };
 
   
- useEffect(() => {
+useEffect(() => {
   const params = new URLSearchParams(window.location.search);
-  console.log('URL params:', window.location.search); // ← adiciona
+  console.log('URL params:', window.location.search);
+  // Termo digital
+  const termo = params.get('termo');
+  const cpf = params.get('cpf');
+  if (termo === 'true' && cpf) {
+    setTermoCpf(cpf);
+    setScr('termo');
+    return;
+  }
   const pago = params.get('pago');
   const id = params.get('id');
   const statusMP = params.get('status')
@@ -1313,6 +1500,10 @@ export default function App() {
       onVoltar={() => setScr('welcome')}
       onPago={(id) => { setEncId(id); setScr('pagamento_confirmado'); }}
     />
+  );
+
+  if (scr === 'termo') return (
+    <Termo cpf={termoCpf} onVoltar={() => setScr('welcome')} />
   );
 
 if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welcome')} users={users} setUsers={setUsers} />;
