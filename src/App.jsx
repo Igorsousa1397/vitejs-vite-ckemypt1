@@ -1136,6 +1136,10 @@ useEffect(() => {
               <div style={{ color: '#fff', fontSize: 14 }}>{enc.cpf}</div>
             </div>
             <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11 }}>Autorização de uso de imagem</div>
+              <div style={{ color: '#fff', fontSize: 14 }}>{enc.autorizaImagem || '—'}</div>
+            </div>
+            <div>
               <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>RG *</div>
               <input
                 placeholder="Digite seu RG"
