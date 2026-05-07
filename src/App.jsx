@@ -1,6 +1,7 @@
 import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc, createUserWithEmailAndPassword, sendPasswordResetEmail } from './firebase';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
+import QRCode from 'qrcode.react';
 
 
 const vibrar = (ms = 50) => {
@@ -1249,17 +1250,32 @@ export default function App() {
       <style>{css}</style>
       <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-          style={{ width: 180, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
-        <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Pagamento confirmado!</div>
-        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-          Sua vaga está garantida! Envie o comprovante no WhatsApp para finalizar.
+          style={{ width: 140, mixBlendMode: 'screen', display: 'block', margin: '0 auto 20px' }} />
+        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Pagamento confirmado!</div>
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+          Sua vaga está garantida.
         </div>
-        <a href="https://wa.me/5511982222149?text=Olá!%20Realizei%20o%20pagamento%20do%20Encontro%20com%20Deus%20e%20gostaria%20de%20confirmar%20minha%20inscrição."
+
+        {/* QR CODE */}
+        <div style={{ background: '#fff', borderRadius: 20, padding: 20, display: 'inline-block', marginBottom: 16 }}>
+          <QRCode value={pagamentoId || 'sem-id'} size={200} />
+        </div>
+
+        {/* AVISO IMPORTANTE */}
+        <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, textAlign: 'left' }}>
+          <div style={{ color: '#ff6b6b', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>TIRE UM PRINT DESTA TELA AGORA</div>
+          <div style={{ color: 'rgba(255,255,255,.6)', fontSize: 13, lineHeight: 1.6 }}>
+            Este QR Code é seu ingresso. Sem ele você não conseguirá fazer o check-in no evento. Não perca!
+          </div>
+        </div>
+
+        {/* WHATSAPP */}
+        <a href={`https://wa.me/?text=Meu QR Code do Encontro com Deus: servos-peniel.vercel.app?qr=${pagamentoId}`}
           target="_blank" rel="noopener noreferrer"
           style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
-          Enviar comprovante no WhatsApp
+          Enviar QR Code no WhatsApp
         </a>
+
         <button onClick={() => setScr('welcome')} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
           Voltar ao início
         </button>
