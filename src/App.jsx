@@ -1088,9 +1088,31 @@ useEffect(() => {
       termoAssinado: true,
       termoAssinadoEm: agora,
     }, { merge: true });
+      await setDoc(doc(db, 'encontristas', enc.id), {
+      rg,
+      endereco: `${end}, ${num}, ${comp}`,
+      termoAssinado: true,
+      termoAssinadoEm: agora,
+    }, { merge: true });
+
+    // ← AQUI — salva o termo completo
+    await addDoc(collection(db, 'termos'), {
+      encontristaId: enc.id,
+      nome: enc.nome,
+      cpf: enc.cpf,
+      rg,
+      endereco: `${end}, ${num}, ${comp}`,
+      sexo: enc.sexo,
+      igreja: enc.igreja,
+      autorizaImagem: enc.autorizaImagem,
+      assinadoEm: agora,
+      termoTexto: `Termo de Concordância...`,
+    });
+
     setAssinado(true);
     setSaving(false);
   };
+  
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
