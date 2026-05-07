@@ -866,7 +866,7 @@ function Inscricao({ onVoltar, onPago }) {
             vibrar(50);
             const snap = await getDoc(doc(db, 'encontristas', encId));
             if (snap.exists() && snap.data().pago) {
-              onPago();
+              onPago(encId);
             } else {
               setMsgPagamento('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
               setTimeout(() => setMsgPagamento(''), 4000);
@@ -1310,7 +1310,7 @@ export default function App() {
   if (scr === 'inscricao') return (
     <Inscricao
       onVoltar={() => setScr('welcome')}
-      onPago={() => { setScr('pagamento_confirmado'); }}
+      onPago={(id) => { setEncId(id); setScr('pagamento_confirmado'); }}
     />
   );
 
