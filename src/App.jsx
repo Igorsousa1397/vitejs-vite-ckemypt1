@@ -1372,6 +1372,8 @@ useEffect(() => {
   if (termo === 'true' && cpf) {
     setTermoCpf(cpf);
     setScr('termo');
+    setSp(false);
+    return;
     return;
   }
   const pago = params.get('pago');
