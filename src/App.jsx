@@ -2917,7 +2917,7 @@ function CkV({ ck, setCk, on, edit, t }) {
           await setDoc(doc(db, 'encontristas', enc.id), { chegou: true }, { merge: true });
           vibrar(60);
           t(`✅ Check-in: ${enc.nome}`);
-          const encGen = enc.sexo === 'Feminino' ? 'M' : 'H';
+          const encGen = enc.gen === 'M' ? 'M' : 'H';
           setGen(encGen);
           setSub('conf');
           setHighlightId(enc.id);
