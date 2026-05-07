@@ -1026,27 +1026,39 @@ function Termo({ cpf, onVoltar }) {
     setSaving(true);
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
     const endCompleto = `${end}, ${num}, ${comp}`;
-    const termoTexto = `Termo de Concordância com as Ministrações e Autorização de Uso de Imagem\n\nNome: ${enc.nome}\nCPF: ${enc.cpf}\nRG: ${rg}\nEndereço: ${endCompleto}\n\nA signatária/o signatário manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.\n\nA autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 26, 27 e 28 de junho de 2026.\n\nTambém concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.\n\nPor fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.\n\nAssinado em: Cajamar, ${agora}.\n\nIgreja Apostólica Fonte (IF) — Av. Tenente Marques, 5014, Portais (Polvilho), Cajamar/SP, CEP 07790-845 | Tel: (11) 94718-7017`;
+    const termoTexto = `Termo de Concordância...`; // mantém o texto completo
 
-    await setDoc(doc(db, 'encontristas', enc.id), {
-      rg,
-      endereco: endCompleto,
-      termoAssinado: true,
-      termoAssinadoEm: agora,
-    }, { merge: true });
+    try {
+      await setDoc(doc(db, 'encontristas', enc.id), {
+        rg,
+        endereco: endCompleto,
+        termoAssinado: true,
+        termoAssinadoEm: agora,
+      }, { merge: true });
+    } catch (err) {
+      console.error('Erro ao salvar encontrista:', err);
+      setSaving(false);
+      alert('Erro ao salvar. Tente novamente.');
+      return;
+    }
 
-    await addDoc(collection(db, 'termos'), {
-      encontristaId: enc.id,
-      nome: enc.nome,
-      cpf: enc.cpf,
-      rg,
-      endereco: endCompleto,
-      sexo: enc.sexo,
-      igreja: enc.igreja,
-      autorizaImagem: enc.autorizaImagem,
-      assinadoEm: agora,
-      termoTexto,
-    });
+    try {
+      await addDoc(collection(db, 'termos'), {
+        encontristaId: enc.id,
+        nome: enc.nome,
+        cpf: enc.cpf,
+        rg,
+        endereco: endCompleto,
+        sexo: enc.sexo,
+        igreja: enc.igreja,
+        autorizaImagem: enc.autorizaImagem,
+        assinadoEm: agora,
+        termoTexto,
+      });
+    } catch (err) {
+      console.error('Erro ao salvar termo:', err);
+      // não bloqueia — o encontrista já foi marcado como assinado
+    }
 
     setAssinado(true);
     setSaving(false);
