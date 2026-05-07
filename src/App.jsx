@@ -5254,9 +5254,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
                   colorOn="#0a84ff" 
                 />
               )}
-              {u.perfil !== 'pastor' && (
-                <Toggle val={!!u.pago} onToggle={() => upd(u.id, (x) => ({ ...x, pago: !x.pago }))} labelOn="Pago ✓" labelOff="Pendente" colorOn="#0a84ff" />
-              )}
             </div>
             {u.funcoes?.length > 0 && <><SL c="Funções" mt={0} /><Tags items={u.funcoes} /></>}
           </div>
