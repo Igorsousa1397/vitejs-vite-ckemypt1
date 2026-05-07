@@ -2634,7 +2634,13 @@ function CkV({ ck, setCk, on, edit, t }) {
             const tel = enc.whatsapp.replace(/\D/g, '');
             const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
             const msg = encodeURIComponent(`Olá ${enc.nome.split(' ')[0]}! Seu check-in foi confirmado 🎉\nAssine o termo do evento: ${link}`);
-            window.open(`https://wa.me/55${tel}?text=${msg}`, '_blank');
+            const a = document.createElement('a');
+            a.href = `https://wa.me/55${tel}?text=${msg}`;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
           }
         },
         (err) => {}
