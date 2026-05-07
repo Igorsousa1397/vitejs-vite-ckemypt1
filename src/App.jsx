@@ -5236,11 +5236,24 @@ function SvV({ users, setUsers, esc, edit, t }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {u.email && <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}>
-              <Toggle val={u.ativo !== false} 
-              onToggle={async () => {
-                await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
-                upd(u.id, (x) => ({ ...x, pago: !x.pago }));
-              }}labelOn="Ativo" labelOff="Inativo" />
+              <Toggle 
+                val={u.ativo !== false} 
+                onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))} 
+                labelOn="Ativo" 
+                labelOff="Inativo" 
+              />
+              {u.perfil !== 'pastor' && (
+                <Toggle 
+                  val={!!u.pago} 
+                  onToggle={async () => {
+                    await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
+                    upd(u.id, (x) => ({ ...x, pago: !x.pago }));
+                  }} 
+                  labelOn="Pago ✓" 
+                  labelOff="Pendente" 
+                  colorOn="#0a84ff" 
+                />
+              )}
               {u.perfil !== 'pastor' && (
                 <Toggle val={!!u.pago} onToggle={() => upd(u.id, (x) => ({ ...x, pago: !x.pago }))} labelOn="Pago ✓" labelOff="Pendente" colorOn="#0a84ff" />
               )}
