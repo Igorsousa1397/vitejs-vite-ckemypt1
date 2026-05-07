@@ -1269,13 +1269,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* WHATSAPP */}
-        <a href={`https://wa.me/?text=Meu QR Code do Encontro com Deus: servos-peniel.vercel.app?qr=${pagamentoId}`}
-          target="_blank" rel="noopener noreferrer"
-          style={{ display: 'block', background: '#25d366', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: 14, fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
-          Enviar QR Code no WhatsApp
-        </a>
-
         <button onClick={() => setScr('welcome')} style={BK({ width: '100%', padding: 14, borderRadius: 14 })}>
           Voltar ao início
         </button>
