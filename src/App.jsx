@@ -1262,8 +1262,8 @@ export default function App() {
         </div>
 
         {/* AVISO IMPORTANTE */}
-        <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, textAlign: 'left' }}>
-          <div style={{ color: '#ff6b6b', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>TIRE UM PRINT DESTA TELA AGORA</div>
+        <div style={{ background: 'rgba(251,146,60,.1)', border: '1px solid rgba(251,146,60,.3)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, textAlign: 'left' }}>
+          <div style={{ color: '#fb923c', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>TIRE UM PRINT DESTA TELA AGORA</div>
           <div style={{ color: 'rgba(255,255,255,.6)', fontSize: 13, lineHeight: 1.6 }}>
             Este QR Code é seu ingresso. Sem ele você não conseguirá fazer o check-in no evento. Não perca!
           </div>
