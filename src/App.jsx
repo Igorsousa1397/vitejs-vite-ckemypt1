@@ -2431,6 +2431,11 @@ function CkV({ ck, setCk, on, edit, t }) {
           await setDoc(doc(db, 'encontristas', enc.id), { chegou: true }, { merge: true });
           vibrar(60);
           t(`✅ Check-in: ${enc.nome}`);
+          const encGen = enc.sexo === 'Feminino' ? 'M' : 'H';
+          setGen(encGen);
+          setSub('conf');
+          setHighlightId(enc.id);
+          setTimeout(() => highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
           // WhatsApp com link do termo
           if (enc.whatsapp) {
             const tel = enc.whatsapp.replace(/\D/g, '');
@@ -2503,12 +2508,6 @@ function CkV({ ck, setCk, on, edit, t }) {
         📷 Escanear QR Code
       </button>
 
-      {edit && (
-        <button onClick={() => setSh(true)} style={BG({ width: '100%', padding: 13, marginBottom: 12, borderRadius: 14, background: '#1c1c1e' })}>
-          + Adicionar Encontrista
-        </button>
-      )}
-
       <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={gen} set={setGen} />
       <div style={{ display: 'flex', gap: 6, margin: '8px 0' }}>
         <button onClick={() => setSub('pend')}
@@ -2526,13 +2525,21 @@ function CkV({ ck, setCk, on, edit, t }) {
       )}
       {lista.map((c) => (
         <div key={c.id} className="fu"
-          style={{ background: G.card, border: `1px solid ${c.ok ? 'rgba(0,200,81,.3)' : G.cb}`, borderLeft: `3px solid ${c.ok ? G.green : '#2a2a2a'}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            ref={c.id === highlightId ? highlightRef : null}
+            style={{ background: G.card, border: `1px solid ${c.id === highlightId ? '#fb923c' : c.ok ? 'rgba(0,200,81,.3)' : G.cb}`, borderLeft: `3px solid ${c.id === highlightId ? '#fb923c' : c.ok ? G.green : '#2a2a2a'}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7 }}>          
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <button
               onClick={async () => {
                 vibrar(30);
                 const novoOk = !c.ok;
                 await setDoc(doc(db, 'encontristas', c.id), { chegou: novoOk }, { merge: true });
+                if (novoOk) {
+                  setSub('conf');
+                  setHighlightId(c.id);
+                  setTimeout(() => highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                } else {
+                  setHighlightId(null);
+                }
               }}
               style={{ width: 30, height: 30, borderRadius: '50%', border: `2px solid ${c.ok ? G.green : '#333'}`, background: c.ok ? 'rgba(0,200,81,.15)' : 'transparent', color: G.green, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {c.ok ? '✓' : ''}
@@ -2595,6 +2602,9 @@ function CkV({ ck, setCk, on, edit, t }) {
 function MinsV({ mins, setMins, edit, role, t, sN }) {
   const [sh, setSh] = useState(false);
   const [f, setF] = useState({ dia: 'Sexta', nome: '', hora: '' });
+  const [highlightId, setHighlightId] = useState(null);
+  const highlightRef = useRef(null);
+
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   return (
     <div>
