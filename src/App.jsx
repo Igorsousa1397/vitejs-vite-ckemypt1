@@ -4984,10 +4984,10 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
           <SL c="Membros" />
           {eq.servos.length > 0 ? (
             <Tags
-              items={eq.servos}
+              items={eq.servos || []}
               ax={tC[eq.tipo]}
               onX={edit ? async (i) => {
-                const novos = eq.servos.filter((_, j) => j !== i);
+              const novos = (eq.servos || []).filter((_, j) => j !== i);
                 await setDoc(doc(db, 'equipes', eq.id), { servos: novos }, { merge: true });
               } : undefined}
             />
@@ -5007,7 +5007,7 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
             <AddIn
               ph="Adicionar membro..."
               onAdd={async (n) => {
-                await setDoc(doc(db, 'equipes', eq.id), { servos: [...eq.servos, n] }, { merge: true });
+                await setDoc(doc(db, 'equipes', eq.id), { servos: [...(eq.servos || []), n] }, { merge: true });
                 t('✓');
               }}
               mt={8}
