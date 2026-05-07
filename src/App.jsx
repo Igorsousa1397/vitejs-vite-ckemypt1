@@ -5912,7 +5912,7 @@ function BackV({ users, setUsers, fns, setFns, t }) {
                       </option>
                     ))}
                   </select>
-                  {u.perfil !== 'admin' && (
+                  {u.perfil === 'servo' && (
                     <span
                       onClick={() => {
                         setUsers(users.filter((x) => x.id !== u.id));
