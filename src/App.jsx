@@ -2691,7 +2691,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
               background: '#111',
               border: '1px solid #1a1a1a',
               borderRadius: 16,
-              padding: '20px 16px',
+              padding: '28px 16px',
               cursor: 'pointer',
             }}
           >
