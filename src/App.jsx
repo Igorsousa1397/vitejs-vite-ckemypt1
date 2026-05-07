@@ -1139,7 +1139,7 @@ useEffect(() => {
           Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
         </div>
         <div style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, textAlign: 'center', marginBottom: 24 }}>
-          Evento "Encontro com Deus" — 26, 27 e 28 de junho de 2026
+          Encontro com Deus — 26, 27 e 28 de junho de 2026
         </div>
 
         {/* Dados do signatário */}
