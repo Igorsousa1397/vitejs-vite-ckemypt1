@@ -416,8 +416,6 @@ const FUNCOES_INIT = [
   'Louça',
 ];
 
-const [esc, setEsc] = useState([]);
-
 const QH_INIT = [];
 
 const QM_INIT = [{ num: 12, maes: true, lim: 9, servos: [], enc: [] }];
@@ -1459,7 +1457,7 @@ export default function App() {
   const [termoCpf, setTermoCpf] = useState(null);
   const [users, setUsers] = useState([]);
   const [fns, setFns] = useState(FUNCOES_INIT);
-  const [esc, setEsc] = useState(ESCALAS_INIT);
+  const [esc, setEsc] = useState([]);
   const [qh, setQh] = useState(QH_INIT);
   const [qm, setQm] = useState(QM_INIT);
   const [on, setOn] = useState(ON_INIT);
@@ -4936,11 +4934,9 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
               </select>
               <input
                 style={I}
-                placeholder="Responsável..."
-                value={eq.resp}
-                onChange={async (e) =>
-                  await setDoc(doc(db, 'equipes', eq.id), { resp: e.target.value }, { merge: true })
-                }
+                placeholder="Responsável"
+                value={f.resp}
+                onChange={(e) => setF({ ...f, resp: e.target.value })}
               />
               <button
                 onClick={async () => {
