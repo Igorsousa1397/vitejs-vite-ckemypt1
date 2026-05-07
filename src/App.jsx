@@ -5680,7 +5680,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
             ];
             pecas.forEach(({ key, qtdKey, label }) => {
               TAMANHOS.forEach(tm => {
-                const itens = uni.filter(u => u[key] === tm);
+                const itens = uni.filter(u => u[key] === tm && u.pago);
                 if (itens.length === 0) return;
                 const rows = itens.map(u => ({
                   'Nome': u.nome,
