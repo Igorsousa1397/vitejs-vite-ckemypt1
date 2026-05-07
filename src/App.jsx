@@ -1030,6 +1030,23 @@ function Termo({ cpf, onVoltar }) {
   const [aceite, setAceite] = useState(false);
   const [assinado, setAssinado] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [cep, setCep] = useState('');
+  const [loadCep, setLoadCep] = useState(false);
+
+
+  const buscarCep = async (valor) => {
+    const limpo = valor.replace(/\D/g, '');
+    if (limpo.length !== 8) return;
+    setLoadCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setEnd(`${data.logradouro}, ${data.bairro}, ${data.localidade}/${data.uf}`);
+      }
+    } catch {}
+    setLoadCep(false);
+  };
 
 useEffect(() => {
   const buscar = async () => {
@@ -1142,12 +1159,34 @@ useEffect(() => {
             <div>
               <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>RG *</div>
               <input
-                placeholder="Digite seu RG"
-                value={rg}
-                onChange={e => setRg(e.target.value)}
-                style={I}
-              />
-            </div>
+              placeholder="Digite seu RG"
+              value={rg}
+              onChange={e => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 9);
+                const mask = v
+                  .replace(/(\d{2})(\d)/, '$1.$2')
+                  .replace(/(\d{3})(\d)/, '$1.$2')
+                  .replace(/(\d{3})(\d{1})$/, '$1-$2');
+                setRg(mask);
+              }}
+              style={I}
+            />
+          <div>
+            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>CEP</div>
+            <input
+              placeholder="00000-000"
+              value={cep}
+              maxLength={9}
+              onChange={e => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 8);
+                const mask = v.replace(/(\d{5})(\d)/, '$1-$2');
+                setCep(mask);
+                buscarCep(v);
+              }}
+              style={{ ...I, marginBottom: 8 }}
+            />
+          </div>
+          </div>
             <div>
               <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Endereço *</div>
               <input
