@@ -1705,11 +1705,18 @@ useEffect(() => {
     setMenu(false);
   };
   const logout = async () => {
-  await signOut(auth);
-  setUser(null);
-  setScr('login');
-  setPg('home');
-};
+    unsubConfigRef.current?.();
+    unsubUniRef.current?.();
+    unsubAvsRef.current?.();
+    unsubEncRef.current?.();
+    unsubQHRef.current?.();
+    unsubQMRef.current?.();
+    unsubOnRef.current?.();
+    await signOut(auth);
+    setUser(null);
+    setScr('welcome');
+    setPg('home');
+  };
   const login = (f) => {
     setUser(f);
     setScr('app');
