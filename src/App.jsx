@@ -1547,6 +1547,7 @@ export default function App() {
   const unsubQHRef = useRef(null);
   const unsubQMRef = useRef(null);
   const unsubOnRef = useRef(null);
+  const unsubUsersRef = useRef(null);
 
   // Inicializa quarto mães se não existir
   const inicializarQuartoMaes = async () => {
@@ -1622,7 +1623,7 @@ useEffect(() => {
           if (s.exists() && s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
         });
 
-        onSnapshot(collection(db, 'users'), (s) => {
+        unsubUsersRef.current = onSnapshot(collection(db, 'users'), (s) => {
           setUsers(s.docs.map(d => ({ id: d.id, ...d.data() })));
         });
 
@@ -1688,6 +1689,7 @@ useEffect(() => {
     unsubQHRef.current?.();
     unsubQMRef.current?.();
     unsubOnRef.current?.();
+    unsubUsersRef.current?.();
   };
 }, []);
   
@@ -1712,6 +1714,7 @@ useEffect(() => {
     unsubQHRef.current?.();
     unsubQMRef.current?.();
     unsubOnRef.current?.();
+    unsubUsersRef.current?.();
     await signOut(auth);
     setUser(null);
     setScr('welcome');
