@@ -103,7 +103,8 @@ const PERFIS = {
   lider_quartos: { l: 'Líder Quartos', c: '#ff6b35' },
   lider_cozinha: { l: 'Líder Cozinha', c: '#ff2d55' },
   servo: { l: 'Servo', c: '#636366' },
-  lider_midia: { l: 'Líder Mídia', c: '#ffd60a' }
+  lider_midia: { l: 'Líder Mídia', c: '#ffd60a' },
+  lider_celula: { l: 'Líder de Célula', c: '#ff6b35' }
 };
 const canG = (p) =>
   ['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(p);

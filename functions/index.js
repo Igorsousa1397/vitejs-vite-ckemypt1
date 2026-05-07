@@ -152,4 +152,56 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   console.log(`${response.successCount} notificações enviadas`);
   res.json({ enviadas: response.successCount });
 });
+// ── CRIAR LÍDERES GERAIS ──────────────────────────────────────────────────────
+exports.criarLideresGerais = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  const lideres = [
+    {
+      uid: 'rgfm5LzvNCZ7xfxwzY67tLt2NP82',
+      nome: 'Pastor',
+      email: 'pastor@servospeniel.com',
+      perfil: 'pastor',
+    },
+    {
+      uid: 'tsOrlJP2IRbSiFsYFgWg3uY9QYO2',
+      nome: 'Líder Cozinha',
+      email: 'lidercozinha@servospeniel.com',
+      perfil: 'lider_cozinha',
+    },
+    {
+      uid: '10XYEfqUhAgrWOhwOaLaxLTHKLw1',
+      nome: 'Líder Geral',
+      email: 'lidergeral@servospeniel.com',
+      perfil: 'lider_geral',
+    },
+    {
+      uid: 'V59S8tPMx9bKa2LjrOzkP1PSWhy2',
+      nome: 'Líder Quartos',
+      email: 'liderquartos@servospeniel.com',
+      perfil: 'lider_quartos',
+    },
+  ];
+
+  const resultados = [];
+
+  for (const lider of lideres) {
+    try {
+      await admin.firestore().collection('users').doc(lider.uid).set({
+        nome: lider.nome,
+        email: lider.email,
+        perfil: lider.perfil,
+        ativo: true,
+        pago: true,
+        funcoes: [],
+        primeiro: false,
+      });
+      resultados.push({ nome: lider.nome, status: 'ok' });
+    } catch (err) {
+      resultados.push({ nome: lider.nome, status: 'erro', msg: err.message });
+    }
+  }
+
+  res.json({ resultados });
+});
 // v8
