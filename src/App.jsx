@@ -1220,8 +1220,8 @@ function TermoAdminV({ encH, encM, t }) {
     const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
     const msg = encodeURIComponent(`Olá ${enc.nome.split(' ')[0]}! Assine o termo do evento Encontro com Deus: ${link}`);
     await setDoc(doc(db, 'encontristas', enc.id), { termoEnviado: true }, { merge: true });
-    window.open(`https://wa.me/55${tel}?text=${msg}`, '_blank');
     t('Termo enviado!');
+    window.location.href = `https://wa.me/55${tel}?text=${msg}`;
   };
 
   const cnt = (a) => {
