@@ -1485,6 +1485,7 @@ export default function App() {
   const unsubQMRef = useRef(null);
   const unsubOnRef = useRef(null);
   const unsubUsersRef = useRef(null);
+  const unsubEscRef = useRef(null);
 
   // Inicializa quarto mães se não existir
   const inicializarQuartoMaes = async () => {
@@ -1657,6 +1658,7 @@ useEffect(() => {
     unsubQMRef.current?.();
     unsubOnRef.current?.();
     unsubUsersRef.current?.();
+    unsubEscRef.current?.();
     await signOut(auth);
     setUser(null);
     setScr('welcome');
