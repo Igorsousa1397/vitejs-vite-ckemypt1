@@ -739,11 +739,11 @@ function Welcome({ onServos, onEncontrista }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
           <button onClick={onEncontrista}
             style={BG({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 })}>
-            Sou Encontrista
+            Encontrista
           </button>
           <button onClick={onServos}
             style={{ ...BK({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 }), borderColor: 'rgba(255,255,255,.3)', color: '#fff' }}>
-            Sou Servo
+            Servo
           </button>
         </div>
         <img src="/IMG_2409.PNG" alt="Fonte - Comunidade Peniel"
