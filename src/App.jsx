@@ -5235,9 +5235,11 @@ function SvV({ users, setUsers, esc, edit, t }) {
         }>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {u.email && <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}
+              onClick={e => e.stopPropagation()}>
               <Toggle 
                 val={u.ativo !== false} 
+                onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))} 
                 labelOn="Ativo" 
                 labelOff="Inativo" 
               />
@@ -5246,7 +5248,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
                   val={!!u.pago} 
                   onToggle={async () => {
                     await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
-                    upd(u.id, (x) => ({ ...x, pago: !x.pago }));
                   }} 
                   labelOn="Pago ✓" 
                   labelOff="Pendente" 
