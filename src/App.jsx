@@ -5229,14 +5229,18 @@ function SvV({ users, setUsers, esc, edit, t }) {
         <Acc key={i} title={u.nome} right={
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {!u.ativo && <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />}
-            {u.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            {u.perfil === 'servo' && u.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
             <Pill c={PERFIS[u.perfil]?.l || u.perfil} bg={`${PERFIS[u.perfil]?.c || G.green}18`} tc={PERFIS[u.perfil]?.c || G.green} />
           </div>
         }>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {u.email && <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}>
-              <Toggle val={u.ativo !== false} onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))} labelOn="Ativo" labelOff="Inativo" />
+              <Toggle val={u.ativo !== false} 
+              onToggle={async () => {
+                await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
+                upd(u.id, (x) => ({ ...x, pago: !x.pago }));
+              }}labelOn="Ativo" labelOff="Inativo" />
               {u.perfil !== 'pastor' && (
                 <Toggle val={!!u.pago} onToggle={() => upd(u.id, (x) => ({ ...x, pago: !x.pago }))} labelOn="Pago ✓" labelOff="Pendente" colorOn="#0a84ff" />
               )}
