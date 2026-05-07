@@ -5134,6 +5134,7 @@ function Toggle({
 
 // ── SERVOS ───────────────────────────────────────────────────────────────────
 function SvV({ users, setUsers, esc, edit, t }) {
+  const [filtroPerfil, setFiltroPerfil] = useState('todos');
   const [sh, setSh] = useState(false);
   const [f, setF] = useState({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
   const [filtro, setFiltro] = useState('todos');
@@ -5168,7 +5169,8 @@ function SvV({ users, setUsers, esc, edit, t }) {
 
   const lista = users.filter(
     (u) => u.perfil !== 'admin' &&
-      (filtro === 'todos' ? true : filtro === 'ativos' ? u.ativo !== false : !u.ativo)
+      (filtro === 'todos' ? true : filtro === 'ativos' ? u.ativo !== false : !u.ativo) &&
+      (filtroPerfil === 'todos' ? true : u.perfil === filtroPerfil)
   );
 
   return (
@@ -5181,6 +5183,16 @@ function SvV({ users, setUsers, esc, edit, t }) {
       <div style={{ marginBottom: 14 }}>
         <Seg opts={[['todos', 'Todos'], ['ativos', 'Ativos'], ['inativos', 'Inativos']]} val={filtro} set={setFiltro} />
       </div>
+      {/* FILTRO DE PERFIL */}
+      <select
+        value={filtroPerfil}
+        onChange={e => setFiltroPerfil(e.target.value)}
+        style={{ ...I, marginBottom: 14 }}>
+        <option value="todos">Todos os perfis</option>
+        {Object.entries(PERFIS).filter(([k]) => k !== 'admin').map(([k, v]) => (
+          <option key={k} value={k}>{v.l}</option>
+        ))}
+      </select>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
         {[
           [users.filter((u) => u.perfil !== 'admin').length, 'Total', '#636366'],
