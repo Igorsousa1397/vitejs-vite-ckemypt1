@@ -1026,12 +1026,14 @@ function Termo({ cpf, onVoltar }) {
   const [enc, setEnc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [rg, setRg] = useState('');
+  const [cep, setCep] = useState('');
+  const [num, setNum] = useState('');
+  const [comp, setComp] = useState('');
   const [end, setEnd] = useState('');
+  const [loadCep, setLoadCep] = useState(false);
   const [aceite, setAceite] = useState(false);
   const [assinado, setAssinado] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [cep, setCep] = useState('');
-  const [loadCep, setLoadCep] = useState(false);
 
 
   const buscarCep = async (valor) => {
@@ -1070,8 +1072,8 @@ useEffect(() => {
 }, [cpf]);
 
   const assinar = async () => {
-    if (!rg.trim() || !end.trim()) {
-      alert('Preencha RG e Endereço.');
+    if (!rg.trim() || !end.trim() || !num.trim() || !comp.trim()) {  // ← troca essa linha
+      alert('Preencha todos os campos obrigatórios.');
       return;
     }
     if (!aceite) {
@@ -1082,7 +1084,7 @@ useEffect(() => {
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
     await setDoc(doc(db, 'encontristas', enc.id), {
       rg,
-      endereco: end,
+      endereco: `${end}, ${num}, ${comp}`,
       termoAssinado: true,
       termoAssinadoEm: agora,
     }, { merge: true });
@@ -1184,6 +1186,27 @@ useEffect(() => {
                 buscarCep(v);
               }}
               style={{ ...I, marginBottom: 8 }}
+            />
+          </div>
+          <div>
+            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Número *</div>
+            <input
+              placeholder="Ex: 241"
+              value={num}
+              onChange={e => {
+                setNum(e.target.value);
+                if (end) setEnd(end.replace(/,.*/, `, ${e.target.value}`));
+              }}
+              style={I}
+            />
+          </div>
+          <div>
+            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Complemento *</div>
+            <input
+              placeholder="Ex: Apto 12, Casa 1"
+              value={comp}
+              onChange={e => setComp(e.target.value)}
+              style={I}
             />
           </div>
           </div>
