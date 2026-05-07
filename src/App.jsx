@@ -1259,7 +1259,7 @@ export default function App() {
 
         {/* QR CODE */}
         <div style={{ background: '#fff', borderRadius: 20, padding: 20, display: 'inline-block', marginBottom: 16 }}>
-          <QRCode value={pagamentoId || 'sem-id'} size={200} />
+          <QRCode value={encId || 'sem-id'} size={200} />
         </div>
 
         {/* AVISO IMPORTANTE */}
