@@ -4,6 +4,7 @@ import { messaging, getToken, onMessage } from './firebase';
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import jsPDF from 'jspdf'
+import * as XLSX from 'xlsx';
 
 
 const vibrar = (ms = 50) => {
@@ -5671,23 +5672,32 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
       {uni.length > 0 && (
         <button
           onClick={() => {
-            const rows = [['Nome', 'Nome na Camiseta', 'Tamanho', 'Quantidade']];
-            uni.forEach(u => {
-              rows.push([u.nome, u.nomeCamiseta || u.nome, u.camisa, u.qtdCamisas || 1]);
+            const wb = XLSX.utils.book_new();
+            const pecas = [
+              { key: 'camisa', qtdKey: 'qtdCamisas', label: 'Camiseta' },
+              { key: 'calca', qtdKey: 'qtdCalcas', label: 'Calca' },
+              { key: 'blusa', qtdKey: 'qtdBlusas', label: 'Blusa' },
+            ];
+            pecas.forEach(({ key, qtdKey, label }) => {
+              TAMANHOS.forEach(tm => {
+                const itens = uni.filter(u => u[key] === tm);
+                if (itens.length === 0) return;
+                const rows = itens.map(u => ({
+                  'Nome': u.nome,
+                  'Nome na Camiseta': u.nomeCamiseta || '—',
+                  'Tamanho': tm,
+                  'Quantidade': u[qtdKey] || 1,
+                }));
+                const ws = XLSX.utils.json_to_sheet(rows);
+                XLSX.utils.book_append_sheet(wb, ws, `${label} ${tm}`);
+              });
             });
-            const csv = rows.map(r => r.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'uniformes_camisetas.csv';
-            a.click();
-            URL.revokeObjectURL(url);
+            XLSX.writeFile(wb, 'uniformes.xlsx');
           }}
           style={{ ...BG({ width: '100%', padding: 12, borderRadius: 13, fontSize: 13, marginBottom: 14 }), background: 'rgba(0,200,81,.15)', border: '1px solid rgba(0,200,81,.3)', color: G.green }}>
-          📥 Exportar para Fornecedor (CSV)
+          Exportar para Fornecedor (XLSX)
         </button>
-      )}
+)}
 
       {uni.length === 0 && (
         <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum pedido ainda.</div>
