@@ -5078,7 +5078,7 @@ function SvV({ users, setUsers, esc, edit, t }) {
   const [f, setF] = useState({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
   const [filtro, setFiltro] = useState('todos');
   const [loading, setLoading] = useState(false);
-  const fnsDasEquipes = useMemo(() => [...new Set(esc.map((e) => e.equipe))], [esc]);
+  const fnsDasEquipes = useMemo(() => [...new Set(esc.filter(e => e.equipe).map((e) => e.equipe))], [esc]);
   const upd = (id, fn) => setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
 
   const add = async () => {
