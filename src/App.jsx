@@ -1031,21 +1031,26 @@ function Termo({ cpf, onVoltar }) {
   const [assinado, setAssinado] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const buscar = async () => {
+useEffect(() => {
+  const buscar = async () => {
     try {
       const snap = await getDocs(collection(db, 'encontristas'));
-      console.log('docs encontrados:', snap.docs.length);
       const found = snap.docs.find(d => d.data().cpf === cpf.replace(/\D/g, ''));
-      console.log('encontrista:', found?.data());
-      // ...
+      if (found) {
+        const data = found.data();
+        setEnc({ id: found.id, ...data });
+        if (data.termoAssinado) setAssinado(true);
+        if (data.rg) setRg(data.rg);
+        if (data.endereco) setEnd(data.endereco);
+      }
     } catch (err) {
       console.error('Erro ao buscar:', err);
+    } finally {
       setLoading(false);
     }
   };
-    buscar();
-  }, [cpf]);
+  buscar();
+}, [cpf]);
 
   const assinar = async () => {
     if (!rg.trim() || !end.trim()) {
@@ -1372,8 +1377,7 @@ useEffect(() => {
   if (termo === 'true' && cpf) {
     setTermoCpf(cpf);
     setScr('termo');
-    setSp(false);
-    return;
+    setSp(false); 
     return;
   }
   const pago = params.get('pago');
