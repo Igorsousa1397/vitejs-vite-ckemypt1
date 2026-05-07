@@ -2,6 +2,7 @@ import { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged, doc,
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
 import { QRCodeSVG as QRCode } from "qrcode.react";
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 
 const vibrar = (ms = 50) => {
@@ -2396,7 +2397,59 @@ function CkV({ ck, setCk, on, edit, t }) {
   const [gen, setGen] = useState('M');
   const [s, setS] = useState('');
   const [sh, setSh] = useState(false);
+  const [shQr, setShQr] = useState(false);
+  const [scanMsg, setScanMsg] = useState('');
   const [f, setF] = useState({ nome: '', sob: '', gen: 'M' });
+  const scannerRef = useRef(null);
+
+  useEffect(() => {
+    if (!shQr) {
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => {});
+        scannerRef.current = null;
+      }
+      return;
+    }
+    setScanMsg('');
+    setTimeout(() => {
+      const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: 220 }, false);
+      scanner.render(
+        async (decodedText) => {
+          await scanner.clear();
+          scannerRef.current = null;
+          setShQr(false);
+          const enc = ck.find((c) => c.id === decodedText);
+          if (!enc) {
+            t('QR Code não reconhecido');
+            return;
+          }
+          if (enc.ok) {
+            t(`${enc.nome} já fez check-in ✓`);
+            return;
+          }
+          await setDoc(doc(db, 'encontristas', enc.id), { chegou: true }, { merge: true });
+          vibrar(60);
+          t(`✅ Check-in: ${enc.nome}`);
+          // WhatsApp com link do termo
+          if (enc.whatsapp) {
+            const tel = enc.whatsapp.replace(/\D/g, '');
+            const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
+            const msg = encodeURIComponent(`Olá ${enc.nome.split(' ')[0]}! Seu check-in foi confirmado 🎉\nAssine o termo do evento: ${link}`);
+            window.open(`https://wa.me/55${tel}?text=${msg}`, '_blank');
+          }
+        },
+        (err) => {}
+      );
+      scannerRef.current = scanner;
+    }, 300);
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => {});
+        scannerRef.current = null;
+      }
+    };
+  }, [shQr]);
+
   const lista = useMemo(
     () =>
       ck.filter(
@@ -2407,15 +2460,10 @@ function CkV({ ck, setCk, on, edit, t }) {
       ),
     [ck, gen, sub, s]
   );
-  const cnt = (g, ok) =>
-    ck.filter((c) => c.gen === g && (ok ? c.ok : !c.ok)).length;
+  const cnt = (g, ok) => ck.filter((c) => c.gen === g && (ok ? c.ok : !c.ok)).length;
   const ns = (n) => {
     const s = String(n);
-    return {
-      color: G.t,
-      fontWeight: 800,
-      fontSize: s.length > 5 ? 16 : s.length > 3 ? 20 : 24,
-    };
+    return { color: G.t, fontWeight: 800, fontSize: s.length > 5 ? 16 : s.length > 3 ? 20 : 24 };
   };
   const add = async () => {
     if (!f.nome.trim()) return;
@@ -2431,6 +2479,7 @@ function CkV({ ck, setCk, on, edit, t }) {
     setSh(false);
     t('Encontrista adicionado!');
   };
+
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
@@ -2445,11 +2494,20 @@ function CkV({ ck, setCk, on, edit, t }) {
           </div>
         ))}
       </div>
+
+      {/* Botão scanner */}
+      <button
+        onClick={() => setShQr(true)}
+        style={BG({ width: '100%', padding: 14, marginBottom: 10, borderRadius: 14, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
+        📷 Escanear QR Code
+      </button>
+
       {edit && (
-        <button onClick={() => setSh(true)} style={BG({ width: '100%', padding: 13, marginBottom: 12, borderRadius: 14 })}>
+        <button onClick={() => setSh(true)} style={BG({ width: '100%', padding: 13, marginBottom: 12, borderRadius: 14, background: '#1c1c1e' })}>
           + Adicionar Encontrista
         </button>
       )}
+
       <Seg opts={[['M', '♀ Mulheres'], ['H', '♂ Homens']]} val={gen} set={setGen} />
       <div style={{ display: 'flex', gap: 6, margin: '8px 0' }}>
         <button onClick={() => setSub('pend')}
@@ -2491,13 +2549,33 @@ function CkV({ ck, setCk, on, edit, t }) {
                 style={{ ...I, width: 'auto', padding: '6px 10px', fontSize: 11, borderRadius: 9 }}>
                 <option value="">Ônibus?</option>
                 {on.filter(o => o.tipo !== 'Servos').map((o) => (
-                <option key={o.num} value={o.num}>Ônibus {o.num} — {o.tipo}</option>
-              ))}
+                  <option key={o.num} value={o.num}>Ônibus {o.num} — {o.tipo}</option>
+                ))}
               </select>
             )}
           </div>
         </div>
       ))}
+
+      {/* Sheet do scanner */}
+      <Sheet open={shQr} onClose={() => setShQr(false)} title="Escanear QR Code">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: G.tm, fontSize: 13, marginBottom: 16 }}>
+            Aponte a câmera para o QR Code do encontrista
+          </div>
+          <div id="qr-reader" style={{ width: '100%' }} />
+          {scanMsg && (
+            <div style={{ marginTop: 12, color: G.tm, fontSize: 13 }}>{scanMsg}</div>
+          )}
+          <button
+            onClick={() => setShQr(false)}
+            style={{ marginTop: 20, color: G.tm, background: 'none', border: 'none', fontSize: 13, cursor: 'pointer' }}>
+            Fazer manualmente
+          </button>
+        </div>
+      </Sheet>
+
+      {/* Sheet adicionar encontrista */}
       <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Encontrista">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input placeholder="Nome *" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} style={I} />
