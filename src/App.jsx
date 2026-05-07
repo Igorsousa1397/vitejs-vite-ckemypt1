@@ -1035,7 +1035,6 @@ function Termo({ cpf, onVoltar }) {
   const [assinado, setAssinado] = useState(false);
   const [saving, setSaving] = useState(false);
 
-
   const buscarCep = async (valor) => {
     const limpo = valor.replace(/\D/g, '');
     if (limpo.length !== 8) return;
@@ -1050,29 +1049,29 @@ function Termo({ cpf, onVoltar }) {
     setLoadCep(false);
   };
 
-useEffect(() => {
-  const buscar = async () => {
-    try {
-      const snap = await getDocs(collection(db, 'encontristas'));
-      const found = snap.docs.find(d => d.data().cpf === cpf.replace(/\D/g, ''));
-      if (found) {
-        const data = found.data();
-        setEnc({ id: found.id, ...data });
-        if (data.termoAssinado) setAssinado(true);
-        if (data.rg) setRg(data.rg);
-        if (data.endereco) setEnd(data.endereco);
+  useEffect(() => {
+    const buscar = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'encontristas'));
+        const found = snap.docs.find(d => d.data().cpf === cpf.replace(/\D/g, ''));
+        if (found) {
+          const data = found.data();
+          setEnc({ id: found.id, ...data });
+          if (data.termoAssinado) setAssinado(true);
+          if (data.rg) setRg(data.rg);
+          if (data.endereco) setEnd(data.endereco);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Erro ao buscar:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  buscar();
-}, [cpf]);
+    };
+    buscar();
+  }, [cpf]);
 
   const assinar = async () => {
-    if (!rg.trim() || !end.trim() || !num.trim() || !comp.trim()) {  // ← troca essa linha
+    if (!rg.trim() || !end.trim() || !num.trim() || !comp.trim()) {
       alert('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -1082,37 +1081,32 @@ useEffect(() => {
     }
     setSaving(true);
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+    const endCompleto = `${end}, ${num}, ${comp}`;
+    const termoTexto = `Termo de Concordância com as Ministrações e Autorização de Uso de Imagem\n\nNome: ${enc.nome}\nCPF: ${enc.cpf}\nRG: ${rg}\nEndereço: ${endCompleto}\n\nA signatária/o signatário manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.\n\nA autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 26, 27 e 28 de junho de 2026.\n\nTambém concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.\n\nPor fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.\n\nAssinado em: Cajamar, ${agora}.\n\nIgreja Apostólica Fonte (IF) — Av. Tenente Marques, 5014, Portais (Polvilho), Cajamar/SP, CEP 07790-845 | Tel: (11) 94718-7017`;
+
     await setDoc(doc(db, 'encontristas', enc.id), {
       rg,
-      endereco: `${end}, ${num}, ${comp}`,
-      termoAssinado: true,
-      termoAssinadoEm: agora,
-    }, { merge: true });
-      await setDoc(doc(db, 'encontristas', enc.id), {
-      rg,
-      endereco: `${end}, ${num}, ${comp}`,
+      endereco: endCompleto,
       termoAssinado: true,
       termoAssinadoEm: agora,
     }, { merge: true });
 
-    // ← AQUI — salva o termo completo
     await addDoc(collection(db, 'termos'), {
       encontristaId: enc.id,
       nome: enc.nome,
       cpf: enc.cpf,
       rg,
-      endereco: `${end}, ${num}, ${comp}`,
+      endereco: endCompleto,
       sexo: enc.sexo,
       igreja: enc.igreja,
       autorizaImagem: enc.autorizaImagem,
       assinadoEm: agora,
-      termoTexto: `Termo de Concordância...`,
+      termoTexto,
     });
 
     setAssinado(true);
     setSaving(false);
   };
-  
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1155,8 +1149,6 @@ useEffect(() => {
         <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Termo de Concordância</div>
       </div>
       <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto' }}>
-
-        {/* Cabeçalho */}
         <div style={{ color: '#fff', fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: 'center' }}>
           Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
         </div>
@@ -1164,7 +1156,6 @@ useEffect(() => {
           Encontro com Deus — 26, 27 e 28 de junho de 2026
         </div>
 
-        {/* Dados do signatário */}
         <div style={{ background: '#111', borderRadius: 14, padding: '16px', marginBottom: 20, border: '1px solid #222' }}>
           <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Dados do Signatário</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1183,57 +1174,58 @@ useEffect(() => {
             <div>
               <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>RG *</div>
               <input
-              placeholder="Digite seu RG"
-              value={rg}
-              onChange={e => {
-                const v = e.target.value.replace(/\D/g, '').slice(0, 9);
-                const mask = v
-                  .replace(/(\d{2})(\d)/, '$1.$2')
-                  .replace(/(\d{3})(\d)/, '$1.$2')
-                  .replace(/(\d{3})(\d{1})$/, '$1-$2');
-                setRg(mask);
-              }}
-              style={I}
-            />
-          <div>
-            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>CEP</div>
-            <input
-              placeholder="00000-000"
-              value={cep}
-              maxLength={9}
-              onChange={e => {
-                const v = e.target.value.replace(/\D/g, '').slice(0, 8);
-                const mask = v.replace(/(\d{5})(\d)/, '$1-$2');
-                setCep(mask);
-                buscarCep(v);
-              }}
-              style={{ ...I, marginBottom: 8 }}
-            />
-          </div>
-          <div>
-            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Número *</div>
-            <input
-              placeholder="Ex: 241"
-              value={num}
-              onChange={e => {
-                setNum(e.target.value);
-                if (end) setEnd(end.replace(/,.*/, `, ${e.target.value}`));
-              }}
-              style={I}
-            />
-          </div>
-          <div>
-            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Complemento *</div>
-            <input
-              placeholder="Ex: Apto 12, Casa 1"
-              value={comp}
-              onChange={e => setComp(e.target.value)}
-              style={I}
-            />
-          </div>
-          </div>
+                placeholder="Digite seu RG"
+                value={rg}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 9);
+                  const mask = v
+                    .replace(/(\d{2})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d{1})$/, '$1-$2');
+                  setRg(mask);
+                }}
+                style={I}
+              />
+            </div>
             <div>
-              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Endereço *</div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>CEP</div>
+              <input
+                placeholder="00000-000"
+                value={cep}
+                maxLength={9}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  const mask = v.replace(/(\d{5})(\d)/, '$1-$2');
+                  setCep(mask);
+                  buscarCep(v);
+                }}
+                style={I}
+              />
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>
+                Número *
+              </div>
+              <input
+                placeholder="Ex: 241"
+                value={num}
+                onChange={e => setNum(e.target.value)}
+                style={I}
+              />
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>Complemento *</div>
+              <input
+                placeholder="Ex: Apto 12, Casa 1"
+                value={comp}
+                onChange={e => setComp(e.target.value)}
+                style={I}
+              />
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, marginBottom: 4 }}>
+                Endereço * {loadCep && <span style={{ color: G.tm }}>buscando...</span>}
+              </div>
               <input
                 placeholder="Rua, número, bairro, cidade"
                 value={end}
@@ -1244,7 +1236,6 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Texto do termo */}
         <div style={{ background: '#0d0d0d', borderRadius: 14, padding: '16px', marginBottom: 20, border: '1px solid #1a1a1a' }}>
           <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.8 }}>
             <p style={{ marginBottom: 12 }}>
@@ -1262,13 +1253,11 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Data e organização */}
         <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, lineHeight: 1.6, marginBottom: 20, textAlign: 'center' }}>
           Assinado em: Cajamar, {hoje}.<br />
           Igreja Apostólica Fonte (IF) — Av. Tenente Marques, 5014, Portais (Polvilho), Cajamar/SP, CEP 07790-845 | Tel: (11) 94718-7017
         </div>
 
-        {/* Checkbox aceite */}
         <div
           onClick={() => setAceite(!aceite)}
           style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: '#111', borderRadius: 14, padding: '14px', marginBottom: 20, border: `1px solid ${aceite ? 'rgba(0,200,81,.4)' : '#222'}`, cursor: 'pointer' }}>
@@ -1280,7 +1269,6 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Botão assinar */}
         <button
           onClick={assinar}
           disabled={saving}
