@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { messaging, getToken, onMessage } from './firebase';
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import jsPDF from 'jspdf'
 
 
 const vibrar = (ms = 50) => {
@@ -1283,6 +1284,14 @@ function Termo({ cpf, onVoltar }) {
 function TermoAdminV({ encH, encM, t }) {
   const [aba, setAba] = useState('enviar');
   const [s, setS] = useState('');
+  const [termos, setTermos] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'termos'), (snap) => {
+      setTermos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
 
   const todos = [...encH, ...encM].filter(e => e.pago && e.chegou && e.onibus);
 
@@ -1305,6 +1314,39 @@ function TermoAdminV({ encH, encM, t }) {
     window.location.href = `https://wa.me/55${tel}?text=${msg}`;
   };
 
+  const exportarPDF = (enc) => {
+    const termo = termos.find(t => t.encontristaId === enc.id);
+    if (!termo) { alert('Dados do termo não encontrados.'); return; }
+    const pdf = new jsPDF();
+    const margin = 20;
+    let y = 20;
+    const line = (txt, size = 11, bold = false) => {
+      pdf.setFontSize(size);
+      pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+      const lines = pdf.splitTextToSize(String(txt || ''), 170);
+      pdf.text(lines, margin, y);
+      y += lines.length * (size * 0.5) + 4;
+    };
+    line('Termo de Concordância com as Ministrações e Autorização de Uso de Imagem', 14, true);
+    y += 4;
+    line('DADOS DO SIGNATÁRIO', 11, true);
+    line(`Nome: ${termo.nome}`);
+    line(`CPF: ${termo.cpf}`);
+    line(`RG: ${termo.rg || '—'}`);
+    line(`Endereço: ${termo.endereco || '—'}`);
+    line(`Autorização de uso de imagem: ${termo.autorizaImagem || '—'}`);
+    line(`Sexo: ${termo.sexo || '—'}`);
+    line(`Igreja: ${termo.igreja || '—'}`);
+    y += 4;
+    line('TERMO', 11, true);
+    line(termo.termoTexto || '');
+    y += 8;
+    line('_______________________________');
+    line(termo.nome);
+    line('Assinatura');
+    pdf.save(`termo_${termo.nome.replace(/ /g, '_')}.pdf`);
+  };
+
   const cnt = (a) => {
     if (a === 'enviar') return todos.filter(e => !e.termoEnviado && !e.termoAssinado).length;
     if (a === 'aguardando') return todos.filter(e => e.termoEnviado && !e.termoAssinado).length;
@@ -1313,7 +1355,6 @@ function TermoAdminV({ encH, encM, t }) {
 
   return (
     <div>
-      {/* Abas */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {[
           ['enviar', 'Enviar'],
@@ -1327,7 +1368,6 @@ function TermoAdminV({ encH, encM, t }) {
         ))}
       </div>
 
-      {/* Busca */}
       <input
         value={s}
         onChange={e => setS(e.target.value)}
@@ -1335,7 +1375,6 @@ function TermoAdminV({ encH, encM, t }) {
         style={{ ...I, marginBottom: 10 }}
       />
 
-      {/* Lista */}
       {lista.length === 0 && (
         <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
           Nenhum encontrista aqui.
@@ -1356,21 +1395,25 @@ function TermoAdminV({ encH, encM, t }) {
             )}
           </div>
           {aba === 'enviar' && (
-            <button
-              onClick={() => enviar(enc)}
+            <button onClick={() => enviar(enc)}
               style={BG({ padding: '8px 14px', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' })}>
               Enviar
             </button>
           )}
           {aba === 'aguardando' && (
-            <button
-              onClick={() => enviar(enc)}
+            <button onClick={() => enviar(enc)}
               style={{ ...BK({ padding: '8px 14px', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' }), color: '#ff9f0a', borderColor: 'rgba(255,159,10,.3)' }}>
               Reenviar
             </button>
           )}
           {aba === 'assinado' && (
-            <div style={{ color: G.green, fontSize: 18 }}>✓</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={() => exportarPDF(enc)}
+                style={BK({ padding: '8px 14px', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' })}>
+                Exportar PDF
+              </button>
+              <div style={{ color: G.green, fontSize: 18 }}>✓</div>
+            </div>
           )}
         </div>
       ))}
