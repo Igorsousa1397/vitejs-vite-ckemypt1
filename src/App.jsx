@@ -5682,12 +5682,11 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
               TAMANHOS.forEach(tm => {
                 const itens = uni.filter(u => u[key] === tm && u.pago);
                 if (itens.length === 0) return;
-                const rows = itens.map(u => ({
-                  'Nome': u.nome,
-                  'Nome na Camiseta': u.nomeCamiseta || '—',
-                  'Tamanho': tm,
-                  'Quantidade': u[qtdKey] || 1,
-                }));
+                const rows = itens.map(u => {
+                  const row = { 'Nome': u.nome, 'Tamanho': tm, 'Quantidade': u[qtdKey] || 1 };
+                  if (key === 'camisa') row['Nome na Camiseta'] = u.nomeCamiseta || '—';
+                  return row;
+                });
                 const ws = XLSX.utils.json_to_sheet(rows);
                 XLSX.utils.book_append_sheet(wb, ws, `${label} ${tm}`);
               });
