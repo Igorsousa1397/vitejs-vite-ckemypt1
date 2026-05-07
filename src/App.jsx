@@ -800,6 +800,12 @@ function Inscricao({ onVoltar, onPago }) {
           style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: '#009ee3' }}>
           Pagar com Cartão, Boleto ou PIX
         </button>
+        <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 14, padding: '14px 16px', marginBottom: 12, textAlign: 'left' }}>
+          <div style={{ color: '#ff6b6b', fontWeight: 800, fontSize: 13, marginBottom: 6 }}>IMPORTANTE</div>
+          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.6 }}>
+            Após realizar o pagamento, retorne a este aplicativo e clique em "Já paguei — verificar" para obter seu QR Code de acesso ao evento. Guarde-o com cuidado — ele será necessário no check-in.
+          </div>
+        </div>
         <button
           onClick={async () => {
             vibrar(50);
