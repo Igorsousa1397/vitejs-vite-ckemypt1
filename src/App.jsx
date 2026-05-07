@@ -641,6 +641,7 @@ const LABELS = {
   servos: 'Servos',
   back: 'Back Office',
   uniformes: 'Uniformes',
+  termo: 'Termo',
 };
 
 // ── SPLASH ───────────────────────────────────────────────────────────────────
@@ -1198,6 +1199,104 @@ function Termo({ cpf, onVoltar }) {
   );
 }
 
+function TermoAdminV({ encH, encM, t }) {
+  const [aba, setAba] = useState('enviar');
+  const [s, setS] = useState('');
+
+  const todos = [...encH, ...encM].filter(e => e.pago);
+
+  const lista = useMemo(() => {
+    const filtrado = todos.filter(e =>
+      e.nome.toLowerCase().includes(s.toLowerCase())
+    );
+    if (aba === 'enviar') return filtrado.filter(e => !e.termoEnviado && !e.termoAssinado);
+    if (aba === 'aguardando') return filtrado.filter(e => e.termoEnviado && !e.termoAssinado);
+    return filtrado.filter(e => e.termoAssinado);
+  }, [todos, aba, s]);
+
+  const enviar = async (enc) => {
+    const tel = enc.whatsapp?.replace(/\D/g, '');
+    if (!tel) { t('WhatsApp não cadastrado'); return; }
+    const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
+    const msg = encodeURIComponent(`Olá ${enc.nome.split(' ')[0]}! Assine o termo do evento Encontro com Deus: ${link}`);
+    await setDoc(doc(db, 'encontristas', enc.id), { termoEnviado: true }, { merge: true });
+    window.open(`https://wa.me/55${tel}?text=${msg}`, '_blank');
+    t('Termo enviado!');
+  };
+
+  const cnt = (a) => {
+    if (a === 'enviar') return todos.filter(e => !e.termoEnviado && !e.termoAssinado).length;
+    if (a === 'aguardando') return todos.filter(e => e.termoEnviado && !e.termoAssinado).length;
+    return todos.filter(e => e.termoAssinado).length;
+  };
+
+  return (
+    <div>
+      {/* Abas */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {[
+          ['enviar', 'Enviar'],
+          ['aguardando', 'Aguardando'],
+          ['assinado', 'Assinados'],
+        ].map(([key, label]) => (
+          <button key={key} onClick={() => setAba(key)}
+            style={{ flex: 1, background: aba === key ? G.green : '#111', color: aba === key ? '#000' : G.td, border: 'none', borderRadius: 10, padding: '9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+            {label} ({cnt(key)})
+          </button>
+        ))}
+      </div>
+
+      {/* Busca */}
+      <input
+        value={s}
+        onChange={e => setS(e.target.value)}
+        placeholder="Buscar por nome..."
+        style={{ ...I, marginBottom: 10 }}
+      />
+
+      {/* Lista */}
+      {lista.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+          Nenhum encontrista aqui.
+        </div>
+      )}
+      {lista.map(enc => (
+        <div key={enc.id} className="fu"
+          style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${aba === 'assinado' ? G.green : aba === 'aguardando' ? '#ff9f0a' : '#2a2a2a'}`, borderRadius: 13, padding: '12px 14px', marginBottom: 7, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{enc.nome}</div>
+            <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
+              {enc.sexo} · {enc.igreja || '—'}
+            </div>
+            {aba === 'assinado' && enc.termoAssinadoEm && (
+              <div style={{ color: G.green, fontSize: 11, marginTop: 2 }}>
+                Assinado em {enc.termoAssinadoEm}
+              </div>
+            )}
+          </div>
+          {aba === 'enviar' && (
+            <button
+              onClick={() => enviar(enc)}
+              style={BG({ padding: '8px 14px', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' })}>
+              Enviar
+            </button>
+          )}
+          {aba === 'aguardando' && (
+            <button
+              onClick={() => enviar(enc)}
+              style={{ ...BK({ padding: '8px 14px', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' }), color: '#ff9f0a', borderColor: 'rgba(255,159,10,.3)' }}>
+              Reenviar
+            </button>
+          )}
+          {aba === 'assinado' && (
+            <div style={{ color: G.green, fontSize: 18 }}>✓</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── MAIN ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [sp, setSp] = useState(true);
@@ -1581,11 +1680,12 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
   // menu drawer
   const MENU_ITEMS = [
     ['🏠', 'home'],
-    ['✓', 'checkin'],
-    ['🔔', 'mins'],
-    ['🛏', 'quartos'],
     ['👥', 'enc'],
+    ['✓', 'checkin'],
+    ['✎', 'termo'],
+    ['🛏', 'quartos'],
     ['🚌', 'onibus'],
+    ['🔔', 'mins'],
     ['⛔', 'rest'],
     ['📷', 'img'],
     ['⚠️', 'info'],
@@ -1596,6 +1696,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
     ['🍽️', 'louça'],
     ['📋', 'equipes'],
     ['👤', 'servos'],
+    
     ...(isAdm ? [['⚙️', 'back']] : []),
   ];
 
@@ -2016,6 +2117,13 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
             role={role}
             t={showT}
             sN={sN}
+          />
+        )}
+        {pg === 'termo' && (
+          <TermoAdminV
+            encH={encH}
+            encM={encM}
+            t={showT}
           />
         )}
         {pg === 'quartos' && (
