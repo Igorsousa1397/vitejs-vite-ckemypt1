@@ -1033,17 +1033,17 @@ function Termo({ cpf, onVoltar }) {
 
   useEffect(() => {
     const buscar = async () => {
+    try {
       const snap = await getDocs(collection(db, 'encontristas'));
+      console.log('docs encontrados:', snap.docs.length);
       const found = snap.docs.find(d => d.data().cpf === cpf.replace(/\D/g, ''));
-      if (found) {
-        const data = found.data();
-        setEnc({ id: found.id, ...data });
-        if (data.termoAssinado) setAssinado(true);
-        if (data.rg) setRg(data.rg);
-        if (data.endereco) setEnd(data.endereco);
-      }
+      console.log('encontrista:', found?.data());
+      // ...
+    } catch (err) {
+      console.error('Erro ao buscar:', err);
       setLoading(false);
-    };
+    }
+  };
     buscar();
   }, [cpf]);
 
