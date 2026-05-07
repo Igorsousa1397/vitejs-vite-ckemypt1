@@ -1586,6 +1586,8 @@ useEffect(() => {
             gen: e.sexo === 'Feminino' ? 'M' : 'H',
             ok: e.chegou || false,
             on: e.onibus || null,
+            whatsapp: e.whatsapp || null,
+            cpf: e.cpf || null,
           })));
         });
 
@@ -1603,8 +1605,8 @@ useEffect(() => {
 
         if (Notification.permission !== 'denied') {
           iniciarNotificacoes(firebaseUser.uid).then(token => {
-          if (token) setNotif(true);
-        });
+            if (token) setNotif(true);
+          });
         }
       } else {
         setScr('welcome');
@@ -1617,6 +1619,8 @@ useEffect(() => {
       unsubQHRef.current?.();
       unsubQMRef.current?.();
       unsubOnRef.current?.();
+      unsubUsersRef.current?.();
+      unsubEscRef.current?.();
       setScr('welcome');
     }
     setSp(false);
