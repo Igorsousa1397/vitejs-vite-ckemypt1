@@ -5238,7 +5238,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}>
               <Toggle 
                 val={u.ativo !== false} 
-                onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))} 
                 labelOn="Ativo" 
                 labelOff="Inativo" 
               />
