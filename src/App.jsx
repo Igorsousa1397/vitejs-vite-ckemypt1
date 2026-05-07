@@ -2402,6 +2402,8 @@ function CkV({ ck, setCk, on, edit, t }) {
   const [scanMsg, setScanMsg] = useState('');
   const [f, setF] = useState({ nome: '', sob: '', gen: 'M' });
   const scannerRef = useRef(null);
+  const [highlightId, setHighlightId] = useState(null);
+  const highlightRef = useRef(null);
 
   useEffect(() => {
     if (!shQr) {
