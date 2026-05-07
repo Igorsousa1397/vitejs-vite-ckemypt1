@@ -5188,7 +5188,9 @@ function SvV({ users, setUsers, esc, edit, t }) {
           + Adicionar Servo
         </button>
       )}
-      <div style={{ marginBottom: 14 }}>
+
+      {/* FILTRO DE PERFIL */}
+      <div style={{ marginBottom: 10 }}>
         <Seg opts={[
           ['todos', 'Todos'],
           ['lideres', 'Líderes'],
@@ -5196,16 +5198,20 @@ function SvV({ users, setUsers, esc, edit, t }) {
           ['lider_celula', 'Células'],
         ]} val={filtroPerfil} set={setFiltroPerfil} />
       </div>
-      {/* FILTRO DE PERFIL */}
-      <select
-        value={filtroPerfil}
-        onChange={e => setFiltroPerfil(e.target.value)}
-        style={{ ...I, marginBottom: 14 }}>
-        <option value="todos">Todos os perfis</option>
-        {Object.entries(PERFIS).filter(([k]) => k !== 'admin').map(([k, v]) => (
-          <option key={k} value={k}>{v.l}</option>
-        ))}
-      </select>
+
+      {/* FILTRO ATIVO/INATIVO */}
+      <div style={{ marginBottom: 10 }}>
+        <Seg opts={[['todos', 'Todos'], ['ativos', 'Ativos'], ['inativos', 'Inativos']]} val={filtro} set={setFiltro} />
+      </div>
+
+      {/* BUSCA */}
+      <input
+        value={busca}
+        onChange={e => setBusca(e.target.value)}
+        placeholder="🔍 Buscar..."
+        style={{ ...I, marginBottom: 14 }}
+      />
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
         {[
           [users.filter((u) => u.perfil !== 'admin').length, 'Total', '#636366'],
@@ -5218,10 +5224,12 @@ function SvV({ users, setUsers, esc, edit, t }) {
           </div>
         ))}
       </div>
+
       {lista.map((u, i) => (
         <Acc key={i} title={u.nome} right={
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {!u.ativo && <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />}
+            {u.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
             <Pill c={PERFIS[u.perfil]?.l || u.perfil} bg={`${PERFIS[u.perfil]?.c || G.green}18`} tc={PERFIS[u.perfil]?.c || G.green} />
           </div>
         }>
@@ -5234,16 +5242,10 @@ function SvV({ users, setUsers, esc, edit, t }) {
               )}
             </div>
             {u.funcoes?.length > 0 && <><SL c="Funções" mt={0} /><Tags items={u.funcoes} /></>}
-            {u.primeiro && <Pill c="⚠️ Email de acesso enviado — aguardando 1º login" bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}
-            {edit && (
-              <span onClick={() => { setUsers(users.filter((x) => x.id !== u.id)); t('Removido.'); }}
-                style={{ color: 'rgba(255,59,48,.4)', cursor: 'pointer', fontSize: 12, textAlign: 'right' }}>
-                🗑 Remover
-              </span>
-            )}
           </div>
         </Acc>
       ))}
+
       <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Servo">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 10, padding: '10px 13px', color: G.green, fontSize: 12 }}>
@@ -5262,12 +5264,6 @@ function SvV({ users, setUsers, esc, edit, t }) {
             <option value="">⚠️ Equipe / Função *</option>
             {fnsDasEquipes.map((fn) => <option key={fn} value={fn}>{fn}</option>)}
           </select>
-          <input
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            placeholder="🔍 Buscar servo..."
-            style={{ ...I, marginBottom: 14 }}
-          />
           <button onClick={add} disabled={loading} style={BG({ width: '100%', padding: 14, borderRadius: 14, marginTop: 4, opacity: loading ? 0.7 : 1 })}>
             {loading ? 'Cadastrando...' : 'Confirmar e Enviar Email'}
           </button>
