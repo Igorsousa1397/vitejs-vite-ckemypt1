@@ -1317,34 +1317,121 @@ function TermoAdminV({ encH, encM, t }) {
   const exportarPDF = (enc) => {
     const termo = termos.find(t => t.encontristaId === enc.id);
     if (!termo) { alert('Dados do termo não encontrados.'); return; }
+    
     const pdf = new jsPDF();
     const margin = 20;
+    const pageW = 210;
     let y = 20;
-    const line = (txt, size = 11, bold = false) => {
+
+    const line = (txt, size = 11, bold = false, align = 'left') => {
       pdf.setFontSize(size);
       pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-      const lines = pdf.splitTextToSize(String(txt || ''), 170);
-      pdf.text(lines, margin, y);
-      y += lines.length * (size * 0.5) + 4;
+      const maxW = pageW - margin * 2;
+      const lines = pdf.splitTextToSize(String(txt || ''), maxW);
+      const x = align === 'center' ? pageW / 2 : margin;
+      pdf.text(lines, x, y, { align });
+      y += lines.length * (size * 0.45) + 5;
     };
-    line('Termo de Concordância com as Ministrações e Autorização de Uso de Imagem', 14, true);
-    y += 4;
-    line('DADOS DO SIGNATÁRIO', 11, true);
-    line(`Nome: ${termo.nome}`);
-    line(`CPF: ${termo.cpf}`);
-    line(`RG: ${termo.rg || '—'}`);
-    line(`Endereço: ${termo.endereco || '—'}`);
-    line(`Autorização de uso de imagem: ${termo.autorizaImagem || '—'}`);
-    line(`Sexo: ${termo.sexo || '—'}`);
-    line(`Igreja: ${termo.igreja || '—'}`);
-    y += 4;
-    line('TERMO', 11, true);
-    line(termo.termoTexto || '');
+
+    const hr = () => {
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, y, pageW - margin, y);
+      y += 8;
+    };
+
+    // Cabeçalho
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(0, 0, pageW, 30, 'F');
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(30, 30, 30);
+    pdf.text('Igreja Apostólica Fonte', pageW / 2, 13, { align: 'center' });
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('R. Catiguá, 130 - Ipês (Polvilho), Cajamar - SP, 07750-000 | Tel: (11) 94718-7017', pageW / 2, 21, { align: 'center' });
+    y = 40;
+
+    // Título
+    pdf.setTextColor(30, 30, 30);
+    line('Termo de Concordância com as Ministrações e Autorização de Uso de Imagem', 14, true, 'center');
+    y += 2;
+    hr();
+
+    // Dados do signatário
+    line('DADOS DO SIGNATÁRIO', 10, true);
+    y += 2;
+    
+    const campo = (label, valor) => {
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(label, margin, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(30, 30, 30);
+      pdf.setFontSize(11);
+      const lines = pdf.splitTextToSize(String(valor || '—'), 170);
+      y += 5;
+      pdf.text(lines, margin, y);
+      y += lines.length * 6 + 4;
+    };
+
+    campo('Nome', termo.nome);
+    campo('CPF', termo.cpf);
+    campo('RG', termo.rg);
+    campo('Endereço', termo.endereco);
+    campo('Autorização de uso de imagem', termo.autorizaImagem);
+    campo('Sexo', termo.sexo);
+    campo('Igreja', termo.igreja || '—');
+    
+    y += 2;
+    hr();
+
+    // Texto do termo
+    line('TERMO', 10, true);
+    y += 2;
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(30, 30, 30);
+    const textoLimpo = (termo.termoTexto || '').replace(/\\n/g, '\n');
+    const paragrafos = textoLimpo.split('\n').filter(p => p.trim());
+    paragrafos.forEach(p => {
+      const lines = pdf.splitTextToSize(p, 170);
+      if (y + lines.length * 6 > 270) {
+        pdf.addPage();
+        y = 20;
+      }
+      pdf.text(lines, margin, y);
+      y += lines.length * 6 + 4;
+    });
+
     y += 8;
-    line('_______________________________');
-    line(termo.nome);
-    line('Assinatura');
-    pdf.save(`termo_${termo.nome.replace(/ /g, '_')}.pdf`);
+    hr();
+
+    // Assinatura
+    line(`Assinado em: ${termo.assinadoEm || '—'}`, 10);
+    y += 10;
+    pdf.setDrawColor(30, 30, 30);
+    pdf.line(margin, y, margin + 80, y);
+    y += 6;
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(termo.nome, margin, y);
+    y += 5;
+    pdf.setTextColor(120, 120, 120);
+    pdf.text('Assinatura do participante', margin, y);
+
+    // Rodapé
+    const totalPages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`, margin, 287);
+      pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, { align: 'right' });
+    }
+
+    pdf.save(`termo_${termo.nome.trim().replace(/ /g, '_')}.pdf`);
   };
 
   const cnt = (a) => {
