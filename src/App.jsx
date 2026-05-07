@@ -1531,6 +1531,15 @@ useEffect(() => {
     setSp(false); 
     return;
   }
+
+  const qr = params.get('qr');
+  const qrId = params.get('id');
+  if (qr === 'true' && qrId) {
+    setEncId(qrId);
+    setScr('pagamento_confirmado');
+    setSp(false);
+    return;
+  }
   const pago = params.get('pago');
   const id = params.get('id');
   const statusMP = params.get('status')
@@ -3736,7 +3745,7 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                   {/* Reenviar QR Code */}
                   {e.pago && waNumero && (
                     <a
-                      href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(' ')[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?pago=true&id=${e.id}`)}`}
+                      href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(' ')[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(10,132,255,.1)', border: '1px solid rgba(10,132,255,.3)', color: '#64b5f6', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
