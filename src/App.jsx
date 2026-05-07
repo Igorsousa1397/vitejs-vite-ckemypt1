@@ -2056,7 +2056,10 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
               : 'Atribuições'}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Pill c={PERFIS[role].l} bg="rgba(99,99,102,.2)" tc={G.tm} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              {u.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+              <Pill c={PERFIS[u.perfil]?.l || u.perfil} bg={`${PERFIS[u.perfil]?.c || G.green}18`} tc={PERFIS[u.perfil]?.c || G.green} />
+            </div>
             <button
               onClick={async () => {
                 const token = await iniciarNotificacoes(user?.id);
@@ -5140,6 +5143,7 @@ function SvV({ users, setUsers, esc, edit, t }) {
   const [filtro, setFiltro] = useState('todos');
   const [loading, setLoading] = useState(false);
   const fnsDasEquipes = useMemo(() => [...new Set(esc.filter(e => e.equipe).map((e) => e.equipe))], [esc]);
+  const [busca, setBusca] = useState('');
   const upd = (id, fn) => setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
 
   const add = async () => {
@@ -5173,7 +5177,8 @@ function SvV({ users, setUsers, esc, edit, t }) {
       (filtroPerfil === 'todos' ? true :
       filtroPerfil === 'lideres' ? ['lider_geral', 'lider_staff', 'lider_quartos', 'lider_cozinha', 'pastor'].includes(u.perfil) :
       filtroPerfil === 'servo' ? u.perfil === 'servo' :
-      u.perfil === 'lider_celula')
+      u.perfil === 'lider_celula') &&
+      u.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
   return (
@@ -5257,6 +5262,12 @@ function SvV({ users, setUsers, esc, edit, t }) {
             <option value="">⚠️ Equipe / Função *</option>
             {fnsDasEquipes.map((fn) => <option key={fn} value={fn}>{fn}</option>)}
           </select>
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="🔍 Buscar servo..."
+            style={{ ...I, marginBottom: 14 }}
+          />
           <button onClick={add} disabled={loading} style={BG({ width: '100%', padding: 14, borderRadius: 14, marginTop: 4, opacity: loading ? 0.7 : 1 })}>
             {loading ? 'Cadastrando...' : 'Confirmar e Enviar Email'}
           </button>
