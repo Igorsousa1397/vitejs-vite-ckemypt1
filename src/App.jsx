@@ -415,71 +415,9 @@ const FUNCOES_INIT = [
   'Ônibus — Servo Templo',
   'Louça',
 ];
-const ESCALAS_INIT = [
-  {
-    id: 1,
-    equipe: 'Som',
-    tipo: 'ministerio',
-    servos: ['Caio', 'Hiago', 'Islany'],
-    resp: 'Caio',
-  },
-  {
-    id: 2,
-    equipe: 'Banheiro',
-    tipo: 'staff',
-    servos: ['Silas', 'Letícia', 'Duda'],
-    resp: 'Silas & Letícia',
-  },
-  {
-    id: 3,
-    equipe: 'Cozinha',
-    tipo: 'staff',
-    servos: ['Pra. Kevelen'],
-    resp: 'Pra. Kevelen',
-  },
-  {
-    id: 4,
-    equipe: 'Intercessão',
-    tipo: 'ministerio',
-    servos: ['Pr. André', 'Cris', 'Kelly'],
-    resp: 'Pr. André / Cris',
-  },
-  {
-    id: 5,
-    equipe: 'Templo',
-    tipo: 'ministerio',
-    servos: ['Simone', 'Thaís', 'Brenda'],
-    resp: 'Tiago / Brenda',
-  },
-  {
-    id: 6,
-    equipe: 'Malas',
-    tipo: 'staff',
-    servos: ['Cris', 'Gabriel'],
-    resp: '',
-  },
-  {
-    id: 7,
-    equipe: 'Crachá',
-    tipo: 'staff',
-    servos: ['Thais', 'Gustavo'],
-    resp: '',
-  },
-  {
-    id: 8,
-    equipe: 'Refeitório',
-    tipo: 'staff',
-    servos: ['Felipe', 'Jeferson'],
-    resp: '',
-  },
-  {
-    id: 9,
-    equipe: 'Cantina',
-    tipo: 'staff',
-    servos: ['Dona Cris', 'Silvio'],
-    resp: 'Dona Cris',
-  },
-];
+
+const [esc, setEsc] = useState([]);
+
 const QH_INIT = [];
 
 const QM_INIT = [{ num: 12, maes: true, lim: 9, servos: [], enc: [] }];
@@ -1620,6 +1558,10 @@ useEffect(() => {
         setScr('app');
         if (snap.data().perfil === 'servo') setPg('smins');
 
+        unsubEscRef.current = onSnapshot(collection(db, 'equipes'), (s) => {
+          setEsc(s.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+
         unsubConfigRef.current = onSnapshot(doc(db, 'config', 'uniformes'), (s) => {
           if (s.exists() && s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
         });
@@ -1691,6 +1633,7 @@ useEffect(() => {
     unsubQMRef.current?.();
     unsubOnRef.current?.();
     unsubUsersRef.current?.();
+    unsubEscRef.current?.();
   };
 }, []);
   
@@ -4993,15 +4936,16 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
               </select>
               <input
                 style={I}
-                placeholder="Responsável"
-                value={f.resp}
-                onChange={(e) => setF({ ...f, resp: e.target.value })}
+                placeholder="Responsável..."
+                value={eq.resp}
+                onChange={async (e) =>
+                  await setDoc(doc(db, 'equipes', eq.id), { resp: e.target.value }, { merge: true })
+                }
               />
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!f.equipe.trim()) return;
-                  const id = Math.max(...esc.map((e) => e.id), 0) + 1;
-                  setEsc([...esc, { ...f, id, servos: [] }]);
+                  await addDoc(collection(db, 'equipes'), { ...f, servos: [] });
                   setF({ equipe: '', tipo: 'ministerio', resp: '' });
                   setSh(false);
                   t('Criado!');
@@ -5025,14 +4969,10 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
               tc={tC[eq.tipo]}
             />
           }
-          onDel={
-            edit
-              ? () => {
-                  setEsc(esc.filter((e) => e.id !== eq.id));
-                  t('Removido.');
-                }
-              : undefined
-          }
+          onDel={edit ? async () => {
+            await deleteDoc(doc(db, 'equipes', eq.id));
+            t('Removido.');
+          } : undefined}
         >
           <SL c="Responsável" mt={0} />
           <input
@@ -5048,15 +4988,10 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
             <Tags
               items={eq.servos}
               ax={tC[eq.tipo]}
-              onX={
-                edit
-                  ? (i) =>
-                      uEs(eq.id, (x) => ({
-                        ...x,
-                        servos: x.servos.filter((_, j) => j !== i),
-                      }))
-                  : undefined
-              }
+              onX={edit ? async (i) => {
+                const novos = eq.servos.filter((_, j) => j !== i);
+                await setDoc(doc(db, 'equipes', eq.id), { servos: novos }, { merge: true });
+              } : undefined}
             />
           ) : (
             <div
@@ -5073,8 +5008,8 @@ function EqV({ esc, setEsc, uEs, edit, t }) {
           {edit && (
             <AddIn
               ph="Adicionar membro..."
-              onAdd={(n) => {
-                uEs(eq.id, (x) => ({ ...x, servos: [...x.servos, n] }));
+              onAdd={async (n) => {
+                await setDoc(doc(db, 'equipes', eq.id), { servos: [...eq.servos, n] }, { merge: true });
                 t('✓');
               }}
               mt={8}
