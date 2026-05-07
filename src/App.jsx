@@ -1028,6 +1028,7 @@ export default function App() {
   const [pg, setPg] = useState('home');
   const [menu, setMenu] = useState(false);
   const [pagamentoId, setPagamentoId] = useState(null);
+  const [encId, setEncId] = useState(null);
   const [users, setUsers] = useState([]);
   const [fns, setFns] = useState(FUNCOES_INIT);
   const [esc, setEsc] = useState(ESCALAS_INIT);
