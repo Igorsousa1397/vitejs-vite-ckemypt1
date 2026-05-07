@@ -1902,6 +1902,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
   // menu drawer
   const MENU_ITEMS = [
     ['🏠', 'home'],
+    ['👤', 'servos'],
     ['👥', 'enc'],
     ['✓', 'checkin'],
     ['✎', 'termo'],
@@ -1917,8 +1918,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
     ['👕', 'uniformes'],
     ['🍽️', 'louça'],
     ['📋', 'equipes'],
-    ['👤', 'servos'],
-    
+  
     ...(isAdm ? [['⚙️', 'back']] : []),
   ];
 
