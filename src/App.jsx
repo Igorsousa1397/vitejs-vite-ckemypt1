@@ -5170,7 +5170,10 @@ function SvV({ users, setUsers, esc, edit, t }) {
   const lista = users.filter(
     (u) => u.perfil !== 'admin' &&
       (filtro === 'todos' ? true : filtro === 'ativos' ? u.ativo !== false : !u.ativo) &&
-      (filtroPerfil === 'todos' ? true : u.perfil === filtroPerfil)
+      (filtroPerfil === 'todos' ? true :
+      filtroPerfil === 'lideres' ? ['lider_geral', 'lider_staff', 'lider_quartos', 'lider_cozinha', 'pastor'].includes(u.perfil) :
+      filtroPerfil === 'servo' ? u.perfil === 'servo' :
+      u.perfil === 'lider_celula')
   );
 
   return (
@@ -5181,7 +5184,12 @@ function SvV({ users, setUsers, esc, edit, t }) {
         </button>
       )}
       <div style={{ marginBottom: 14 }}>
-        <Seg opts={[['todos', 'Todos'], ['ativos', 'Ativos'], ['inativos', 'Inativos']]} val={filtro} set={setFiltro} />
+        <Seg opts={[
+          ['todos', 'Todos'],
+          ['lideres', 'Líderes'],
+          ['servo', 'Servos'],
+          ['lider_celula', 'Células'],
+        ]} val={filtroPerfil} set={setFiltroPerfil} />
       </div>
       {/* FILTRO DE PERFIL */}
       <select
