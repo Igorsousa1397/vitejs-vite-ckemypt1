@@ -3674,7 +3674,6 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{e.igreja || '—'} · {e.celula || 'Sem célula'}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {/* Toggle pago */}
                   {e.pagamentoId ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e2 => e2.stopPropagation()}>
                       <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
@@ -3734,13 +3733,24 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
                     )}
                   </div>
 
+                  {/* Reenviar QR Code */}
+                  {e.pago && waNumero && (
+                    <a
+                      href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(' ')[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?pago=true&id=${e.id}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(10,132,255,.1)', border: '1px solid rgba(10,132,255,.3)', color: '#64b5f6', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                      Reenviar QR Code
+                    </a>
+                  )}
+
                   {/* Botão WhatsApp contato */}
                   {waNumero && (
                     <a href={`https://wa.me/55${waNumero}${!e.pago ? `?text=${encodeURIComponent(msgPendente(e.nome))}` : ''}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-                  💬 Entrar em contato — {e.whatsapp}
-                </a>
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                      💬 Entrar em contato — {e.whatsapp}
+                    </a>
                   )}
                 </div>
               )}
@@ -3750,8 +3760,7 @@ function EncV({ encH, setEncH, encM, setEncM, qh, qm, setQh, setQm, edit, t }) {
       </div>
     </div>
   );
-}
-
+  }
 
 function EditOnibus({ o, onSave }) {
   const [aberto, setAberto] = useState(false);
