@@ -774,10 +774,10 @@ function Inscricao({ onVoltar, onPago }) {
   const [msgPagamento, setMsgPagamento] = useState('');
 
   const salvar = async () => {
-    if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim()) {
-      alert('Preencha os campos obrigatórios: Nome, Sexo e WhatsApp');
-      return;
-    }
+      if (!form.nome.trim() || !form.sexo || !form.whatsapp.trim() || !form.emergencia.trim() || !form.medicamento.trim() || !form.doenca.trim()) {
+    alert('Preencha todos os campos obrigatórios.');
+    return;
+  }
     if (!form.autorizaImagem) {
       alert('Responda sobre o uso de imagem');
       return;
@@ -924,7 +924,7 @@ function Inscricao({ onVoltar, onPago }) {
         <input placeholder="Sem abreviações" value={form.nome}
           onChange={e => setForm({ ...form, nome: e.target.value })} style={iI} />
 
-        <SLi c="CPF" />
+        <SLi c="CPF *" />
         <input
           placeholder="000.000.000-00"
           value={form.cpf}
@@ -940,7 +940,7 @@ function Inscricao({ onVoltar, onPago }) {
           style={iI}
         />
 
-        <SLi c="Data de Nascimento" />
+        <SLi c="Data de Nascimento *" />
         <div style={{ display: 'flex', gap: 8 }}>
           <select value={form.nascimento?.split('-')[2] || ''}
             onChange={e => setForm({ ...form, nascimento: `${form.nascimento?.split('-')[0] || ''}-${form.nascimento?.split('-')[1] || ''}-${e.target.value}` })}
@@ -988,7 +988,7 @@ function Inscricao({ onVoltar, onPago }) {
           style={iI}
         />
 
-        <SLi c="Célula" />
+        <SLi c="Célula *" />
         <select value={form.celula} onChange={e => setForm({ ...form, celula: e.target.value })} style={iI}>
           <option value="">Selecione sua célula...</option>
           {CELULAS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1002,15 +1002,15 @@ function Inscricao({ onVoltar, onPago }) {
         <Radio val={form.autorizaImagem} set={v => setForm({ ...form, autorizaImagem: v })}
           opts={['Sim', 'Não']} />
 
-        <SLi c="Contato de Emergência" />
+        <SLi c="Contato de Emergência *" />
         <input placeholder="Nome e telefone" value={form.emergencia}
           onChange={e => setForm({ ...form, emergencia: e.target.value })} style={iI} />
 
-        <SLi c="Toma algum medicamento?" />
+        <SLi c="Toma algum medicamento? *" />
         <input placeholder="Qual?" value={form.medicamento}
           onChange={e => setForm({ ...form, medicamento: e.target.value })} style={iI} />
 
-        <SLi c="Tem alguma doença crônica?" />
+        <SLi c="Tem alguma doença crônica *?" />
         <input placeholder="Qual?" value={form.doenca}
           onChange={e => setForm({ ...form, doenca: e.target.value })} style={iI} />
 
@@ -2655,7 +2655,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
       color: G.t,
       fontWeight: 800,
       letterSpacing: -1,
-      fontSize: s.length > 5 ? 16 : s.length > 3 ? 20 : 26,
+      fontSize: s.length > 5 ? 18 : s.length > 3 ? 24 : 32,
     };
   };
   return (
@@ -2681,7 +2681,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
               background: '#111',
               border: '1px solid #1a1a1a',
               borderRadius: 16,
-              padding: '14px 12px',
+              padding: '20px 16px',
               cursor: 'pointer',
             }}
           >
