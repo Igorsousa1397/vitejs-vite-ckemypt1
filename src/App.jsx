@@ -5320,17 +5320,24 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
                 labelOn="Ativo"
                 labelOff="Inativo"
               />
-              {u.perfil === 'servo' && (
-                <Toggle
-                  val={!!u.pago}
-                  onToggle={async () => {
-                    await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
+              {u.perfil !== 'servo' && (
+              <div onClick={e => e.stopPropagation()} style={{ position: 'relative', zIndex: 1 }}>
+                <SL c="Líder do Encontro" mt={0} />
+                <select
+                  value={u.liderEncontro || ''}
+                  onChange={async (e) => {
+                    await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
+                    upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
                   }}
-                  labelOn="Pago ✓"
-                  labelOff="Pendente"
-                  colorOn="#0a84ff"
-                />
-              )}
+                  style={{ ...I, fontSize: 12, padding: '8px 12px' }}
+                >
+                  <option value="">Selecione um servo...</option>
+                  {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
+                    <option key={s.id} value={s.nome}>{s.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             </div>
 
             {/* Campo Líder — só para perfis de líder */}
