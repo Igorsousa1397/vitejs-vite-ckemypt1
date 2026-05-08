@@ -425,6 +425,7 @@ const QM_INIT = [{ num: 12, maes: true, lim: 9, servos: [], enc: [] }];
 
 const ON_INIT = [];
 const MINS_INIT = [
+  { id: 0, dia: 'Quinta', nome: 'Pré-Encontro', hora: '20:00', sent: false },
   { id: 1, dia: 'Sexta', nome: 'Encontro com o Mundo, Encontro com Deus', hora: '23:00', sent: false },
   { id: 2, dia: 'Sábado', nome: 'Ministração Peniel', hora: '08:30', sent: false },
   { id: 3, dia: 'Sábado', nome: 'Ministração Cura', hora: '10:30', sent: false },
@@ -2698,7 +2699,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
     return a + passCheckin + passManual + servos;
   }, 0);
   const prox = mins.find((m) => !m.sent);
-  const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
+  const dC = { Quinta: '#ff6b35', Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const ns = (n) => {
     const s = String(n);
     return {
@@ -3174,7 +3175,7 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
   const [highlightId, setHighlightId] = useState(null);
   const highlightRef = useRef(null);
 
-  const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
+  const dC = { Quinta: '#ff6b35', Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   return (
     <div>
       {edit && (
@@ -3266,7 +3267,7 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
           )}
         </>
       )}
-      {['Sexta', 'Sábado', 'Domingo'].map((dia) => {
+      {['Quinta', 'Sexta', 'Sábado', 'Domingo'].map((dia) => {
         const list = mins.filter((m) => m.dia === dia);
         if (!list.length) return null;
         return (
