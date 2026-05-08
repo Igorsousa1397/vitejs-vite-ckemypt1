@@ -2318,7 +2318,21 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
                 }}
               >
                 <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>{ic}</span>
-                {LABELS[p]}
+                <span style={{ flex: 1 }}>{LABELS[p]}</span>
+                {p === 'uniformes' && uni.filter(u => u.status === 'pendente').length > 0 && (
+                  <span style={{
+                    background: '#ff9f0a',
+                    color: '#000',
+                    borderRadius: 50,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    minWidth: 18,
+                    textAlign: 'center',
+                  }}>
+                    {uni.filter(u => u.status === 'pendente').length}
+                  </span>
+                )}
               </button>
             ))}
             <button onClick={() => { setMenu(false); logout(); }}
