@@ -2513,7 +2513,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
 function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
   const [tab, setTab] = useState('mins');
   const [slide, setSlide] = useState(0);
-  const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
+  const dC = { Quinta: '#ff6b35', Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const prox = mins.find((m) => !m.sent);
   const meuPedido = uni.find((u) => u.userId === user.id);
 
@@ -3221,7 +3221,7 @@ function MinsV({ mins, setMins, edit, role, t, sN }) {
                 value={f.dia}
                 onChange={(e) => setF({ ...f, dia: e.target.value })}
               >
-                {['Sexta', 'Sábado', 'Domingo'].map((d) => (
+                {['Quinta', 'Sexta', 'Sábado', 'Domingo'].map((d) => (
                   <option key={d}>{d}</option>
                 ))}
               </select>
