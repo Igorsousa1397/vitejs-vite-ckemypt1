@@ -2057,8 +2057,8 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', gap: 6 }}>
-              {u.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
-              <Pill c={PERFIS[u.perfil]?.l || u.perfil} bg={`${PERFIS[u.perfil]?.c || G.green}18`} tc={PERFIS[u.perfil]?.c || G.green} />
+              {user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+              <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />
             </div>
             <button
               onClick={async () => {
