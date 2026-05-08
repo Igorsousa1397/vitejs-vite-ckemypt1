@@ -5254,7 +5254,10 @@ function SvV({ users, setUsers, esc, edit, t }) {
               onClick={e => e.stopPropagation()}>
               <Toggle 
                 val={u.ativo !== false} 
-                onToggle={() => upd(u.id, (x) => ({ ...x, ativo: !x.ativo }))} 
+                onToggle={async () => {
+                  await setDoc(doc(db, 'users', u.id), { ativo: !u.ativo }, { merge: true });
+                  upd(u.id, (x) => ({ ...x, ativo: !x.ativo }));
+                }}
                 labelOn="Ativo" 
                 labelOff="Inativo" 
               />
