@@ -5311,27 +5311,48 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
             {u.email && <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}
               onClick={e => e.stopPropagation()}>
-              <Toggle 
-                val={u.ativo !== false} 
+              <Toggle
+                val={u.ativo !== false}
                 onToggle={async () => {
                   await setDoc(doc(db, 'users', u.id), { ativo: !u.ativo }, { merge: true });
                   upd(u.id, (x) => ({ ...x, ativo: !x.ativo }));
                 }}
-                labelOn="Ativo" 
-                labelOff="Inativo" 
+                labelOn="Ativo"
+                labelOff="Inativo"
               />
-              {u.perfil !== 'pastor' && (
-                <Toggle 
-                  val={!!u.pago} 
+              {u.perfil === 'servo' && (
+                <Toggle
+                  val={!!u.pago}
                   onToggle={async () => {
                     await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
-                  }} 
-                  labelOn="Pago ✓" 
-                  labelOff="Pendente" 
-                  colorOn="#0a84ff" 
+                  }}
+                  labelOn="Pago ✓"
+                  labelOff="Pendente"
+                  colorOn="#0a84ff"
                 />
               )}
             </div>
+
+            {/* Campo Líder — só para perfis de líder */}
+            {u.perfil !== 'servo' && (
+              <div onClick={e => e.stopPropagation()}>
+                <SL c="Líder do Encontro" mt={0} />
+                <select
+                  value={u.liderEncontro || ''}
+                  onChange={async (e) => {
+                    await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
+                    upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
+                  }}
+                  style={{ ...I, fontSize: 12, padding: '8px 12px' }}
+                >
+                  <option value="">Selecione um servo...</option>
+                  {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
+                    <option key={s.id} value={s.nome}>{s.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {u.funcoes?.length > 0 && <><SL c="Funções" mt={0} /><Tags items={u.funcoes} /></>}
           </div>
         </Acc>
