@@ -5253,7 +5253,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     (u) => u.perfil !== 'admin' &&
       (filtro === 'todos' ? true : filtro === 'ativos' ? u.ativo !== false : !u.ativo) &&
       (filtroPerfil === 'todos' ? true :
-      filtroPerfil === 'lideres' ? ['lider_geral', 'lider_staff', 'lider_quartos', 'lider_cozinha', 'pastor'].includes(u.perfil) :
+      filtroPerfil === 'lideres' ? ['lider_geral', 'lider_staff', 'lider_quartos', 'lider_cozinha', 'lider_templo', 'pastor'].includes(u.perfil) :
       filtroPerfil === 'servo' ? u.perfil === 'servo' :
       u.perfil === 'lider_celula') &&
       u.nome.toLowerCase().includes(busca.toLowerCase())
@@ -5390,6 +5390,18 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
             {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
               <div onClick={e => e.stopPropagation()}>
                 <SL c="Líderes do Encontro" mt={0} />
+                {u.liderEncontro && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a84ff', flexShrink: 0 }} />
+                    <span style={{ color: G.td, fontSize: 13 }}>{u.liderEncontro}</span>
+                  </div>
+                )}
+                {u.liderEncontro2 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a84ff', flexShrink: 0 }} />
+                    <span style={{ color: G.td, fontSize: 13 }}>{u.liderEncontro2}</span>
+                  </div>
+                )}
                 <LiderInput u={u} campo="liderEncontro" ph="Servo 1..." users={users} upd={upd} />
                 <LiderInput u={u} campo="liderEncontro2" ph="Servo 2..." users={users} upd={upd} />
               </div>
