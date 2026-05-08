@@ -101,10 +101,12 @@ const PERFIS = {
   lider_staff: { l: 'Líder Staff', c: '#ff9f0a' },
   lider_quartos: { l: 'Líder Quartos', c: '#ff6b35' },
   lider_cozinha: { l: 'Líder Cozinha', c: '#ff2d55' },
+  lider_templo: { l: 'Líder Templo', c: '#64b5f6' },
   servo: { l: 'Servo', c: '#636366' },
   lider_midia: { l: 'Líder Mídia', c: '#ffd60a' },
   lider_celula: { l: 'Líder de Célula', c: '#ff6b35' }
 };
+
 const canG = (p) =>
   ['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(p);
 const canQ = (p) => ['admin', 'lider_quartos'].includes(p);
