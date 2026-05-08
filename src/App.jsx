@@ -6273,81 +6273,68 @@ function BackV({ users, setUsers, fns, setFns, t }) {
                 marginBottom: 7,
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>
-                    {u.nome}
-                  </div>
-                  <div
-                    style={{
-                      color: G.tm,
-                      fontSize: 11,
-                      marginTop: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
+                  <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{u.nome}</div>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                     ●●●●●●
-                    {u.primeiro && (
-                      <Pill
-                        c="1º acesso"
-                        bg="rgba(255,159,10,.12)"
-                        tc="#ff9f0a"
-                      />
-                    )}
+                    {u.primeiro && <Pill c="1º acesso" bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <select
                     value={u.perfil}
-                    onChange={(e) => {
-                      setUsers(
-                        users.map((x) =>
-                          x.id === u.id ? { ...x, perfil: e.target.value } : x
-                        )
-                      );
+                    onChange={async (e) => {
+                      await setDoc(doc(db, 'users', u.id), { perfil: e.target.value }, { merge: true });
+                      setUsers(users.map((x) => x.id === u.id ? { ...x, perfil: e.target.value } : x));
                       t('Perfil atualizado!');
                     }}
-                    style={{
-                      ...I,
-                      width: 'auto',
-                      padding: '6px 9px',
-                      fontSize: 11,
-                      borderRadius: 9,
-                    }}
+                    style={{ ...I, width: 'auto', padding: '6px 9px', fontSize: 11, borderRadius: 9 }}
                   >
                     {Object.entries(PERFIS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v.l}
-                      </option>
+                      <option key={k} value={k}>{v.l}</option>
                     ))}
                   </select>
                   {u.perfil === 'servo' && (
                     <span
-                      onClick={() => {
-                        setUsers(users.filter((x) => x.id !== u.id));
-                        t('Removido.');
-                      }}
-                      style={{
-                        color: 'rgba(255,59,48,.4)',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                      }}
+                      onClick={() => { setUsers(users.filter((x) => x.id !== u.id)); t('Removido.'); }}
+                      style={{ color: 'rgba(255,59,48,.4)', cursor: 'pointer', fontSize: 14 }}
                     >
                       🗑
                     </span>
                   )}
                 </div>
               </div>
+
+              {(u.funcoes || []).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                  {(u.funcoes || []).map((fn, j) => (
+                    <span key={j}
+                      onClick={async () => {
+                        const novas = u.funcoes.filter((_, k) => k !== j);
+                        await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
+                        setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
+                        t('Função removida.');
+                      }}
+                      style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 50, padding: '4px 10px', color: G.td, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      {fn} <span style={{ color: 'rgba(255,59,48,.6)', fontWeight: 800 }}>×</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <AddIn
+                ph="Adicionar função..."
+                mt={8}
+                onAdd={async (fn) => {
+                  const novas = [...(u.funcoes || []), fn.trim()];
+                  await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
+                  setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
+                  t('Função adicionada!');
+                }}
+              />
             </div>
-          ))}
+          ))
+        }
         {tab === 'funcoes' && (
           <>
             <AddIn
@@ -6377,36 +6364,16 @@ function BackV({ users, setUsers, fns, setFns, t }) {
                   justifyContent: 'space-between',
                 }}
               >
-                <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-                  📋 {fn}
-                </span>
+                <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>📋 {fn}</span>
                 <span
-                  onClick={() => {
-                    setFns(fns.filter((_, j) => j !== i));
-                    t('Removido.');
-                  }}
-                  style={{
-                    color: 'rgba(255,59,48,.4)',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                  }}
+                  onClick={() => { setFns(fns.filter((_, j) => j !== i)); t('Removido.'); }}
+                  style={{ color: 'rgba(255,59,48,.4)', cursor: 'pointer', fontSize: 13 }}
                 >
                   🗑
                 </span>
               </div>
             ))}
-            <div
-              style={{
-                background: 'rgba(0,200,81,.08)',
-                border: '1px solid rgba(0,200,81,.15)',
-                borderRadius: 12,
-                padding: '10px 14px',
-                marginTop: 10,
-                color: G.tm,
-                fontSize: 12,
-                lineHeight: 1.6,
-              }}
-            >
+            <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.15)', borderRadius: 12, padding: '10px 14px', marginTop: 10, color: G.tm, fontSize: 12, lineHeight: 1.6 }}>
               Funções criadas aqui aparecem no dropdown ao adicionar servo.
             </div>
           </>
