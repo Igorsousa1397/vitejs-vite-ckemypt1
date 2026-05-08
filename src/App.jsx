@@ -1898,23 +1898,22 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
   // menu drawer
   const MENU_ITEMS = [
     ['🏠', 'home'],
-    ['👤', 'servos'],
-    ['👥', 'enc'],
-    ['✓', 'checkin'],
-    ['✎', 'termo'],
-    ['🛏', 'quartos'],
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff', 'lider_quartos'].includes(role) ? [['👤', 'servos']] : []),
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(role) ? [['👥', 'enc']] : []),
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(role) ? [['✓', 'checkin']] : []),
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(role) ? [['✎', 'termo']] : []),
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff', 'lider_quartos'].includes(role) ? [['🛏', 'quartos']] : []),
     ['🚌', 'onibus'],
     ['🔔', 'mins'],
     ['⛔', 'rest'],
-    ['📷', 'img'],
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(role) ? [['📷', 'img']] : []),
     ['⚠️', 'info'],
     ['🔎', 'ach'],
     ['🪪', 'crac'],
     ['💊', 'saude'],
-    ['👕', 'uniformes'],
-    ['🍽️', 'louça'],
-    ['📋', 'equipes'],
-  
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(role) ? [['👕', 'uniformes']] : []),
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff', 'lider_cozinha'].includes(role) ? [['🍽️', 'louça']] : []),
+    ...(['admin', 'lider_geral', 'pastor', 'lider_staff'].includes(role) ? [['📋', 'equipes']] : []),
     ...(isAdm ? [['⚙️', 'back']] : []),
   ];
 
