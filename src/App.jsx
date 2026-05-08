@@ -4,7 +4,7 @@ import { messaging, getToken, onMessage } from './firebase';
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import jsPDF from 'jspdf'
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
 
 
 const vibrar = (ms = 50) => {
@@ -5376,6 +5376,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
     setSaving(true);
     const pedido = {
       nome: user.nome,
+      perfil: user.perfil,
       nomeCamiseta: form.nomeCamiseta.trim(),
       camisa: form.camisa,
       qtdCamisas: form.qtdCamisas || 1,
@@ -5419,14 +5420,20 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
           {prazoOk && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* STATUS DO PEDIDO */}
-              {meuPedido && (
+              {meuPedido && meuPedido.status === 'aberto' && (
                 <div style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.3)', borderRadius: 12, padding: '10px 14px' }}>
                   <div style={{ color: '#ff9f0a', fontWeight: 700, fontSize: 13 }}>
                     Alteracao aprovada — edite e salve novamente
                   </div>
                 </div>
               )}
-
+              {meuPedido && meuPedido.status === 'pendente' && (
+                <div style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.3)', borderRadius: 12, padding: '10px 14px' }}>
+                  <div style={{ color: '#ff9f0a', fontWeight: 700, fontSize: 13 }}>
+                    Solicitacao de alteracao enviada — aguardando aprovacao
+                  </div>
+                </div>
+              )}
               {/* CAMISETA */}
               <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -5751,31 +5758,138 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
       {uni.length > 0 && (
         <button
           onClick={() => {
-            const wb = XLSX.utils.book_new();
-            const pecas = [
-              { key: 'camisa', qtdKey: 'qtdCamisas', label: 'Camiseta' },
-              { key: 'calca', qtdKey: 'qtdCalcas', label: 'Calca' },
-              { key: 'blusa', qtdKey: 'qtdBlusas', label: 'Blusa' },
-            ];
-            pecas.forEach(({ key, qtdKey, label }) => {
-              TAMANHOS.forEach(tm => {
-                const itens = uni.filter(u => u[key] === tm && u.pago);
-                if (itens.length === 0) return;
-                const rows = itens.map(u => {
-                  const row = { 'Nome': u.nome, 'Tamanho': tm, 'Quantidade': u[qtdKey] || 1 };
-                  if (key === 'camisa') row['Nome na Camiseta'] = u.nomeCamiseta || '—';
-                  return row;
-                });
-                const ws = XLSX.utils.json_to_sheet(rows);
-                XLSX.utils.book_append_sheet(wb, ws, `${label} ${tm}`);
+            const TAMANHOS = ['P', 'M', 'G', 'GG', 'G1', 'G2', 'G3'];
+
+            const buildAba = (wb, titulo, dados) => {
+              const ws = wb.addWorksheet(titulo);
+
+              ws.mergeCells('A1:M1');
+              const title = ws.getCell('A1');
+              title.value = `PEDIDO UNIFORMES — ${titulo.toUpperCase()} — ENCONTRO COM DEUS 2026`;
+              title.font = { name: 'Arial', bold: true, size: 12 };
+              title.alignment = { horizontal: 'center', vertical: 'middle' };
+              ws.getRow(1).height = 24;
+
+              const secoes = [[1, 'CAMISETA'], [6, 'BLUSÃO DE FRIO'], [11, 'CALÇA']];
+              secoes.forEach(([col, nome]) => {
+                ws.mergeCells(2, col, 2, col + 3);
+                const c = ws.getCell(2, col);
+                c.value = nome;
+                c.font = { name: 'Arial', bold: true, size: 11 };
+                c.alignment = { horizontal: 'center', vertical: 'middle' };
+                c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
               });
+              ws.getRow(2).height = 20;
+
+              secoes.forEach(([col]) => {
+                ['NOME', 'QTD', 'TAM', ''].forEach((h, i) => {
+                  const c = ws.getCell(3, col + i);
+                  c.value = h;
+                  c.font = { name: 'Arial', bold: true, size: 9 };
+                  c.alignment = { horizontal: 'center', vertical: 'middle' };
+                  c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                });
+              });
+              ws.getRow(3).height = 16;
+
+              [24,6,6,2,2,24,6,6,2,2,24,6,6].forEach((w, i) => {
+                ws.getColumn(i + 1).width = w;
+              });
+
+              let row = 4;
+              const totais = { camisa: {}, blusa: {}, calca: {} };
+              const borda = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+              const cinzaClaro = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } };
+              const cinzaMedio = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDDDDD' } };
+              const cinzaEscuro = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBBBBBB' } };
+
+              TAMANHOS.forEach(tm => {
+                const cam = dados.filter(u => u.camisa === tm).map(u => [u.nomeCamiseta || u.nome, u.qtdCamisas || 1]);
+                const blu = dados.filter(u => u.blusa === tm).map(u => [u.nome, u.qtdBlusas || 1]);
+                const cal = dados.filter(u => u.calca === tm).map(u => [u.nome, u.qtdCalcas || 1]);
+
+                if (!cam.length && !blu.length && !cal.length) return;
+
+                [1, 6, 11].forEach(col => {
+                  ws.mergeCells(row, col, row, col + 2);
+                  const c = ws.getCell(row, col);
+                  c.value = `TAMANHO ${tm}`;
+                  c.font = { name: 'Arial', bold: true, size: 9 };
+                  c.fill = cinzaClaro;
+                  c.alignment = { horizontal: 'center', vertical: 'middle' };
+                  c.border = borda;
+                });
+                ws.getRow(row).height = 15;
+                row++;
+
+                const maxRows = Math.max(cam.length, blu.length, cal.length, 1);
+                for (let i = 0; i < maxRows; i++) {
+                  [[1, cam], [6, blu], [11, cal]].forEach(([col, lista]) => {
+                    if (i < lista.length) {
+                      const c1 = ws.getCell(row + i, col);
+                      c1.value = lista[i][0]; c1.font = { name: 'Arial', size: 9 }; c1.alignment = { horizontal: 'left', vertical: 'middle' }; c1.border = borda;
+                      const c2 = ws.getCell(row + i, col + 1);
+                      c2.value = lista[i][1]; c2.font = { name: 'Arial', size: 9 }; c2.alignment = { horizontal: 'center', vertical: 'middle' }; c2.border = borda;
+                      const c3 = ws.getCell(row + i, col + 2);
+                      c3.value = tm; c3.font = { name: 'Arial', size: 9 }; c3.alignment = { horizontal: 'center', vertical: 'middle' }; c3.border = borda;
+                    } else {
+                      [0,1,2].forEach(o => { ws.getCell(row + i, col + o).border = borda; });
+                    }
+                  });
+                  ws.getRow(row + i).height = 14;
+                }
+                row += maxRows;
+
+                const tCam = cam.reduce((a, x) => a + x[1], 0);
+                const tBlu = blu.reduce((a, x) => a + x[1], 0);
+                const tCal = cal.reduce((a, x) => a + x[1], 0);
+                totais.camisa[tm] = tCam; totais.blusa[tm] = tBlu; totais.calca[tm] = tCal;
+
+                [[1, tCam], [6, tBlu], [11, tCal]].forEach(([col, total]) => {
+                  ws.mergeCells(row, col, row, col + 1);
+                  const c = ws.getCell(row, col);
+                  c.value = `TOTAL ${tm}`; c.font = { name: 'Arial', bold: true, size: 9 }; c.fill = cinzaMedio; c.alignment = { horizontal: 'left', vertical: 'middle' }; c.border = borda;
+                  const c2 = ws.getCell(row, col + 2);
+                  c2.value = total; c2.font = { name: 'Arial', bold: true, size: 9 }; c2.fill = cinzaMedio; c2.alignment = { horizontal: 'center', vertical: 'middle' }; c2.border = borda;
+                });
+                ws.getRow(row).height = 15;
+                row += 2;
+              });
+
+              row++;
+              [
+                [1, 'camisa', 'TOTAL CAMISETAS'],
+                [6, 'blusa', 'TOTAL BLUSÕES'],
+                [11, 'calca', 'TOTAL CALÇAS'],
+              ].forEach(([col, key, label]) => {
+                const total = Object.values(totais[key]).reduce((a, b) => a + b, 0);
+                ws.mergeCells(row, col, row, col + 1);
+                const c = ws.getCell(row, col);
+                c.value = label; c.font = { name: 'Arial', bold: true, size: 11 }; c.fill = cinzaEscuro; c.alignment = { horizontal: 'left', vertical: 'middle' }; c.border = borda;
+                const c2 = ws.getCell(row, col + 2);
+                c2.value = total; c2.font = { name: 'Arial', bold: true, size: 11 }; c2.fill = cinzaEscuro; c2.alignment = { horizontal: 'center', vertical: 'middle' }; c2.border = borda;
+              });
+              ws.getRow(row).height = 20;
+            };
+
+            const wb = new ExcelJS.Workbook();
+            buildAba(wb, 'SERVO', uni.filter(u => u.perfil === 'servo'));
+            buildAba(wb, 'STAFF', uni.filter(u => u.perfil !== 'servo'));
+
+            wb.xlsx.writeBuffer().then(buffer => {
+              const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'uniformes.xlsx';
+              a.click();
+              URL.revokeObjectURL(url);
             });
-            XLSX.writeFile(wb, 'uniformes.xlsx');
           }}
           style={{ ...BG({ width: '100%', padding: 12, borderRadius: 13, fontSize: 13, marginBottom: 14 }), background: 'rgba(0,200,81,.15)', border: '1px solid rgba(0,200,81,.3)', color: G.green }}>
           Exportar para Fornecedor (XLSX)
         </button>
-)}
+      )}
 
       {uni.length === 0 && (
         <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum pedido ainda.</div>
