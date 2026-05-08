@@ -2102,7 +2102,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
         </div>
         {/* home com 3 cards */}
         {pg === 'smins' && (
-          <ServoHomeV 
+        <ServoHomeV 
           user={user} 
           mins={mins} 
           avs={avs} 
@@ -2111,8 +2111,9 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
           uni={uni}
           dataLimiteUni={dataLimiteUni}
           dataLimitePagamento={dataLimitePagamento}
+          esc={esc}
         />
-        )}
+      )}
         <div
           style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}
         >
@@ -2625,22 +2626,6 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
                 <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Sem atribuições. Fale com o admin.</div>
               )}
             </div>
-          )}
-          {pg === 'smins' && (
-            <ServoHomeV
-              user={user}
-              mins={mins}
-              avs={avs}
-              setPg={setPg}
-              pago={user?.pago}
-              uni={uni}
-              dataLimiteUni={dataLimiteUni}
-              dataLimitePagamento={dataLimitePagamento}
-              esc={esc}
-            />
-          )}
-          {tab === 'atr' && !(user.funcoes || []).length && (
-            <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Sem atribuições. Fale com o admin.</div>
           )}
         </div>
       </div>
