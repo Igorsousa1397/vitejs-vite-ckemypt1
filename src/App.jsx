@@ -5762,16 +5762,16 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
             const buildAba = (wb, titulo, dados) => {
               const ws = wb.addWorksheet(titulo);
 
-              ws.mergeCells('A1:M1');
+              ws.mergeCells('A1:H1');
               const title = ws.getCell('A1');
               title.value = `PEDIDO UNIFORMES — ${titulo.toUpperCase()} — ENCONTRO COM DEUS 2026`;
               title.font = { name: 'Arial', bold: true, size: 12 };
               title.alignment = { horizontal: 'center', vertical: 'middle' };
               ws.getRow(1).height = 24;
 
-              const secoes = [[1, 'CAMISETA'], [6, 'BLUSÃO DE FRIO'], [11, 'CALÇA']];
+              const secoes = [[1, 'CAMISETA'], [4, 'BLUSÃO DE FRIO'], [7, 'CALÇA']];
               secoes.forEach(([col, nome]) => {
-                ws.mergeCells(2, col, 2, col + 3);
+                ws.mergeCells(2, col, 2, col + 1);
                 const c = ws.getCell(2, col);
                 c.value = nome;
                 c.font = { name: 'Arial', bold: true, size: 11 };
@@ -5781,7 +5781,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
               ws.getRow(2).height = 20;
 
               secoes.forEach(([col]) => {
-                ['NOME', 'QTD', 'TAM', ''].forEach((h, i) => {
+                ['NOME', 'QTD'].forEach((h, i) => {
                   const c = ws.getCell(3, col + i);
                   c.value = h;
                   c.font = { name: 'Arial', bold: true, size: 9 };
@@ -5791,7 +5791,7 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
               });
               ws.getRow(3).height = 16;
 
-              [24,6,6,2,2,24,6,6,2,2,24,6,6].forEach((w, i) => {
+              [22, 6, 2, 22, 6, 2, 22, 6].forEach((w, i) => {
                 ws.getColumn(i + 1).width = w;
               });
 
@@ -5809,8 +5809,8 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
 
                 if (!cam.length && !blu.length && !cal.length) return;
 
-                [1, 6, 11].forEach(col => {
-                  ws.mergeCells(row, col, row, col + 2);
+                [1, 4, 7].forEach(col => {
+                  ws.mergeCells(row, col, row, col + 1);
                   const c = ws.getCell(row, col);
                   c.value = `TAMANHO ${tm}`;
                   c.font = { name: 'Arial', bold: true, size: 9 };
@@ -5823,16 +5823,14 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
 
                 const maxRows = Math.max(cam.length, blu.length, cal.length, 1);
                 for (let i = 0; i < maxRows; i++) {
-                  [[1, cam], [6, blu], [11, cal]].forEach(([col, lista]) => {
+                  [[1, cam], [4, blu], [7, cal]].forEach(([col, lista]) => {
                     if (i < lista.length) {
                       const c1 = ws.getCell(row + i, col);
                       c1.value = lista[i][0]; c1.font = { name: 'Arial', size: 9 }; c1.alignment = { horizontal: 'left', vertical: 'middle' }; c1.border = borda;
                       const c2 = ws.getCell(row + i, col + 1);
                       c2.value = lista[i][1]; c2.font = { name: 'Arial', size: 9 }; c2.alignment = { horizontal: 'center', vertical: 'middle' }; c2.border = borda;
-                      const c3 = ws.getCell(row + i, col + 2);
-                      c3.value = tm; c3.font = { name: 'Arial', size: 9 }; c3.alignment = { horizontal: 'center', vertical: 'middle' }; c3.border = borda;
                     } else {
-                      [0,1,2].forEach(o => { ws.getCell(row + i, col + o).border = borda; });
+                      [0, 1].forEach(o => { ws.getCell(row + i, col + o).border = borda; });
                     }
                   });
                   ws.getRow(row + i).height = 14;
@@ -5844,11 +5842,10 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
                 const tCal = cal.reduce((a, x) => a + x[1], 0);
                 totais.camisa[tm] = tCam; totais.blusa[tm] = tBlu; totais.calca[tm] = tCal;
 
-                [[1, tCam], [6, tBlu], [11, tCal]].forEach(([col, total]) => {
-                  ws.mergeCells(row, col, row, col + 1);
+                [[1, tCam], [4, tBlu], [7, tCal]].forEach(([col, total]) => {
                   const c = ws.getCell(row, col);
                   c.value = `TOTAL ${tm}`; c.font = { name: 'Arial', bold: true, size: 9 }; c.fill = cinzaMedio; c.alignment = { horizontal: 'left', vertical: 'middle' }; c.border = borda;
-                  const c2 = ws.getCell(row, col + 2);
+                  const c2 = ws.getCell(row, col + 1);
                   c2.value = total; c2.font = { name: 'Arial', bold: true, size: 9 }; c2.fill = cinzaMedio; c2.alignment = { horizontal: 'center', vertical: 'middle' }; c2.border = borda;
                 });
                 ws.getRow(row).height = 15;
@@ -5856,16 +5853,11 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
               });
 
               row++;
-              [
-                [1, 'camisa', 'TOTAL CAMISETAS'],
-                [6, 'blusa', 'TOTAL BLUSÕES'],
-                [11, 'calca', 'TOTAL CALÇAS'],
-              ].forEach(([col, key, label]) => {
+              [[1, 'camisa', 'TOTAL CAMISETAS'], [4, 'blusa', 'TOTAL BLUSÕES'], [7, 'calca', 'TOTAL CALÇAS']].forEach(([col, key, label]) => {
                 const total = Object.values(totais[key]).reduce((a, b) => a + b, 0);
-                ws.mergeCells(row, col, row, col + 1);
                 const c = ws.getCell(row, col);
                 c.value = label; c.font = { name: 'Arial', bold: true, size: 11 }; c.fill = cinzaEscuro; c.alignment = { horizontal: 'left', vertical: 'middle' }; c.border = borda;
-                const c2 = ws.getCell(row, col + 2);
+                const c2 = ws.getCell(row, col + 1);
                 c2.value = total; c2.font = { name: 'Arial', bold: true, size: 11 }; c2.fill = cinzaEscuro; c2.alignment = { horizontal: 'center', vertical: 'middle' }; c2.border = borda;
               });
               ws.getRow(row).height = 20;
