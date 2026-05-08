@@ -1511,6 +1511,7 @@ export default function App() {
   const unsubOnRef = useRef(null);
   const unsubUsersRef = useRef(null);
   const unsubEscRef = useRef(null);
+  const [dataLimitePagamento, setDataLimitePagamento] = useState('');
 
   // Inicializa quarto mães se não existir
   const inicializarQuartoMaes = async () => {
@@ -1605,7 +1606,10 @@ useEffect(() => {
         });
 
         unsubConfigRef.current = onSnapshot(doc(db, 'config', 'uniformes'), (s) => {
-          if (s.exists() && s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
+          if (s.exists()) {
+            if (s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
+            if (s.data().dataLimitePagamento) setDataLimitePagamento(s.data().dataLimitePagamento);
+          }
         });
 
         unsubUsersRef.current = onSnapshot(collection(db, 'users'), (s) => {
@@ -2099,7 +2103,16 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
         </div>
         {/* home com 3 cards */}
         {pg === 'smins' && (
-          <ServoHomeV user={user} mins={mins} avs={avs} setPg={setPg} />
+          <ServoHomeV 
+          user={user} 
+          mins={mins} 
+          avs={avs} 
+          setPg={setPg}
+          pago={user?.pago}
+          uni={uni}
+          dataLimiteUni={dataLimiteUni}
+          dataLimitePagamento={dataLimitePagamento}
+        />
         )}
         <div
           style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}
@@ -2472,162 +2485,119 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
 }
 
 // ── SERVO HOME ───────────────────────────────────────────────────────────────
-function ServoHomeV({ user, mins, avs, setPg }) {
+function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento }) {
   const [tab, setTab] = useState('mins');
+  const [slide, setSlide] = useState(0);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const prox = mins.find((m) => !m.sent);
+  const meuPedido = uni.find((u) => u.userId === user.id);
+
+  // Monta slides
+  const slides = [];
+  if (prox) slides.push({ tipo: 'min', data: prox });
+  if (!pago && dataLimitePagamento) slides.push({ tipo: 'pagamento' });
+  if (!meuPedido && dataLimiteUni) slides.push({ tipo: 'uniforme' });
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const interval = setInterval(() => {
+      setSlide(s => (s + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  const slideAtual = slides[slide];
+
   return (
     <div>
-      {/* greeting */}
       <div style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-            Olá, {user.nome.split(' ')[0]}
-            <span style={{ color: G.green }}>.</span>
+            Olá, {user.nome.split(' ')[0]}<span style={{ color: G.green }}>.</span>
           </div>
-          <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
-            Encontro com Deus
-          </div>
+          <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Encontro com Deus</div>
         </div>
+
         {/* 3 quick cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 8,
-            marginBottom: 16,
-          }}
-        >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           {[
             ['📢', 'Avisos', 'savs'],
             ['👕', 'Uniforme', 'suni'],
             ['⚠️', 'Ocorrências', 'sinfo'],
           ].map(([ic, l, p]) => (
-            <div
-              key={p}
-              onClick={() => setPg(p)}
-              style={{
-                background: '#111',
-                border: '1px solid #1a1a1a',
-                borderRadius: 14,
-                padding: '14px 10px',
-                textAlign: 'center',
-                cursor: 'pointer',
-              }}
-            >
+            <div key={p} onClick={() => setPg(p)}
+              style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '14px 10px', textAlign: 'center', cursor: 'pointer' }}>
               <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 0.5,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {l}
-              </div>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>{l}</div>
             </div>
           ))}
         </div>
-        {/* próxima ministração destaque */}
-        {prox && (
-          <div
-            style={{
-              background: 'rgba(10,132,255,.1)',
-              border: '1px solid rgba(10,132,255,.2)',
-              borderRadius: 14,
-              padding: '13px 14px',
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                color: '#64b5f6',
-                fontWeight: 700,
-                fontSize: 11,
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}
-            >
-              Próxima
-            </div>
-            <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-              {prox.nome}
-            </div>
-            <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>
-              {prox.dia} · {prox.hora}
-            </div>
+
+        {/* SLIDE */}
+        {slides.length > 0 && (
+          <div style={{ marginBottom: 14, position: 'relative' }}>
+            {/* Dots */}
+            {slides.length > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginBottom: 8 }}>
+                {slides.map((_, i) => (
+                  <div key={i} onClick={() => setSlide(i)}
+                    style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : '#333', transition: 'all .3s', cursor: 'pointer' }} />
+                ))}
+              </div>
+            )}
+
+            {/* Slide: próxima ministração */}
+            {slideAtual?.tipo === 'min' && (
+              <div style={{ background: 'rgba(10,132,255,.1)', border: '1px solid rgba(10,132,255,.2)', borderRadius: 14, padding: '13px 14px' }}>
+                <div style={{ color: '#64b5f6', fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Próxima</div>
+                <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{prox.nome}</div>
+                <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
+              </div>
+            )}
+
+            {/* Slide: pagamento pendente */}
+            {slideAtual?.tipo === 'pagamento' && (
+              <div onClick={() => {}} style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '13px 14px', cursor: 'pointer' }}>
+                <div style={{ color: '#ff6b6b', fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
+                <div style={{ color: G.t, fontSize: 14, fontWeight: 700 }}>Sua participação ainda não foi confirmada</div>
+                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                  Valor: <strong style={{ color: '#fff' }}>R$ 220,00</strong> · Prazo: <strong style={{ color: '#ff6b6b' }}>{new Date(dataLimitePagamento + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
+                </div>
+              </div>
+            )}
+
+            {/* Slide: uniforme pendente */}
+            {slideAtual?.tipo === 'uniforme' && (
+              <div onClick={() => setPg('suni')} style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.25)', borderRadius: 14, padding: '13px 14px', cursor: 'pointer' }}>
+                <div style={{ color: '#ff9f0a', fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>👕 Uniforme</div>
+                <div style={{ color: G.t, fontSize: 14, fontWeight: 700 }}>Você ainda não fez seu pedido de uniforme</div>
+                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                  Prazo: <strong style={{ color: '#ff9f0a' }}>{new Date(dataLimiteUni + 'T12:00:00').toLocaleDateString('pt-BR')}</strong> · Toque para acessar
+                </div>
+              </div>
+            )}
           </div>
         )}
+
         {/* seg control */}
-        <Seg
-          opts={[
-            ['mins', 'Ministrações'],
-            ['atr', 'Atribuições'],
-          ]}
-          val={tab}
-          set={setTab}
-        />
+        <Seg opts={[['mins', 'Ministrações'], ['atr', 'Atribuições']]} val={tab} set={setTab} />
         <div style={{ marginTop: 12 }}>
-          {tab === 'mins' &&
-            mins.map((m) => (
-              <div
-                key={m.id}
-                className="fu"
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderLeft: `3px solid ${dC[m.dia]}`,
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  marginBottom: 8,
-                }}
-              >
-                <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-                  {m.nome}
-                </div>
-                <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
-                  {m.dia} · {m.hora}
-                </div>
-              </div>
-            ))}
-          {tab === 'atr' &&
-            (user.funcoes || []).length > 0 &&
-            (user.funcoes || []).map((f, i) => (
-              <div
-                key={i}
-                className="fu"
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderLeft: `3px solid ${G.green}`,
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  marginBottom: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
-              >
-                <span style={{ color: G.green }}>📋</span>
-                <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-                  {f}
-                </span>
-              </div>
-            ))}
-          {tab === 'atr' && !(user.funcoes || []).length && (
-            <div
-              style={{
-                color: G.tm,
-                textAlign: 'center',
-                padding: 28,
-                fontSize: 13,
-              }}
-            >
-              Sem atribuições. Fale com o admin.
+          {tab === 'mins' && mins.map((m) => (
+            <div key={m.id} className="fu"
+              style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[m.dia]}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8 }}>
+              <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{m.nome}</div>
+              <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>{m.dia} · {m.hora}</div>
             </div>
+          ))}
+          {tab === 'atr' && (user.funcoes || []).length > 0 && (user.funcoes || []).map((f, i) => (
+            <div key={i} className="fu"
+              style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ color: G.green }}>📋</span>
+              <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{f}</span>
+            </div>
+          ))}
+          {tab === 'atr' && !(user.funcoes || []).length && (
+            <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Sem atribuições. Fale com o admin.</div>
           )}
         </div>
       </div>
