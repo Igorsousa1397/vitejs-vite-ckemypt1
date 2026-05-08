@@ -2571,7 +2571,9 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
             {slideAtual?.tipo === 'uniforme' && (
               <div onClick={() => setPg('suni')} style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.25)', borderRadius: 14, padding: '13px 14px', cursor: 'pointer' }}>
                 <div style={{ color: '#ff9f0a', fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>👕 Uniforme</div>
-                <div style={{ color: G.t, fontSize: 14, fontWeight: 700 }}>Você ainda não fez seu pedido de uniforme</div>
+                <div style={{ color: G.t, fontSize: 14, fontWeight: 700 }}>
+                  {meuPedido?.status === 'aberto' ? 'Alteração aprovada — atualize seu pedido' : 'Você ainda não fez seu pedido de uniforme'}
+                </div>
                 <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
                   Prazo: <strong style={{ color: '#ff9f0a' }}>{new Date(dataLimiteUni + 'T12:00:00').toLocaleDateString('pt-BR')}</strong> · Toque para acessar
                 </div>
