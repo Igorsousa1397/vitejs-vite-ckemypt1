@@ -5223,28 +5223,27 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     setLoading(true);
     try {
       const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
-      
-      // Salva credenciais do admin antes de criar novo usuário
-      const adminUser = auth.currentUser;
-      
-      const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), 'Temp@2026!');
-      await sendPasswordResetEmail(auth, f.email.trim());
-      const novoUser = {
-        nome: nm, email: f.email.trim(), perfil: f.perfil,
-        funcoes: f.fn ? [f.fn] : [], ativo: true, pago: false, primeiro: true,
-      };
-      await setDoc(doc(db, 'users', cred.user.uid), novoUser);
-      
-      // Reautentica o admin
-      await auth.updateCurrentUser(adminUser);
-      
-      setUsers([...users, { id: cred.user.uid, ...novoUser }]);
-      setF({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
-      setSh(false);
-      t('Servo adicionado! Email de acesso enviado ✉️');
+      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarServo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: f.email.trim(),
+          nome: nm,
+          perfil: f.perfil,
+          funcoes: f.fn ? [f.fn] : [],
+        }),
+      });
+      const data = await res.json();
+      if (data.result?.uid) {
+        setUsers([...users, { id: data.result.uid, nome: nm, email: f.email.trim(), perfil: f.perfil, funcoes: f.fn ? [f.fn] : [], ativo: true, pago: false }]);
+        setF({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
+        setSh(false);
+        t('Servo adicionado! Email de acesso enviado ✉️');
+      } else {
+        t(data.error || 'Erro ao criar servo', 'w');
+      }
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') t('Email já cadastrado', 'w');
-      else t('Erro: ' + err.message, 'w');
+      t('Erro: ' + err.message, 'w');
     }
     setLoading(false);
   };
