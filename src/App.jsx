@@ -2102,18 +2102,19 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
         </div>
         {/* home com 3 cards */}
         {pg === 'smins' && (
-        <ServoHomeV 
-          user={user} 
-          mins={mins} 
-          avs={avs} 
-          setPg={setPg}
-          pago={user?.pago}
-          uni={uni}
-          dataLimiteUni={dataLimiteUni}
-          dataLimitePagamento={dataLimitePagamento}
-          esc={esc}
-        />
-      )}
+          <ServoHomeV 
+            user={user} 
+            mins={mins} 
+            avs={avs} 
+            setPg={setPg}
+            pago={user?.pago}
+            uni={uni}
+            dataLimiteUni={dataLimiteUni}
+            dataLimitePagamento={dataLimitePagamento}
+            esc={esc}
+            users={users}
+          />
+        )}
         <div
           style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}
         >
@@ -2487,7 +2488,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
 }
 
 // ── SERVO HOME ───────────────────────────────────────────────────────────────
-function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc }) {
+function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
   const [tab, setTab] = useState('mins');
   const [slide, setSlide] = useState(0);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
@@ -2597,10 +2598,12 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
           ))}
           {tab === 'atr' && (
             <div>
-              {/* Funções */}
-              {(user.funcoes || []).length > 0 && (user.funcoes || []).map((f, i) => {
-                const equipe = esc.find(e => e.servos?.includes(user.nome) && e.equipe === f || e.servos?.includes(user.nome));
-                const colegas = equipe ? (equipe.servos || []).filter(s => s !== user.nome) : [];
+              {(user.funcoes || []).length > 0 ? (user.funcoes || []).map((f, i) => {
+                const colegas = (users || []).filter(u =>
+                  u.id !== user.id &&
+                  u.ativo !== false &&
+                  (u.funcoes || []).includes(f)
+                );
                 return (
                   <div key={i} className="fu"
                     style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8 }}>
@@ -2614,15 +2617,14 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
                         {colegas.map((c, j) => (
                           <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: G.green, flexShrink: 0 }} />
-                            <span style={{ color: G.td, fontSize: 13 }}>{c}</span>
+                            <span style={{ color: G.td, fontSize: 13 }}>{c.nome}</span>
                           </div>
                         ))}
                       </>
                     )}
                   </div>
                 );
-              })}
-              {!(user.funcoes || []).length && (
+              }) : (
                 <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Sem atribuições. Fale com o admin.</div>
               )}
             </div>
