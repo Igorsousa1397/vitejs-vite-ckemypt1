@@ -610,6 +610,12 @@ function Login({ onLogin, onVoltar }){
     try{
       const cred=await signInWithEmailAndPassword(auth,email,senha);
       const snap=await getDoc(doc(db,'users',cred.user.uid));
+      if (snap.data().ativo === false) {
+        await signOut(auth);
+        setE('Seu acesso está desativado. Fale com o administrador.');
+        setLoad(false);
+        return;
+      }
       if(!snap.exists()){setE('Usuário não encontrado no sistema.');setLoad(false);return;}
       onLogin({id:cred.user.uid,...snap.data()});
     }catch(err){
@@ -1581,9 +1587,18 @@ useEffect(() => {
       inicializarQuartoMaes()
       const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (snap.exists()) {
-        setUser({ id: firebaseUser.uid, ...snap.data() });
+        const data = snap.data();
+        
+        if (data.ativo === false) {
+          await signOut(auth);
+          setSp(false);
+          setScr('login');
+          return;
+        }
+        
+        setUser({ id: firebaseUser.uid, ...data });
         setScr('app');
-        if (snap.data().perfil === 'servo') setPg('smins');
+        if (data.perfil === 'servo') setPg('smins');
 
         unsubEscRef.current = onSnapshot(collection(db, 'equipes'), (s) => {
           setEsc(s.docs.map(d => ({ id: d.id, ...d.data() })));
