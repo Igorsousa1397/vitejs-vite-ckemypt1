@@ -152,6 +152,42 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   console.log(`${response.successCount} notificações enviadas`);
   res.json({ enviadas: response.successCount });
 });
+
+// ── CRIAR SERVO ──────────────────────────────────────────────────────────────
+exports.criarServo = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  const { email, nome, perfil, funcoes } = req.body.data || req.body;
+  if (!email || !nome) return res.status(400).json({ error: 'email e nome obrigatórios' });
+
+  try {
+    const userRecord = await admin.auth().createUser({
+      email,
+      password: 'Temp@2026!',
+    });
+
+    await admin.auth().generatePasswordResetLink(email);
+
+    await admin.firestore().collection('users').doc(userRecord.uid).set({
+      nome,
+      email,
+      perfil: perfil || 'servo',
+      funcoes: funcoes || [],
+      ativo: true,
+      pago: false,
+      primeiro: true,
+    });
+
+    res.json({ result: { uid: userRecord.uid } });
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists') {
+      res.status(400).json({ error: 'Email já cadastrado' });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
 // ── CRIAR LÍDERES GERAIS ──────────────────────────────────────────────────────
 exports.criarLideresGerais = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
