@@ -5278,7 +5278,7 @@ function SvV({ users, setUsers, esc, edit, t }) {
 
 const TAMANHOS = ['P', 'M', 'G', 'G1', 'G2', 'G3'];
 
-function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
+function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, user, role, edit, t }) {
   const isAdm = edit;
   const hoje = new Date().toISOString().split('T')[0];
   const prazoDefinido = !!dataLimite;
