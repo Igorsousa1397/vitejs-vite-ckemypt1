@@ -5336,7 +5336,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
 
             {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
               <div onClick={e => e.stopPropagation()}>
-                <SL c="Líder do Encontro" mt={0} />
+                <SL c="Líder" mt={0} />
                 <select
                   value={u.liderEncontro || ''}
                   onChange={async (e) => {
@@ -5357,7 +5357,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
           </div>
         </Acc>
       ))}
-      
+
       <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Servo">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 10, padding: '10px 13px', color: G.green, fontSize: 12 }}>
