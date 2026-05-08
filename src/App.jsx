@@ -2650,9 +2650,8 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
                       <>
                         <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Líder</div>
                         {nomesLideres.map((l, j) => (
-                          <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a84ff', flexShrink: 0 }} />
-                            <span style={{ color: '#64b5f6', fontSize: 13, fontWeight: l === user.nome ? 700 : 400 }}>
+                          <div key={j} style={{ marginBottom: 4 }}>
+                            <span style={{ color: G.td, fontSize: 13, fontWeight: l === user.nome ? 700 : 400 }}>
                               {l}{l === user.nome ? ' (você)' : ''}
                             </span>
                           </div>
@@ -2664,8 +2663,7 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
                       <>
                         <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6, marginTop: nomesLideres.length ? 8 : 0 }}>Equipe</div>
                         {colegas.map((c, j) => (
-                          <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: G.green, flexShrink: 0 }} />
+                          <div key={j} style={{ marginBottom: 4 }}>
                             <span style={{ color: G.td, fontSize: 13 }}>{c.nome}</span>
                           </div>
                         ))}
