@@ -5290,7 +5290,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
         {[
           [users.filter((u) => u.perfil !== 'admin').length, 'Total', '#636366'],
           [users.filter((u) => u.perfil !== 'admin' && u.ativo !== false).length, 'Ativos', G.green],
-          [users.filter((u) => u.perfil !== 'admin' && u.pago).length, 'Pagos', '#0a84ff'],
+          [users.filter((u) => u.perfil === 'servo' && u.pago).length, 'Pagos', '#0a84ff'],
         ].map(([n, l, c]) => (
           <div key={l} style={{ background: '#111', borderRadius: 12, padding: '10px 8px', textAlign: 'center', borderTop: `2px solid ${c}` }}>
             <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>{n}</div>
@@ -5336,16 +5336,29 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
 
             {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
               <div onClick={e => e.stopPropagation()}>
-                <SL c="Líder" mt={0} />
+                <SL c="Líderes do Encontro" mt={0} />
                 <select
                   value={u.liderEncontro || ''}
                   onChange={async (e) => {
                     await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
                     upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
                   }}
+                  style={{ ...I, fontSize: 12, padding: '8px 12px', marginBottom: 8 }}
+                >
+                  <option value="">Servo 1...</option>
+                  {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
+                    <option key={s.id} value={s.nome}>{s.nome}</option>
+                  ))}
+                </select>
+                <select
+                  value={u.liderEncontro2 || ''}
+                  onChange={async (e) => {
+                    await setDoc(doc(db, 'users', u.id), { liderEncontro2: e.target.value }, { merge: true });
+                    upd(u.id, (x) => ({ ...x, liderEncontro2: e.target.value }));
+                  }}
                   style={{ ...I, fontSize: 12, padding: '8px 12px' }}
                 >
-                  <option value="">Selecione um servo...</option>
+                  <option value="">Servo 2...</option>
                   {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
                     <option key={s.id} value={s.nome}>{s.nome}</option>
                   ))}
