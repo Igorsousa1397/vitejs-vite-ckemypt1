@@ -2561,7 +2561,7 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
             {slideAtual?.tipo === 'pagamento' && (
               <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '13px 14px' }}>
                 <div style={{ color: '#ff6b6b', fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
-                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, lineHeight: 2 }}>
                   Valor: <strong style={{ color: '#fff' }}>R$ 220,00</strong> · Prazo: <strong style={{ color: '#ff6b6b' }}>{new Date(dataLimitePagamento + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
                 </div>
               </div>
