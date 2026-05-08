@@ -5123,7 +5123,7 @@ function Toggle({
 }
 
 // ── SERVOS ───────────────────────────────────────────────────────────────────
-function SvV({ users, setUsers, esc, edit, t }) {
+function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
   const [filtroPerfil, setFiltroPerfil] = useState('todos');
   const [sh, setSh] = useState(false);
   const [f, setF] = useState({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
