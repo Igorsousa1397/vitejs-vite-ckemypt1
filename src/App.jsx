@@ -2486,7 +2486,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
 }
 
 // ── SERVO HOME ───────────────────────────────────────────────────────────────
-function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento }) {
+function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc }) {
   const [tab, setTab] = useState('mins');
   const [slide, setSlide] = useState(0);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
@@ -2594,13 +2594,52 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
               <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>{m.dia} · {m.hora}</div>
             </div>
           ))}
-          {tab === 'atr' && (user.funcoes || []).length > 0 && (user.funcoes || []).map((f, i) => (
-            <div key={i} className="fu"
-              style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ color: G.green }}>📋</span>
-              <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{f}</span>
+          {tab === 'atr' && (
+            <div>
+              {/* Funções */}
+              {(user.funcoes || []).length > 0 && (user.funcoes || []).map((f, i) => {
+                const equipe = esc.find(e => e.servos?.includes(user.nome) && e.equipe === f || e.servos?.includes(user.nome));
+                const colegas = equipe ? (equipe.servos || []).filter(s => s !== user.nome) : [];
+                return (
+                  <div key={i} className="fu"
+                    style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: colegas.length ? 10 : 0 }}>
+                      <span style={{ color: G.green }}>📋</span>
+                      <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{f}</span>
+                    </div>
+                    {colegas.length > 0 && (
+                      <>
+                        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Equipe</div>
+                        {colegas.map((c, j) => (
+                          <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: G.green, flexShrink: 0 }} />
+                            <span style={{ color: G.td, fontSize: 13 }}>{c}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {!(user.funcoes || []).length && (
+                <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Sem atribuições. Fale com o admin.</div>
+              )}
             </div>
-          ))}
+          )}
+          Mas precisa passar esc como prop pro ServoHomeV. Hoje ele não recebe. Fix na chamada:
+          jsx{pg === 'smins' && (
+            <ServoHomeV
+              user={user}
+              mins={mins}
+              avs={avs}
+              setPg={setPg}
+              pago={user?.pago}
+              uni={uni}
+              dataLimiteUni={dataLimiteUni}
+              dataLimitePagamento={dataLimitePagamento}
+              esc={esc}
+            />
+          )}
           {tab === 'atr' && !(user.funcoes || []).length && (
             <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Sem atribuições. Fale com o admin.</div>
           )}
