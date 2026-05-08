@@ -2559,10 +2559,9 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
 
             {/* Slide: pagamento pendente */}
             {slideAtual?.tipo === 'pagamento' && (
-              <div onClick={() => {}} style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '13px 14px', cursor: 'pointer' }}>
+              <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '13px 14px' }}>
                 <div style={{ color: '#ff6b6b', fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
-                <div style={{ color: G.t, fontSize: 14, fontWeight: 700 }}>Sua participação ainda não foi confirmada</div>
-                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, lineHeight: 1.5 }}>
                   Valor: <strong style={{ color: '#fff' }}>R$ 220,00</strong> · Prazo: <strong style={{ color: '#ff6b6b' }}>{new Date(dataLimitePagamento + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
                 </div>
               </div>
