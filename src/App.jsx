@@ -2492,6 +2492,7 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
   const [slide, setSlide] = useState(0);
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
   const prox = mins.find((m) => !m.sent);
+  const meuPedido = uni.find((u) => u.userId === user.id);
   if ((!meuPedido || meuPedido.status === 'aberto') && dataLimiteUni) slides.push({ tipo: 'uniforme' });
 
   // Monta slides
