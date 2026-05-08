@@ -5320,24 +5320,24 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
                 labelOn="Ativo"
                 labelOff="Inativo"
               />
-              {u.perfil !== 'servo' && (
-              <div onClick={e => e.stopPropagation()} style={{ position: 'relative', zIndex: 1 }}>
-                <SL c="Líder do Encontro" mt={0} />
-                <select
-                  value={u.liderEncontro || ''}
-                  onChange={async (e) => {
-                    await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
-                    upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
-                  }}
-                  style={{ ...I, fontSize: 12, padding: '8px 12px' }}
-                >
-                  <option value="">Selecione um servo...</option>
-                  {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
-                    <option key={s.id} value={s.nome}>{s.nome}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+              {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
+            <div onClick={e => e.stopPropagation()}>
+              <SL c="Líder do Encontro" mt={0} />
+              <select
+                value={u.liderEncontro || ''}
+                onChange={async (e) => {
+                  await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
+                  upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
+                }}
+                style={{ ...I, fontSize: 12, padding: '8px 12px' }}
+              >
+                <option value="">Selecione um servo...</option>
+                {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
+                  <option key={s.id} value={s.nome}>{s.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
             </div>
 
             {/* Campo Líder — só para perfis de líder */}
