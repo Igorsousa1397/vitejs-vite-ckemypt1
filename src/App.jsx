@@ -5223,6 +5223,10 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     setLoading(true);
     try {
       const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
+      
+      // Salva credenciais do admin antes de criar novo usuário
+      const adminUser = auth.currentUser;
+      
       const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), 'Temp@2026!');
       await sendPasswordResetEmail(auth, f.email.trim());
       const novoUser = {
@@ -5230,6 +5234,10 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
         funcoes: f.fn ? [f.fn] : [], ativo: true, pago: false, primeiro: true,
       };
       await setDoc(doc(db, 'users', cred.user.uid), novoUser);
+      
+      // Reautentica o admin
+      await auth.updateCurrentUser(adminUser);
+      
       setUsers([...users, { id: cred.user.uid, ...novoUser }]);
       setF({ nome: '', sob: '', email: '', perfil: 'servo', fn: '' });
       setSh(false);
