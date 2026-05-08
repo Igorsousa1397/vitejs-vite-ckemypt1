@@ -5176,21 +5176,39 @@ function Toggle({
 function LiderInput({ u, campo, ph, users, upd }) {
   const [busca, setBusca] = useState(u[campo] || '');
   const [aberto, setAberto] = useState(false);
+  const skipBlur = useRef(false);
+
   const filtrados = users.filter(s =>
     s.perfil === 'servo' && s.ativo !== false &&
     s.nome.toLowerCase().includes(busca.toLowerCase()) &&
-    busca.length > 0
+    busca.length > 0 &&
+    s.nome !== u[campo]
   );
+
+  const limpar = async () => {
+    setBusca('');
+    await setDoc(doc(db, 'users', u.id), { [campo]: '' }, { merge: true });
+    upd(u.id, x => ({ ...x, [campo]: '' }));
+  };
+
   return (
     <div style={{ position: 'relative', marginBottom: 8 }}>
-      <input
-        value={busca}
-        onChange={e => { setBusca(e.target.value); setAberto(true); }}
-        onFocus={() => setAberto(true)}
-        onBlur={() => setTimeout(() => setAberto(false), 150)}
-        placeholder={ph}
-        style={{ ...I, fontSize: 12, padding: '9px 12px' }}
-      />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={busca}
+          onChange={e => { setBusca(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+          placeholder={ph}
+          style={{ ...I, fontSize: 12, padding: '9px 12px', flex: 1 }}
+        />
+        {busca && (
+          <button onClick={limpar}
+            style={{ ...BK({ padding: '9px 12px', borderRadius: 10, fontSize: 13 }), color: 'rgba(255,59,48,.6)', borderColor: 'rgba(255,59,48,.3)', flexShrink: 0 }}>
+            ✕
+          </button>
+        )}
+      </div>
       {aberto && filtrados.length > 0 && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
@@ -5200,6 +5218,7 @@ function LiderInput({ u, campo, ph, users, upd }) {
           {filtrados.map(s => (
             <div key={s.id}
               onMouseDown={async () => {
+                skipBlur.current = true;
                 setBusca(s.nome);
                 setAberto(false);
                 await setDoc(doc(db, 'users', u.id), { [campo]: s.nome }, { merge: true });
@@ -5411,19 +5430,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
 
             {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
               <div onClick={e => e.stopPropagation()}>
-                <SL c="Líderes do Encontro" mt={0} />
-                {u.liderEncontro && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a84ff', flexShrink: 0 }} />
-                    <span style={{ color: G.td, fontSize: 13 }}>{u.liderEncontro}</span>
-                  </div>
-                )}
-                {u.liderEncontro2 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a84ff', flexShrink: 0 }} />
-                    <span style={{ color: G.td, fontSize: 13 }}>{u.liderEncontro2}</span>
-                  </div>
-                )}
+                <SL c="Líderes" mt={0} />
                 <LiderInput u={u} campo="liderEncontro" ph="Servo 1..." users={users} upd={upd} />
                 <LiderInput u={u} campo="liderEncontro2" ph="Servo 2..." users={users} upd={upd} />
               </div>
