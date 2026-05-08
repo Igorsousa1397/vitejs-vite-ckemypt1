@@ -2626,7 +2626,7 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
               )}
             </div>
           )}
-          pg === 'smins' && (
+          {pg === 'smins' && (
             <ServoHomeV
               user={user}
               mins={mins}
