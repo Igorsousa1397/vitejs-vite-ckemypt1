@@ -1926,10 +1926,8 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
       ['📢', 'savs', 'Avisos'],
       ['👕', 'suni', 'Uniforme'],
       ['⚠️', 'sinfo', 'Ocorrências'],
-      ...(role === 'lider_midia' || (user?.funcoes || []).includes('Mídia')
-          ? [['📷', 'simg', 'Uso de Imagem']]
-          : []),
-      ];
+      ...(role === 'lider_midia' || (user?.funcoes || []).includes('Mídia') ? [['📷', 'simg', 'Uso de Imagem']] : []),
+    ];
     return (
       <div style={{ minHeight: '100vh', background: G.bg, paddingBottom: 60 }}>
         <style>{css}</style>
