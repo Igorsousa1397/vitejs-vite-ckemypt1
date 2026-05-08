@@ -2152,9 +2152,10 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
               setUni={setUni}
               dataLimite={dataLimiteUni}
               setDataLimite={salvarDataLimite}
+              dataLimitePagamento={dataLimitePagamento}
               user={user}
-              role="servo"
-              edit={false}
+              role={role}
+              edit={isAdm}
               t={showT}
             />
           )}
@@ -5556,11 +5557,13 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
   return {
     ...a,
     [tm]: uni.filter(u => u[key] === tm).reduce((s, u) => s + (u[qtdKey] || 1), 0)
-  };
-}, {});
+    };
+  }, {});
 
   const pendentes = uni.filter(u => u.status === 'pendente').length;
   const [dataTemp, setDataTemp] = useState(dataLimite);
+  const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
+  const [savingDataPag, setSavingDataPag] = useState(false);
   const [savingData, setSavingData] = useState(false);
 
   const salvarData = async () => {
@@ -5645,6 +5648,56 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, user, role, edit, t }) {
         )}
         {!dataTemp && (
           <div style={{ color: '#ff9f0a', fontSize: 12, marginTop: 8 }}>Defina uma data para liberar solicitacoes aos servos.</div>
+        )}
+      </div>
+
+      {/* DATA LIMITE PAGAMENTO SERVO */}
+      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Data Limite — Pagamento do Servo</div>
+        
+        {!!dataLimitePagamento && dataTempPag === dataLimitePagamento ? (
+          <>
+            <div style={{ color: G.td, fontSize: 14, padding: '10px 0', marginBottom: 10 }}>
+              {new Date(dataLimitePagamento + 'T12:00:00').toLocaleDateString('pt-BR')}
+            </div>
+            <button onClick={() => setDataTempPag('')}
+              style={BK({ width: '100%', padding: 12, borderRadius: 12 })}>
+              Alterar Data
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <select value={dataTempPag?.split('-')[2] || ''}
+                onChange={e => { const p = dataTempPag?.split('-') || ['','','']; setDataTempPag(`${p[0]}-${p[1]}-${e.target.value}`); }}
+                style={{ ...I, flex: 1, marginBottom: 0 }}>
+                <option value="">Dia</option>
+                {Array.from({length: 31}, (_, i) => i + 1).map(d => (
+                  <option key={d} value={String(d).padStart(2, '0')}>{d}</option>
+                ))}
+              </select>
+              <select value={dataTempPag?.split('-')[1] || ''}
+                onChange={e => { const p = dataTempPag?.split('-') || ['','','']; setDataTempPag(`${p[0]}-${e.target.value}-${p[2]}`); }}
+                style={{ ...I, flex: 1, marginBottom: 0 }}>
+                <option value="">Mês</option>
+                {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => (
+                  <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                ))}
+              </select>
+              <select value={dataTempPag?.split('-')[0] || ''}
+                onChange={e => { const p = dataTempPag?.split('-') || ['','','']; setDataTempPag(`${e.target.value}-${p[1]}-${p[2]}`); }}
+                style={{ ...I, flex: 1, marginBottom: 0 }}>
+                <option value="">Ano</option>
+                {[2025, 2026, 2027].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <button onClick={salvarDataPag} disabled={savingDataPag}
+              style={BG({ width: '100%', padding: 12, borderRadius: 12, opacity: savingDataPag ? 0.7 : 1 })}>
+              {savingDataPag ? 'Salvando...' : 'Salvar Data'}
+            </button>
+          </>
         )}
       </div>
 
