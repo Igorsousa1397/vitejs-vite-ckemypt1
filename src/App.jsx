@@ -5309,6 +5309,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
         }>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {u.email && <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111', borderRadius: 12, padding: '12px 14px' }}
               onClick={e => e.stopPropagation()}>
               <Toggle
@@ -5320,28 +5321,20 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
                 labelOn="Ativo"
                 labelOff="Inativo"
               />
-              {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
-            <div onClick={e => e.stopPropagation()}>
-              <SL c="Líder do Encontro" mt={0} />
-              <select
-                value={u.liderEncontro || ''}
-                onChange={async (e) => {
-                  await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
-                  upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
-                }}
-                style={{ ...I, fontSize: 12, padding: '8px 12px' }}
-              >
-                <option value="">Selecione um servo...</option>
-                {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
-                  <option key={s.id} value={s.nome}>{s.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
+              {u.perfil === 'servo' && (
+                <Toggle
+                  val={!!u.pago}
+                  onToggle={async () => {
+                    await setDoc(doc(db, 'users', u.id), { pago: !u.pago }, { merge: true });
+                  }}
+                  labelOn="Pago ✓"
+                  labelOff="Pendente"
+                  colorOn="#0a84ff"
+                />
+              )}
             </div>
 
-            {/* Campo Líder — só para perfis de líder */}
-            {u.perfil !== 'servo' && (
+            {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
               <div onClick={e => e.stopPropagation()}>
                 <SL c="Líder do Encontro" mt={0} />
                 <select
@@ -5364,7 +5357,6 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
           </div>
         </Acc>
       ))}
-
       <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Servo">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 10, padding: '10px 13px', color: G.green, fontSize: 12 }}>
