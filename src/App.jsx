@@ -5420,9 +5420,9 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* STATUS DO PEDIDO */}
               {meuPedido && (
-                <div style={{ background: meuPedido.status === 'pendente' ? 'rgba(255,159,10,.08)' : meuPedido.status === 'aberto' ? 'rgba(0,200,81,.08)' : 'rgba(99,99,102,.1)', border: `1px solid ${meuPedido.status === 'pendente' ? 'rgba(255,159,10,.3)' : meuPedido.status === 'aberto' ? 'rgba(0,200,81,.2)' : '#2a2a2a'}`, borderRadius: 12, padding: '10px 14px' }}>
-                  <div style={{ color: meuPedido.status === 'pendente' ? '#ff9f0a' : meuPedido.status === 'aberto' ? G.green : G.tm, fontWeight: 700, fontSize: 13 }}>
-                    {meuPedido.status === 'pendente' ? 'Solicitacao de alteracao enviada — aguardando aprovacao' : meuPedido.status === 'aberto' ? 'Alteracao aprovada — edite e salve novamente' : 'Pedido registrado'}
+                <div style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.3)', borderRadius: 12, padding: '10px 14px' }}>
+                  <div style={{ color: '#ff9f0a', fontWeight: 700, fontSize: 13 }}>
+                    Alteracao aprovada — edite e salve novamente
                   </div>
                 </div>
               )}
