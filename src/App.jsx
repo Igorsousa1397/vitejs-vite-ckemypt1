@@ -4,8 +4,7 @@ import { messaging, getToken, onMessage } from './firebase';
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import jsPDF from 'jspdf'
-import * as ExcelJS from 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
-
+import XLSX from 'xlsx';
 
 const vibrar = (ms = 50) => {
   if ('vibrate' in navigator) navigator.vibrate(ms);
