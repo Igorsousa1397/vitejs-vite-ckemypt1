@@ -2626,8 +2626,7 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
               )}
             </div>
           )}
-          Mas precisa passar esc como prop pro ServoHomeV. Hoje ele não recebe. Fix na chamada:
-          jsx{pg === 'smins' && (
+          pg === 'smins' && (
             <ServoHomeV
               user={user}
               mins={mins}
