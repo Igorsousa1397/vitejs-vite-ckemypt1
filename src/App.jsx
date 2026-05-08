@@ -5150,6 +5150,51 @@ function Toggle({
   );
 }
 
+function LiderInput({ u, campo, ph, users, upd }) {
+  const [busca, setBusca] = useState(u[campo] || '');
+  const [aberto, setAberto] = useState(false);
+  const filtrados = users.filter(s =>
+    s.perfil === 'servo' && s.ativo !== false &&
+    s.nome.toLowerCase().includes(busca.toLowerCase()) &&
+    busca.length > 0
+  );
+  return (
+    <div style={{ position: 'relative', marginBottom: 8 }}>
+      <input
+        value={busca}
+        onChange={e => { setBusca(e.target.value); setAberto(true); }}
+        onFocus={() => setAberto(true)}
+        onBlur={() => setTimeout(() => setAberto(false), 150)}
+        placeholder={ph}
+        style={{ ...I, fontSize: 12, padding: '9px 12px' }}
+      />
+      {aberto && filtrados.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+          background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
+          marginTop: 4, maxHeight: 160, overflowY: 'auto',
+        }}>
+          {filtrados.map(s => (
+            <div key={s.id}
+              onMouseDown={async () => {
+                setBusca(s.nome);
+                setAberto(false);
+                await setDoc(doc(db, 'users', u.id), { [campo]: s.nome }, { merge: true });
+                upd(u.id, x => ({ ...x, [campo]: s.nome }));
+              }}
+              style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {s.nome}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SERVOS ───────────────────────────────────────────────────────────────────
 function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
   const [filtroPerfil, setFiltroPerfil] = useState('todos');
@@ -5337,32 +5382,8 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
             {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
               <div onClick={e => e.stopPropagation()}>
                 <SL c="Líderes do Encontro" mt={0} />
-                <select
-                  value={u.liderEncontro || ''}
-                  onChange={async (e) => {
-                    await setDoc(doc(db, 'users', u.id), { liderEncontro: e.target.value }, { merge: true });
-                    upd(u.id, (x) => ({ ...x, liderEncontro: e.target.value }));
-                  }}
-                  style={{ ...I, fontSize: 12, padding: '8px 12px', marginBottom: 8 }}
-                >
-                  <option value="">Servo 1...</option>
-                  {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
-                    <option key={s.id} value={s.nome}>{s.nome}</option>
-                  ))}
-                </select>
-                <select
-                  value={u.liderEncontro2 || ''}
-                  onChange={async (e) => {
-                    await setDoc(doc(db, 'users', u.id), { liderEncontro2: e.target.value }, { merge: true });
-                    upd(u.id, (x) => ({ ...x, liderEncontro2: e.target.value }));
-                  }}
-                  style={{ ...I, fontSize: 12, padding: '8px 12px' }}
-                >
-                  <option value="">Servo 2...</option>
-                  {users.filter(s => s.perfil === 'servo' && s.ativo !== false).map(s => (
-                    <option key={s.id} value={s.nome}>{s.nome}</option>
-                  ))}
-                </select>
+                <LiderInput u={u} campo="liderEncontro" ph="Servo 1..." users={users} upd={upd} />
+                <LiderInput u={u} campo="liderEncontro2" ph="Servo 2..." users={users} upd={upd} />
               </div>
             )}
 
