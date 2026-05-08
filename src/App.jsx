@@ -5566,12 +5566,12 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
   const [savingDataPag, setSavingDataPag] = useState(false);
   const [savingData, setSavingData] = useState(false);
 
-  const salvarData = async () => {
-    if (!dataTemp) { t('Selecione uma data', 'w'); return; }
-    setSavingData(true);
-    await setDataLimite(dataTemp);
-    setSavingData(false);
-    t('Data limite salva!');
+  const salvarDataPag = async () => {
+    if (!dataTempPag) { t('Selecione uma data', 'w'); return; }
+    setSavingDataPag(true);
+    await setDoc(doc(db, 'config', 'uniformes'), { dataLimitePagamento: dataTempPag }, { merge: true });
+    setSavingDataPag(false);
+    t('Data limite de pagamento salva!');
   };
 
   const aprovar = async (userId) => {
