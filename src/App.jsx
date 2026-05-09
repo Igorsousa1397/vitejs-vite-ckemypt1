@@ -681,6 +681,7 @@ const LABELS = {
   back: "Back Office",
   uniformes: "Uniformes",
   termo: "Termo",
+  test: "Testemunhos",
 };
 
 // ── SPLASH ───────────────────────────────────────────────────────────────────
@@ -3232,6 +3233,7 @@ export default function App() {
     ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
       ? [["📋", "equipes"]]
       : []),
+    ...(["admin", "lider_templo", "pastor"].includes(role) ? [["🙌", "test"]] : []),
     ...(isAdm ? [["⚙️", "back"]] : []),
   ];
 
@@ -4014,6 +4016,13 @@ export default function App() {
             edit={isAdm}
             t={showT}
             dataLimitePagamento={dataLimitePagamento}
+          />
+        )}
+        {pg === "test" && ["admin", "lider_templo", "pastor"].includes(role) && (
+          <TestV
+            encH={encH}
+            encM={encM}
+            t={showT}
           />
         )}
         {pg === "back" && isAdm && (
@@ -10630,6 +10639,96 @@ export default function App() {
       </div>
     );
   }
+
+  // ── TESTEMUNHOS ──────────────────────────────────────────────────────────────
+function TestV({ encH, encM, t }) {
+  const [busca, setBusca] = useState('');
+  const [aberto, setAberto] = useState(false);
+  const [testemunhos, setTestemunhos] = useState([]);
+  const skipBlur = useRef(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'testemunhos'), (snap) => {
+      setTestemunhos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  const todos = [...encH, ...encM].sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const sugestoes = todos.filter(
+    (e) =>
+      e.nome.toLowerCase().includes(busca.toLowerCase()) &&
+      busca.length > 0 &&
+      !testemunhos.find((t) => t.encontristaId === e.id)
+  );
+
+  const adicionar = async (enc) => {
+    await addDoc(collection(db, 'testemunhos'), {
+      encontristaId: enc.id,
+      nome: enc.nome,
+      celula: enc.celula || '',
+      criadoEm: new Date().toLocaleString('pt-BR'),
+    });
+    setBusca('');
+    setAberto(false);
+    t('Testemunho adicionado! ✓');
+  };
+
+  const remover = async (id) => {
+    await deleteDoc(doc(db, 'testemunhos', id));
+    t('Removido.');
+  };
+
+  return (
+    <div>
+      <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 14 }}>
+        <div style={{ color: G.green, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>🙌 Testemunhos no Culto</div>
+        <div style={{ color: G.tm, fontSize: 12 }}>Encontristas que darão testemunho no culto pós-encontro.</div>
+      </div>
+
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <input
+          value={busca}
+          onChange={(e) => { setBusca(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+          placeholder="Buscar encontrista..."
+          style={{ ...I, fontSize: 13 }}
+        />
+        {aberto && sugestoes.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999, background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10, marginTop: 4, maxHeight: 200, overflowY: 'auto' }}>
+            {sugestoes.map((e) => (
+              <div key={e.id}
+                onMouseDown={() => { skipBlur.current = true; adicionar(e); }}
+                style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+                onMouseEnter={(ev) => ev.currentTarget.style.background = '#2a2a2a'}
+                onMouseLeave={(ev) => ev.currentTarget.style.background = 'transparent'}>
+                <div style={{ color: G.t, fontWeight: 600 }}>{e.nome}</div>
+                <div style={{ color: G.tm, fontSize: 11 }}>{e.celula || 'Sem célula'}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {testemunhos.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>Nenhum testemunho registrado ainda.</div>
+      )}
+
+      {testemunhos.map((t2) => (
+        <div key={t2.id} className="fu"
+          style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{t2.nome}</div>
+            {t2.celula && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{t2.celula}</div>}
+          </div>
+          <span onClick={() => remover(t2.id)} style={{ color: 'rgba(255,59,48,.5)', cursor: 'pointer', fontSize: 16 }}>×</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
   function BackV({ users, setUsers, fns, setFns, t }) {
