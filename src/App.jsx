@@ -2628,7 +2628,7 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
               {(user.funcoes || []).length > 0 ? (user.funcoes || []).map((f, i) => {
 
                 const perfilLider = (users || []).find(u =>
-                  ['lider_staff', 'lider_templo', 'lider_cozinha', 'lider_quartos'].includes(u.perfil) &&
+                  ['lider_staff', 'lider_templo', 'lider_cozinha', 'lider_quartos', 'lider_midia'].includes(u.perfil) &&
                   (u.funcoes || []).includes(f)
                 );
 
