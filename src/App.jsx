@@ -6337,6 +6337,7 @@ function BackV({ users, setUsers, fns, setFns, t }) {
                 borderRadius: 13,
                 padding: '12px 14px',
                 marginBottom: 7,
+                overflow: 'visible',  // ← adiciona aqui
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
