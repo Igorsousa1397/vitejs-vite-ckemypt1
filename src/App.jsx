@@ -9185,8 +9185,8 @@ export default function App() {
                       <Pill c="Inclusa" bg="rgba(0,200,81,.12)" tc={G.green} />
                     </div>
                     <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>
+                      <div style={{ color: "rgba(255,159,10,.8)", fontSize: 11, marginBottom: 8 }}>⚠️ Obrigatório ao menos 1 camiseta para quem serve pela primeira vez.</div>
                       Tamanho
-                    <div style={{ color: "rgba(255,159,10,.8)", fontSize: 11, marginBottom: 8 }}>⚠️ Obrigatório ao menos 1 camiseta para quem serve pela primeira vez.</div>
                     </div>
                     <div
                       style={{
