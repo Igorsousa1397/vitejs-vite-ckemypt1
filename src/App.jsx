@@ -6106,6 +6106,8 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
 function AddFuncao({ u, fns, users, setUsers, t }) {
   const [busca, setBusca] = useState('');
   const [aberto, setAberto] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const inputRef = useRef(null);
   const skipBlur = useRef(false);
 
   const filtrados = fns.filter(f =>
@@ -6114,13 +6116,22 @@ function AddFuncao({ u, fns, users, setUsers, t }) {
     !(u.funcoes || []).includes(f)
   );
 
+  const abrirDropdown = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+    setAberto(true);
+  };
+
   return (
     <div style={{ position: 'relative', marginTop: 8 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <input
+          ref={inputRef}
           value={busca}
-          onChange={e => { setBusca(e.target.value); setAberto(true); }}
-          onFocus={() => setAberto(true)}
+          onChange={e => { setBusca(e.target.value); abrirDropdown(); }}
+          onFocus={abrirDropdown}
           onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
           placeholder="Adicionar função..."
           style={{ ...I, fontSize: 12, padding: '9px 12px', flex: 1 }}
@@ -6141,9 +6152,16 @@ function AddFuncao({ u, fns, users, setUsers, t }) {
       </div>
       {aberto && filtrados.length > 0 && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
-          background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
-          marginTop: 4, maxHeight: 160, overflowY: 'auto',
+          position: 'fixed',
+          top: pos.top,
+          left: pos.left,
+          width: pos.width,
+          zIndex: 9999,
+          background: '#1e1e1e',
+          border: '1px solid #2a2a2a',
+          borderRadius: 10,
+          maxHeight: 160,
+          overflowY: 'auto',
         }}>
           {filtrados.map((f, i) => (
             <div key={i}
