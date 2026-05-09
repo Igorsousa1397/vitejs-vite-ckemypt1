@@ -3995,11 +3995,11 @@ export default function App() {
         )}
         {pg === "rest" && (
           <RestV
-            rest={rest}
-            setRest={setRest}
+            users={users}
+            encH={encH}
+            encM={encM}
             qm={qm}
             setQm={setQm}
-            edit={canG(role)}
             role={role}
             t={showT}
           />
@@ -7245,136 +7245,47 @@ export default function App() {
   }
 
   // ── RESTRIÇÕES ───────────────────────────────────────────────────────────────
-  function RestV({ rest, setRest, qm, setQm, edit, role, t }) {
-    const can = ["admin", "lider_geral", "pastor"].includes(role);
-    const dist = () => {
-      const todos = rest.flatMap((r) => r.ps);
-      if (!todos.length) {
-        t("Nenhuma pessoa", "w");
-        return;
-      }
-      const qs = qm.filter((q) => !q.maes);
-      const sh = [...todos].sort(() => Math.random() - 0.5);
-      let nv = [...qm].map((q) =>
-        q.maes ? q : { ...q, enc: q.enc.filter((e) => !todos.includes(e)) },
-      );
-      sh.forEach((p, i) => {
-        const num = qs[i % qs.length].num;
-        nv = nv.map((q) => (q.num === num ? { ...q, enc: [...q.enc, p] } : q));
-      });
-      setQm(nv);
-      t("Distribuído!");
-    };
-    return (
-      <div>
-        <div
-          style={{
-            background: "rgba(255,59,48,.08)",
-            border: "1px solid rgba(255,59,48,.2)",
-            borderRadius: 14,
-            padding: "12px 14px",
-            marginBottom: 12,
-            display: "flex",
-            gap: 10,
-          }}
-        >
-          <span>⛔</span>
-          <div>
-            <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 13 }}>
-              Não podem ficar no mesmo quarto
-            </div>
-            <div
-              style={{
-                color: "rgba(255,107,107,.6)",
-                fontSize: 12,
-                marginTop: 2,
-              }}
-            >
-              Membros da mesma célula.
-            </div>
-          </div>
-        </div>
-        {can && (
-          <button
-            onClick={dist}
-            style={{
-              ...BG({
-                width: "100%",
-                padding: 12,
-                marginBottom: 10,
-                borderRadius: 13,
-              }),
-              background: "rgba(10,132,255,.15)",
-              border: "1px solid rgba(10,132,255,.3)",
-              color: "#64b5f6",
-            }}
-          >
-            🎲 Distribuir Aleatoriamente
-          </button>
-        )}
-        {can && (
-          <AddIn
-            ph="Novo grupo / célula..."
-            onAdd={(n) => {
-              const id = Math.max(...rest.map((r) => r.id), 0) + 1;
-              setRest([...rest, { id, cel: n, ps: [] }]);
-              t("Grupo criado!");
-            }}
-            mt={0}
-          />
-        )}
-        {rest.map((r) => (
-          <Acc
-            key={r.id}
-            title={r.cel}
-            ax="rgba(255,59,48,.5)"
-            right={
-              <Pill c={`${r.ps.length}`} bg="rgba(255,59,48,.1)" tc="#ff6b6b" />
-            }
-            onDel={
-              can
-                ? () => {
-                    setRest(rest.filter((x) => x.id !== r.id));
-                    t("Removido.");
-                  }
-                : undefined
-            }
-          >
-            <Tags
-              items={r.ps}
-              ax="rgba(255,59,48,.5)"
-              onX={
-                can
-                  ? (i) =>
-                      setRest(
-                        rest.map((x) =>
-                          x.id === r.id
-                            ? { ...x, ps: x.ps.filter((_, j) => j !== i) }
-                            : x,
-                        ),
-                      )
-                  : undefined
-              }
-            />
-            {can && (
-              <AddIn
-                ph="Adicionar pessoa..."
-                onAdd={(n) => {
-                  setRest(
-                    rest.map((x) =>
-                      x.id === r.id ? { ...x, ps: [...x.ps, n] } : x,
-                    ),
-                  );
-                  t("✓");
-                }}
-                mt={8}
-              />
-            )}
-          </Acc>
-        ))}
+function RestV({ users, encH, encM, qm, setQm, role, t }) {
+  const can = ['admin', 'lider_geral', 'pastor', 'lider_quartos'].includes(role);
+
+  // Busca líderes de célula com suas restrições
+  const lideres = (users || []).filter(u => u.perfil === 'lider_celula' && u.celula);
+
+  // Monta lista de restrições por célula
+  const grupos = lideres.map(l => {
+    const restricoes = (l.restricoes || []).map(par => par.split('||'));
+    return { celula: l.celula, restricoes };
+  }).filter(g => g.restricoes.length > 0);
+
+  return (
+    <div>
+      <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 12 }}>
+        <div style={{ color: '#ff6b6b', fontWeight: 700, fontSize: 13 }}>⛔ Restrições por Célula</div>
+        <div style={{ color: 'rgba(255,107,107,.6)', fontSize: 12, marginTop: 2 }}>Encontristas que não podem ficar no mesmo quarto.</div>
       </div>
-    );
-  }
+
+      {grupos.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+          Nenhuma restrição cadastrada ainda.
+        </div>
+      )}
+
+      {grupos.map((g, i) => (
+        <Acc key={i} title={g.celula} ax="rgba(255,59,48,.5)"
+          right={<Pill c={`${g.restricoes.length} pares`} bg="rgba(255,59,48,.1)" tc="#ff6b6b" />}>
+          {g.restricoes.map((par, j) => (
+            <div key={j} style={{ background: '#1a1a1a', borderRadius: 10, padding: '8px 12px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#ff6b6b', fontSize: 12 }}>⛔</span>
+              <span style={{ color: G.td, fontSize: 13 }}>{par[0]}</span>
+              <span style={{ color: G.tm, fontSize: 11 }}>e</span>
+              <span style={{ color: G.td, fontSize: 13 }}>{par[1]}</span>
+            </div>
+          ))}
+        </Acc>
+      ))}
+    </div>
+  );
+}
 
   function ImgV({ encH, encM }) {
     const todos = [...encH, ...encM].filter((e) => e.autorizaImagem === "Não");
