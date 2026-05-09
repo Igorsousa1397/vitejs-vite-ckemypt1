@@ -1914,12 +1914,12 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
   ];
 
   // ── SERVO SHELL ──
-  if (scr === 'app' && role === 'servo') {
     const SERVO_MENU = [
       ['🔔', 'smins', 'Ministrações'],
       ['📢', 'savs', 'Avisos'],
       ['👕', 'suni', 'Uniforme'],
       ['⚠️', 'sinfo', 'Ocorrências'],
+      ...(role === 'lider_celula' ? [['⛔', 'srest', 'Restrições']] : []),
       ...(role === 'lider_midia' || (user?.funcoes || []).includes('Mídia') ? [['📷', 'simg', 'Uso de Imagem']] : []),
     ];
     return (
@@ -2065,6 +2065,10 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
               ? 'Uniforme'
               : pg === 'sinfo'
               ? 'Ocorrências'
+              : pg === 'srest'
+              ? 'Restrições'
+              : pg === 'simg'
+              ? 'Uso de Imagem'
               : 'Atribuições'}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2153,6 +2157,17 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
               edit={isAdm}
               t={showT}
             />
+          )}
+          {pg === 'srest' && role === 'lider_celula' && (
+            <ServoRestV
+              user={user}
+              encH={encH}
+              encM={encM}
+              t={showT}
+            />
+          )}
+          {pg === 'simg' && (
+            <ImgV encH={encH} encM={encM} />
           )}
           {pg === 'sinfo' && (
             <InfoV
@@ -2513,6 +2528,95 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
           />
         )}
       </div>
+    </div>
+  );
+
+const normalizar = (str) =>
+(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+function ServoRestV({ user, encH, encM, t }) {
+  const celula = user.celula || '';
+  const todos = [...encH, ...encM].filter(e =>
+    normalizar(e.celula) === normalizar(celula)
+  );
+  const [restricoes, setRestricoes] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const buscar = async () => {
+      const snap = await getDoc(doc(db, 'users', user.id));
+      if (snap.exists() && snap.data().restricoes) {
+        setRestricoes(snap.data().restricoes);
+      }
+    };
+    buscar();
+  }, []);
+
+  const salvar = async (novas) => {
+    setRestricoes(novas);
+    await setDoc(doc(db, 'users', user.id), { restricoes: novas }, { merge: true });
+    t('Salvo!');
+  };
+
+  const toggle = (nomeA, nomeB) => {
+    const par = [nomeA, nomeB].sort().join('||');
+    const jaExiste = restricoes.includes(par);
+    const novas = jaExiste
+      ? restricoes.filter(r => r !== par)
+      : [...restricoes, par];
+    salvar(novas);
+  };
+
+  const temRestricao = (nomeA, nomeB) => {
+    const par = [nomeA, nomeB].sort().join('||');
+    return restricoes.includes(par);
+  };
+
+  if (!celula) return (
+    <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+      Célula não definida. Fale com o admin.
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 14 }}>
+        <div style={{ color: '#ff6b6b', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>⛔ Restrições — {celula}</div>
+        <div style={{ color: G.tm, fontSize: 12 }}>Marque quem não pode ficar no mesmo quarto.</div>
+      </div>
+
+      {todos.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+          Nenhum encontrista da sua célula inscrito ainda.
+        </div>
+      )}
+
+      {todos.map((enc, i) => (
+        <div key={enc.id} className="fu"
+          style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: '12px 14px', marginBottom: 8 }}>
+          <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{enc.nome}</div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Não pode ficar com:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {todos.filter(e => e.id !== enc.id).map((outro, j) => {
+              const restrito = temRestricao(enc.nome, outro.nome);
+              return (
+                <button key={j}
+                  onClick={() => toggle(enc.nome, outro.nome)}
+                  style={{
+                    ...BK({ padding: '6px 12px', borderRadius: 50, fontSize: 12 }),
+                    borderColor: restrito ? 'rgba(255,59,48,.5)' : '#2a2a2a',
+                    color: restrito ? '#ff6b6b' : G.td,
+                    background: restrito ? 'rgba(255,59,48,.08)' : 'transparent',
+                  }}>
+                  {restrito ? '⛔ ' : ''}{outro.nome.split(' ')[0]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
