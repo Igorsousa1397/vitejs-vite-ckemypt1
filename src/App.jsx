@@ -728,16 +728,15 @@ function Login({ onLogin, onVoltar }) {
   const [resetLoad, setResetLoad] = useState(false);
 
   const resetSenha = async () => {
-    if (!email.trim()) {
-      setE("Informe seu email para redefinir a senha.");
-      return;
-    }
+    if (!email.trim()) { setE('Informe seu email para redefinir a senha.'); return; }
     setResetLoad(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      setResetMsg("Email enviado! Verifique sua caixa de entrada.");
+      setResetMsg('Email enviado! Verifique sua caixa de entrada.');
+      setTimeout(() => setResetMsg(''), 4000);
     } catch (err) {
-      setE("Email não encontrado.");
+      setE('Email não encontrado.');
+      setTimeout(() => setE(''), 4000);
     }
     setResetLoad(false);
   };
@@ -765,10 +764,11 @@ function Login({ onLogin, onVoltar }) {
       }
       onLogin({ id: cred.user.uid, ...snap.data() });
     } catch (err) {
-      setE("Email ou senha incorretos.");
+      setE('Email ou senha incorretos.');
+      setTimeout(() => setE(''), 4000);
     }
-    setLoad(false);
-  };
+        setLoad(false);
+      };
 
   return (
     <div
