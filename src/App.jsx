@@ -5,6 +5,7 @@ import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import jsPDF from 'jspdf'
 import ExcelJS from 'exceljs';
+import ReactDOM from 'react-dom';
 
 const vibrar = (ms = 50) => {
   if ('vibrate' in navigator) navigator.vibrate(ms);
@@ -6119,40 +6120,15 @@ function AddFuncao({ u, fns, users, setUsers, t }) {
   const abrirDropdown = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+      setPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
     }
     setAberto(true);
   };
 
-  return (
-    <div style={{ position: 'relative', marginTop: 8 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          ref={inputRef}
-          value={busca}
-          onChange={e => { setBusca(e.target.value); abrirDropdown(); }}
-          onFocus={abrirDropdown}
-          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
-          placeholder="Adicionar função..."
-          style={{ ...I, fontSize: 12, padding: '9px 12px', flex: 1 }}
-        />
-        <button
-          onMouseDown={async () => {
-            if (!busca.trim()) return;
-            skipBlur.current = true;
-            const novas = [...(u.funcoes || []), busca.trim()];
-            await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
-            setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
-            setBusca('');
-            t('Função adicionada!');
-          }}
-          style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}>
-          +
-        </button>
-      </div>
-      {aberto && filtrados.length > 0 && (
+  const dropdown = aberto && filtrados.length > 0
+    ? ReactDOM.createPortal(
         <div style={{
-          position: 'fixed',
+          position: 'absolute',
           top: pos.top,
           left: pos.left,
           width: pos.width,
@@ -6181,8 +6157,38 @@ function AddFuncao({ u, fns, users, setUsers, t }) {
               {f}
             </div>
           ))}
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          ref={inputRef}
+          value={busca}
+          onChange={e => { setBusca(e.target.value); abrirDropdown(); }}
+          onFocus={abrirDropdown}
+          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+          placeholder="Adicionar função..."
+          style={{ ...I, fontSize: 12, padding: '9px 12px', flex: 1 }}
+        />
+        <button
+          onMouseDown={async () => {
+            if (!busca.trim()) return;
+            skipBlur.current = true;
+            const novas = [...(u.funcoes || []), busca.trim()];
+            await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
+            setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
+            setBusca('');
+            t('Função adicionada!');
+          }}
+          style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}>
+          +
+        </button>
+      </div>
+      {dropdown}
     </div>
   );
 }
