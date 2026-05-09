@@ -9796,6 +9796,20 @@ export default function App() {
                       })}
                     >
                       {saving ? "Salvando..." : "Salvar Alteracao"}
+                      {meuPedido && meuPedido.naoQuerUniforme && (
+                        <div style={{ background: 'rgba(99,99,102,.1)', border: '1px solid #2a2a2a', borderRadius: 14, padding: '12px 14px', textAlign: 'center' }}>
+                          <div style={{ color: G.tm, fontSize: 13 }}>Você optou por não pedir uniforme.</div>
+                          <button
+                            onClick={async () => {
+                              await deleteDoc(doc(db, 'uniformes', user.id));
+                              t('Mudei de ideia! Agora você pode fazer seu pedido.');
+                            }}
+                            style={{ ...BK({ padding: '8px 16px', borderRadius: 10, fontSize: 12, marginTop: 10 }), color: G.green, borderColor: 'rgba(0,200,81,.3)' }}
+                          >
+                            Mudei de ideia
+                          </button>
+                        </div>
+                      )}
                     </button>
                   )}
                   {meuPedido &&
