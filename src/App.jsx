@@ -9784,6 +9784,19 @@ export default function App() {
                       {saving ? "Salvando..." : "Salvar Pedido"}
                     </button>
                   )}
+                  {!meuPedido && (
+                    <button
+                      onClick={async () => {
+                        setSaving(true);
+                        await setDoc(doc(db, "uniformes", user.id), { nome: user.nome, perfil: user.perfil, naoQuerUniforme: true, status: "bloqueado", data: new Date().toLocaleString("pt-BR") });
+                        setSaving(false);
+                        t("Registrado!");
+                      }}
+                      style={{ ...BK({ width: "100%", padding: 14, borderRadius: 14 }), borderColor: "rgba(255,59,48,.3)", color: "rgba(255,107,107,.8)" }}
+                    >
+                      Não vou pedir nada
+                    </button>
+                  )}
                   {meuPedido && meuPedido.status === "aberto" && (
                     <button
                       onClick={salvarPedido}
