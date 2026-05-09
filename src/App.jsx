@@ -427,6 +427,7 @@ function Sheet({ open, onClose, title, children }) {
 }
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
+const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
 const FUNCOES_INIT = [
   "Som",
   "Banheiro",
@@ -8924,7 +8925,6 @@ export default function App() {
     );
   }
 
-  const TAMANHOS = ["P", "M", "G", "G1", "G2", "G3"];
 
   function UniV({
     uni,
