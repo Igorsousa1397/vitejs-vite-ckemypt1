@@ -5322,7 +5322,7 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     (u) => u.perfil !== 'admin' &&
       (filtro === 'todos' ? true : filtro === 'ativos' ? u.ativo !== false : !u.ativo) &&
       (filtroPerfil === 'todos' ? true :
-      filtroPerfil === 'lideres' ? ['lider_geral', 'lider_staff', 'lider_quartos', 'lider_cozinha', 'lider_templo', 'pastor'].includes(u.perfil) :
+      filtroPerfil === 'lideres' ? ['lider_geral', 'lider_staff', 'lider_quartos', 'lider_cozinha', 'lider_templo', 'lider_midia', 'pastor'].includes(u.perfil) :
       filtroPerfil === 'servo' ? u.perfil === 'servo' :
       u.perfil === 'lider_celula') &&
       u.nome.toLowerCase().includes(busca.toLowerCase())
@@ -6369,7 +6369,6 @@ function BackV({ users, setUsers, fns, setFns, t }) {
                       <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{u.nome}</div>
                       <div style={{ color: G.tm, fontSize: 11, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                         ●●●●●●
-                        {u.primeiro && <Pill c="1º acesso" bg="rgba(255,159,10,.12)" tc="#ff9f0a" />}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
