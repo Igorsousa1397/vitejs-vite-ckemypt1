@@ -9042,7 +9042,7 @@ export default function App() {
         perfil: user.perfil,
         nomeCamiseta: form.nomeCamiseta.trim(),
         camisa: form.camisa,
-        qtdCamisas: form.qtdCamisas || 1,
+        qtdCamisas: form.qtdCamisas || 0,
         calca: form.calca || "",
         qtdCalcas: form.qtdCalcas || 1,
         blusa: form.blusa || "",
@@ -9186,6 +9186,7 @@ export default function App() {
                     </div>
                     <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>
                       Tamanho
+                    <div style={{ color: "rgba(255,159,10,.8)", fontSize: 11, marginBottom: 8 }}>⚠️ Obrigatório ao menos 1 camiseta para quem serve pela primeira vez.</div>
                     </div>
                     <div
                       style={{
@@ -9240,7 +9241,7 @@ export default function App() {
                           !bloqueado &&
                           setForm({
                             ...form,
-                            qtdCamisas: Math.max(1, (form.qtdCamisas || 1) - 1),
+                            qtdCamisas: Math.max(0, (form.qtdCamisas || 0) - 1),
                           })
                         }
                         style={{
@@ -9271,7 +9272,7 @@ export default function App() {
                           !bloqueado &&
                           setForm({
                             ...form,
-                            qtdCamisas: Math.min(3, (form.qtdCamisas || 1) + 1),
+                            qtdCamisas: Math.min(3, (form.qtdCamisas || 0) + 1),
                           })
                         }
                         style={{
@@ -10157,7 +10158,7 @@ export default function App() {
                     {key === "camisa" && (
                       <span style={{ color: G.tm, marginLeft: 8 }}>
                         (total:{" "}
-                        {uni.reduce((a, u) => a + (u.qtdCamisas || 1), 0)})
+                        {uni.reduce((a, u) => a + (u.qtdCamisas || 0), 0)})
                       </span>
                     )}
                   </div>
@@ -10263,7 +10264,7 @@ export default function App() {
                 TAMANHOS.forEach((tm) => {
                   const cam = dados
                     .filter((u) => u.camisa === tm)
-                    .map((u) => [u.nomeCamiseta || u.nome, u.qtdCamisas || 1]);
+                    .map((u) => [u.nomeCamiseta || u.nome, u.qtdCamisas || 0]);
                   const blu = dados
                     .filter((u) => u.blusa === tm)
                     .map((u) => [u.nome, u.qtdBlusas || 1]);
@@ -10463,7 +10464,7 @@ export default function App() {
               >
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   <Pill
-                    c={`Camiseta ${u.camisa} x${u.qtdCamisas || 1}`}
+                    c={`Camiseta ${u.camisa} x${u.qtdCamisas || 0}`}
                     bg="#1e1e1e"
                     tc={G.td}
                   />
