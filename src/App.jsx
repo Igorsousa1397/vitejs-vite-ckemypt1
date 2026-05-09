@@ -6103,6 +6103,72 @@ function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, use
       );
 }
 
+function AddFuncao({ u, fns, users, setUsers, t }) {
+  const [busca, setBusca] = useState('');
+  const [aberto, setAberto] = useState(false);
+  const skipBlur = useRef(false);
+
+  const filtrados = fns.filter(f =>
+    f.toLowerCase().includes(busca.toLowerCase()) &&
+    busca.length > 0 &&
+    !(u.funcoes || []).includes(f)
+  );
+
+  return (
+    <div style={{ position: 'relative', marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={busca}
+          onChange={e => { setBusca(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+          placeholder="Adicionar função..."
+          style={{ ...I, fontSize: 12, padding: '9px 12px', flex: 1 }}
+        />
+        <button
+          onMouseDown={async () => {
+            if (!busca.trim()) return;
+            skipBlur.current = true;
+            const novas = [...(u.funcoes || []), busca.trim()];
+            await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
+            setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
+            setBusca('');
+            t('Função adicionada!');
+          }}
+          style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}>
+          +
+        </button>
+      </div>
+      {aberto && filtrados.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+          background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10,
+          marginTop: 4, maxHeight: 160, overflowY: 'auto',
+        }}>
+          {filtrados.map((f, i) => (
+            <div key={i}
+              onMouseDown={async () => {
+                skipBlur.current = true;
+                const novas = [...(u.funcoes || []), f];
+                await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
+                setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
+                setBusca('');
+                setAberto(false);
+                t('Função adicionada!');
+              }}
+              style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {f}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── BACK OFFICE ──────────────────────────────────────────────────────────────
 function BackV({ users, setUsers, fns, setFns, t }) {
   const [tab, setTab] = useState('grupos');
@@ -6322,16 +6388,7 @@ function BackV({ users, setUsers, fns, setFns, t }) {
                   ))}
                 </div>
               )}
-              <AddIn
-                ph="Adicionar função..."
-                mt={8}
-                onAdd={async (fn) => {
-                  const novas = [...(u.funcoes || []), fn.trim()];
-                  await setDoc(doc(db, 'users', u.id), { funcoes: novas }, { merge: true });
-                  setUsers(users.map(x => x.id === u.id ? { ...x, funcoes: novas } : x));
-                  t('Função adicionada!');
-                }}
-              />
+              <AddFuncao u={u} fns={fns} users={users} setUsers={setUsers} t={t} />
             </div>
           ))
         }
