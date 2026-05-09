@@ -9806,7 +9806,7 @@ export default function App() {
                           await deleteDoc(doc(db, 'uniformes', user.id));
                           t('Pode fazer seu pedido agora!');
                         }}
-                        style={{ ...BK({ padding: '8px 16px', borderRadius: 10, fontSize: 12 }), color: G.green, borderColor: 'rgba(0,200,81,.3)' }}
+                        style={{ ...BK({ width: '100%', padding: 14, borderRadius: 14 }), color: G.green, borderColor: 'rgba(0,200,81,.3)' }}
                       >
                         Mudei de ideia
                       </button>
