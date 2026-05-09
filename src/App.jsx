@@ -6184,10 +6184,9 @@ function AddFuncao({ u, fns, users, setUsers, t }) {
 }
 
 // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-ffunction BackV({ users, setUsers, fns, setFns, t }) {
+function BackV({ users, setUsers, fns, setFns, t }) {
   const [tab, setTab] = useState('grupos');
   const [buscaUser, setBuscaUser] = useState('');
-  const [tab, setTab] = useState('grupos');
   const [shGrp, setShGrp] = useState(false);
   const [grpForm, setGrpForm] = useState({ label: '', cor: '#00c851' });
   const [perfis, setPerfis] = useState(PERFIS);
