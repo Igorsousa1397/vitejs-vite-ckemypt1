@@ -407,6 +407,9 @@ function Sheet({ open, onClose, title, children }) {
 const FUNCOES_INIT = [
   'Som', 'Banheiro', 'Cozinha', 'Intercessão', 'Templo', 'Malas', 'Crachá',
   'Refeitório', 'Cantina', 'Louça', 'Mídia',
+  'Kit Sobrevivência', 'Etiquetar Sacolas', 'Dobrar Sacolas',
+  'Presentes/Cartas', 'Camisetas', 'Kit Cartas',
+  'Organizar itens do Templo', 'Itens Teatro/Dança',
 ];
 
 const QH_INIT = [];
