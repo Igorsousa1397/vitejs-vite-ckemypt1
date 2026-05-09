@@ -10800,7 +10800,7 @@ export default function App() {
               />
               {users
                 .filter((u) =>
-                  u.nome.toLowerCase().includes(buscaUser.toLowerCase()),
+                  u.nome.toLowerCase().includes(buscaUser.toLowerCase()) && u.perfil !== "lider_celula" && u.perfil !== "lider_geral",
                 )
                 .map((u, i) => (
                   <div
