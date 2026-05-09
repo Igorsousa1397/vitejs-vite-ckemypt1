@@ -2627,6 +2627,9 @@ function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimi
             <div>
               {(user.funcoes || []).length > 0 ? (user.funcoes || []).map((f, i) => {
 
+                const normalizar = (str) =>
+                (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
                 const perfilLider = (users || []).find(u =>
                   ['lider_staff', 'lider_templo', 'lider_cozinha', 'lider_quartos', 'lider_midia'].includes(u.perfil) &&
                   (u.funcoes || []).includes(f)
