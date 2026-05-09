@@ -9003,7 +9003,7 @@ export default function App() {
     const [form, setForm] = useState(
       meuPedido || {
         camisa: "",
-        qtdCamisas: 1,
+        qtdCamisas: "",
         calca: "",
         blusa: "",
         nomeCamiseta: "",
