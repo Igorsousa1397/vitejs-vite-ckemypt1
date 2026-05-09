@@ -5456,9 +5456,9 @@ function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
               )}
             </div>
 
-            {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && (
+            {u.perfil !== 'servo' && u.perfil !== 'pastor' && u.perfil !== 'lider_geral' && u.perfil !== 'lider_celula' && (
               <div onClick={e => e.stopPropagation()}>
-                <SL c="Líderes" mt={0} />
+                <SL c="Líderes do Encontro" mt={0} />
                 <LiderInput u={u} campo="liderEncontro" ph="Servo 1..." users={users} upd={upd} />
                 <LiderInput u={u} campo="liderEncontro2" ph="Servo 2..." users={users} upd={upd} />
               </div>

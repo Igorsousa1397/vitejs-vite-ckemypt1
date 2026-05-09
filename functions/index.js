@@ -213,4 +213,26 @@ exports.criarLiderTemplo = onRequest({ cors: true }, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+exports.criarLiderMidia = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  try {
+    const userRecord = await admin.auth().createUser({
+      email: 'lidermidia@servospeniel.com',
+      password: 'LiderMidia@2026',
+    });
+    await admin.firestore().collection('users').doc(userRecord.uid).set({
+      nome: 'Líder Mídia',
+      email: 'lidermidia@servospeniel.com',
+      perfil: 'lider_midia',
+      ativo: true,
+      pago: true,
+      funcoes: [],
+      primeiro: false,
+    });
+    res.json({ status: 'ok', uid: userRecord.uid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // v8
