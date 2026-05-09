@@ -10683,7 +10683,7 @@ function TestV({ encH, encM, t }) {
   return (
     <div>
       <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 14 }}>
-        <div style={{ color: G.green, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>🙌 Testemunhos no Culto</div>
+        <div style={{ color: G.green, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Testemunhos no Culto</div>
         <div style={{ color: G.tm, fontSize: 12 }}>Encontristas que darão testemunho no culto pós-encontro.</div>
       </div>
 
