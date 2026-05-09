@@ -9827,7 +9827,7 @@ export default function App() {
                     </button>
                   )}
                   {meuPedido &&
-                    (meuPedido.status === "bloqueado" || !meuPedido.status) && (
+                    (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && (
                       <button
                         onClick={solicitarAlteracao}
                         style={{
