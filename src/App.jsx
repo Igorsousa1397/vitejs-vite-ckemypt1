@@ -672,7 +672,7 @@ const LABELS = {
   onibus: "Ônibus",
   rest: "Restrições",
   img: "Uso de Imagem",
-  info: "Informações",
+  info: "Ocorrências",
   ach: "Achados & Perdidos",
   crac: "Crachás",
   saude: "Saúde",
