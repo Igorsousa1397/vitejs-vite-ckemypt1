@@ -2332,7 +2332,7 @@ if (scr === 'login') return <Login onLogin={login} onVoltar={() => setScr('welco
         </div>
       </div>
     );
-  }}
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: G.bg, paddingBottom: 60 }}>
@@ -6575,4 +6575,4 @@ function BackV({ users, setUsers, fns, setFns, t }) {
       </div>
     </div>
   );
-}
+}}
