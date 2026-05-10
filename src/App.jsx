@@ -4138,6 +4138,9 @@ export default function App() {
             <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
               Encontro com Deus
             </div>
+          <div style={{ textAlign: "center", marginBottom: 12, marginTop: 8 }}>
+            <img src="/IMG_2409.PNG" alt="Fonte" style={{ width: 80, mixBlendMode: "screen", opacity: 0.7 }} />
+          </div>
           </div>
 
           {/* 3 quick cards */}
