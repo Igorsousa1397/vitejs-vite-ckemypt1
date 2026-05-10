@@ -1097,7 +1097,8 @@ function Inscricao({ onVoltar, onPago }) {
       !form.nome.trim() ||
       !form.sexo ||
       !form.whatsapp.trim() ||
-      !form.emergencia.trim() ||
+      !form.emergenciaNome?.trim() ||
+      !form.emergenciaTel?.trim() ||
       !form.medicamento.trim() ||
       !form.doenca.trim()
     ) {
@@ -1152,10 +1153,10 @@ function Inscricao({ onVoltar, onPago }) {
         setSaving(false);
         return;
       }
-      const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
       await addDoc(collection(db, "encontristas"), {
         ...form,
         igreja: igrejaFinal,
+        emergencia: `${form.emergenciaNome} — ${form.emergenciaTel}`,
         cpf: cpfLimpo,
         criadoEm: new Date().toLocaleString("pt-BR"),
       });
@@ -1577,11 +1578,17 @@ function Inscricao({ onVoltar, onPago }) {
         />
 
         <SLi c="Contato de Emergência *" />
-        <input
-          placeholder="Nome e telefone"
-          value={form.emergencia}
-          onChange={(e) => setForm({ ...form, emergencia: `${form.emergenciaNome} — ${form.emergenciaTel}`, })}
-          style={iI}
+        <input 
+          placeholder="Telefone do contato" 
+          type="tel" 
+          value={form.emergenciaTel || ''}
+          maxLength={15}
+          onChange={e => {
+            const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+            const mask = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+            setForm({ ...form, emergenciaTel: mask });
+          }} 
+          style={iI} 
         />
 
         <SLi c="Toma algum medicamento? *" />
