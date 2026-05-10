@@ -1328,8 +1328,10 @@ function Inscricao({ onVoltar, onPago }) {
             onClick={onVoltar}
             style={BK({ width: "100%", padding: 14, borderRadius: 14 })}
           >
+           <button onClick={onVoltar} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>
             Voltar
           </button>
+          <BotaoAjuda />
         </div>
       </div>
     );
