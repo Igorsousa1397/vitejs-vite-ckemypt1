@@ -37,7 +37,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       title: 'Inscrição — Encontro com Deus 2026',
       description: 'Dias 26, 27 e 28 de junho · Itaquaquecetuba',
       quantity: 1,
-      unit_price: 1.00,
+      unit_price: 360.00,
       currency_id: 'BRL',
     }],
     payer: {

@@ -685,6 +685,16 @@ const LABELS = {
 };
 
 // ── SPLASH ───────────────────────────────────────────────────────────────────
+const BotaoAjuda = () => (
+  <a
+    href="https://wa.me/5511982222149?text=Olá!%20Preciso%20de%20ajuda%20com%20minha%20inscrição%20no%20Encontro%20com%20Deus."
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, boxShadow: "0 4px 16px rgba(37,211,102,.4)", textDecoration: "none", fontSize: 28 }}
+  >
+    💬
+  </a>
+);
 function Splash({ done }) {
   return (
     <div
@@ -1036,6 +1046,7 @@ function Welcome({ onServos, onEncontrista }) {
           }}
         />
       </div>
+      <BotaoAjuda />
     </div>
   );
 }
@@ -1616,7 +1627,8 @@ function Inscricao({ onVoltar, onPago }) {
         >
           {saving ? "Enviando..." : "Enviar Inscrição"}
         </button>
-      </div>
+</div>
+      <BotaoAjuda />
     </div>
   );
 }
@@ -3058,6 +3070,7 @@ export default function App() {
             Voltar ao início
           </button>
         </div>
+        <BotaoAjuda />
       </div>
     );
 
@@ -3132,6 +3145,7 @@ export default function App() {
             Voltar ao início
           </button>
         </div>
+        <BotaoAjuda />
       </div>
     );
 
