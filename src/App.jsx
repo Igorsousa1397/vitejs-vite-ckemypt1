@@ -1294,11 +1294,12 @@ function Inscricao({ onVoltar, onPago }) {
           </div>
           <button
             onClick={async () => {
-              const id = pagamentoId;
-              if (!id) return;
-              const snap = await getDoc(doc(db, 'encontristas', id));
+              if (!encId) {
+                alert('ID não encontrado. Tente novamente.');
+                return;
+              }
+              const snap = await getDoc(doc(db, 'encontristas', encId));
               if (snap.exists() && snap.data().pago) {
-                setEncId(id);
                 setScr('pagamento_confirmado');
               } else {
                 alert('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
