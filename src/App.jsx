@@ -1019,7 +1019,7 @@ function Welcome({ onServos, onEncontrista }) {
               fontSize: 16,
             })}
           >
-            Incrições
+            Inscrições
           </button>
           <button
             onClick={onServos}
