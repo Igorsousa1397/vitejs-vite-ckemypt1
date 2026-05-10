@@ -3466,8 +3466,7 @@ export default function App() {
             </button>
           )}
           {pg === "smins" ? (
-            <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 28, mixBlendMode: "screen", opacity: 0.85, margin: "0 auto" }} />
-          ) : (
+            <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 36, mixBlendMode: "screen", opacity: 0.85, position: "absolute", left: "50%", transform: "translateX(-50%)" }} />          ) : (
             <span style={{ flex: 1, color: G.t, fontSize: 15, fontWeight: 700 }}>
               {pg === "savs" ? "Avisos"
               : pg === "suni" ? "Uniforme"
@@ -4135,9 +4134,6 @@ export default function App() {
             <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
               Encontro com Deus
             </div>
-          <div style={{ textAlign: "center", marginBottom: 12, marginTop: 8 }}>
-            <img src="/IMG_2409.PNG" alt="Fonte" style={{ width: 80, mixBlendMode: "screen", opacity: 0.7 }} />
-          </div>
           </div>
 
           {/* 3 quick cards */}
