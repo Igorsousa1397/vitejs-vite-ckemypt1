@@ -34,14 +34,15 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
 
   const body = JSON.stringify({
     items: [{
-      title: 'Inscrição Encontro com Deus',
+      title: 'Inscrição — Encontro com Deus 2026',
+      description: 'Dias 26, 27 e 28 de junho · Itaquaquecetuba',
       quantity: 1,
-      unit_price: 1.00,
+      unit_price: 360.00,
       currency_id: 'BRL',
     }],
     payer: {
       name: nome || 'Encontrista',
-      email: email || 'encontrocomDeus@email.com',
+      email: email || 'encontrocomdeus@email.com',
     },
     external_reference: encontristaId,
     back_urls: {
@@ -49,7 +50,11 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       failure: `https://servos-peniel.vercel.app?pago=false&id=${encontristaId}`,
       pending: `https://servos-peniel.vercel.app?pago=pending&id=${encontristaId}`,
     },
-    auto_return: 'approved',
+    auto_return: 'all',
+    payment_methods: {
+      excluded_payment_types: [],
+      installments: 1,
+    },
     notification_url: 'https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento',
   });
 
