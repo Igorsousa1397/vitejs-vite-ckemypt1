@@ -6109,8 +6109,9 @@ export default function App() {
     const [g, setG] = useState("M");
     const [expandido, setExpandido] = useState({});
     const lista = (g === "M" ? encM : encH).sort((a, b) =>
-      a.nome.localeCompare(b.nome),
+      (b.criadoEm || "").localeCompare(a.criadoEm || ""),
     );
+
     const dist = () => {
       if (!lista.length) {
         t("Nenhum encontrista", "w");
@@ -6528,7 +6529,7 @@ export default function App() {
                               );
                               const data = await res.json();
                               if (data.init_point) {
-                                const msg = `${msgPendente(e.nome)}\n\nSua vaga está reservada! Clique aqui para pagar: ${data.init_point}`;
+                                const msg = `${msgPendente(e.nome)}\n\npara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}`;
                                 window.location.href = `https://wa.me/55${waNumero}?text=${encodeURIComponent(msg)}`;
                               }
                             } catch {
