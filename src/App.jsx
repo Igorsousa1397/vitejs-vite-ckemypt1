@@ -1569,18 +1569,18 @@ function Inscricao({ onVoltar, onPago }) {
           opts={["P", "M", "G", "GG", "EXG", "G1", "G2", "G3"]}
         />
 
-        <SLi c="Autoriza uso de imagem? *" />
-        <Radio
-          val={form.autorizaImagem}
-          set={(v) => setForm({ ...form, autorizaImagem: v })}
-          opts={["Sim", "Não"]}
+        <SLi c="Contato de Emergência *" />
+        <input placeholder="Nome do contato" value={form.emergenciaNome || ''}
+          onChange={e => setForm({ ...form, emergenciaNome: e.target.value })} style={{ ...iI, marginBottom: 8 }} />
+        <input placeholder="Telefone do contato" type="tel" value={form.emergenciaTel || ''}
+          onChange={e => setForm({ ...form, emergenciaTel: e.target.value })} style={iI} 
         />
 
         <SLi c="Contato de Emergência *" />
         <input
           placeholder="Nome e telefone"
           value={form.emergencia}
-          onChange={(e) => setForm({ ...form, emergencia: e.target.value })}
+          onChange={(e) => setForm({ ...form, emergencia: `${form.emergenciaNome} — ${form.emergenciaTel}`, })}
           style={iI}
         />
 
