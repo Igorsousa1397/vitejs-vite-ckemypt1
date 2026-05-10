@@ -1570,26 +1570,25 @@ function Inscricao({ onVoltar, onPago }) {
           opts={["P", "M", "G", "GG", "EXG", "G1", "G2", "G3"]}
         />
 
-        <SLi c="Contato de Emergência *" />
-        <input placeholder="Nome do contato" value={form.emergenciaNome || ''}
-          onChange={e => setForm({ ...form, emergenciaNome: e.target.value })} style={{ ...iI, marginBottom: 8 }} />
-        <input placeholder="Telefone do contato" type="tel" value={form.emergenciaTel || ''}
-          onChange={e => setForm({ ...form, emergenciaTel: e.target.value })} style={iI} 
-        />
-
-        <SLi c="Contato de Emergência *" />
-        <input 
-          placeholder="Telefone do contato" 
-          type="tel" 
-          value={form.emergenciaTel || ''}
-          maxLength={15}
-          onChange={e => {
-            const v = e.target.value.replace(/\D/g, '').slice(0, 11);
-            const mask = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2');
-            setForm({ ...form, emergenciaTel: mask });
-          }} 
-          style={iI} 
-        />
+       <SLi c="Contato de Emergência *" />
+      <input 
+        placeholder="Nome do contato" 
+        value={form.emergenciaNome || ''}
+        onChange={e => setForm({ ...form, emergenciaNome: e.target.value })} 
+        style={{ ...iI, marginBottom: 8 }} 
+      />
+      <input 
+        placeholder="Telefone do contato" 
+        type="tel" 
+        value={form.emergenciaTel || ''}
+        maxLength={15}
+        onChange={e => {
+          const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+          const mask = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+          setForm({ ...form, emergenciaTel: mask });
+        }} 
+        style={iI} 
+      />
 
         <SLi c="Toma algum medicamento? *" />
         <input
