@@ -1152,8 +1152,10 @@ function Inscricao({ onVoltar, onPago }) {
         setSaving(false);
         return;
       }
-      const docRef = await addDoc(collection(db, "encontristas"), {
+      const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
+      await addDoc(collection(db, "encontristas"), {
         ...form,
+        igreja: igrejaFinal,
         cpf: cpfLimpo,
         criadoEm: new Date().toLocaleString("pt-BR"),
       });
@@ -1418,9 +1420,16 @@ function Inscricao({ onVoltar, onPago }) {
         <Radio
           val={form.igreja}
           set={(v) => setForm({ ...form, igreja: v })}
-          opts={["Fonte Cajamar", "Fonte Itajaí", "Fonte Barueri"]}
+          opts={["Fonte Cajamar", "Fonte Itajaí", "Fonte Barueri", "Outra"]}
         />
-
+        {form.igreja === "Outra" && (
+          <input
+            placeholder="Nome da sua igreja..."
+            value={form.igrejaCustom || ""}
+            onChange={(e) => setForm({ ...form, igrejaCustom: e.target.value })}
+            style={{ ...iI, marginTop: 8 }}
+          />
+        )}
         <SLi c="Nome completo *" />
         <input
           placeholder="Sem abreviações"
