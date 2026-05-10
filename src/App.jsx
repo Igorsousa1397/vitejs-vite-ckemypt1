@@ -2754,7 +2754,7 @@ export default function App() {
 
     if (pago === "true" && id) {
       setScr("pagamento_confirmado");
-      setPagamentoId(id);
+      setEncId(id);  // ← troca setPagamentoId por setEncId
       window.history.replaceState({}, "", "/");
     } else if (pago === "pending" && id) {
       setScr("pagamento_pendente");
