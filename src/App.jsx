@@ -3428,48 +3428,29 @@ export default function App() {
           </div>
         )}
         {/* top bar servo */}
-        <div
-          style={{
-            background: "#000",
-            borderBottom: "1px solid #1a1a1a",
-            padding: "14px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-          }}
-        >
+        <div style={{
+          background: "#000",
+          borderBottom: "1px solid #1a1a1a",
+          padding: "14px 16px",
+          display: "flex",
+          alignItems: "center",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+        }}>
+          {/* Esquerda */}
           {pg === "smins" ? (
-            <button
-              onClick={() => setMenu(true)}
-              style={BK({
-                padding: "8px 12px",
-                borderRadius: 10,
-                fontSize: 16,
-              })}
-            >
-              ☰
-            </button>
+            <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
           ) : (
-            <button
-              onClick={() => setPg("smins")}
-              style={BK({
-                padding: "8px 13px",
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 700,
-              })}
-            >
-              ←
-            </button>
+            <button onClick={() => setPg("smins")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
           )}
-            <div style={{ position: "absolute", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}> 
-             {pg === "smins" ? (
-              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85, pointerEvents: "auto" }} />
+
+          {/* Centro */}
+          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+            {pg === "smins" ? (
+              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
             ) : (
-              <span style={{ color: G.t, fontSize: 15, fontWeight: 700, pointerEvents: "auto" }}>
+              <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
                 {pg === "savs" ? "Avisos"
                 : pg === "suni" ? "Uniforme"
                 : pg === "sinfo" ? "Ocorrências"
@@ -3479,36 +3460,18 @@ export default function App() {
               </span>
             )}
           </div>
+
+          {/* Direita */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ display: "flex", gap: 6 }}>
-              {user.pago && (
-                <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />
-              )}
-              {/* espaçador para equilibrar */}
-              <div style={{ visibility: "hidden", display: "flex", gap: 6 }}>
-                {user.pago && <Pill c="Pago ✓" bg="transparent" tc="transparent" />}
-                <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg="transparent" tc="transparent" />
-                <button style={{ ...BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13 }), visibility: "hidden" }}>🔔</button>
-              </div>
-            </div>
+            {user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />
             <button
               onClick={async () => {
                 const token = await iniciarNotificacoes(user?.id);
-                if (token) {
-                  setNotif(true);
-                  showT("Notificações ativas!", "n");
-                } else {
-                  showT("Permissão negada", "w");
-                }
+                if (token) { setNotif(true); showT("Notificações ativas!", "n"); }
+                else showT("Permissão negada", "w");
               }}
-              style={BK({
-                padding: "8px 11px",
-                borderRadius: 10,
-                fontSize: 13,
-                borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a",
-                color: notif ? G.green : G.td,
-              })}
-            >
+              style={BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td })}>
               🔔
             </button>
           </div>
