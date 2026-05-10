@@ -2761,7 +2761,7 @@ export default function App() {
       window.history.replaceState({}, "", "/");
     } else if (statusMP === "approved" && externalRef) {
       setScr("pagamento_confirmado");
-      setPagamentoId(externalRef);
+      setEncId(externalRef);
       window.history.replaceState({}, "", "/");
     }
 
