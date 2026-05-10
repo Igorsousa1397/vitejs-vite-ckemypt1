@@ -1281,23 +1281,17 @@ function Inscricao({ onVoltar, onPago }) {
           </div>
           <button
             onClick={async () => {
-              vibrar(50);
-              const snap = await getDoc(doc(db, "encontristas", encId));
+              const id = pagamentoId;
+              if (!id) return;
+              const snap = await getDoc(doc(db, 'encontristas', id));
               if (snap.exists() && snap.data().pago) {
-                onPago(encId);
+                setEncId(id);
+                setScr('pagamento_confirmado');
               } else {
-                setMsgPagamento(
-                  "Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.",
-                );
-                setTimeout(() => setMsgPagamento(""), 4000);
+                alert('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
               }
             }}
-            style={BG({
-              width: "100%",
-              padding: 14,
-              borderRadius: 14,
-              marginBottom: 8,
-            })}
+            style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}
           >
             ✓ Já paguei — verificar
           </button>
