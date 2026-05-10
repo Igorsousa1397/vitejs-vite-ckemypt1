@@ -3465,17 +3465,20 @@ export default function App() {
               ←
             </button>
           )}
-          {pg === "smins" ? (
-            <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 36, mixBlendMode: "screen", opacity: 0.85, position: "absolute", left: "50%", transform: "translateX(-50%)" }} />          ) : (
-            <span style={{ flex: 1, color: G.t, fontSize: 15, fontWeight: 700 }}>
-              {pg === "savs" ? "Avisos"
-              : pg === "suni" ? "Uniforme"
-              : pg === "sinfo" ? "Ocorrências"
-              : pg === "srest" ? "Restrições"
-              : pg === "simg" ? "Uso de Imagem"
-              : "Atribuições"}
-            </span>
-          )}
+          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+            {pg === "smins" ? (
+              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
+            ) : (
+              <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
+                {pg === "savs" ? "Avisos"
+                : pg === "suni" ? "Uniforme"
+                : pg === "sinfo" ? "Ocorrências"
+                : pg === "srest" ? "Restrições"
+                : pg === "simg" ? "Uso de Imagem"
+                : "Atribuições"}
+              </span>
+            )}
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ display: "flex", gap: 6 }}>
               {user.pago && (
