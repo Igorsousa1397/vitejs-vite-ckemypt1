@@ -82,7 +82,7 @@ const I = {
   borderRadius: 12,
   padding: "13px 15px",
   color: "#fff",
-  fontSize: 14,
+  fontSize: 16,
   width: "100%",
 };
 const GA = {
@@ -99,7 +99,7 @@ const BG = (x = {}) => ({
   border: "none",
   borderRadius: 12,
   padding: "13px 18px",
-  fontSize: 14,
+  fontSize: 16,
   fontWeight: 700,
   cursor: "pointer",
   ...x,
@@ -322,7 +322,7 @@ function Acc({ title, right, ax, children, onDel, def = false }) {
           style={{
             color: G.t,
             fontWeight: 600,
-            fontSize: 14,
+            fontSize: 16,
             flex: 1,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -1207,7 +1207,7 @@ function Inscricao({ onVoltar, onPago }) {
           <div
             style={{
               color: "rgba(255,255,255,.5)",
-              fontSize: 14,
+              fontSize: 16,
               lineHeight: 1.6,
               marginBottom: 24,
             }}
@@ -1924,7 +1924,7 @@ function Termo({ cpf, onVoltar }) {
               <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>
                 Nome
               </div>
-              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>
+              <div style={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>
                 {enc.nome}
               </div>
             </div>
@@ -2603,7 +2603,7 @@ function ServoRestV({ user, encH, encM, t }) {
             style={{
               color: G.t,
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 16,
               marginBottom: 8,
             }}
           >
@@ -3038,7 +3038,7 @@ export default function App() {
               style={{
                 color: "#fb923c",
                 fontWeight: 800,
-                fontSize: 14,
+                fontSize: 16,
                 marginBottom: 6,
               }}
             >
@@ -3104,7 +3104,7 @@ export default function App() {
           <div
             style={{
               color: "rgba(255,255,255,.5)",
-              fontSize: 14,
+              fontSize: 16,
               lineHeight: 1.6,
               marginBottom: 24,
             }}
@@ -3406,7 +3406,7 @@ export default function App() {
                   }}
                 >
                   <span
-                    style={{ fontSize: 14, width: 18, textAlign: "center" }}
+                    style={{ fontSize: 16, width: 18, textAlign: "center" }}
                   >
                     {ic}
                   </span>
@@ -3436,7 +3436,7 @@ export default function App() {
                   marginTop: 8,
                 }}
               >
-                <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>
+                <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
                   ↪
                 </span>
                 Sair
@@ -3826,7 +3826,7 @@ export default function App() {
                   textAlign: "left",
                 }}
               >
-                <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>
+                <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
                   {ic}
                 </span>
                 <span style={{ flex: 1 }}>{LABELS[p]}</span>
@@ -3872,7 +3872,7 @@ export default function App() {
                 marginTop: 8,
               }}
             >
-              <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>
+              <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
                 ↪
               </span>
               Sair
@@ -4296,7 +4296,7 @@ export default function App() {
                   >
                     👕 Uniforme
                   </div>
-                  <div style={{ color: G.t, fontSize: 14, fontWeight: 700 }}>
+                  <div style={{ color: G.t, fontSize: 16, fontWeight: 700 }}>
                     {meuPedido?.status === "aberto"
                       ? "Alteração aprovada — atualize seu pedido"
                       : "Você ainda não fez seu pedido de uniforme"}
@@ -4416,7 +4416,7 @@ export default function App() {
                             style={{
                               color: G.t,
                               fontWeight: 700,
-                              fontSize: 14,
+                              fontSize: 16,
                             }}
                           >
                             {f}
@@ -5098,7 +5098,7 @@ export default function App() {
                   border: `2px solid ${c.ok ? G.green : "#333"}`,
                   background: c.ok ? "rgba(0,200,81,.15)" : "transparent",
                   color: G.green,
-                  fontSize: 14,
+                  fontSize: 16,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -6813,7 +6813,7 @@ export default function App() {
                     flex: 1,
                     padding: 12,
                     borderRadius: 12,
-                    fontSize: 14,
+                    fontSize: 16,
                   })}
                 >
                   Cancelar
@@ -6829,7 +6829,7 @@ export default function App() {
                       flex: 1,
                       padding: 12,
                       borderRadius: 12,
-                      fontSize: 14,
+                      fontSize: 16,
                     }),
                     borderColor: "rgba(255,59,48,.4)",
                     color: "#ff6b6b",
@@ -8490,7 +8490,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               style={{
                 color: G.t,
                 fontWeight: 700,
-                fontSize: 14,
+                fontSize: 16,
                 marginBottom: 10,
               }}
             >
@@ -8501,7 +8501,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 <div
                   style={{
                     color: G.td,
-                    fontSize: 14,
+                    fontSize: 16,
                     padding: "10px 0",
                     marginBottom: 10,
                   }}
@@ -9896,7 +9896,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             style={{
               color: G.t,
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 16,
               marginBottom: 10,
             }}
           >
@@ -9908,7 +9908,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               <div
                 style={{
                   color: G.td,
-                  fontSize: 14,
+                  fontSize: 16,
                   padding: "10px 0",
                   marginBottom: 10,
                 }}
@@ -11051,7 +11051,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                             style={{
                               color: "rgba(255,59,48,.4)",
                               cursor: "pointer",
-                              fontSize: 14,
+                              fontSize: 16,
                             }}
                           >
                             🗑
