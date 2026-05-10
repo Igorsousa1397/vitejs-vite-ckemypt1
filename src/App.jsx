@@ -2745,6 +2745,7 @@ export default function App() {
     const pago = params.get("pago");
     const id = params.get("id");
     const statusMP = params.get("status");
+    console.log('URL params:', window.location.search);
     const externalRef = params.get("external_reference");
 
     if (pago === "true" && id) {
