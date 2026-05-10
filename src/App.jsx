@@ -6108,7 +6108,7 @@ export default function App() {
   }) {
     const [g, setG] = useState("M");
     const [expandido, setExpandido] = useState({});
-    const lista = (g === "M" ? encM : encH).sort((a, b) => {
+    const lista = [...(g === "M" ? encM : encH)].sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
       if (!a.criadoEm) return 1;
       if (!b.criadoEm) return -1;
@@ -6413,7 +6413,11 @@ export default function App() {
                           Nascimento
                         </div>
                         <div style={{ color: G.td, fontSize: 12 }}>
-                          {e.nascimento || "—"}
+                          {e.nascimento
+                          ? e.nascimento.includes('-') && e.nascimento.length === 10
+                            ? e.nascimento.split('-').reverse().join('/')
+                            : e.nascimento
+                          : "—"}
                         </div>
                       </div>
                       <div>
