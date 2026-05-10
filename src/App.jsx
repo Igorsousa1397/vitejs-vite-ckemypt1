@@ -1154,8 +1154,8 @@ function Inscricao({ onVoltar, onPago }) {
         return;
       }
       const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
-      await addDoc(collection(db, "encontristas"), {
-        ...form,
+      const docRef = await addDoc(collection(db, "encontristas"), {
+          ...form,
         igreja: igrejaFinal,
         emergencia: `${form.emergenciaNome} — ${form.emergenciaTel}`,
         cpf: cpfLimpo,
