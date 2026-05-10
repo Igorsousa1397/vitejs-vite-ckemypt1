@@ -52,9 +52,14 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     },
     auto_return: 'all',
     payment_methods: {
-      excluded_payment_types: [],
+      excluded_payment_types: [
+        { id: 'digital_currency' },
+        { id: 'digital_wallet' }
+      ],
       excluded_payment_methods: [
-        { id: 'caixa_virtual' }
+        { id: 'caixa_virtual' },
+        { id: 'debvisa' },
+        { id: 'debmaster' }
       ],
       installments: 12,
     },
