@@ -3465,11 +3465,11 @@ export default function App() {
               ←
             </button>
           )}
-          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "absolute", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
             {pg === "smins" ? (
-              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
+              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85, pointerEvents: "auto" }} />
             ) : (
-              <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
+              <span style={{ color: G.t, fontSize: 15, fontWeight: 700, pointerEvents: "auto" }}>
                 {pg === "savs" ? "Avisos"
                 : pg === "suni" ? "Uniforme"
                 : pg === "sinfo" ? "Ocorrências"
