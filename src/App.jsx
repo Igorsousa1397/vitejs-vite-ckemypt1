@@ -6108,9 +6108,17 @@ export default function App() {
   }) {
     const [g, setG] = useState("M");
     const [expandido, setExpandido] = useState({});
-    const lista = (g === "M" ? encM : encH).sort((a, b) =>
-      (b.criadoEm || "").localeCompare(a.criadoEm || ""),
-    );
+    const lista = (g === "M" ? encM : encH).sort((a, b) => {
+      if (!a.criadoEm && !b.criadoEm) return 0;
+      if (!a.criadoEm) return 1;
+      if (!b.criadoEm) return -1;
+      const toDate = (s) => {
+        const [d, t] = s.split(', ');
+        const [dia, mes, ano] = d.split('/');
+        return new Date(`${ano}-${mes}-${dia}T${t}`);
+      };
+      return toDate(b.criadoEm) - toDate(a.criadoEm);
+    });
 
     const dist = () => {
       if (!lista.length) {
