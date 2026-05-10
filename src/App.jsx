@@ -1406,7 +1406,11 @@ function Inscricao({ onVoltar, onPago }) {
             lineHeight: 1.6,
           }}
         >
-          Dias 26, 27 e 28 de Junho · Estrada do Tronco 485, Itaquaquecetuba
+        <div>
+          <strong style={{ color: G.green }}>Dias 26, 27 e 28 de Junho</strong>
+          <br />
+          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
+        </div>
         </div>
 
         <SLi c="Igreja *" />
