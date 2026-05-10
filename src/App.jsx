@@ -1153,6 +1153,7 @@ function Inscricao({ onVoltar, onPago }) {
         setSaving(false);
         return;
       }
+      const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
       await addDoc(collection(db, "encontristas"), {
         ...form,
         igreja: igrejaFinal,
