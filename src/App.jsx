@@ -3446,7 +3446,7 @@ export default function App() {
           )}
 
           {/* Centro */}
-          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <div style={{ flex: 1, display: "flex", justifyContent: "center", paddingLeft: 60 }}>
             {pg === "smins" ? (
               <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
             ) : (
