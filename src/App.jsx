@@ -1295,14 +1295,14 @@ function Inscricao({ onVoltar, onPago }) {
           <button
             onClick={async () => {
               if (!encId) {
-                alert('ID não encontrado. Tente novamente.');
+                setMsgPagamento('ID não encontrado. Tente novamente.');
                 return;
               }
               const snap = await getDoc(doc(db, 'encontristas', encId));
               if (snap.exists() && snap.data().pago) {
                 setScr('pagamento_confirmado');
               } else {
-                alert('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
+                setMsgPagamento('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
               }
             }}
             style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}
