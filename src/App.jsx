@@ -1218,28 +1218,19 @@ function Inscricao({ onVoltar, onPago }) {
             onClick={async () => {
               vibrar(50);
               try {
-                const win = window.open("", "_blank");
-                const res = await fetch(
-                  "https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento",
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      encontristaId: encId,
-                      nome: form.nome,
-                      email: "",
-                    }),
-                  },
-                );
+                const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '' }),
+                });
                 const data = await res.json();
                 if (data.init_point) {
-                  win.location.href = data.init_point;
+                  window.location.href = data.init_point;
                 } else {
-                  win.close();
-                  alert("Erro ao gerar pagamento.");
+                  alert('Erro ao gerar pagamento.');
                 }
               } catch (err) {
-                alert("Erro ao gerar pagamento.");
+                alert('Erro ao gerar pagamento.');
               }
             }}
             style={{
