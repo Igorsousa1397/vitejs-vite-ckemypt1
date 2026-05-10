@@ -53,7 +53,10 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     auto_return: 'all',
     payment_methods: {
       excluded_payment_types: [],
-      installments: 1,
+      excluded_payment_methods: [
+        { id: 'caixa_virtual' }
+      ],
+      installments: 12,
     },
     notification_url: 'https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento',
   });
