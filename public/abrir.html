@@ -23,9 +23,15 @@
     <img src="/IMG_2408.PNG" alt="Encontro com Deus" />
     <h1>Encontro com Deus</h1>
     <p>Dias 26, 27 e 28 de Junho · Itaquaquecetuba</p>
-    <a class="btn" href="https://encontrocomdeus-fonte.vercel.app">
-      Abrir inscrições
-    </a>
+    <script>
+      var ua = navigator.userAgent;
+      var isAndroid = /android/i.test(ua);
+      var isInstagram = /Instagram/.test(ua);
+      
+      if (isAndroid && isInstagram) {
+        window.location.href = 'intent://encontrocomdeus-fonte.vercel.app#Intent;scheme=https;package=com.android.chrome;end';
+      }
+    </script>
     <div class="instrucao">
       <div class="instrucao-titulo">📱 Se não abrir, siga os passos:</div>
       <div class="step"><div class="step-num">1</div><span>Toque nos <strong style="color:#fff">três pontinhos ···</strong> no canto superior direito</span></div>
