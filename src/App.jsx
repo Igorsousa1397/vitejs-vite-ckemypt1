@@ -1428,7 +1428,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           width: "100%",
           padding: "12px 14px",
           borderRadius: 12,
-          background: rgba(255,159,10,.08),
+          background: "rgba(255,159,10,.08)",
           border: "1px solid rgba(255,107,0,.3)",
           color: "#ff6b00",
           fontSize: 13,
