@@ -28,7 +28,9 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { encontristaId, nome, email, tipo } = req.body;
-  const valor = tipo === 'credito' ? 378.00 : tipo === 'servo_pix' ? 220.00 : tipo === 'servo_credito' ? 231.00 : 360.00;  
+  const isCredito = tipo === 'credito' || tipo === 'servo_credito';
+  const valor = tipo === 'credito' ? 378.00 : tipo === 'servo_pix' ? 220.00 : tipo === 'servo_credito' ? 231.00 : 360.00;
+
   if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
 
   const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -53,23 +55,15 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     },
     auto_return: 'all',
     payment_methods: {
-      excluded_payment_types: tipo === 'credito'
-        ? [
-            { id: 'ticket' },
-            { id: 'digital_currency' },
-            { id: 'digital_wallet' }
-          ]
-        : [
-            { id: 'credit_card' },
-            { id: 'digital_currency' },
-            { id: 'digital_wallet' }
-          ],
+      excluded_payment_types: isCredito
+        ? [{ id: 'ticket' }, { id: 'digital_currency' }, { id: 'digital_wallet' }]
+        : [{ id: 'credit_card' }, { id: 'digital_currency' }, { id: 'digital_wallet' }],
       excluded_payment_methods: [
         { id: 'caixa_virtual' },
         { id: 'debvisa' },
         { id: 'debmaster' }
       ],
-      installments: tipo === 'credito' ? 12 : 1,
+      installments: isCredito ? 12 : 1,
     },
     notification_url: 'https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento',
   });
@@ -91,7 +85,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     mpRes.on('end', () => {
       try {
         const parsed = JSON.parse(data);
-        console.log('MP Response:', JSON.stringify(parsed));
+        console.log('tipo:', tipo, 'valor:', valor);
         if (parsed.init_point) {
           res.json({ init_point: parsed.init_point, id: parsed.id });
         } else {

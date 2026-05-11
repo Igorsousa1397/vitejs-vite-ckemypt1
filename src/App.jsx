@@ -1248,7 +1248,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
                 const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'credito' }),
+                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'pix' }),
                 });
                 const data = await res.json();
                 if (data.init_point) {
@@ -1273,7 +1273,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
                 const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'pix' }),
+                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'credito' }),
                 });
                 const data = await res.json();
                 if (data.init_point) {
