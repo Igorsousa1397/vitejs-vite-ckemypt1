@@ -1401,15 +1401,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, flex: 1 }}>
           Inscrição — Encontro com Deus
         </span>
-        <button
-          onClick={onFaq}
-          style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 12, fontWeight: 700 })}
-        >
-          ❓
-        </button>
-      <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-        Inscrição — Encontro com Deus
-      </span>
       </div>
       <div style={{ padding: "20px 20px 0", maxWidth: 480, margin: "0 auto" }}>
         <div
@@ -1423,13 +1414,32 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             fontSize: 13,
             lineHeight: 1.6,
           }}
-        >
-        <div>
-          <strong style={{ color: G.green }}>Dias 26, 27 e 28 de Junho</strong>
-          <br />
-          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
-        </div>
-        </div>
+         > 
+          <div>
+            <strong style={{ color: G.green }}>Dias 26, 27 e 28 de Junho</strong>
+            <br />
+            <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
+          </div>
+      </div>
+
+      <button
+        onClick={onFaq}
+        style={{
+          width: "100%",
+          padding: "12px 14px",
+          borderRadius: 12,
+          background: "rgba(255,107,0,.15)",
+          border: "1px solid rgba(255,107,0,.3)",
+          color: "#ff6b00",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          marginBottom: 8,
+          textAlign: "left",
+        }}
+      >
+        ❓ Dúvidas Frequentes
+      </button>
 
         <SLi c="Igreja *" />
         <Radio
