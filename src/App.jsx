@@ -1436,8 +1436,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             marginBottom: 8,
           }}
           >
-            Conheça o sítio
-          </a>
+            Conheça o sítio</a>
           </div>
       </div>
 
