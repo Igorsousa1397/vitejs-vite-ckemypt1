@@ -1285,7 +1285,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             }}
             style={{
               ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }),
-              background: "#6c3fd4",
+              background: "#009ee3",
             }}
           >
             Cartão de Crédito
