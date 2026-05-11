@@ -1049,6 +1049,7 @@ function Welcome({ onServos, onEncontrista }) {
         />
       </div>
       <BotaoAjuda />
+      <BotaoInsta />
     </div>
   );
 }
@@ -1332,6 +1333,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             Voltar
           </button>
           <BotaoAjuda />
+          <BotaoInsta />
         </div>
       </div>
     );
@@ -3125,6 +3127,7 @@ export default function App() {
           </button>
         </div>
         <BotaoAjuda />
+        <BotaoInsta />
       </div>
     );
 
@@ -3200,6 +3203,7 @@ export default function App() {
           </button>
         </div>
         <BotaoAjuda />
+        <BotaoInsta />
       </div>
     );
 
