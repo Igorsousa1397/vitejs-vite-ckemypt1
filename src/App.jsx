@@ -959,8 +959,17 @@ function Login({ onLogin, onVoltar }) {
   );
 }
 
+const BotaoFaq = ({ onFaq }) => (
+  <div
+    onClick={onFaq}
+    style={{ position: "fixed", bottom: 156, right: 24, width: 56, height: 56, borderRadius: "50%", background: "#ff9f0a", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, boxShadow: "0 4px 16px rgba(255,159,10,.4)", cursor: "pointer" }}
+  >
+    <span style={{ fontSize: 28 }}>❓</span>
+  </div>
+);
+
 // ── WELCOME ──────────────────────────────────────────────────────────────────
-function Welcome({ onServos, onEncontrista }) {
+function Welcome({ onServos, onEncontrista, onFaq }) {
   return (
     <div
       style={{
@@ -1063,6 +1072,7 @@ function Welcome({ onServos, onEncontrista }) {
       </div>
       <BotaoAjuda />
       <BotaoInsta />
+      <BotaoFaq onFaq={onFaq} />
     </div>
   );
 }
@@ -3238,12 +3248,13 @@ export default function App() {
     );
 
   if (scr === "welcome")
-    return (
-      <Welcome
-        onServos={() => setScr("login")}
-        onEncontrista={() => setScr("inscricao")}
-      />
-    );
+  return (
+    <Welcome
+      onServos={() => setScr("login")}
+      onEncontrista={() => setScr("inscricao")}
+      onFaq={() => setFaqOpen(true)}
+    />
+  );
 
   if (scr === "inscricao")
     return (
@@ -4180,7 +4191,7 @@ export default function App() {
         },
         {
           p: "Como funciona o transporte?",
-          r: "O transporte será realizado em ônibus com saída da sede da Igreja Fonte, localizada na Rua Catinguá, 130 - Cajamar."
+          r: "O transporte será realizado em ônibus com saída da sede da Igreja Fonte, localizada na Rua Catiguá, 130 - Cajamar."
         },
         {
           p: "Não consegui gerar o meu QRcode",
