@@ -1407,9 +1407,9 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         >
           ❓
         </button>
-        <span style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>
-          Inscrição — Encontro com Deus
-        </span>
+      <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        Inscrição — Encontro com Deus
+      </span>
       </div>
       <div style={{ padding: "20px 20px 0", maxWidth: 480, margin: "0 auto" }}>
         <div
@@ -4134,11 +4134,6 @@ export default function App() {
             <span style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>Dúvidas Frequentes</span>
           </div>
           <div style={{ padding: "20px 20px 0", maxWidth: 480, margin: "0 auto" }}>
-            <img
-              src="/IMG_2408.PNG"
-              alt="Encontro com Deus"
-              style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }}
-            />
             {perguntas.map((item, i) => (
               <div
                 key={i}
