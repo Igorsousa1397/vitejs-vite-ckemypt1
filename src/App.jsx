@@ -6403,23 +6403,6 @@ export default function App() {
           set={setG}
         />
         <div style={{ marginTop: 10 }}>
-          <button
-            onClick={dist}
-            style={{
-              ...BG({
-                width: "100%",
-                padding: 12,
-                marginTop: 10,
-                marginBottom: 14,
-                borderRadius: 13,
-              }),
-              background: "rgba(10,132,255,.15)",
-              border: "1px solid rgba(10,132,255,.3)",
-              color: "#64b5f6",
-            }}
-          >
-            Distribuir nos Quartos
-          </button>
           {lista.length === 0 && (
             <div
               style={{
