@@ -8674,7 +8674,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             : filtroPerfil === "servo"
               ? u.perfil === "servo"
               : u.perfil === "lider_celula") &&
-        u.nome.toLowerCase().includes(busca.toLowerCase()),
+        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),  // ← aqui
     );
 
     return (
