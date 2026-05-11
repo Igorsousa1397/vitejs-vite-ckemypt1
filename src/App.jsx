@@ -5889,7 +5889,7 @@ export default function App() {
       const [aberto, setAberto] = useState(false);
       if (!edit || quarto.servos.length >= 2) return null;
       const filtrados = servosDisponiveis.filter((u) =>
-        u.nome.toLowerCase().includes(busca.toLowerCase()),
+        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
       );
       return (
         <div style={{ position: "relative", marginTop: 8 }}>
