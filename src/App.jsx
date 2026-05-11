@@ -5838,6 +5838,10 @@ export default function App() {
     users,
     salvarQuarto,
     deletarQuarto,
+    tab,
+    setTab,
+    abertos,
+    setAbertos,
   }) {
     // const [tab, setTab] = useState("M");
     const [shN, setShN] = useState(false);
