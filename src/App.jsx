@@ -11243,7 +11243,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               {users
                 .filter(
                   (u) =>
-                    u.nome.toLowerCase().includes(buscaUser.toLowerCase()) &&
+                    (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
                     u.perfil !== "lider_celula" &&
                     u.perfil !== "lider_geral",
                 )
