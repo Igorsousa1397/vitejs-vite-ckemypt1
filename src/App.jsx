@@ -5983,7 +5983,7 @@ export default function App() {
       const fn = updFn || upd;
       const sugestoes = encConfirmados.filter(
         (e) =>
-          e.nome.toLowerCase().includes(busca.toLowerCase()) &&
+          (e.nome || "").toLowerCase().includes(busca.toLowerCase()) &&
           !quarto.enc.includes(e.nome) &&
           busca.length > 0,
       );
