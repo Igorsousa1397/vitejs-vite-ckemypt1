@@ -2845,6 +2845,8 @@ export default function App() {
   const unsubUsersRef = useRef(null);
   const unsubEscRef = useRef(null);
   const unsubSauRef = useRef(null);
+  const [quartoTab, setQuartoTab] = useState("M");
+  const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
 
   // Inicializa quarto mães se não existir
@@ -4110,6 +4112,10 @@ export default function App() {
             users={users}
             salvarQuarto={salvarQuarto}
             deletarQuarto={deletarQuarto}
+            tab={quartoTab}
+            setTab={setQuartoTab}
+            abertos={quartosAbertos}
+            setAbertos={setQuartosAbertos}
           />
         )}
         {pg === "enc" && (
@@ -5833,9 +5839,9 @@ export default function App() {
     salvarQuarto,
     deletarQuarto,
   }) {
-    const [tab, setTab] = useState("M");
+    // const [tab, setTab] = useState("M");
     const [shN, setShN] = useState(false);
-    const [abertos, setAbertos] = useState({});
+    // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
     const [f, setF] = useState({ num: "", lim: 9 });
     const isH = tab === "H";
