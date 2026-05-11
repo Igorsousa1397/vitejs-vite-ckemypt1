@@ -5331,7 +5331,7 @@ export default function App() {
                 </div>
                 {c.on && (
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                    🚌 Ônibus {c.on}
+                    Ônibus {c.on}
                   </div>
                 )}
               </div>
@@ -7226,7 +7226,7 @@ export default function App() {
           return (
             <Acc
               key={o.num}
-              title={`🚌 Ônibus ${o.num}`}
+              title={`Ônibus ${o.num}`}
               ax={tc}
               right={
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
