@@ -1161,8 +1161,8 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       !form.whatsapp.trim() ||
       !form.emergenciaNome?.trim() ||
       !form.emergenciaTel?.trim() ||
-      !form.medicamento.trim() ||
-      !form.doenca.trim()
+      !form.temMedicamento ||
+      !form.temDoenca
     ) {
       alert("Preencha todos os campos obrigatórios.");
       return;
@@ -1216,13 +1216,19 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         return;
       }
       const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
-      const docRef = await addDoc(collection(db, "encontristas"), {
-          ...form,
-        igreja: igrejaFinal,
-        emergencia: `${form.emergenciaNome} — ${form.emergenciaTel}`,
-        cpf: cpfLimpo,
-        criadoEm: new Date().toLocaleString("pt-BR"),
-      });
+      if (form.temMedicamento === 'Sim' || form.temDoenca === 'Sim') {
+        await addDoc(collection(db, 'saude'), {
+          encontristaId: docRef.id,
+          nome: form.nome,
+          quarto: '',
+          cond: [
+            form.temMedicamento === 'Sim' ? `Medicamento: ${form.medicamento}` : null,
+            form.temDoenca === 'Sim' ? `Doença: ${form.doenca}` : null,
+          ].filter(Boolean).join(' | '),
+          obs: '',
+          criadoEm: new Date().toLocaleString('pt-BR'),
+        });
+      }
       setEncId(docRef.id);
       setDone(true);
     } catch (err) {
@@ -1707,20 +1713,34 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       />
 
         <SLi c="Toma algum medicamento? *" />
-        <input
-          placeholder="Qual?"
-          value={form.medicamento}
-          onChange={(e) => setForm({ ...form, medicamento: e.target.value })}
-          style={iI}
+        <Radio
+          val={form.temMedicamento}
+          set={(v) => setForm({ ...form, temMedicamento: v, medicamento: v === 'Não' ? 'Não' : form.medicamento })}
+          opts={['Sim', 'Não']}
         />
+        {form.temMedicamento === 'Sim' && (
+          <input
+            placeholder="Qual medicamento?"
+            value={form.medicamento}
+            onChange={(e) => setForm({ ...form, medicamento: e.target.value })}
+            style={{ ...iI, marginTop: 8 }}
+          />
+        )}
 
-        <SLi c="Tem alguma doença crônica *?" />
-        <input
-          placeholder="Qual?"
-          value={form.doenca}
-          onChange={(e) => setForm({ ...form, doenca: e.target.value })}
-          style={iI}
+        <SLi c="Tem alguma doença crônica? *" />
+        <Radio
+          val={form.temDoenca}
+          set={(v) => setForm({ ...form, temDoenca: v, doenca: v === 'Não' ? 'Não' : form.doenca })}
+          opts={['Sim', 'Não']}
         />
+        {form.temDoenca === 'Sim' && (
+          <input
+            placeholder="Qual doença?"
+            value={form.doenca}
+            onChange={(e) => setForm({ ...form, doenca: e.target.value })}
+            style={{ ...iI, marginTop: 8 }}
+          />
+        )}
 
         <button
           onClick={salvar}
@@ -2821,6 +2841,7 @@ export default function App() {
   const unsubOnRef = useRef(null);
   const unsubUsersRef = useRef(null);
   const unsubEscRef = useRef(null);
+  const unsubSauRef = useRef(null);
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
 
   // Inicializa quarto mães se não existir
@@ -2981,6 +3002,10 @@ export default function App() {
                 .sort((a, b) => a.num - b.num),
             );
           });
+          
+          unsubSauRef.current = onSnapshot(collection(db, 'saude'), (s) => {
+            setSau(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+          });
 
           if (Notification.permission !== "denied") {
             iniciarNotificacoes(firebaseUser.uid).then((token) => {
@@ -3000,6 +3025,7 @@ export default function App() {
         unsubOnRef.current?.();
         unsubUsersRef.current?.();
         unsubEscRef.current?.();
+        unsubSauRef.current?.();
         setScr("welcome");
       }
       setSp(false);
