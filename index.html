@@ -13,8 +13,16 @@
     <meta name="apple-mobile-web-app-title" content="servos." />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <script>
-      if (navigator.userAgent.includes('Instagram') && !location.search.includes('openExternalBrowser')) {
-        window.location.href = location.href + (location.search ? '&' : '?') + 'openExternalBrowser=1';
+      var ua = navigator.userAgent || navigator.vendor || window.opera;
+      if (ua.indexOf('Instagram') > -1) {
+        document.addEventListener('DOMContentLoaded', function() {
+          var a = document.createElement('a');
+          a.href = 'googlechrome://encontrocomdeus-fonte.vercel.app';
+          a.click();
+          setTimeout(function() {
+            window.location.href = 'https://encontrocomdeus-fonte.vercel.app';
+          }, 500);
+        });
       }
     </script>
   </head>
