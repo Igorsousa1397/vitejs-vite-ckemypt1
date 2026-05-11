@@ -4182,6 +4182,10 @@ export default function App() {
           p: "Como funciona o transporte?",
           r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sunt in culpa qui officia deserunt mollit anim id est laborum."
         },
+        {
+          p: "Não consegui gerar o meu QRcode",
+          r: "Entre em contato pelo WhatsApp através do botão no canto inferior do app e informe seu nome completo. Nossa equipe de suporte enviará o seu QR Code."
+        },
       ];
 
       return (
