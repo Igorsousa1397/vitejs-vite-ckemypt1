@@ -4167,20 +4167,20 @@ export default function App() {
       const [aberto, setAberto] = useState(null);
       const perguntas = [
         {
-          p: "O que é o Encontro com Deus?",
-          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+          q: "O que é o Encontro com Deus?",
+          r: "O Encontro com Deus é um retiro espiritual preparado para proporcionar momentos de conexão com Deus, renovação da fé e transformação de vida."
         },
         {
-          p: "Quanto custa e como pagar?",
-          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."
+          q: "Quanto custa e como pagar?",
+          r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 378,00 no cartão de crédito, com possibilidade de parcelamento. O pagamento deve ser realizado pela plataforma Mercado Pago."
         },
         {
-          p: "O que devo levar para o evento?",
-          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum."
+          q: "O que devo levar para o evento?",
+          r: "Leve roupas confortáveis, itens de higiene pessoal, Bíblia, travesseiro, roupas de cama de solteiro e objetos de uso pessoal necessários para os dias do encontro."
         },
         {
-          p: "Como funciona o transporte?",
-          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sunt in culpa qui officia deserunt mollit anim id est laborum."
+          q: "Como funciona o transporte?",
+          r: "O transporte será realizado em ônibus com saída da sede da Igreja Fonte, localizada na Rua Catinguá, 130 - Cajamar."
         },
         {
           p: "Não consegui gerar o meu QRcode",
