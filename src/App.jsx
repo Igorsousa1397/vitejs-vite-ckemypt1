@@ -4167,19 +4167,19 @@ export default function App() {
       const [aberto, setAberto] = useState(null);
       const perguntas = [
         {
-          q: "O que é o Encontro com Deus?",
+          p: "O que é o Encontro com Deus?",
           r: "O Encontro com Deus é um retiro espiritual preparado para proporcionar momentos de conexão com Deus, renovação da fé e transformação de vida."
         },
         {
-          q: "Quanto custa e como pagar?",
+          p: "Quanto custa e como pagar?",
           r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 378,00 no cartão de crédito, com possibilidade de parcelamento. O pagamento deve ser realizado pela plataforma Mercado Pago."
         },
         {
-          q: "O que devo levar para o evento?",
+          p: "O que devo levar para o evento?",
           r: "Leve roupas confortáveis, itens de higiene pessoal, Bíblia, travesseiro, roupas de cama de solteiro e objetos de uso pessoal necessários para os dias do encontro."
         },
         {
-          q: "Como funciona o transporte?",
+          p: "Como funciona o transporte?",
           r: "O transporte será realizado em ônibus com saída da sede da Igreja Fonte, localizada na Rua Catinguá, 130 - Cajamar."
         },
         {
