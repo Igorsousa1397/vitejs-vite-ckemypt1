@@ -1425,16 +1425,16 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              background: "none",
-              border: "none",
-              color: G.tm,
-              fontSize: 12,
-              cursor: "pointer",
-              textAlign: "left",
-              textDecoration: "underline",
-              display: "block",
-              marginBottom: 8,
-            }}
+            background: "none",
+            border: "none",
+            color: G.tm,
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left",
+            textDecoration: "underline",
+            display: "block",
+            marginBottom: 8,
+          }}
           >
             Conheça o sítio
           </a>
