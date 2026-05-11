@@ -27,7 +27,9 @@ exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => 
 exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const { encontristaId, nome, email } = req.body;
+  const { encontristaId, nome, email, tipo } = req.body;
+  const valor = tipo === 'credito' ? 378.00 : 360.00;
+
   if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
 
   const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -37,7 +39,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       title: 'Inscrição — Encontro com Deus 2026',
       description: 'Dias 26, 27 e 28 de junho · Itaquaquecetuba',
       quantity: 1,
-      unit_price: 360.00,
+      unit_price: valor,
       currency_id: 'BRL',
     }],
     payer: {
@@ -52,16 +54,23 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     },
     auto_return: 'all',
     payment_methods: {
-      excluded_payment_types: [
-        { id: 'digital_currency' },
-        { id: 'digital_wallet' }
-      ],
+      excluded_payment_types: tipo === 'credito'
+        ? [
+            { id: 'ticket' },
+            { id: 'digital_currency' },
+            { id: 'digital_wallet' }
+          ]
+        : [
+            { id: 'credit_card' },
+            { id: 'digital_currency' },
+            { id: 'digital_wallet' }
+          ],
       excluded_payment_methods: [
         { id: 'caixa_virtual' },
         { id: 'debvisa' },
         { id: 'debmaster' }
       ],
-      installments: 12,
+      installments: tipo === 'credito' ? 12 : 1,
     },
     notification_url: 'https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento',
   });

@@ -1248,7 +1248,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
                 const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '' }),
+                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'pix' }),
                 });
                 const data = await res.json();
                 if (data.init_point) {
@@ -1256,22 +1256,39 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
                 } else {
                   alert('Erro ao gerar pagamento.');
                 }
-              } catch (err) {
-                alert('Erro ao gerar pagamento.');
-              }
+              } catch { alert('Erro ao gerar pagamento.'); }
             }}
             style={{
-              ...BG({
-                width: "100%",
-                padding: 16,
-                borderRadius: 14,
-                fontSize: 15,
-                marginBottom: 12,
-              }),
+              ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }),
               background: "#009ee3",
             }}
           >
-            Pagar com Cartão, Boleto ou PIX
+            PIX ou Boleto
+          </button>
+
+          <button
+            onClick={async () => {
+              vibrar(50);
+              try {
+                const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'pix' }),
+                });
+                const data = await res.json();
+                if (data.init_point) {
+                  window.location.href = data.init_point;
+                } else {
+                  alert('Erro ao gerar pagamento.');
+                }
+              } catch { alert('Erro ao gerar pagamento.'); }
+            }}
+            style={{
+              ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }),
+              background: "#6c3fd4",
+            }}
+          >
+            Cartão de Crédito
           </button>
           <div
             style={{
