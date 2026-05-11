@@ -6038,7 +6038,7 @@ export default function App() {
             >
               {sugestoes.map((e) => (
                 <div
-                  onMouseDown={() => toggle(e.id)}
+                  onMouseDown={() => confirmar(e.nome)}
                   style={{
                     padding: "12px 14px",
                     display: "flex",
