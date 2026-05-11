@@ -1596,7 +1596,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
 
       <SLi c="Autoriza uso de imagem? *" />
       <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '12px 14px', marginBottom: 10, color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.6 }}>
-        Sua história pode transformar outras vidas! As imagens do evento serão usadas como testemunho do poder de Deus para alcançar pessoas que ainda precisam de um encontro com Ele.
+        Sua história pode transformar outras vidas!<br /> As imagens do evento serão usadas como testemunho do poder de Deus para alcançar pessoas que ainda precisam de um encontro com Ele.
       </div>
       <Radio val={form.autorizaImagem} set={v => setForm({ ...form, autorizaImagem: v })} opts={['Sim', 'Não']} />
 
