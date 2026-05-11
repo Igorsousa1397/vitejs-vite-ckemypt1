@@ -310,7 +310,7 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
       }}
     >
       <div
-        onClick={() => setO(!o)}
+        onClick={() => toggle()}
         style={{
           padding: "14px 16px",
           display: "flex",
@@ -371,7 +371,7 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
           </span>
         </div>
       </div>
-      {o && (
+      {isOpen && (
         <>
           <div style={{ height: 1, background: "#1e1e1e" }} />
           <div style={{ padding: "14px 16px" }}>{children}</div>
