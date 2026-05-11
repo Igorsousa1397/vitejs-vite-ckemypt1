@@ -1430,7 +1430,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
               color: G.tm,
               fontSize: 12,
               cursor: "pointer",
-              textAlign: "center",
+              textAlign: "left",
               textDecoration: "underline",
               display: "block",
               marginBottom: 8,
