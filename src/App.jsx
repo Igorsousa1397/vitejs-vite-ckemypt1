@@ -3086,8 +3086,8 @@ export default function App() {
   const role = user?.perfil || "servo";
   const isAdm = role === "admin";
 
-  const uQH = (n, fn) => setQh(qh.map((q) => (q.num === n ? fn(q) : q)));
-  const uQM = (n, fn) => setQm(qm.map((q) => (q.num === n ? fn(q) : q)));
+  const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
+  const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uOn = (n, fn) => setOn(on.map((o) => (o.num === n ? fn(o) : o)));
   const uEs = (id, fn) => setEsc(esc.map((e) => (e.id === id ? fn(e) : e)));
   const broadcast = (msg) => {
