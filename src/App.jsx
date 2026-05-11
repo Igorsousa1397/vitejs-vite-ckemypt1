@@ -4445,54 +4445,26 @@ export default function App() {
               )}
 
               {/* Slide: pagamento pendente */}
-              {slideAtual?.tipo === "pagamento" && (
-                <div
-                  style={{
-                    background: "rgba(255,59,48,.08)",
-                    border: "1px solid rgba(255,59,48,.25)",
-                    borderRadius: 14,
-                    padding: "13px 14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#ff6b6b",
-                      fontWeight: 700,
-                      fontSize: 11,
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                      marginBottom: 4,
-                    }}
-                  >
-                    ⚠️ Pagamento Pendente
-                  </div>
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,.5)",
-                      fontSize: 12,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Valor: <strong style={{ color: "#fff" }}>R$ 220,00</strong>
-                  </div>
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,.5)",
-                      fontSize: 12,
-                      marginTop: 4,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Prazo:{" "}
-                    <strong style={{ color: "#ff6b6b" }}>
-                      {new Date(
-                        dataLimitePagamento + "T12:00:00",
-                      ).toLocaleDateString("pt-BR")}
-                    </strong>
-                  </div>
-                </div>
-              )}
-
+                <button
+                onClick={async () => {
+                  vibrar(50);
+                  try {
+                    const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito' }),
+                    });
+                    const data = await res.json();
+                    if (data.init_point) window.location.href = data.init_point;
+                  } catch { alert('Erro ao gerar pagamento.'); }
+                }}
+                style={{
+                  ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginTop: 8 }),
+                  background: "#009ee3",
+                }}
+              >
+                Cartão de Crédito — R$ 231,00
+              </button>
               {/* Slide: uniforme pendente */}
               {slideAtual?.tipo === "uniforme" && (
                 <div

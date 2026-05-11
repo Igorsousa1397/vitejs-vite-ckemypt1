@@ -28,8 +28,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { encontristaId, nome, email, tipo } = req.body;
-  const valor = tipo === 'credito' ? 378.00 : 360.00;
-
+  const valor = tipo === 'credito' ? 378.00 : tipo === 'servo_pix' ? 220.00 : tipo === 'servo_credito' ? 231.00 : 360.00;  
   if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
 
   const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
