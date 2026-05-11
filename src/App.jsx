@@ -294,7 +294,10 @@ function AddIn({ onAdd, ph = "Adicionar...", mt = 12 }) {
   );
 }
 
-function Acc({ title, right, ax, children, onDel, def = false }) {
+function Acc({ title, right, ax, children, onDel, def = false, open: openProp, onToggle }) {
+  const [oInterno, setOInterno] = useState(def);
+  const o = openProp !== undefined ? openProp : oInterno;
+  const toggle = onToggle || (() => setOInterno(!oInterno));
   const [o, setO] = useState(def);
   return (
     <div
@@ -5708,6 +5711,8 @@ export default function App() {
         right={
           <Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
         }
+        open={!!abertos['maes']}
+        onToggle={() => toggleAcc('maes')}
       >
         <div
           style={{
@@ -5841,6 +5846,8 @@ export default function App() {
   }) {
     const [tab, setTab] = useState("M");
     const [shN, setShN] = useState(false);
+    const [abertos, setAbertos] = useState({});
+    const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
     const [f, setF] = useState({ num: "", lim: 9 });
     const isH = tab === "H";
     const colecao = isH ? "quartos_h" : "quartos_m";
@@ -6195,6 +6202,8 @@ export default function App() {
               title={`Quarto ${q.num}`}
               right={<Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />}
               onDel={edit ? () => delQuarto(q.num) : undefined}
+              open={!!abertos[q.num]}
+              onToggle={() => toggleAcc(q.num)}
             >
               <div
                 style={{
