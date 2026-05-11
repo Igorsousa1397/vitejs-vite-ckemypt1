@@ -2683,6 +2683,7 @@ export default function App() {
   const [encId, setEncId] = useState(null);
   const [termoCpf, setTermoCpf] = useState(null);
   const [users, setUsers] = useState([]);
+  const [faqOpen, setFaqOpen] = useState(false);
   const [fns, setFns] = useState(FUNCOES_INIT);
   const [esc, setEsc] = useState([]);
   const [qh, setQh] = useState(QH_INIT);
