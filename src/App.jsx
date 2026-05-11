@@ -5849,6 +5849,51 @@ export default function App() {
     const [f, setF] = useState({ num: "", lim: 9 });
     const isH = tab === "H";
     const colecao = isH ? "quartos_h" : "quartos_m";
+    
+    const EditQuarto = ({ q, upd, t }) => {
+    const [aberto, setAberto] = useState(false);
+    const [num, setNum] = useState(q.num);
+    const [lim, setLim] = useState(q.lim);
+
+    if (!aberto) return (
+      <button
+        onClick={() => setAberto(true)}
+        style={{ ...BK({ padding: "7px 12px", borderRadius: 10, fontSize: 12, marginBottom: 8 }), borderColor: "rgba(255,159,10,.3)", color: "#ff9f0a" }}
+      >
+        ✏️ Editar quarto
+      </button>
+    );
+
+    return (
+      <div style={{ background: "#1a1a1a", borderRadius: 12, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Número</div>
+            <input type="number" value={num} onChange={(e) => setNum(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Limite</div>
+            <input type="number" min="1" max="30" value={lim} onChange={(e) => setLim(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={async () => {
+              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim }));
+              setAberto(false);
+              t("Quarto atualizado!");
+            }}
+            style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
+          >
+            Salvar
+          </button>
+          <button onClick={() => setAberto(false)} style={BK({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  };
 
     const upd = async (num, fn) => {
       const lista = isH ? qh : qm;
@@ -6226,6 +6271,8 @@ export default function App() {
               <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
                 {lv >= 0 ? `${lv} vagas` : "Lotado"}
               </div>
+
+              {edit && <EditQuarto q={q} upd={upd} t={t} />}
 
               <SL c={`Servos (${q.servos.length}/2)`} mt={0} />
               <Tags
