@@ -1438,7 +1438,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           textAlign: "left",
         }}
       >
-        ❓ Dúvidas Frequentes
+        Dúvidas Frequentes
       </button>
 
         <SLi c="Igreja *" />
