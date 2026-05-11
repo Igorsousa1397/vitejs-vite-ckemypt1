@@ -1712,7 +1712,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           {saving ? "Enviando..." : "Enviar Inscrição"}
         </button>
       </div>
-      <BotaoAjuda />
+      <BotaoFaq onFaq={onFaq} />
       <a
       href="https://www.instagram.com/ecomdeusfonte/"
       target="_blank"
