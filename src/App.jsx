@@ -1418,7 +1418,26 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           <div>
             <strong style={{ color: G.green }}>Dias 26, 27 e 28 de Junho</strong>
             <br />
-            <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
+            
+          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
+          <a
+          href="https://cemine.wixsite.com/world"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: "none",
+              border: "none",
+              color: G.tm,
+              fontSize: 12,
+              cursor: "pointer",
+              textAlign: "center",
+              textDecoration: "underline",
+              display: "block",
+              marginBottom: 8,
+            }}
+          >
+            Conheça o sítio
+          </a>
           </div>
       </div>
 
