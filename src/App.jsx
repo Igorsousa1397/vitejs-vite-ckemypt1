@@ -1320,7 +1320,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             >
               Após realizar o pagamento, retorne a este aplicativo e clique em
               "Já paguei — verificar" para obter seu QR Code de acesso ao
-              evento. Guarde-o com cuidado — ele será necessário no check-in.
+              encontro . Guarde-o com cuidado — ele será necessário no check-in.
             </div>
           </div>
           <button
