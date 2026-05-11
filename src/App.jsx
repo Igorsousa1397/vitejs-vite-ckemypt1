@@ -5689,17 +5689,7 @@ export default function App() {
     );
   }
 
-  function QuartoMaes({
-    m,
-    oc,
-    pct,
-    edit,
-    uQM,
-    setQm,
-    qm,
-    AddServoSearch,
-    AddEncAutocomplete,
-  }) {
+  function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAutocomplete, open, onToggle }) {
     const [numEdit, setNumEdit] = useState(m.num);
     const [limEdit, setLimEdit] = useState(m.lim);
 
@@ -5710,8 +5700,8 @@ export default function App() {
         right={
           <Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
         }
-        open={!!abertos['maes']}
-        onToggle={() => toggleAcc('maes')}
+        open={open}
+        onToggle={onToggle}
       >
         <div
           style={{
@@ -6185,6 +6175,8 @@ export default function App() {
                 qm={qm}
                 AddServoSearch={AddServoSearch}
                 AddEncAutocomplete={AddEncAutocomplete}
+                open={!!abertos['maes']}
+                onToggle={() => toggleAcc('maes')}
               />
             );
           })()}
