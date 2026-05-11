@@ -49,9 +49,9 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     },
     external_reference: encontristaId,
     back_urls: {
-      success: `https://servos-peniel.vercel.app?pago=true&id=${encontristaId}`,
-      failure: `https://servos-peniel.vercel.app?pago=false&id=${encontristaId}`,
-      pending: `https://servos-peniel.vercel.app?pago=pending&id=${encontristaId}`,
+      success: `https://encontrocomdeus-fonte.vercel.app?pago=true&id=${encontristaId}`,
+      failure: `https://encontrocomdeus-fonte.vercel.app?pago=false&id=${encontristaId}`,
+      pending: `https://encontrocomdeus-fonte.vercel.app?pago=pending&id=${encontristaId}`,
     },
     auto_return: 'all',
     payment_methods: {
@@ -127,12 +127,22 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
         try {
           const payment = JSON.parse(responseData);
           if (payment.status === 'approved') {
-            const encontristaId = payment.external_reference;
-            await admin.firestore()
-              .collection('encontristas')
-              .doc(encontristaId)
-              .update({ pago: true, pagamentoId: paymentId });
-            console.log(`Encontrista ${encontristaId} marcado como pago!`);
+            const referenceId = payment.external_reference;
+            
+            const encRef = admin.firestore().collection('encontristas').doc(referenceId);
+            const encSnap = await encRef.get();
+            
+            if (encSnap.exists) {
+              await encRef.update({ pago: true, pagamentoId: paymentId });
+              console.log(`Encontrista ${referenceId} marcado como pago!`);
+            } else {
+              const userRef = admin.firestore().collection('users').doc(referenceId);
+              const userSnap = await userRef.get();
+              if (userSnap.exists) {
+                await userRef.update({ pago: true, pagamentoId: paymentId });
+                console.log(`Servo ${referenceId} marcado como pago!`);
+              }
+            }
           }
           res.sendStatus(200);
         } catch (e) {
