@@ -4884,8 +4884,7 @@ export default function App() {
         <Seg
           opts={[
             ["mins", "Ministrações"],
-            ["avs", "Avisos"],
-            ["status", "Status"],
+            ["avs", "Avisos"]
           ]}
           val={tab}
           set={setTab}
@@ -5007,86 +5006,6 @@ export default function App() {
                   )}
                 </div>
               ))}
-            </>
-          )}
-          {tab === "status" && (
-            <>
-              {prox ? (
-                <div
-                  style={{
-                    background: "rgba(10,132,255,.1)",
-                    border: "1px solid rgba(10,132,255,.2)",
-                    borderRadius: 14,
-                    padding: "14px",
-                    marginBottom: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#64b5f6",
-                      fontWeight: 700,
-                      fontSize: 11,
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Próximo
-                  </div>
-                  <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-                    {prox.nome}
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>
-                    {prox.dia} · {prox.hora}
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    background: G.card,
-                    borderRadius: 14,
-                    padding: 14,
-                    textAlign: "center",
-                    marginBottom: 12,
-                  }}
-                >
-                  <div style={{ color: G.green, fontWeight: 700 }}>
-                    ✓ Todos notificados
-                  </div>
-                </div>
-              )}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {[
-                  ["✓", "checkin"],
-                  ["🛏", "quartos"],
-                  ["🚌", "onibus"],
-                  ["⛔", "rest"],
-                  ["📋", "equipes"],
-                  ["🔎", "ach"],
-                  ["🪪", "crac"],
-                  ["💊", "saude"],
-                  ["🍽️", "louça"],
-                  ["👤", "servos"],
-                ].map(([ic, p]) => (
-                  <button
-                    key={p}
-                    onClick={() => nav(p)}
-                    style={{
-                      ...BK({
-                        padding: "8px 13px",
-                        borderRadius: 50,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }),
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    {ic} {LABELS[p]}
-                  </button>
-                ))}
-              </div>
             </>
           )}
         </div>
