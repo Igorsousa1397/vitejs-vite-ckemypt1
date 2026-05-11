@@ -8654,6 +8654,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     const lista = users.filter(
       (u) =>
         u.perfil !== "admin" &&
+        u.nome &&
         (filtro === "todos"
           ? true
           : filtro === "ativos"
