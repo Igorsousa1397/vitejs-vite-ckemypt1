@@ -959,14 +959,39 @@ function Login({ onLogin, onVoltar }) {
   );
 }
 
-const BotaoFaq = ({ onFaq }) => (
-  <div
-    onClick={onFaq}
-    style={{ position: "fixed", bottom: 156, right: 24, width: 56, height: 56, borderRadius: "50%", background: "#ff9f0a", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, boxShadow: "0 4px 16px rgba(255,159,10,.4)", cursor: "pointer" }}
-  >
-    <span style={{ fontSize: 28 }}>❓</span>
-  </div>
-);
+const BotaoFaq = ({ onFaq }) => {
+  const [showLabel, setShowLabel] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLabel(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div
+      onClick={onFaq}
+      style={{ position: "fixed", bottom: 156, right: 24, display: "flex", alignItems: "center", gap: 8, zIndex: 999, cursor: "pointer" }}
+    >
+      {showLabel && (
+        <div style={{
+          background: "#ff9f0a",
+          color: "#000",
+          fontSize: 12,
+          fontWeight: 700,
+          padding: "6px 12px",
+          borderRadius: 50,
+          whiteSpace: "nowrap",
+          boxShadow: "0 4px 12px rgba(255,159,10,.4)",
+        }}>
+          Dúvidas
+        </div>
+      )}
+      <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#ff9f0a", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(255,159,10,.4)" }}>
+        <span style={{ fontSize: 28 }}>❓</span>
+      </div>
+    </div>
+  );
+};
 
 // ── WELCOME ──────────────────────────────────────────────────────────────────
 function Welcome({ onServos, onEncontrista, onFaq }) {
