@@ -355,7 +355,6 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
                 cursor: "pointer",
               }}
             >
-              🗑
             </span>
           )}
           <span
