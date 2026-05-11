@@ -2,6 +2,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const https = require('https');
+const apiKey = process.env.WEB_API_KEY;
 
 admin.initializeApp();
 
@@ -179,7 +180,7 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
 });
 
 // ── CRIAR SERVO ──────────────────────────────────────────────────────────────
-exports.criarServo = onRequest({ cors: true }, async (req, res) => {
+exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { email, nome, perfil, funcoes } = req.body.data || req.body;
@@ -191,8 +192,6 @@ exports.criarServo = onRequest({ cors: true }, async (req, res) => {
       password: 'Temp@2026!',
     });
 
-    await admin.auth().generatePasswordResetLink(email);
-
     await admin.firestore().collection('users').doc(userRecord.uid).set({
       nome,
       email,
@@ -201,6 +200,17 @@ exports.criarServo = onRequest({ cors: true }, async (req, res) => {
       ativo: true,
       pago: false,
       primeiro: true,
+    });
+
+    // Envia email de redefinição via REST API do Firebase
+    const apiKey = process.env.FIREBASE_API_KEY;
+    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestType: 'PASSWORD_RESET',
+        email,
+      }),
     });
 
     res.json({ result: { uid: userRecord.uid } });
