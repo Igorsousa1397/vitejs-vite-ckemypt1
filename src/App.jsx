@@ -4179,10 +4179,6 @@ export default function App() {
           r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum."
         },
         {
-          p: "Posso cancelar minha inscrição?",
-          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Excepteur sint occaecat cupidatat non proident, sunt in culpa."
-        },
-        {
           p: "Como funciona o transporte?",
           r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sunt in culpa qui officia deserunt mollit anim id est laborum."
         },
