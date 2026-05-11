@@ -296,9 +296,8 @@ function AddIn({ onAdd, ph = "Adicionar...", mt = 12 }) {
 
 function Acc({ title, right, ax, children, onDel, def = false, open: openProp, onToggle }) {
   const [oInterno, setOInterno] = useState(def);
-  const o = openProp !== undefined ? openProp : oInterno;
+  const isOpen = openProp !== undefined ? openProp : oInterno;
   const toggle = onToggle || (() => setOInterno(!oInterno));
-  const [o, setO] = useState(def);
   return (
     <div
       style={{
@@ -365,7 +364,7 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
               fontSize: 12,
               transition: "transform .2s",
               display: "inline-block",
-              transform: o ? "rotate(180deg)" : "none",
+              transform: isOpen ? "rotate(180deg)" : "none",
             }}
           >
             ▾
