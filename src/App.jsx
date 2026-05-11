@@ -1374,6 +1374,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           </button>
           <BotaoAjuda />
           <BotaoInsta />
+          <BotaoFaq onFaq={onFaq} />
         </div>
       </div>
     );
@@ -1482,7 +1483,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           </div>
       </div>
 
-      <button
+      {/* <button
         onClick={onFaq}
         style={{
           width: "100%",
@@ -1499,7 +1500,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         }}
       >
         ? Dúvidas Frequentes
-      </button>
+      </button> */}
 
         <SLi c="Igreja *" />
         <Radio
