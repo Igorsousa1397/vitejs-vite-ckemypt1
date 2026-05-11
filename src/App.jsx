@@ -1085,7 +1085,7 @@ const CELULAS = [
   "Não faço parte de célula",
 ];
 
-function Inscricao({ onVoltar, onPago }) {
+function Inscricao({ onVoltar, onPago, onFaq }) {
   const [form, setForm] = useState({
     igreja: "",
     nome: "",
@@ -1397,6 +1397,15 @@ function Inscricao({ onVoltar, onPago }) {
           })}
         >
           ←
+        </button>
+        <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, flex: 1 }}>
+          Inscrição — Encontro com Deus
+        </span>
+        <button
+          onClick={onFaq}
+          style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 12, fontWeight: 700 })}
+        >
+          ❓
         </button>
         <span style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>
           Inscrição — Encontro com Deus
@@ -2976,6 +2985,8 @@ export default function App() {
 
   if (sp) return <Splash done={() => setSp(false)} />;
 
+  if (faqOpen) return <FAQ onVoltar={() => setFaqOpen(false)} />;
+
   if (scr === "pagamento_confirmado")
     return (
       <div
@@ -3169,6 +3180,7 @@ export default function App() {
           setEncId(id);
           setScr("pagamento_confirmado");
         }}
+        onFaq={() => setFaqOpen(true)}
       />
     );
 
@@ -3331,6 +3343,134 @@ export default function App() {
         ? [["📷", "simg", "Uso de Imagem"]]
         : []),
     ];
+
+    function FAQ({ onVoltar }) {
+      const [aberto, setAberto] = useState(null);
+      const perguntas = [
+        {
+          p: "O que é o Encontro com Deus?",
+          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        },
+        {
+          p: "Quanto custa e como pagar?",
+          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."
+        },
+        {
+          p: "O que devo levar para o evento?",
+          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum."
+        },
+        {
+          p: "Posso cancelar minha inscrição?",
+          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Excepteur sint occaecat cupidatat non proident, sunt in culpa."
+        },
+        {
+          p: "Como funciona o transporte?",
+          r: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sunt in culpa qui officia deserunt mollit anim id est laborum."
+        },
+      ];
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 40 }}>
+          <style>{css}</style>
+          <div style={{
+            background: "#000",
+            borderBottom: "1px solid #1a1a1a",
+            padding: "14px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+          }}>
+            <button onClick={onVoltar} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+            <span style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>Dúvidas Frequentes</span>
+          </div>
+          <div style={{ padding: "20px 20px 0", maxWidth: 480, margin: "0 auto" }}>
+            <img
+              src="/IMG_2408.PNG"
+              alt="Encontro com Deus"
+              style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }}
+            />
+            {perguntas.map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#111",
+                  border: `1px solid ${aberto === i ? "rgba(0,200,81,.3)" : "#1e1e1e"}`,
+                  borderLeft: `3px solid ${aberto === i ? G.green : "#1e1e1e"}`,
+                  borderRadius: 14,
+                  marginBottom: 8,
+                  overflow: "hidden",
+                  transition: "border .2s",
+                }}
+              >
+                <div
+                  onClick={() => setAberto(aberto === i ? null : i)}
+                  style={{
+                    padding: "14px 16px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    userSelect: "none",
+                  }}
+                >
+                  <span style={{ color: "#fff", fontWeight: 700, fontSize: 14, flex: 1 }}>
+                    {item.p}
+                  </span>
+                  <span style={{
+                    color: G.green,
+                    fontSize: 18,
+                    transition: "transform .2s",
+                    display: "inline-block",
+                    transform: aberto === i ? "rotate(45deg)" : "none",
+                    marginLeft: 10,
+                    fontWeight: 300,
+                  }}>
+                    +
+                  </span>
+                </div>
+                {aberto === i && (
+                  <div style={{
+                    borderTop: "1px solid #1e1e1e",
+                    padding: "12px 16px",
+                    color: "rgba(255,255,255,.6)",
+                    fontSize: 13,
+                    lineHeight: 1.7,
+                  }}>
+                    {item.r}
+                  </div>
+                )}
+              </div>
+            ))}
+              <a
+              href="https://wa.me/5511982222149?text=Olá!%20Tenho%20uma%20dúvida%20sobre%20o%20Encontro%20com%20Deus."
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                background: "rgba(37,211,102,.1)",
+                border: "1px solid rgba(37,211,102,.3)",
+                color: "#25d366",
+                borderRadius: 14,
+                padding: "14px",
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "none",
+                marginTop: 16,
+              }}
+            >
+              💬 Ainda tem dúvidas? Fale conosco
+            </a>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
         <style>{css}</style>
