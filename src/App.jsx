@@ -10108,7 +10108,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
         };
       }, {});
 
-      const uniFiltrado = uni.filter(u => !u.naoQuerUniforme);
+    const uniFiltrado = uni.filter(u => !u.naoQuerUniforme);
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
@@ -10276,7 +10276,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
         )}
 
         {/* RESUMO */}
-        {uni.length > 0 && (
+        {uniFiltrado.length > 0 && (
             <Acc title={`Resumo (${uniFiltrado.length} pedidos)`} def={true}>
             {[
               { key: "camisa", label: "Camisetas" },
@@ -10322,7 +10322,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 
         {/* PEDIDOS */}
         <SL c={`Pedidos (${uniFiltrado.length})`} mt={14} />
-        
+
         {/* EXPORTAR */}
         {uniFiltrado.length > 0 && (
           <button
