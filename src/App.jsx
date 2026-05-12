@@ -1644,10 +1644,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         />
         {form.igreja === "Outra" && (
           <input
-            placeholder="Nome da sua igreja..."
+            placeholder="Nome da sua igreja... *"
             value={form.igrejaCustom || ""}
             onChange={(e) => setForm({ ...form, igrejaCustom: e.target.value })}
-            style={{ ...iI, marginTop: 8 }}
+            style={{ 
+              ...iI, 
+              marginTop: 8,
+              borderColor: !form.igrejaCustom?.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a"
+            }}
           />
         )}
         <SLi c="Nome completo *" />
@@ -1824,10 +1828,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         />
         {form.temMedicamento === 'Sim' && (
           <input
-            placeholder="Qual medicamento?"
+            placeholder="Qual medicamento? *"
             value={form.medicamento}
             onChange={(e) => setForm({ ...form, medicamento: e.target.value })}
-            style={{ ...iI, marginTop: 8 }}
+            style={{ 
+              ...iI, 
+              marginTop: 8,
+              borderColor: !form.medicamento?.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a"
+            }}
           />
         )}
 
@@ -1839,10 +1847,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         />
         {form.temDoenca === 'Sim' && (
           <input
-            placeholder="Qual doença?"
+            placeholder="Qual doença? *"
             value={form.doenca}
             onChange={(e) => setForm({ ...form, doenca: e.target.value })}
-            style={{ ...iI, marginTop: 8 }}
+            style={{ 
+              ...iI, 
+              marginTop: 8,
+              borderColor: !form.doenca?.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a"
+            }}
           />
         )}
 
