@@ -10108,7 +10108,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
         };
       }, {});
 
-    const pendentes = uni.filter((u) => u.status === "pendente").length;
+    const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
 
@@ -10566,7 +10566,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             Nenhum pedido ainda.
           </div>
         )}
-        {uni.map((u, i) => {
+        {uni.filter(u => !u.naoQuerUniforme).map((u, i) => {
           const statusColor =
             u.status === "pendente"
               ? "#ff9f0a"
