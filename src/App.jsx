@@ -9143,16 +9143,14 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       (meuPedido && meuPedido.status !== "aberto") ||
       (meuPedido && !meuPedido.status) ||
       meuPedido?.naoQuerUniforme;
-    const [form, setForm] = useState(
-      meuPedido || {
-        camisa: "",
-        qtdCamisas: "",
-        calca: "",
-        blusa: "",
-        nomeCamiseta: "",
-      },
-    );
+    const [form, setForm] = useState(meuPedido || { camisa: "", qtdCamisas: "", calca: "", blusa: "", nomeCamiseta: "" });
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+      if (meuPedido) {
+        setForm(meuPedido);
+      }
+    }, [meuPedido?.status]);
 
     const precoItem = (item, tam) => {
       if (!tam) return 0;
@@ -10524,16 +10522,8 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               };
 
               const wb = new ExcelJS.Workbook();
-              buildAba(
-                wb,
-                "SERVO",
-                uni.filter((u) => u.perfil === "servo"),
-              );
-              buildAba(
-                wb,
-                "STAFF",
-                uni.filter((u) => u.perfil !== "servo"),
-              );
+              buildAba(wb, "SERVO", uni.filter((u) => u.perfil === "servo" && u.pago === true));
+              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.pago === true));
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
