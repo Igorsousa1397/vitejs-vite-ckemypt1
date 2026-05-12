@@ -10522,8 +10522,8 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               };
 
               const wb = new ExcelJS.Workbook();
-              buildAba(wb, "SERVO", uni.filter((u) => u.perfil === "servo" && u.pago === true));
-              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.pago === true));
+              buildAba(wb, "SERVO", uni.filter((u) => u.perfil === "servo" && u.pago === true && !u.naoQuerUniforme));
+              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.pago === true && !u.naoQuerUniforme));
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
