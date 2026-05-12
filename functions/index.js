@@ -311,36 +311,40 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
     const emailData = await emailRes.json();
     console.log('Email API response:', JSON.stringify(emailData));
 
-    // Email de boas-vindas com link do portal
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"Encontro com Deus" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: 'Bem-vindo ao Portal do Encontro com Deus!',
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#000;padding:32px;border-radius:16px;">
-          <h2 style="color:#fff;text-align:center;">Olá, ${nome}!</h2>
-          <p style="color:rgba(255,255,255,.6);text-align:center;line-height:1.6;">
-            Você foi cadastrado como servo no Portal do Encontro com Deus.<br/>
-            Acesse o portal e crie sua senha:
-          </p>
-          <a href="https://encontrocomdeus-fonte.vercel.app" 
-             style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
-            Acessar o Portal
-          </a>
-          <p style="color:rgba(255,255,255,.4);text-align:center;font-size:12px;">
-            Você também receberá um email separado para criar sua senha de acesso.
-          </p>
-        </div>
-      `,
-    });
+    // Email de boas-vindas
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_PASS,
+        },
+      });
+      await transporter.sendMail({
+        from: `"Encontro com Deus" <${process.env.GMAIL_USER}>`,
+        to: email,
+        subject: 'Bem-vindo ao Portal do Encontro com Deus!',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#000;padding:32px;border-radius:16px;">
+            <h2 style="color:#fff;text-align:center;">Olá, ${nome}!</h2>
+            <p style="color:rgba(255,255,255,.6);text-align:center;line-height:1.6;">
+              Você foi cadastrado como servo no Portal do Encontro com Deus.<br/>
+              Acesse o portal e crie sua senha:
+            </p>
+            <a href="https://encontrocomdeus-fonte.vercel.app" 
+               style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
+              Acessar o Portal
+            </a>
+            <p style="color:rgba(255,255,255,.4);text-align:center;font-size:12px;">
+              Você também receberá um email separado para criar sua senha de acesso.
+            </p>
+          </div>
+        `,
+      });
+      console.log('Email de boas-vindas enviado para:', email);
+    } catch (mailErr) {
+      console.error('Erro ao enviar email de boas-vindas:', mailErr.message);
+    }
 
     res.json({ result: { uid: userRecord.uid } });
   } catch (err) {
