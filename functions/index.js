@@ -196,6 +196,7 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (
       email,
       password: 'Temp@2026!',
     });
+    console.log('Usuario criado:', userRecord.uid);
 
     await admin.firestore().collection('users').doc(userRecord.uid).set({
       nome,
@@ -206,22 +207,20 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (
       pago: false,
       primeiro: true,
     });
+    console.log('Firestore salvo');
 
-    // Envia email de redefinição via REST API do Firebase
     const apiKey = process.env.WEB_API_KEY;
     const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestType: 'PASSWORD_RESET',
-        email,
-      }),
+      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
     });
     const emailData = await emailRes.json();
     console.log('Email API response:', JSON.stringify(emailData));
 
     res.json({ result: { uid: userRecord.uid } });
   } catch (err) {
+    console.error('ERRO criarServo:', err.code, err.message);
     if (err.code === 'auth/email-already-exists') {
       res.status(400).json({ error: 'Email já cadastrado' });
     } else {
