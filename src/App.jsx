@@ -1249,66 +1249,43 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   const [msgPagamento, setMsgPagamento] = useState("");
 
   const salvar = async () => {
-    if (
-      !form.nome.trim() ||
-      !form.sexo ||
-      !form.whatsapp.trim() ||
-      !form.emergenciaNome?.trim() ||
-      !form.emergenciaTel?.trim() ||
-      !form.temMedicamento ||
-      !form.temDoenca
-    ) {
-      alert("Preencha todos os campos obrigatórios.");
-      return;
-    }
-    if (!form.autorizaImagem) {
-      alert("Responda sobre o uso de imagem");
-      return;
-    }
+    // Campos obrigatórios básicos
+    if (!form.igreja) { alert("Selecione sua igreja."); return; }
+    if (form.igreja === 'Outra' && !form.igrejaCustom?.trim()) { alert("Informe o nome da sua igreja."); return; }
+    if (!form.nome.trim()) { alert("Informe seu nome completo."); return; }
+    if (!form.cpf.trim()) { alert("Informe seu CPF."); return; }
+    if (!form.nascimento || form.nascimento.includes('--') || form.nascimento.split('-').some(p => !p)) { alert("Informe sua data de nascimento."); return; }
+    if (!form.sexo) { alert("Selecione seu sexo."); return; }
+    if (!form.whatsapp.trim()) { alert("Informe seu WhatsApp."); return; }
+    if (!form.celula) { alert("Selecione sua célula."); return; }
+    if (!form.camiseta) { alert("Selecione o tamanho da camiseta."); return; }
+    if (!form.autorizaImagem) { alert("Responda sobre o uso de imagem."); return; }
+    if (!form.emergenciaNome?.trim()) { alert("Informe o nome do contato de emergência."); return; }
+    if (!form.emergenciaTel?.trim()) { alert("Informe o telefone do contato de emergência."); return; }
+    if (!form.temMedicamento) { alert("Responda sobre medicamentos."); return; }
+    if (form.temMedicamento === 'Sim' && !form.medicamento?.trim()) { alert("Informe qual medicamento você toma."); return; }
+    if (!form.temDoenca) { alert("Responda sobre doenças crônicas."); return; }
+    if (form.temDoenca === 'Sim' && !form.doenca?.trim()) { alert("Informe qual doença crônica você tem."); return; }
+
     const cpfLimpo = form.cpf.replace(/[\.\-]/g, "").trim();
-    if (cpfLimpo && cpfLimpo.length !== 11) {
-      alert("CPF inválido. Deve ter 11 dígitos.");
-      return;
-    }
-    if (form.nascimento) {
-      const nascimento = new Date(form.nascimento);
-      const hoje = new Date();
-      const idade =
-        hoje.getFullYear() -
-        nascimento.getFullYear() -
-        (hoje <
-        new Date(
-          hoje.getFullYear(),
-          nascimento.getMonth(),
-          nascimento.getDate(),
-        )
-          ? 1
-          : 0);
-      if (idade < 14) {
-        alert("É necessário ter pelo menos 14 anos para se inscrever.");
-        return;
-      }
-    }
+    if (cpfLimpo.length !== 11) { alert("CPF inválido. Deve ter 11 dígitos."); return; }
+
+    const nascimento = new Date(form.nascimento);
+    const hoje = new Date();
+    const idade = hoje.getFullYear() - nascimento.getFullYear() -
+      (hoje < new Date(hoje.getFullYear(), nascimento.getMonth(), nascimento.getDate()) ? 1 : 0);
+    if (idade < 14) { alert("É necessário ter pelo menos 14 anos para se inscrever."); return; }
+
     setSaving(true);
     try {
       const snap = await getDocs(collection(db, "encontristas"));
-      if (cpfLimpo) {
-        const cpfExiste = snap.docs.some((d) => d.data().cpf === cpfLimpo);
-        if (cpfExiste) {
-          alert("Este CPF já está cadastrado!");
-          setSaving(false);
-          return;
-        }
-      }
+      const cpfExiste = snap.docs.some((d) => d.data().cpf === cpfLimpo);
+      if (cpfExiste) { alert("Este CPF já está cadastrado!"); setSaving(false); return; }
+
       const waLimpo = form.whatsapp.replace(/\D/g, "");
-      const waExiste = snap.docs.some(
-        (d) => d.data().whatsapp?.replace(/\D/g, "") === waLimpo,
-      );
-      if (waExiste) {
-        alert("Este WhatsApp já está cadastrado!");
-        setSaving(false);
-        return;
-      }
+      const waExiste = snap.docs.some((d) => d.data().whatsapp?.replace(/\D/g, "") === waLimpo);
+      if (waExiste) { alert("Este WhatsApp já está cadastrado!"); setSaving(false); return; }
+
       const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
       const docRef = await addDoc(collection(db, "encontristas"), {
         ...form,
