@@ -9152,15 +9152,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               ✉️ O servo receberá um email para criar a própria senha.
             </div>
             <input
-              placeholder="Nome *"
+              placeholder="Nome completo *"
               value={f.nome}
               onChange={(e) => setF({ ...f, nome: e.target.value })}
-              style={I}
-            />
-            <input
-              placeholder="Sobrenome"
-              value={f.sob}
-              onChange={(e) => setF({ ...f, sob: e.target.value })}
               style={I}
             />
             <input
