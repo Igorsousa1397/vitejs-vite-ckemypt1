@@ -1485,7 +1485,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           </button>
           <BotaoAjuda />
           <BotaoInsta />
-          <BotaoFaq onFaq={onFaq} />
         </div>
       </div>
     );
