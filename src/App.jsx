@@ -1483,8 +1483,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           >
             Voltar
           </button>
-          <BotaoAjuda />
-          <BotaoInsta />
         </div>
       </div>
     );
