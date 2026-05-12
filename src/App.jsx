@@ -10108,6 +10108,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
         };
       }, {});
 
+      const uniFiltrado = uni.filter(u => !u.naoQuerUniforme);
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
@@ -10276,7 +10277,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 
         {/* RESUMO */}
         {uni.length > 0 && (
-          <Acc title={`Resumo (${uni.length} pedidos)`} def={true}>
+            <Acc title={`Resumo (${uniFiltrado.length} pedidos)`} def={true}>
             {[
               { key: "camisa", label: "Camisetas" },
               { key: "calca", label: "Calcas" },
@@ -10298,7 +10299,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                     {label}
                     {key === "camisa" && (
                       <span style={{ color: G.tm, marginLeft: 8 }}>
-                        (total:{" "}
+                        (total: {uniFiltrado.reduce((a, u) => a + (u.qtdCamisas || 0), 0)})
                         {uni.reduce((a, u) => a + (u.qtdCamisas || 0), 0)})
                       </span>
                     )}
@@ -10320,10 +10321,10 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
         )}
 
         {/* PEDIDOS */}
-        <SL c={`Pedidos (${uni.length})`} mt={14} />
-
+        <SL c={`Pedidos (${uniFiltrado.length})`} mt={14} />
+        
         {/* EXPORTAR */}
-        {uni.length > 0 && (
+        {uniFiltrado.length > 0 && (
           <button
             onClick={() => {
               const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
