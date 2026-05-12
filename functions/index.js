@@ -209,7 +209,7 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (
     });
     console.log('Firestore salvo');
 
-    const apiKey = process.env.WEB_API_KEY;
+    // const apiKey = process.env.WEB_API_KEY;
     // const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
     //   method: 'POST',
     //   headers: { 'Content-Type': 'application/json' },
