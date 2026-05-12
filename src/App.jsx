@@ -971,7 +971,7 @@ const BotaoFaq = ({ onFaq }) => {
   return (
     <div
       onClick={onFaq}
-      style={{ position: "fixed", bottom: 156, right: 24, display: "flex", alignItems: "center", gap: 8, zIndex: 999, cursor: "pointer" }}
+      style={{ position: "fixed", bottom: 90, right: 24, display: "flex", alignItems: "center", gap: 8, zIndex: 999, cursor: "pointer" }}
     >
       {showLabel && (
         <div style={{
