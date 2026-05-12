@@ -1039,7 +1039,6 @@ function PrimeiroAcessoV({ user, onConcluido }) {
         <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Crie sua senha</div>
         <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
           Este é seu primeiro acesso.<br/>
-          Sua senha temporária é <strong style={{ color: '#fff' }}>Temp@2026!</strong><br/>
           Crie uma nova senha para continuar.
         </div>
 
