@@ -310,7 +310,7 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
     const emailData = await emailRes.json();
     console.log('Email API response:', JSON.stringify(emailData));
 
-    // Email de boas-vindas
+    // Email de boas-vindas — erro aqui não bloqueia o cadastro
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -334,27 +334,22 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
                style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
               Acessar o Portal
             </a>
-            <p style="color:rgba(255,255,255,.4);text-align:center;font-size:12px;">
-              Você também receberá um email separado para criar sua senha de acesso.
-            </p>
           </div>
         `,
       });
       console.log('Email de boas-vindas enviado para:', email);
-    } catch (err) {
-      console.error('Erro criarServo:', err.code, err.message, JSON.stringify(err));
-      if (err.code === 'auth/email-already-exists') {
-        res.status(400).json({ error: 'Email já cadastrado' });
-      } else if (!res.headersSent) {
-        res.status(500).json({ error: err.message });
-      }
+    } catch (mailErr) {
+      console.error('Erro email boas-vindas:', mailErr.message);
     }
 
+    // Resposta de sucesso — sempre executada
     res.json({ result: { uid: userRecord.uid } });
+
   } catch (err) {
+    console.error('Erro criarServo:', err.code, err.message);
     if (err.code === 'auth/email-already-exists') {
       res.status(400).json({ error: 'Email já cadastrado' });
-    } else {
+    } else if (!res.headersSent) {
       res.status(500).json({ error: err.message });
     }
   }
