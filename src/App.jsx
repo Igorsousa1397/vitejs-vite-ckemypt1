@@ -1015,6 +1015,19 @@ function PrimeiroAcessoV({ user, onConcluido }) {
     setSaving(false);
   };
 
+  const inputStyle = {
+    width: '100%',
+    background: '#1a1a1a',
+    border: '1px solid #2a2a2a',
+    borderRadius: 12,
+    padding: '14px 16px',
+    color: '#fff',
+    fontSize: 15,
+    outline: 'none',
+    marginBottom: 10,
+    boxSizing: 'border-box',
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{css}</style>
@@ -1029,14 +1042,14 @@ function PrimeiroAcessoV({ user, onConcluido }) {
           placeholder="Nova senha"
           value={senha}
           onChange={e => setSenha(e.target.value)}
-          style={{ ...iI, marginBottom: 10 }}
+          style={inputStyle}
         />
         <input
           type="password"
           placeholder="Confirmar senha"
           value={confirma}
           onChange={e => setConfirma(e.target.value)}
-          style={{ ...iI, marginBottom: 16 }}
+          style={inputStyle}
         />
         {erro && (
           <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, color: '#ff6b6b', fontSize: 13 }}>
