@@ -33,6 +33,11 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
   const valor = tipo === 'credito' ? 378.00 : tipo === 'servo_pix' ? 220.00 : tipo === 'servo_credito' ? 231.00 : 360.00;
 
   if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
+  const encSnap = await admin.firestore().collection('encontristas').doc(encontristaId).get();
+  const userSnap = await admin.firestore().collection('users').doc(encontristaId).get();
+  if (!encSnap.exists && !userSnap.exists) {
+    return res.status(404).json({ error: 'ID não encontrado' });
+  }
 
   const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
