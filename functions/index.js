@@ -329,8 +329,9 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#000;padding:32px;border-radius:16px;">
             <h2 style="color:#fff;text-align:center;">Olá, ${nome}!</h2>
-            <p style="color:rgba(255,255,255,.6);text-align:center;line-height:1.6;">
+            <p style="...">
               Você foi cadastrado como servo no Portal do Encontro com Deus.<br/>
+              Sua senha temporária é: <strong style="color:#00c851;">Temp@2026!</strong><br/>
               Acesse o portal e crie sua senha:
             </p>
             <a href="https://encontrocomdeus-fonte.vercel.app" 

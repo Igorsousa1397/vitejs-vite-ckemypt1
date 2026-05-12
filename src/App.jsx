@@ -998,22 +998,10 @@ const BotaoFaq = ({ onFaq }) => {
 function PrimeiroAcessoV({ user, onConcluido }) {
   const [senha, setSenha] = useState('');
   const [confirma, setConfirma] = useState('');
+  const [showSenha, setShowSenha] = useState(false);
+  const [showConfirma, setShowConfirma] = useState(false);
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState('');
-
-  const salvar = async () => {
-    if (senha.length < 6) { setErro('Senha deve ter ao menos 6 caracteres.'); return; }
-    if (senha !== confirma) { setErro('As senhas não coincidem.'); return; }
-    setSaving(true);
-    try {
-      await updatePassword(auth.currentUser, senha);
-      await setDoc(doc(db, 'users', user.id), { primeiro: false }, { merge: true });
-      onConcluido();
-    } catch (err) {
-      setErro('Erro ao atualizar senha: ' + err.message);
-    }
-    setSaving(false);
-  };
 
   const inputStyle = {
     width: '100%',
@@ -1024,8 +1012,23 @@ function PrimeiroAcessoV({ user, onConcluido }) {
     color: '#fff',
     fontSize: 15,
     outline: 'none',
-    marginBottom: 10,
     boxSizing: 'border-box',
+    paddingRight: 48,
+  };
+
+  const salvar = async () => {
+    if (senha.length < 6) { setErro('Senha deve ter ao menos 6 caracteres.'); return; }
+    if (senha !== confirma) { setErro('As senhas não coincidem.'); return; }
+    setSaving(true);
+    try {
+      await updatePassword(auth.currentUser, senha);
+      await setDoc(doc(db, 'users', user.id), { primeiro: false }, { merge: true });
+      onConcluido();
+      window.location.reload();
+    } catch (err) {
+      setErro('Erro ao atualizar senha: ' + err.message);
+    }
+    setSaving(false);
   };
 
   return (
@@ -1035,22 +1038,43 @@ function PrimeiroAcessoV({ user, onConcluido }) {
         <img src="/IMG_2408.PNG" alt="" style={{ width: 160, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
         <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Crie sua senha</div>
         <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
-          Este é seu primeiro acesso. Crie uma senha para continuar.
+          Este é seu primeiro acesso.<br/>
+          Sua senha temporária é <strong style={{ color: '#fff' }}>Temp@2026!</strong><br/>
+          Crie uma nova senha para continuar.
         </div>
-        <input
-          type="password"
-          placeholder="Nova senha"
-          value={senha}
-          onChange={e => setSenha(e.target.value)}
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          placeholder="Confirmar senha"
-          value={confirma}
-          onChange={e => setConfirma(e.target.value)}
-          style={inputStyle}
-        />
+
+        <div style={{ position: 'relative', marginBottom: 10 }}>
+          <input
+            type={showSenha ? 'text' : 'password'}
+            placeholder="Nova senha"
+            value={senha}
+            onChange={e => setSenha(e.target.value)}
+            style={inputStyle}
+          />
+          <button
+            onClick={() => setShowSenha(!showSenha)}
+            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: showSenha ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.28)', cursor: 'pointer', fontSize: 16, padding: 4 }}
+          >
+            {showSenha ? '◯' : '◉'}
+          </button>
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            type={showConfirma ? 'text' : 'password'}
+            placeholder="Confirmar senha"
+            value={confirma}
+            onChange={e => setConfirma(e.target.value)}
+            style={inputStyle}
+          />
+          <button
+            onClick={() => setShowConfirma(!showConfirma)}
+            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: showConfirma ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.28)', cursor: 'pointer', fontSize: 16, padding: 4 }}
+          >
+            {showConfirma ? '◯' : '◉'}
+          </button>
+        </div>
+
         {erro && (
           <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, color: '#ff6b6b', fontSize: 13 }}>
             {erro}
