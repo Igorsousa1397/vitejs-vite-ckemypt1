@@ -278,7 +278,7 @@ exports.criarLiderMidia = onRequest({ cors: true }, async (req, res) => {
 });
 const nodemailer = require('nodemailer');
 
-exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USER', 'GMAIL_PASS'] }, async (req, res) => {
+exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USER', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'] }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { email, nome, perfil, funcoes } = req.body.data || req.body;
@@ -315,8 +315,11 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
+          type: 'OAuth2',
           user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_PASS,
+          clientId: process.env.GMAIL_CLIENT_ID,
+          clientSecret: process.env.GMAIL_CLIENT_SECRET,
+          refreshToken: process.env.GMAIL_REFRESH_TOKEN,
         },
       });
       await transporter.sendMail({
