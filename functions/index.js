@@ -277,4 +277,77 @@ exports.criarLiderMidia = onRequest({ cors: true }, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// v8
+const nodemailer = require('nodemailer');
+
+exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USER', 'GMAIL_PASS'] }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  const { email, nome, perfil, funcoes } = req.body.data || req.body;
+  if (!email || !nome) return res.status(400).json({ error: 'email e nome obrigatórios' });
+
+  try {
+    const userRecord = await admin.auth().createUser({
+      email,
+      password: 'Temp@2026!',
+    });
+
+    await admin.firestore().collection('users').doc(userRecord.uid).set({
+      nome,
+      email,
+      perfil: perfil || 'servo',
+      funcoes: funcoes || [],
+      ativo: true,
+      pago: false,
+      primeiro: true,
+    });
+
+    // Email de redefinição de senha
+    const apiKey = process.env.WEB_API_KEY;
+    const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+    });
+    const emailData = await emailRes.json();
+    console.log('Email API response:', JSON.stringify(emailData));
+
+    // Email de boas-vindas com link do portal
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Encontro com Deus" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: 'Bem-vindo ao Portal do Encontro com Deus!',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#000;padding:32px;border-radius:16px;">
+          <h2 style="color:#fff;text-align:center;">Olá, ${nome}!</h2>
+          <p style="color:rgba(255,255,255,.6);text-align:center;line-height:1.6;">
+            Você foi cadastrado como servo no Portal do Encontro com Deus.<br/>
+            Acesse o portal e crie sua senha:
+          </p>
+          <a href="https://encontrocomdeus-fonte.vercel.app" 
+             style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
+            Acessar o Portal
+          </a>
+          <p style="color:rgba(255,255,255,.4);text-align:center;font-size:12px;">
+            Você também receberá um email separado para criar sua senha de acesso.
+          </p>
+        </div>
+      `,
+    });
+
+    res.json({ result: { uid: userRecord.uid } });
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists') {
+      res.status(400).json({ error: 'Email já cadastrado' });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
