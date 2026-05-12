@@ -2,7 +2,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const https = require('https');
-const apiKey = process.env.WEB_API_KEY;
+// const apiKey = process.env.WEB_API_KEY;
 
 admin.initializeApp();
 
@@ -210,13 +210,13 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (
     console.log('Firestore salvo');
 
     const apiKey = process.env.WEB_API_KEY;
-    const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
-    });
-    const emailData = await emailRes.json();
-    console.log('Email API response:', JSON.stringify(emailData));
+    // const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+    // });
+    // const emailData = await emailRes.json();
+    // console.log('Email API response:', JSON.stringify(emailData));
 
     res.json({ result: { uid: userRecord.uid } });
   } catch (err) {
@@ -327,15 +327,17 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
         to: email,
         subject: 'Bem-vindo ao Portal do Encontro com Deus!',
         html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#000;padding:32px;border-radius:16px;">
-            <h2 style="color:#fff;text-align:center;">Olá, ${nome}!</h2>
-            <p style="...">
+           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#ffffff;padding:32px;border-radius:16px;">
+            <h2 style="color:#000;text-align:center;">Olá, ${nome}!</h2>
+            <p style="color:#333;text-align:center;line-height:1.6;">
               Você foi cadastrado como servo no Portal do Encontro com Deus.<br/>
-              Sua senha temporária é: <strong style="color:#00c851;">Temp@2026!</strong><br/>
+              Sua senha temporária é: <strong style="color:#00a843;">Temp@2026!</strong><br/>
               Acesse o portal e crie sua senha:
             </p>
             <a href="https://encontrocomdeus-fonte.vercel.app" 
-               style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
               Acessar o Portal
             </a>
           </div>
