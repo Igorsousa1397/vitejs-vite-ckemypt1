@@ -10102,8 +10102,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               : "qtdBlusas";
         return {
           ...a,
-          [tm]: uni
-            .filter((u) => u[key] === tm)
+          [tm]: uniFiltrado.filter((u) => u[key] === tm)
             .reduce((s, u) => s + (u[qtdKey] || 1), 0),
         };
       }, {});
@@ -10300,7 +10299,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                     {key === "camisa" && (
                       <span style={{ color: G.tm, marginLeft: 8 }}>
                         (total: {uniFiltrado.reduce((a, u) => a + (u.qtdCamisas || 0), 0)})
-                        {uni.reduce((a, u) => a + (u.qtdCamisas || 0), 0)})
                       </span>
                     )}
                   </div>
@@ -10555,7 +10553,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
           </button>
         )}
 
-        {uni.length === 0 && (
+        {uniFiltrado.length === 0 && (
           <div
             style={{
               color: G.tm,
