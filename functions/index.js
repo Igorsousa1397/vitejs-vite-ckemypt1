@@ -203,8 +203,8 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (
     });
 
     // Envia email de redefinição via REST API do Firebase
-    const apiKey = process.env.FIREBASE_API_KEY;
-    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
+    const apiKey = process.env.WEB_API_KEY;
+    const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -212,6 +212,8 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (
         email,
       }),
     });
+    const emailData = await emailRes.json();
+    console.log('Email API response:', JSON.stringify(emailData));
 
     res.json({ result: { uid: userRecord.uid } });
   } catch (err) {
