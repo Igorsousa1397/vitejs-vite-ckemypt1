@@ -342,9 +342,14 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
         `,
       });
       console.log('Email de boas-vindas enviado para:', email);
-    } catch (mailErr) {
-      console.error('Erro ao enviar email de boas-vindas:', mailErr.message);
+    } catch (err) {
+    console.error('Erro criarServo:', err.code, err.message, JSON.stringify(err));
+    if (err.code === 'auth/email-already-exists') {
+      res.status(400).json({ error: 'Email já cadastrado' });
+    } else {
+      res.status(500).json({ error: err.message });
     }
+  }
 
     res.json({ result: { uid: userRecord.uid } });
   } catch (err) {
