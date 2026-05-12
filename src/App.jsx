@@ -20,6 +20,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
 import { QRCodeCanvas as QRCode } from "qrcode.react";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { updatePassword } from 'firebase/auth';
 import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
@@ -993,6 +994,62 @@ const BotaoFaq = ({ onFaq }) => {
     </div>
   );
 };
+
+function PrimeiroAcessoV({ user, onConcluido }) {
+  const [senha, setSenha] = useState('');
+  const [confirma, setConfirma] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState('');
+
+  const salvar = async () => {
+    if (senha.length < 6) { setErro('Senha deve ter ao menos 6 caracteres.'); return; }
+    if (senha !== confirma) { setErro('As senhas não coincidem.'); return; }
+    setSaving(true);
+    try {
+      await updatePassword(auth.currentUser, senha);
+      await setDoc(doc(db, 'users', user.id), { primeiro: false }, { merge: true });
+      onConcluido();
+    } catch (err) {
+      setErro('Erro ao atualizar senha: ' + err.message);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
+        <img src="/IMG_2408.PNG" alt="" style={{ width: 160, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
+        <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Crie sua senha</div>
+        <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
+          Este é seu primeiro acesso. Crie uma senha para continuar.
+        </div>
+        <input
+          type="password"
+          placeholder="Nova senha"
+          value={senha}
+          onChange={e => setSenha(e.target.value)}
+          style={{ ...iI, marginBottom: 10 }}
+        />
+        <input
+          type="password"
+          placeholder="Confirmar senha"
+          value={confirma}
+          onChange={e => setConfirma(e.target.value)}
+          style={{ ...iI, marginBottom: 16 }}
+        />
+        {erro && (
+          <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, color: '#ff6b6b', fontSize: 13 }}>
+            {erro}
+          </div>
+        )}
+        <button onClick={salvar} disabled={saving} style={BG({ width: '100%', padding: 16, borderRadius: 14, opacity: saving ? 0.7 : 1 })}>
+          {saving ? 'Salvando...' : 'Criar senha e entrar'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ── WELCOME ──────────────────────────────────────────────────────────────────
 function Welcome({ onServos, onEncontrista, onFaq }) {
@@ -3327,6 +3384,13 @@ export default function App() {
 
   if (scr === "termo")
     return <Termo cpf={termoCpf} onVoltar={() => setScr("welcome")} />;
+
+  if (user?.primeiro) return (
+    <PrimeiroAcessoV 
+      user={user} 
+      onConcluido={() => setUsers(prev => prev.map(u => u.id === user.id ? { ...u, primeiro: false } : u))} 
+    />
+  );
 
   if (scr === "login")
     return (
