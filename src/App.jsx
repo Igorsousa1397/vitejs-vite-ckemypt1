@@ -1548,9 +1548,12 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       }
 
       setEncId(docRef.id);
-      localStorage.setItem('enc_nome', form.nome.split(' ')[0]);
-      localStorage.setItem('enc_id', docRef.id);
       setDone(true);
+      const docRef = await addDoc(collection(db, 'encontristas'), {
+        ...form,
+        criadoEm: new Date().toLocaleString('pt-BR'),
+      });
+      setEncId(docRef.id);
       localStorage.setItem('enc_nome', form.nome.split(' ')[0]); // ← salva o primeiro nome
       localStorage.setItem('enc_id', docRef.id);
       setDone(true);
@@ -3065,7 +3068,7 @@ export default function App() {
 
     if (pago === "true" && id) {
       setScr("pagamento_confirmado");
-      setEncId(id);
+      setEncId(id);  // ← troca setPagamentoId por setEncId
       window.history.replaceState({}, "", "/");
     } else if (pago === "pending" && id) {
       setScr("pagamento_pendente");
