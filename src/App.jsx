@@ -7673,7 +7673,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   // ── INFO (ocorrências) ────────────────────────────────────────────────────────
   function InfoV({ ocorr, setOcorr, t, notifyAll }) {
     const [sh, setSh] = useState(false);
-    const [f, setF] = useState({ num: o.num, tipo: o.tipo, poltronas: o.poltronas || 40 });
+    const [f, setF] = useState({ tipo: "", local: "", desc: "" });
     const registrar = () => {
       if (!f.tipo) return;
       const nova = {
