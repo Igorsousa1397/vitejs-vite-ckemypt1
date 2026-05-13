@@ -3048,7 +3048,6 @@ export default function App() {
   const [on, setOn] = useState(ON_INIT);
   const [mins, setMins] = useState(MINS_INIT);
   const [rest, setRest] = useState(REST_INIT);
-  const [louça, setLouça] = useState(LOUÇA_INIT);
   const [ck, setCk] = useState(CK_INIT);
   const [img, setImg] = useState([]);
   const [ocorr, setOcorr] = useState([]);
@@ -4319,12 +4318,7 @@ export default function App() {
           <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
         )}
         {pg === "louça" && (
-          <LouçaV
-            louça={louça}
-            setLouça={setLouça}
-            edit={canC(role)}
-            t={showT}
-          />
+          <LouçaV edit={canC(role)} t={showT} users={users} />
         )}
         {pg === "uniformes" && (
           <UniV
@@ -4496,6 +4490,46 @@ export default function App() {
       );
     }
 
+  function LoucaServoV({ nome }) {
+    const [tarefas, setTarefas] = useState([]);
+
+    useEffect(() => {
+      const unsub = onSnapshot(collection(db, 'louca'), (snap) => {
+        const todas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setTarefas(todas.filter(t => (t.s || []).includes(nome)));
+      });
+      return () => unsub();
+    }, [nome]);
+
+    if (tarefas.length === 0) return null;
+
+    return (
+      <div style={{ marginTop: 16 }}>
+        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>
+          Louça
+        </div>
+        {tarefas.map(t => (
+          <div
+            key={t.id}
+            className="fu"
+            style={{
+              background: G.card,
+              border: `1px solid ${G.cb}`,
+              borderLeft: `3px solid #ff9f0a`,
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 16 }}>🍽️</span>
+              <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{t.r}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
   function ServoHomeV({
     user,
@@ -4925,6 +4959,8 @@ export default function App() {
                     Sem atribuições. Fale com o admin.
                   </div>
                 )}
+                {/* Louça */}
+                <LoucaServoV userId={user.id} nome={user.nome} />
               </div>
             )}
           </div>
@@ -8287,64 +8323,102 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   }
 
   // ── LOUÇA ────────────────────────────────────────────────────────────────────
-  function LouçaV({ louça, setLouça, edit, t }) {
-    return (
-      <div>
-        {!edit && (
-          <div
-            style={{
-              background: "rgba(255,159,10,.1)",
-              border: "1px solid rgba(255,159,10,.2)",
-              borderRadius: 12,
-              padding: "10px 14px",
-              marginBottom: 14,
-              color: "#ff9f0a",
-              fontSize: 12,
-            }}
+function LouçaV({ edit, t, users }) {
+  const [tarefas, setTarefas] = useState([]);
+  const [sh, setSh] = useState(false);
+  const [f, setF] = useState({ r: '' });
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'louca'), (snap) => {
+      setTarefas(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm - b.criadoEm));
+    });
+    return () => unsub();
+  }, []);
+
+  const servos = (users || []).filter(u => u.ativo !== false && u.perfil === 'servo');
+
+  const criarTarefa = async () => {
+    if (!f.r.trim()) return;
+    await addDoc(collection(db, 'louca'), { r: f.r.trim(), s: [], criadoEm: Date.now() });
+    setF({ r: '' });
+    setSh(false);
+    t('Tarefa criada!');
+  };
+
+  const addServо = async (id, nome) => {
+    const ref = doc(db, 'louca', id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    await updateDoc(ref, { s: [...(snap.data().s || []), nome] });
+    t('✓');
+  };
+
+  const removeServo = async (id, i) => {
+    const ref = doc(db, 'louca', id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const novaLista = (snap.data().s || []).filter((_, j) => j !== i);
+    await updateDoc(ref, { s: novaLista });
+  };
+
+  const deletarTarefa = async (id) => {
+    await deleteDoc(doc(db, 'louca', id));
+    t('Removido.');
+  };
+
+  return (
+    <div>
+      {edit && (
+        <>
+          <button
+            onClick={() => setSh(!sh)}
+            style={sh ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 }) : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}
           >
-            👀 Edição permitida ao Líder de Cozinha
-          </div>
-        )}
-        {louça.map((l) => (
-          <Acc
-            key={l.id}
-            title={`🍽️ ${l.r}`}
-            right={<Pill c={l.s.length} bg="#1e1e1e" tc={G.td} />}
-          >
-            <Tags
-              items={l.s}
-              onX={
-                edit
-                  ? (i) =>
-                      setLouça(
-                        louça.map((x) =>
-                          x.id === l.id
-                            ? { ...x, s: x.s.filter((_, j) => j !== i) }
-                            : x,
-                        ),
-                      )
-                  : undefined
-              }
-            />
-            {edit && (
-              <AddIn
-                ph="Adicionar pessoa..."
-                onAdd={(n) => {
-                  setLouça(
-                    louça.map((x) =>
-                      x.id === l.id ? { ...x, s: [...x.s, n] } : x,
-                    ),
-                  );
-                  t("✓");
-                }}
-                mt={8}
+            {sh ? '✕ Cancelar' : '＋ Nova Tarefa de Louça'}
+          </button>
+          {sh && (
+            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input
+                style={I}
+                placeholder="Ex: Sexta noite — Pratos *"
+                value={f.r}
+                onChange={e => setF({ r: e.target.value })}
               />
-            )}
-          </Acc>
-        ))}
-      </div>
-    );
-  }
+              <button onClick={criarTarefa} style={BG({ padding: 12, borderRadius: 12 })}>Criar</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {tarefas.length === 0 && (
+        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+          Nenhuma tarefa cadastrada.
+        </div>
+      )}
+
+      {tarefas.map(l => (
+        <Acc
+          key={l.id}
+          title={`🍽️ ${l.r}`}
+          right={<Pill c={l.s?.length || 0} bg="#1e1e1e" tc={G.td} />}
+          onDel={edit ? () => deletarTarefa(l.id) : undefined}
+        >
+          <Tags
+            items={l.s || []}
+            onX={edit ? (i) => removeServo(l.id, i) : undefined}
+          />
+          {edit && (
+            <AddIn
+              ph="Adicionar servo..."
+              onAdd={(n) => addServо(l.id, n)}
+              mt={8}
+            />
+          )}
+        </Acc>
+      ))}
+    </div>
+  );
+}
 
   // ── EQUIPES ──────────────────────────────────────────────────────────────────
   function EqV({ esc, setEsc, uEs, edit, t }) {
