@@ -3341,6 +3341,7 @@ export default function App() {
     showT(`${nm} — ${hr}`, "n");
   };
   const notifyAll = async (msg) => {
+    if (enviando.current) return;
     showT(msg, "n");
     try {
       await fetch(
@@ -3354,6 +3355,7 @@ export default function App() {
     } catch (err) {
       console.error("Erro ao notificar:", err);
     }
+    enviando.current = false;
   };
 
   if (sp) return <Splash done={() => setSp(false)} />;
