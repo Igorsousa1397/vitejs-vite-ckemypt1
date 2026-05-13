@@ -8266,7 +8266,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   </div>
                 )}
               </div>
-              {edit && (
+              {/* {edit && (
                 <span
                   onClick={() => setSau(sau.filter((x) => x.id !== s.id))}
                   style={{
@@ -8277,7 +8277,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   }}
                 >
                   ×
-                </span>
+                </span> */}
               )}
             </div>
           </div>
