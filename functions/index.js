@@ -359,4 +359,35 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       res.status(500).json({ error: err.message });
     }
   }
+  exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
+    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+    const { nome } = req.body;
+
+    // Busca users admin e pastor
+    const usersSnap = await admin.firestore().collection('users').get();
+    const adminPastorIds = usersSnap.docs
+      .filter(d => ['admin', 'pastor'].includes(d.data().perfil))
+      .map(d => d.id);
+
+    // Busca tokens só desses users
+    const tokensSnap = await admin.firestore().collection('tokens').get();
+    const tokens = tokensSnap.docs
+      .filter(d => adminPastorIds.includes(d.data().userId))
+      .map(d => d.data().token)
+      .filter(Boolean);
+
+    if (!tokens.length) return res.json({ enviadas: 0 });
+
+    const message = {
+      notification: {
+        title: '🙏 Nova inscrição!',
+        body: `${nome} acabou de se inscrever no Encontro com Deus.`,
+      },
+      tokens,
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    res.json({ enviadas: response.successCount });
+  });
 });

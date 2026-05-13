@@ -1602,6 +1602,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         cpf: cpfLimpo,
         criadoEm: new Date().toLocaleString("pt-BR"),
       });
+      
+      try {
+        await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarNovaInscricao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: form.nome }),
+        });
+      } catch {}
 
       if (form.temMedicamento === 'Sim' || form.temDoenca === 'Sim') {
         await addDoc(collection(db, 'saude'), {
