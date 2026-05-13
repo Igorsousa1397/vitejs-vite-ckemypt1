@@ -41,7 +41,7 @@ const iniciarNotificacoes = async (userId = null) => {
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
     if (token && userId) {
       await setDoc(
-        doc(db, "tokens", token),
+        doc(db, "tokens", userId), // ← volta para userId como ID
         {
           token,
           userId,
