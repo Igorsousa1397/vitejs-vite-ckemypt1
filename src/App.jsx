@@ -1104,12 +1104,9 @@ function ConfirmadoV({ encId, onVoltar }) {
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
 
         {nome ? (
-          <>
-            <div style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 4 }}>Olá,</div>
-            <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 20 }}>
-              {nome.split(' ')[0]} 👋
-            </div>
-          </>
+          <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 20 }}>
+            Olá, {nome.split(' ')[0]} 👋
+          </div>
         ) : (
           <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 20 }}>
             Pagamento confirmado!
