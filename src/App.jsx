@@ -11243,7 +11243,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   (u) =>
                     (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
                     u.perfil !== "lider_celula" &&
-                    u.perfil !== "lider_geral",
+                    u.perfil !== "lider_geral" &&
+                    u.perfil !== "admin" &&
+                    u.nome,
                 )
                 .map((u, i) => (
                   <div
