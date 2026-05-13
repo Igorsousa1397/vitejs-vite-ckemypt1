@@ -9128,19 +9128,12 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 />
                 {u.perfil === "servo" && (
                   u.pago ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ width: 42, height: 24, borderRadius: 20, background: "#0a84ff", position: "relative" }}>
-                        <div style={{ position: "absolute", top: 3, left: 21, width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
-                      </div>
-                      <span style={{ color: "#0a84ff", fontSize: 12, fontWeight: 700 }}>Pago ✓</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
+                      <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago</span>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ width: 42, height: 24, borderRadius: 20, background: "#636366", position: "relative" }}>
-                        <div style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
-                      </div>
-                      <span style={{ color: "#636366", fontSize: 12, fontWeight: 700 }}>Pendente</span>
-                    </div>
+                    <span style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}>Pendente</span>
                   )
                 )}
               </div>
