@@ -2,7 +2,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const https = require('https');
-// const apiKey = process.env.WEB_API_KEY;
+const nodemailer = require('nodemailer');
 
 admin.initializeApp();
 
@@ -134,10 +134,8 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
           const payment = JSON.parse(responseData);
           if (payment.status === 'approved') {
             const referenceId = payment.external_reference;
-            
             const encRef = admin.firestore().collection('encontristas').doc(referenceId);
             const encSnap = await encRef.get();
-            
             if (encSnap.exists) {
               await encRef.update({ pago: true, pagamentoId: paymentId });
               console.log(`Encontrista ${referenceId} marcado como pago!`);
@@ -162,11 +160,12 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
   }
 });
 
+// ── NOTIFICAR MINISTÉRIO ─────────────────────────────────────────────────────
 exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-  
+
   const { titulo, horario } = req.body;
-  
+
   const tokensSnap = await admin.firestore().collection('tokens').get();
   const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
   if (!tokens.length) return res.json({ enviadas: 0 });
@@ -178,106 +177,13 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
     },
     tokens,
   };
-  
+
   const response = await admin.messaging().sendEachForMulticast(message);
   console.log(`${response.successCount} notificações enviadas`);
   res.json({ enviadas: response.successCount });
 });
 
 // ── CRIAR SERVO ──────────────────────────────────────────────────────────────
-exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY'] }, async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-
-  const { email, nome, perfil, funcoes } = req.body.data || req.body;
-  if (!email || !nome) return res.status(400).json({ error: 'email e nome obrigatórios' });
-
-  try {
-    const userRecord = await admin.auth().createUser({
-      email,
-      password: 'Temp@2026!',
-    });
-    console.log('Usuario criado:', userRecord.uid);
-
-    await admin.firestore().collection('users').doc(userRecord.uid).set({
-      nome,
-      email,
-      perfil: perfil || 'servo',
-      funcoes: funcoes || [],
-      ativo: true,
-      pago: false,
-      primeiro: true,
-    });
-    console.log('Firestore salvo');
-
-    // const apiKey = process.env.WEB_API_KEY;
-    // const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
-    // });
-    // const emailData = await emailRes.json();
-    // console.log('Email API response:', JSON.stringify(emailData));
-
-    res.json({ result: { uid: userRecord.uid } });
-  } catch (err) {
-    console.error('ERRO criarServo:', err.code, err.message);
-    if (err.code === 'auth/email-already-exists') {
-      res.status(400).json({ error: 'Email já cadastrado' });
-    } else {
-      res.status(500).json({ error: err.message });
-    }
-  }
-});
-
-// ── CRIAR LÍDER TEMPLO ────────────────────────────────────────────────────────
-exports.criarLiderTemplo = onRequest({ cors: true }, async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-
-  try {
-    const userRecord = await admin.auth().createUser({
-      email: 'lidertemplo@servospeniel.com',
-      password: 'LiderTemplo@2026',
-    });
-
-    await admin.firestore().collection('users').doc(userRecord.uid).set({
-      nome: 'Líder Templo',
-      email: 'lidertemplo@servospeniel.com',
-      perfil: 'lider_templo',
-      ativo: true,
-      pago: true,
-      funcoes: [],
-      primeiro: false,
-    });
-
-    res.json({ status: 'ok', uid: userRecord.uid });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-exports.criarLiderMidia = onRequest({ cors: true }, async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-  try {
-    const userRecord = await admin.auth().createUser({
-      email: 'lidermidia@servospeniel.com',
-      password: 'LiderMidia@2026',
-    });
-    await admin.firestore().collection('users').doc(userRecord.uid).set({
-      nome: 'Líder Mídia',
-      email: 'lidermidia@servospeniel.com',
-      perfil: 'lider_midia',
-      ativo: true,
-      pago: true,
-      funcoes: [],
-      primeiro: false,
-    });
-    res.json({ status: 'ok', uid: userRecord.uid });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-const nodemailer = require('nodemailer');
-
 exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USER', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'] }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
@@ -300,7 +206,6 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       primeiro: true,
     });
 
-    // Email de redefinição de senha
     const apiKey = process.env.WEB_API_KEY;
     const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
       method: 'POST',
@@ -310,7 +215,6 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
     const emailData = await emailRes.json();
     console.log('Email API response:', JSON.stringify(emailData));
 
-    // Email de boas-vindas — erro aqui não bloqueia o cadastro
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -327,14 +231,14 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
         to: email,
         subject: 'Bem-vindo ao Portal do Encontro com Deus!',
         html: `
-           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#ffffff;padding:32px;border-radius:16px;">
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#ffffff;padding:32px;border-radius:16px;">
             <h2 style="color:#000;text-align:center;">Olá, ${nome}!</h2>
             <p style="color:#333;text-align:center;line-height:1.6;">
               Você foi cadastrado como servo no Portal do Encontro com Deus.<br/>
               Sua senha temporária é: <strong style="color:#00a843;">Temp@2026!</strong><br/>
               Acesse o portal e crie sua senha:
             </p>
-            <a href="https://encontrocomdeus-fonte.vercel.app" 
+            <a href="https://encontrocomdeus-fonte.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
               style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
@@ -348,7 +252,6 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       console.error('Erro email boas-vindas:', mailErr.message);
     }
 
-    // Resposta de sucesso — sempre executada
     res.json({ result: { uid: userRecord.uid } });
 
   } catch (err) {
@@ -361,6 +264,7 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
   }
 });
 
+// ── NOTIFICAR NOVA INSCRIÇÃO ─────────────────────────────────────────────────
 exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
