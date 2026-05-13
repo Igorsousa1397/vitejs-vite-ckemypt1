@@ -360,11 +360,6 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
     }
   }
   exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') return res.status(204).send('');
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
     const { nome } = req.body;
