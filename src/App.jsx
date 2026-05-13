@@ -4422,8 +4422,12 @@ export default function App() {
           r: "O transporte será realizado em ônibus com saída da sede da Igreja Fonte, localizada na Rua Catiguá, 130 - Cajamar."
         },
         {
-          p: "Não consegui gerar o meu QRcode",
-          r: "Entre em contato pelo WhatsApp através do botão no canto inferior do app e informe seu nome completo. Nossa equipe de suporte enviará o seu QR Code."
+          p: "Como confirmo meu pagamento e obtenho o QR Code?",
+          r: "acesse novamente o app, vá em Já se inscreveu?, informe seu CPF ou WhatsApp e seu QR Code será exibido automaticamente."
+        },
+        {
+          p: "Posso parcelar no cartão?",
+          r: "Sim! O pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5% (R$ 378,00)."
         },
       ];
 
