@@ -11457,7 +11457,6 @@ function LouçaV({ edit, t, users }) {
                               fontSize: 16,
                             }}
                           >
-                            🗑
                           </span>
                         )}
                       </div>
