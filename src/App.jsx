@@ -6930,28 +6930,23 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
       );
 
     return (
-      <div
-        style={{
-          background: "#1a1a1a",
-          borderRadius: 12,
-          padding: 12,
-          marginBottom: 8,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}
-      >
-        <div
-          style={{
-            color: G.tm,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-          }}
-        >
+      <div style={{ background: "#1a1a1a", borderRadius: 12, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
           Editar Ônibus {o.num}
         </div>
+
+        {/* NÚMERO */}
+        <div>
+          <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Número</div>
+          <input
+            type="number"
+            value={f.num ?? o.num}
+            onChange={e => setF({ ...f, num: parseInt(e.target.value) || o.num })}
+            style={{ ...I, marginBottom: 0 }}
+          />
+        </div>
+
+        {/* TIPO */}
         <div>
           <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Tipo</div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -6960,16 +6955,10 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                 key={tipo}
                 onClick={() => setF({ ...f, tipo })}
                 style={{
-                  ...BK({
-                    padding: "6px 12px",
-                    borderRadius: 50,
-                    fontSize: 12,
-                  }),
-                  borderColor:
-                    f.tipo === tipo ? "rgba(0,200,81,.5)" : "#2a2a2a",
+                  ...BK({ padding: "6px 12px", borderRadius: 50, fontSize: 12 }),
+                  borderColor: f.tipo === tipo ? "rgba(0,200,81,.5)" : "#2a2a2a",
                   color: f.tipo === tipo ? G.green : G.td,
-                  background:
-                    f.tipo === tipo ? "rgba(0,200,81,.08)" : "transparent",
+                  background: f.tipo === tipo ? "rgba(0,200,81,.08)" : "transparent",
                 }}
               >
                 {tipo}
@@ -6977,33 +6966,29 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
             ))}
           </div>
         </div>
+
+        {/* POLTRONAS */}
         <div>
-          <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>
-            Poltronas
-          </div>
+          <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Poltronas</div>
           <input
             type="number"
             value={f.poltronas}
-            onChange={(e) =>
-              setF({ ...f, poltronas: parseInt(e.target.value) || 40 })
-            }
+            onChange={e => setF({ ...f, poltronas: parseInt(e.target.value) || 40 })}
             style={{ ...I, marginBottom: 0 }}
           />
         </div>
+
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={async () => {
-              await onSave({ ...o, tipo: f.tipo, poltronas: f.poltronas });
+              await onSave({ ...o, num: f.num ?? o.num, tipo: f.tipo, poltronas: f.poltronas });
               setAberto(false);
             }}
             style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
           >
             Salvar
           </button>
-          <button
-            onClick={() => setAberto(false)}
-            style={BK({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
-          >
+          <button onClick={() => setAberto(false)} style={BK({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
             Cancelar
           </button>
         </div>
