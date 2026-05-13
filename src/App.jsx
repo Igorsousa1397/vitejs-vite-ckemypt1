@@ -1129,7 +1129,7 @@ function JaInscritoV({ onVoltar }) {
       </div>
 
       <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ marginBottom: 24, color: 'rgba(255,255,255,.6)', fontSize: 15, lineHeight: 1.7 }}>
+        <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 60px)' }}>
           Aqui você pode gerar novamente o link de pagamento ou obter seu <strong style={{ color: '#fff' }}>QR Code</strong> para o check-in. Informe seu <strong style={{ color: '#fff' }}>CPF</strong> ou <strong style={{ color: '#fff' }}>WhatsApp</strong> cadastrado.
         </div>
 
