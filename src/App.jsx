@@ -1121,15 +1121,15 @@ function JaInscritoV({ onVoltar }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', paddingBottom: 40 }}>
+    <div style={{ minHeight: '100vh', background: '#000' }}>
       <style>{css}</style>
       <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 50 }}>
         <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
         <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Já se inscreveu?</span>
       </div>
 
-      <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 60px)' }}>
+      <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 53px)', textAlign: 'center' }}>
+        <div style={{ marginBottom: 24, color: 'rgba(255,255,255,.6)', fontSize: 15, lineHeight: 1.7 }}>
           Aqui você pode gerar novamente o link de pagamento ou obter seu <strong style={{ color: '#fff' }}>QR Code</strong> para o check-in. Informe seu <strong style={{ color: '#fff' }}>CPF</strong> ou <strong style={{ color: '#fff' }}>WhatsApp</strong> cadastrado.
         </div>
 
