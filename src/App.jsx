@@ -8322,6 +8322,62 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     );
   }
 
+  function AddServoLouca({ tarefaId, servosJa, users, onAdd }) {
+    const [busca, setBusca] = useState('');
+    const [aberto, setAberto] = useState(false);
+    const skipBlur = useRef(false);
+
+    const filtrados = (users || []).filter(u =>
+      u.ativo !== false &&
+      u.nome &&
+      u.nome.toLowerCase().includes(busca.toLowerCase()) &&
+      busca.length > 0 &&
+      !servosJa.includes(u.nome)
+    );
+
+    const confirmar = (nome) => {
+      onAdd(tarefaId, nome);
+      setBusca('');
+      setAberto(false);
+    };
+
+    return (
+      <div style={{ position: 'relative', marginTop: 8 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setAberto(true); }}
+            onFocus={() => setAberto(true)}
+            onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+            onKeyDown={e => e.key === 'Enter' && busca.trim() && confirmar(busca.trim())}
+            placeholder="Adicionar servo..."
+            style={{ ...I, flex: 1, fontSize: 12, padding: '9px 12px' }}
+          />
+          <button
+            onMouseDown={() => busca.trim() && confirmar(busca.trim())}
+            style={BG({ padding: '9px 14px', borderRadius: 10, fontSize: 13 })}
+          >+</button>
+        </div>
+        {aberto && filtrados.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999, background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10, marginTop: 4, maxHeight: 180, overflowY: 'auto' }}>
+            {filtrados.map((u, i) => (
+              <div
+                key={i}
+                onMouseDown={() => { skipBlur.current = true; confirmar(u.nome); }}
+                style={{ padding: '10px 14px', color: G.td, fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div style={{ color: G.t, fontWeight: 600 }}>{u.nome}</div>
+                <div style={{ color: G.tm, fontSize: 11 }}>{u.perfil}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+}
+
   // ── LOUÇA ────────────────────────────────────────────────────────────────────
 function LouçaV({ edit, t, users }) {
   const [tarefas, setTarefas] = useState([]);
@@ -8408,11 +8464,7 @@ function LouçaV({ edit, t, users }) {
             onX={edit ? (i) => removeServo(l.id, i) : undefined}
           />
           {edit && (
-            <AddIn
-              ph="Adicionar servo..."
-              onAdd={(n) => addServо(l.id, n)}
-              mt={8}
-            />
+            <AddServoLouca tarefaId={l.id} servosJa={l.s || []} users={users} onAdd={addServо} />
           )}
         </Acc>
       ))}
