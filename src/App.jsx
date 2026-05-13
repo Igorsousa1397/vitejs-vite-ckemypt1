@@ -4315,18 +4315,8 @@ export default function App() {
             ph="Nome do encontrista..."
           />
         )}
-        {edit && (
-          <span
-            onClick={() => setSau(sau.filter((x) => x.id !== s.id))}
-            style={{
-              color: "rgba(255,59,48,.4)",
-              cursor: "pointer",
-              fontSize: 16,
-              marginLeft: 10,
-            }}
-          >
-            ×
-          </span>
+        {pg === "saude" && (
+          <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
         )}
         {pg === "louça" && (
           <LouçaV
