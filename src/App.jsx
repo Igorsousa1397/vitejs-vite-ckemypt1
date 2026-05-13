@@ -1310,6 +1310,8 @@ function PagamentoV({ encId, nome, onVoltar, onPago }) {
 
 // ── WELCOME ──────────────────────────────────────────────────────────────────
 function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
+  const nomeEnc = localStorage.getItem('enc_nome');
+  const encId = localStorage.getItem('enc_id');
   return (
     <div
       style={{
@@ -1372,17 +1374,17 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
             marginBottom: 32,
           }}
         >
-          <button
-            onClick={onEncontrista}
-            style={BG({
-              width: "100%",
-              padding: 16,
-              borderRadius: 16,
-              fontSize: 16,
-            })}
-          >
-            Inscrições
-          </button>
+         <button
+          onClick={onEncontrista}
+          style={BG({
+            width: '100%',
+            padding: 16,
+            borderRadius: 16,
+            fontSize: 16,
+          })}
+        >
+          {localStorage.getItem('enc_nome') ? `Olá, ${localStorage.getItem('enc_nome')} 👋` : 'Inscrições'}
+        </button>
           <button
             onClick={onJaInscrito}
             style={{
@@ -1546,6 +1548,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       }
 
       setEncId(docRef.id);
+      setDone(true);
+      const docRef = await addDoc(collection(db, 'encontristas'), {
+        ...form,
+        criadoEm: new Date().toLocaleString('pt-BR'),
+      });
+      setEncId(docRef.id);
+      localStorage.setItem('enc_nome', form.nome.split(' ')[0]); // ← salva o primeiro nome
+      localStorage.setItem('enc_id', docRef.id);
       setDone(true);
     } catch (err) {
       console.error("Erro ao salvar:", err);
