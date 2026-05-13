@@ -4411,7 +4411,7 @@ export default function App() {
         },
         {
           p: "Quanto custa e como pagar?",
-          r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 378,00 no cartão de crédito, com possibilidade de parcelamento. O pagamento deve ser realizado pela plataforma Mercado Pago."
+          r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 378,00 no cartão de crédito, o pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5% (R$ 378,00). O pagamento deve ser realizado pela plataforma Mercado Pago."
         },
         {
           p: "O que devo levar para o evento?",
@@ -4423,11 +4423,7 @@ export default function App() {
         },
         {
           p: "Como confirmo meu pagamento e obtenho o QR Code?",
-          r: "acesse novamente o app, vá em Já se inscreveu?, informe seu CPF ou WhatsApp e seu QR Code será exibido automaticamente."
-        },
-        {
-          p: "Posso parcelar no cartão?",
-          r: "Sim! O pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5% (R$ 378,00)."
+          r: "Após realizar o pagamento, acesse novamente o app, vá em Já se inscreveu?, informe seu CPF ou WhatsApp e seu QR Code será exibido automaticamente."
         },
       ];
 
