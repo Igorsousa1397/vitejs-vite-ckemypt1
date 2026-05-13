@@ -5056,7 +5056,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
             {/* Encontristas */}
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>👥 Encontristas</div>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Encontristas</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: G.tm, fontSize: 11 }}>{todosEnc.length}/{META_ENC}</span>
                   <Pill c={`${pctEncPagos}%`} bg="rgba(0,200,81,.12)" tc={G.green} />
@@ -5079,12 +5079,12 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>✓ Pagos</span>
                   <BarPct val={encPagos} max={META_ENC} color={G.green} />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{encPagos}</span>
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPagos}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>⏳ Pend.</span>
                   <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
                 </div>
               </div>
             </div>
@@ -5092,7 +5092,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
             {/* Servos */}
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>🙌 Servos</div>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Servos</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: G.tm, fontSize: 11 }}>{servos.length} total</span>
                   <Pill c={`${pctServos}%`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
@@ -5115,7 +5115,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
             {/* Cadastros por dia */}
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>📈 Cadastros por dia</div>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Cadastros por dia</div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[7, 14, 30].map(d => (
                     <button key={d} onClick={() => setFiltroDias(d)} style={{ background: filtroDias === d ? G.green : '#1a1a1a', color: filtroDias === d ? '#000' : G.tm, border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
@@ -5131,9 +5131,9 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {diasOrdenados.map(([dia, qtd]) => (
                     <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ color: G.tm, fontSize: 11, minWidth: 36 }}>{dia}</span>
+                      <span style={{ color: G.tm, fontSize: 12, minWidth: 36 }}>{dia}</span>
                       <BarPct val={qtd} max={maxCad} color="#0a84ff" />
-                      <span style={{ color: G.t, fontWeight: 700, fontSize: 13, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
+                      <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
                     </div>
                   ))}
                 </div>
