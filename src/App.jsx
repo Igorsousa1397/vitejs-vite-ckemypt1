@@ -1294,7 +1294,16 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
           </button>
           <button
             onClick={onJaInscrito}
-            style={{ ...BK({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 }), borderColor: 'rgba(255,255,255,.2)', color: 'rgba(255,255,255,.7)' }}
+            style={{
+              ...BK({
+                width: "100%",
+                padding: 16,
+                borderRadius: 16,
+                fontSize: 16,
+              }),
+              borderColor: "rgba(255,255,255,.3)",
+              color: "#fff",
+            }}
           >
             Já se inscreveu?
           </button>
