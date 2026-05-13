@@ -1151,6 +1151,10 @@ function JaInscritoV({ onVoltar }) {
   const [msgPagamento, setMsgPagamento] = useState('');
   const [encId, setEncId] = useState(null);
   const [done, setDone] = useState(false);
+  const [confirmado, setConfirmado] = useState(false); // ← NOVO
+
+  if (confirmado && encId)
+    return <ConfirmadoV encId={encId} onVoltar={onVoltar} />;
 
   if (done && encontrista)
     return (
@@ -1180,7 +1184,8 @@ function JaInscritoV({ onVoltar }) {
       if (found) {
         const data = found.data();
         if (data.pago) {
-          setEncontrista({ id: found.id, ...data });
+          setEncId(found.id);
+          setConfirmado(true);
         } else {
           setEncId(found.id);
           setEncontrista({ id: found.id, ...data });
