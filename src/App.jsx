@@ -1133,30 +1133,29 @@ function JaInscritoV({ onVoltar }) {
           Aqui você pode gerar novamente o link de pagamento ou obter seu QR Code para o check-in. Informe seu CPF ou WhatsApp cadastrado.
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-         <input
-            placeholder="CPF ou WhatsApp"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && buscar()}
-            style={{ 
-              width: '100%',
-              background: '#1a1a1a',
-              border: '1px solid #2a2a2a',
-              borderRadius: 12,
-              padding: '14px 16px',
-              color: '#fff',
-              fontSize: 15,
-              outline: 'none',
-              boxSizing: 'border-box',
-              flex: 1,
-              marginBottom: 0
-            }}
-          />
-          <button onClick={buscar} disabled={loading} style={BG({ padding: '0 20px', borderRadius: 14, fontSize: 14, opacity: loading ? 0.7 : 1 })}>
-            {loading ? '...' : 'Buscar'}
-          </button>
-        </div>
+        <div style={{ marginBottom: 16 }}>
+        <input
+          placeholder="CPF ou WhatsApp"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && buscar()}
+          style={{ 
+            width: '100%',
+            background: '#1a1a1a',
+            border: '1px solid #2a2a2a',
+            borderRadius: 12,
+            padding: '14px 16px',
+            color: '#fff',
+            fontSize: 15,
+            outline: 'none',
+            boxSizing: 'border-box',
+            marginBottom: 8
+          }}
+        />
+        <button onClick={buscar} disabled={loading} style={BG({ width: '100%', padding: 14, borderRadius: 14, fontSize: 15, opacity: loading ? 0.7 : 1 })}>
+          {loading ? '...' : 'Verificar'}
+        </button>
+      </div>
 
         {erro && (
           <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, color: '#ff6b6b', fontSize: 13, lineHeight: 1.6 }}>
