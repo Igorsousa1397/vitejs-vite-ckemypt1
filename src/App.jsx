@@ -1310,12 +1310,8 @@ function PagamentoV({ encId, nome, onVoltar, onPago }) {
 
 // ── WELCOME ──────────────────────────────────────────────────────────────────
 function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
-  const [nomeEnc, setNomeEnc] = useState(localStorage.getItem('enc_nome'));
-
-  useEffect(() => {
-    setNomeEnc(localStorage.getItem('enc_nome'));
-  }, []);
-
+  const nomeEnc = localStorage.getItem('enc_nome');
+  const encId = localStorage.getItem('enc_id');
   return (
     <div
       style={{
@@ -1330,31 +1326,106 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
       }}
     >
       <style>{css}</style>
-      <img src="/campo.jpg" alt=""
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }} />
+      <img
+        src="/campo.jpg"
+        alt=""
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          zIndex: 0,
+        }}
+      />
       <div
-        style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.75) 100%)", zIndex: 1 }} />
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.75) 100%)",
+          zIndex: 1,
+        }}
+      />
       <div
-        style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 360, textAlign: "center" }}
+        style={{
+          position: "relative",
+          zIndex: 2,
+          width: "100%",
+          maxWidth: 360,
+          textAlign: "center",
+        }}
       >
-        <img src="/IMG_2408.PNG" alt="Encontro com Deus"
-          style={{ width: 280, mixBlendMode: "screen", display: "block", margin: "0 auto 40px" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-          <button onClick={onEncontrista}
-            style={BG({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 })}>
-            {nomeEnc ? `Olá, ${nomeEnc} 👋` : 'Inscrições'}
-          </button>
-          <button onClick={onJaInscrito}
-            style={{ ...BK({ width: "100%", padding: 16, borderRadius: 16, fontSize: 16 }), borderColor: "rgba(255,255,255,.3)", color: "#fff" }}>
+        <img
+          src="/IMG_2408.PNG"
+          alt="Encontro com Deus"
+          style={{
+            width: 280,
+            mixBlendMode: "screen",
+            display: "block",
+            margin: "0 auto 40px",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginBottom: 32,
+          }}
+        >
+         <button
+          onClick={onEncontrista}
+          style={BG({
+            width: '100%',
+            padding: 16,
+            borderRadius: 16,
+            fontSize: 16,
+          })}
+        >
+          {localStorage.getItem('enc_nome') ? `Olá, ${localStorage.getItem('enc_nome')} 👋` : 'Inscrições'}
+        </button>
+          <button
+            onClick={onJaInscrito}
+            style={{
+              ...BK({
+                width: "100%",
+                padding: 16,
+                borderRadius: 16,
+                fontSize: 16,
+              }),
+              borderColor: "rgba(255,255,255,.3)",
+              color: "#fff",
+            }}
+          >
             Já se inscreveu?
           </button>
-          <button onClick={onServos}
-            style={{ ...BK({ width: "100%", padding: 16, borderRadius: 16, fontSize: 16 }), borderColor: "rgba(255,255,255,.3)", color: "#fff" }}>
+          <button
+            onClick={onServos}
+            style={{
+              ...BK({
+                width: "100%",
+                padding: 16,
+                borderRadius: 16,
+                fontSize: 16,
+              }),
+              borderColor: "rgba(255,255,255,.3)",
+              color: "#fff",
+            }}
+          >
             Servo
           </button>
         </div>
-        <img src="/IMG_2409.PNG" alt="Fonte - Comunidade Peniel"
-          style={{ width: 90, mixBlendMode: "screen", opacity: 0.8, margin: "0 auto" }} />
+        <img
+          src="/IMG_2409.PNG"
+          alt="Fonte - Comunidade Peniel"
+          style={{
+            width: 90,
+            mixBlendMode: "screen",
+            opacity: 0.8,
+            margin: "0 auto",
+          }}
+        />
       </div>
       <BotaoAjuda />
       <BotaoInsta />
