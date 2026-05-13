@@ -1096,6 +1096,16 @@ function JaInscritoV({ onVoltar }) {
   const [encId, setEncId] = useState(null);
   const [done, setDone] = useState(false);
 
+  if (done && encontrista)
+    return (
+      <PagamentoV
+        encId={encId}
+        nome={encontrista.nome}
+        onVoltar={() => setDone(false)}
+        onPago={() => setEncontrista({ ...encontrista, pago: true })}
+      />
+    );
+
   const buscar = async () => {
     if (!busca.trim()) return;
     setLoading(true);
