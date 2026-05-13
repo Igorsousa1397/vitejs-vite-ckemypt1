@@ -1087,8 +1087,144 @@ function PrimeiroAcessoV({ user, onConcluido }) {
   );
 }
 
+function JaInscritoV({ onVoltar }) {
+  const [busca, setBusca] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [encontrista, setEncontrista] = useState(null);
+  const [erro, setErro] = useState('');
+  const [msgPagamento, setMsgPagamento] = useState('');
+
+  const buscar = async () => {
+    if (!busca.trim()) return;
+    setLoading(true);
+    setErro('');
+    setEncontrista(null);
+    try {
+      const snap = await getDocs(collection(db, 'encontristas'));
+      const limpo = busca.replace(/\D/g, '');
+      const found = snap.docs.find(d => {
+        const data = d.data();
+        return (
+          data.cpf === limpo ||
+          data.whatsapp?.replace(/\D/g, '') === limpo
+        );
+      });
+      if (found) {
+        setEncontrista({ id: found.id, ...found.data() });
+      } else {
+        setErro('Inscrição não encontrada. Verifique o CPF ou WhatsApp informado.');
+      }
+    } catch (err) {
+      setErro('Erro ao buscar inscrição.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#000', paddingBottom: 40 }}>
+      <style>{css}</style>
+      <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 50 }}>
+        <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+        <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Já se inscreveu?</span>
+      </div>
+
+      <div style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 14, padding: '14px 16px', marginBottom: 24, color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.6 }}>
+          Aqui você pode gerar novamente o link de pagamento ou obter seu QR Code para o check-in. Informe seu CPF ou WhatsApp cadastrado.
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <input
+            placeholder="CPF ou WhatsApp"
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && buscar()}
+            style={{ ...iI, flex: 1, marginBottom: 0 }}
+          />
+          <button onClick={buscar} disabled={loading} style={BG({ padding: '0 20px', borderRadius: 14, fontSize: 14, opacity: loading ? 0.7 : 1 })}>
+            {loading ? '...' : 'Buscar'}
+          </button>
+        </div>
+
+        {erro && (
+          <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, color: '#ff6b6b', fontSize: 13, lineHeight: 1.6 }}>
+            {erro}
+            <a href="https://wa.me/5511999999999?text=Olá! Preciso de ajuda com minha inscrição no Encontro com Deus." target="_blank" rel="noopener noreferrer"
+              style={{ display: 'block', marginTop: 10, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+              💬 Falar com suporte
+            </a>
+          </div>
+        )}
+
+        {encontrista && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{encontrista.nome}</div>
+            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 13, marginBottom: 24 }}>{encontrista.igreja}</div>
+
+            {encontrista.pago ? (
+              <>
+                <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 20, color: G.green, fontWeight: 700, fontSize: 14 }}>
+                  ✓ Pagamento confirmado
+                </div>
+                <div style={{ background: '#fff', borderRadius: 20, padding: 20, display: 'inline-block', marginBottom: 16 }}>
+                  <QRCodeCanvas value={encontrista.id} size={200} />
+                </div>
+                <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, marginBottom: 8 }}>
+                  Apresente este QR Code no check-in
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 20, color: '#ff9f0a', fontSize: 13, lineHeight: 1.6 }}>
+                  Sua inscrição foi encontrada mas o pagamento ainda não foi confirmado. Gere o link abaixo para concluir.
+                </div>
+                <button onClick={async () => {
+                  vibrar(50);
+                  try {
+                    const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'pix' }),
+                    });
+                    const data = await res.json();
+                    if (data.init_point) window.location.href = data.init_point;
+                    else setMsgPagamento('Erro ao gerar pagamento.');
+                  } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
+                }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: '#009ee3' }}>
+                  PIX ou Boleto — R$ 360,00
+                </button>
+                <button onClick={async () => {
+                  vibrar(50);
+                  try {
+                    const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'credito' }),
+                    });
+                    const data = await res.json();
+                    if (data.init_point) window.location.href = data.init_point;
+                    else setMsgPagamento('Erro ao gerar pagamento.');
+                  } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
+                }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15 }), background: '#009ee3' }}>
+                  Cartão de Crédito — R$ 378,00
+                </button>
+                {msgPagamento && (
+                  <div style={{ color: '#ff6b6b', fontSize: 13, marginTop: 10 }}>{msgPagamento}</div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <BotaoAjuda />
+      <BotaoInsta />
+      <BotaoFaq onFaq={() => {}} />
+    </div>
+  );
+}
+
 // ── WELCOME ──────────────────────────────────────────────────────────────────
-function Welcome({ onServos, onEncontrista, onFaq }) {
+function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
   return (
     <div
       style={{
@@ -1161,6 +1297,12 @@ function Welcome({ onServos, onEncontrista, onFaq }) {
             })}
           >
             Inscrições
+          </button>
+          <button
+            onClick={onJaInscrito}
+            style={{ ...BK({ width: '100%', padding: 16, borderRadius: 16, fontSize: 16 }), borderColor: 'rgba(255,255,255,.2)', color: 'rgba(255,255,255,.7)' }}
+          >
+            Já se inscreveu?
           </button>
           <button
             onClick={onServos}
@@ -3389,6 +3531,7 @@ export default function App() {
       onServos={() => setScr("login")}
       onEncontrista={() => setScr("inscricao")}
       onFaq={() => setFaqOpen(true)}
+      onJaInscrito={() => setScr('ja_inscrito')}
     />
   );
 
@@ -3406,6 +3549,9 @@ export default function App() {
 
   if (scr === "termo")
     return <Termo cpf={termoCpf} onVoltar={() => setScr("welcome")} />;
+
+  if (scr === 'ja_inscrito')
+    return <JaInscritoV onVoltar={() => setScr('welcome')} />;
 
   if (user?.primeiro) return (
     <PrimeiroAcessoV 
