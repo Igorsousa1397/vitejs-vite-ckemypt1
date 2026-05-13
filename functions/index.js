@@ -359,7 +359,9 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       res.status(500).json({ error: err.message });
     }
   }
-  exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
+  exports.notificarNovaInscricao = onRequest({ 
+  cors: ['https://encontrocomdeus-fonte.vercel.app'],
+}, async (req, res) => {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
     const { nome } = req.body;
