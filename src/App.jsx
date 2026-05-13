@@ -9127,22 +9127,23 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   labelOff="Inativo"
                 />
                 {u.perfil === "servo" && (
-                  <Toggle
-                    val={!!u.pago}
-                    onToggle={async () => {
-                      await setDoc(
-                        doc(db, "users", u.id),
-                        { pago: !u.pago },
-                        { merge: true },
-                      );
-                    }}
-                    labelOn="Pago ✓"
-                    labelOff="Pendente"
-                    colorOn="#0a84ff"
-                  />
+                  u.pago ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ width: 42, height: 24, borderRadius: 20, background: "#0a84ff", position: "relative" }}>
+                        <div style={{ position: "absolute", top: 3, left: 21, width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
+                      </div>
+                      <span style={{ color: "#0a84ff", fontSize: 12, fontWeight: 700 }}>Pago ✓</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ width: 42, height: 24, borderRadius: 20, background: "#636366", position: "relative" }}>
+                        <div style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
+                      </div>
+                      <span style={{ color: "#636366", fontSize: 12, fontWeight: 700 }}>Pendente</span>
+                    </div>
+                  )
                 )}
               </div>
-
               {u.perfil !== "servo" &&
                 u.perfil !== "pastor" &&
                 u.perfil !== "lider_geral" &&
