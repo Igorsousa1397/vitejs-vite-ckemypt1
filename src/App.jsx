@@ -6490,7 +6490,8 @@ export default function App() {
   }) {
     const [g, setG] = useState("M");
     const [expandido, setExpandido] = useState({});
-    const lista = [...(g === "M" ? encM : encH)].sort((a, b) => {
+    const [busca, setBusca] = useState('');
+    const lista = [...(g === "M" ? encM : encH)].filter(e => e.nome.toLowerCase().includes(busca.toLowerCase())).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
       if (!a.criadoEm) return 1;
       if (!b.criadoEm) return -1;
@@ -6568,12 +6569,15 @@ export default function App() {
           ))}
         </div>
         <Seg
-          opts={[
-            ["M", "♀ Mulheres"],
-            ["H", "♂ Homens"],
-          ]}
+          opts={[["M", "♀ Mulheres"], ["H", "♂ Homens"]]}
           val={g}
           set={setG}
+        />
+        <input
+          value={busca}
+          onChange={e => { setBusca(e.target.value); setExpandido({}); }}
+          placeholder="🔍 Buscar por nome..."
+          style={{ ...I, marginTop: 10, marginBottom: 0 }}
         />
         <div style={{ marginTop: 10 }}>
           {lista.length === 0 && (
