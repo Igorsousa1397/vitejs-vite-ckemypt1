@@ -1123,42 +1123,46 @@ function JaInscritoV({ onVoltar }) {
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
       <style>{css}</style>
-      <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 50 }}>
+      <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 50 }}>
         <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
-        <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Já se inscreveu?</span>
       </div>
 
       <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 53px)', textAlign: 'center' }}>
+        
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 160, mixBlendMode: 'screen', display: 'block', margin: '0 auto 16px' }} />
+        
+        <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 16 }}>Já se inscreveu?</div>
+
         <div style={{ marginBottom: 24, color: 'rgba(255,255,255,.6)', fontSize: 15, lineHeight: 1.7 }}>
           Aqui você pode gerar novamente o link de pagamento ou obter seu <strong style={{ color: '#fff' }}>QR Code</strong> para o check-in. Informe seu <strong style={{ color: '#fff' }}>CPF</strong> ou <strong style={{ color: '#fff' }}>WhatsApp</strong> cadastrado.
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-        <input
-          placeholder="CPF ou WhatsApp"
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && buscar()}
-          style={{ 
-            width: '100%',
-            background: '#1a1a1a',
-            border: '1px solid #2a2a2a',
-            borderRadius: 12,
-            padding: '14px 16px',
-            color: '#fff',
-            fontSize: 15,
-            outline: 'none',
-            boxSizing: 'border-box',
-            marginBottom: 8
-          }}
-        />
-        <button onClick={buscar} disabled={loading} style={BG({ width: '100%', padding: 14, borderRadius: 14, fontSize: 15, opacity: loading ? 0.7 : 1 })}>
-          {loading ? '...' : 'Verificar'}
-        </button>
-      </div>
+        <div style={{ marginBottom: 16, width: '100%' }}>
+          <input
+            placeholder="CPF ou WhatsApp"
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && buscar()}
+            style={{ 
+              width: '100%',
+              background: '#1a1a1a',
+              border: '1px solid #2a2a2a',
+              borderRadius: 12,
+              padding: '14px 16px',
+              color: '#fff',
+              fontSize: 15,
+              outline: 'none',
+              boxSizing: 'border-box',
+              marginBottom: 8
+            }}
+          />
+          <button onClick={buscar} disabled={loading} style={BG({ width: '100%', padding: 14, borderRadius: 14, fontSize: 15, opacity: loading ? 0.7 : 1 })}>
+            {loading ? '...' : 'Verificar'}
+          </button>
+        </div>
 
         {erro && (
-          <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, color: '#ff6b6b', fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ background: 'rgba(255,59,48,.1)', border: '1px solid rgba(255,59,48,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, color: '#ff6b6b', fontSize: 13, lineHeight: 1.6, width: '100%' }}>
             {erro}
             <a href="https://wa.me/5511999999999?text=Olá! Preciso de ajuda com minha inscrição no Encontro com Deus." target="_blank" rel="noopener noreferrer"
               style={{ display: 'block', marginTop: 10, background: 'rgba(37,211,102,.1)', border: '1px solid rgba(37,211,102,.3)', color: '#25d366', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
@@ -1168,7 +1172,7 @@ function JaInscritoV({ onVoltar }) {
         )}
 
         {encontrista && (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', width: '100%' }}>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{encontrista.nome}</div>
             <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 13, marginBottom: 24 }}>{encontrista.igreja}</div>
 
