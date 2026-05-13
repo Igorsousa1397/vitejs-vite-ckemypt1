@@ -7485,7 +7485,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                 </>
               )}
 
-              <SL c={`Malas (${malas.length})`} />
+              <SL c={"Malas"} />
               {malas.length > 0 ? (
                 <div
                   style={{
