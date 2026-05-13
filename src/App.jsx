@@ -1101,7 +1101,7 @@ function JaInscritoV({ onVoltar }) {
       <PagamentoV
         encId={encId}
         nome={encontrista.nome}
-        onVoltar={() => setDone(false)}
+        onVoltar={() => { setDone(false); setEncontrista(null); setBusca(''); }}
         onPago={() => setEncontrista({ ...encontrista, pago: true })}
       />
     );
