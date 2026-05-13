@@ -9102,41 +9102,36 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  background: "#111",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* Ativo/Inativo */}
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Status</div>
                 <Toggle
                   val={u.ativo !== false}
                   onToggle={async () => {
-                    await setDoc(
-                      doc(db, "users", u.id),
-                      { ativo: !u.ativo },
-                      { merge: true },
-                    );
+                    await setDoc(doc(db, "users", u.id), { ativo: !u.ativo }, { merge: true });
                     upd(u.id, (x) => ({ ...x, ativo: !x.ativo }));
                   }}
                   labelOn="Ativo"
                   labelOff="Inativo"
                 />
-                {u.perfil === "servo" && (
-                  u.pago ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              </div>
+
+              {/* Pagamento */}
+              {u.perfil === "servo" && (
+                <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
+                  {u.pago ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
-                      <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago</span>
+                      <span style={{ color: G.green, fontSize: 13, fontWeight: 700 }}>Pago via Mercado Pago</span>
                     </div>
                   ) : (
-                    <span style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}>Pendente</span>
-                  )
-                )}
-              </div>
+                    <span style={{ color: "#ff3b30", fontSize: 13, fontWeight: 700 }}>Pendente</span>
+                  )}
+                </div>
+              )}
+            </div>
               {u.perfil !== "servo" &&
                 u.perfil !== "pastor" &&
                 u.perfil !== "lider_geral" &&
