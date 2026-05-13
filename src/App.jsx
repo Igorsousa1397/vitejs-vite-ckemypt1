@@ -1087,6 +1087,62 @@ function PrimeiroAcessoV({ user, onConcluido }) {
   );
 }
 
+function ConfirmadoV({ encId, onVoltar }) {
+  const [nome, setNome] = useState('');
+
+  useEffect(() => {
+    if (!encId) return;
+    getDoc(doc(db, 'encontristas', encId)).then(snap => {
+      if (snap.exists()) setNome(snap.data().nome || '');
+    });
+  }, [encId]);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
+
+        {nome ? (
+          <>
+            <div style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 4 }}>Olá,</div>
+            <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 20 }}>
+              {nome.split(' ')[0]} 👋
+            </div>
+          </>
+        ) : (
+          <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 20 }}>
+            Pagamento confirmado!
+          </div>
+        )}
+
+        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+          Sua vaga está garantida. 🙏
+        </div>
+
+        <div style={{ background: "#fff", borderRadius: 20, padding: 20, display: "inline-block", marginBottom: 16 }}>
+          <QRCodeCanvas value={encId || "sem-id"} size={200} />
+        </div>
+
+        <div style={{ background: "rgba(251,146,60,.1)", border: "1px solid rgba(251,146,60,.3)", borderRadius: 14, padding: "14px 16px", marginBottom: 20, textAlign: "left" }}>
+          <div style={{ color: "#fb923c", fontWeight: 800, fontSize: 16, marginBottom: 6 }}>
+            TIRE UM PRINT DESTA TELA AGORA
+          </div>
+          <div style={{ color: "rgba(255,255,255,.6)", fontSize: 13, lineHeight: 1.6 }}>
+            Este QR Code é seu ingresso. Sem ele você não conseguirá fazer o check-in no evento. Não perca!
+          </div>
+        </div>
+
+        <button onClick={onVoltar} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>
+          Voltar ao início
+        </button>
+      </div>
+      <BotaoAjuda />
+      <BotaoInsta />
+    </div>
+  );
+}
+
 function JaInscritoV({ onVoltar }) {
   const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(false);
@@ -3296,107 +3352,7 @@ export default function App() {
   if (faqOpen) return <FAQ onVoltar={() => setFaqOpen(false)} />;
 
   if (scr === "pagamento_confirmado")
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-        }}
-      >
-        <style>{css}</style>
-        <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
-          <img
-            src="/IMG_2408.PNG"
-            alt="Encontro com Deus"
-            style={{
-              width: 140,
-              mixBlendMode: "screen",
-              display: "block",
-              margin: "0 auto 20px",
-            }}
-          />
-          <div
-            style={{
-              color: "#fff",
-              fontSize: 22,
-              fontWeight: 800,
-              marginBottom: 6,
-            }}
-          >
-            Pagamento confirmado!
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,.5)",
-              fontSize: 13,
-              lineHeight: 1.6,
-              marginBottom: 24,
-            }}
-          >
-            Sua vaga está garantida.
-          </div>
-
-          {/* QR CODE */}
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              padding: 20,
-              display: "inline-block",
-              marginBottom: 16,
-            }}
-          >
-            <QRCode value={encId || "sem-id"} size={200} />
-          </div>
-
-          {/* AVISO IMPORTANTE */}
-          <div
-            style={{
-              background: "rgba(251,146,60,.1)",
-              border: "1px solid rgba(251,146,60,.3)",
-              borderRadius: 14,
-              padding: "14px 16px",
-              marginBottom: 20,
-              textAlign: "left",
-            }}
-          >
-            <div
-              style={{
-                color: "#fb923c",
-                fontWeight: 800,
-                fontSize: 16,
-                marginBottom: 6,
-              }}
-            >
-              TIRE UM PRINT DESTA TELA AGORA
-            </div>
-            <div
-              style={{
-                color: "rgba(255,255,255,.6)",
-                fontSize: 13,
-                lineHeight: 1.6,
-              }}
-            >
-              Este QR Code é seu ingresso. Sem ele você não conseguirá fazer o
-              check-in no evento. Não perca!
-            </div>
-          </div>
-
-          <button
-            onClick={() => setScr("welcome")}
-            style={BK({ width: "100%", padding: 14, borderRadius: 14 })}
-          >
-            Voltar ao início
-          </button>
-        </div>
-        <BotaoAjuda />
-        <BotaoInsta />
-      </div>
-    );
+    return <ConfirmadoV encId={encId} onVoltar={() => setScr("welcome")} />;
 
   if (scr === "pagamento_pendente")
     return (
