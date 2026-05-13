@@ -7482,18 +7482,6 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                       Nenhum ainda — atribua pelo Check-in
                     </div>
                   )}
-                  {edit && (
-                    <AddIn
-                      ph="Adicionar passageiro manual..."
-                      onAdd={(n) =>
-                        upd(o.num, (x) => ({
-                          ...x,
-                          passManual: [...(x.passManual || []), n],
-                        }))
-                      }
-                      mt={8}
-                    />
-                  )}
                 </>
               )}
 
