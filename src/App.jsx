@@ -3578,7 +3578,7 @@ export default function App() {
       ? [["🛏", "quartos"]]
       : []),
     ["🚌", "onibus"],
-    ["📅", "Agenda"],
+    ["📅", "mins"],
     ["⛔", "rest"],
     ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
       ? [["📷", "img"]]
@@ -3614,7 +3614,7 @@ export default function App() {
     ["servo", "lider_celula", "lider_midia"].includes(role)
   ) {
     const SERVO_MENU = [
-      ["🔔", "smins", "Agenda"],
+      ["📅", "smins", "Agenda"],
       ["📢", "savs", "Avisos"],
       ["👕", "suni", "Uniforme"],
       ["⚠️", "sinfo", "Ocorrências"],
