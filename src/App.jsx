@@ -9011,7 +9011,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
           <Acc
             key={i}
             title={u.nome}
-            ax={u.pago ? G.green : "#ff3b30"}
+            ax={u.perfil === "servo" ? (u.pago ? G.green : "#ff3b30") : (PERFIS[u.perfil]?.c || G.green)}
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 {!u.ativo && (
