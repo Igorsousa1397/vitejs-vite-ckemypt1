@@ -7485,42 +7485,20 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                 </>
               )}
 
-              <SL c={"Malas"} />
+              <SL c="Malas" />
               {malas.length > 0 ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 6,
-                    marginTop: 8,
-                  }}
-                >
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                   {malas.map((tipo, i) => (
                     <Tag
                       key={i}
                       c={`${tipo === "Feminino" ? "♀" : tipo === "Masculino" ? "♂" : "👤"} ${tipo}`}
                       ax={tipoColor[tipo]}
-                      onX={
-                        edit
-                          ? () =>
-                              upd(o.num, (x) => ({
-                                ...x,
-                                malas: x.malas.filter((_, j) => j !== i),
-                              }))
-                          : undefined
-                      }
+                      onX={edit ? () => upd(o.num, (x) => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined}
                     />
                   ))}
                 </div>
               ) : (
-                <div
-                  style={{
-                    color: G.tm,
-                    fontSize: 12,
-                    fontStyle: "italic",
-                    margin: "4px 0 8px",
-                  }}
-                >
+                <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", margin: "4px 0 8px" }}>
                   Nenhuma mala
                 </div>
               )}
