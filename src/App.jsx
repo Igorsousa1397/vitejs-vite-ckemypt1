@@ -1181,8 +1181,9 @@ return (
 
       {encontrista && (
         <div style={{ textAlign: 'center', width: '100%' }}>
-          <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{encontrista.nome}</div>
-          <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 13, marginBottom: 24 }}>{encontrista.igreja}</div>
+          <div style={{ color: G.tm, fontSize: 13, marginBottom: 4 }}>Olá,</div>
+          <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{encontrista.nome.split(' ')[0]} 👋</div>
+          <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 13, marginBottom: 24 }}>{encontrista.igreja} · {encontrista.celula || 'Sem célula'}</div>
 
           {encontrista.pago ? (
             <>
