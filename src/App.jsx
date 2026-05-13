@@ -668,7 +668,7 @@ const LABELS = {
   home: "Início",
   servos: "Servos",
   checkin: "Check-in",
-  mins: "Ministrações",
+  mins: "Agenda",
   quartos: "Quartos",
   enc: "Encontristas",
   onibus: "Ônibus",
@@ -3578,7 +3578,7 @@ export default function App() {
       ? [["🛏", "quartos"]]
       : []),
     ["🚌", "onibus"],
-    ["🔔", "mins"],
+    ["📅", "Agenda"],
     ["⛔", "rest"],
     ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
       ? [["📷", "img"]]
@@ -3614,7 +3614,7 @@ export default function App() {
     ["servo", "lider_celula", "lider_midia"].includes(role)
   ) {
     const SERVO_MENU = [
-      ["🔔", "smins", "Ministrações"],
+      ["🔔", "smins", "Agenda"],
       ["📢", "savs", "Avisos"],
       ["👕", "suni", "Uniforme"],
       ["⚠️", "sinfo", "Ocorrências"],
@@ -4757,7 +4757,7 @@ export default function App() {
           {/* seg control */}
           <Seg
             opts={[
-              ["mins", "Ministrações"],
+              ["mins", "Agenda"],
               ["atr", "Atribuições"],
             ]}
             val={tab}
@@ -5029,7 +5029,7 @@ export default function App() {
         </div>
         <Seg
           opts={[
-            ["mins", "Ministrações"],
+            ["mins", "Agenda"],
             ["avs", "Avisos"]
           ]}
           val={tab}
