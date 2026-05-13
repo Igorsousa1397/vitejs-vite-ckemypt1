@@ -359,33 +359,34 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       res.status(500).json({ error: err.message });
     }
   }
-  exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
-    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+});
 
-    const { nome } = req.body;
+exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-    const usersSnap = await admin.firestore().collection('users').get();
-    const adminPastorIds = usersSnap.docs
-      .filter(d => ['admin', 'pastor'].includes(d.data().perfil))
-      .map(d => d.id);
+  const { nome } = req.body;
 
-    const tokensSnap = await admin.firestore().collection('tokens').get();
-    const tokens = tokensSnap.docs
-      .filter(d => adminPastorIds.includes(d.data().userId))
-      .map(d => d.data().token)
-      .filter(Boolean);
+  const usersSnap = await admin.firestore().collection('users').get();
+  const adminPastorIds = usersSnap.docs
+    .filter(d => ['admin', 'pastor'].includes(d.data().perfil))
+    .map(d => d.id);
 
-    if (!tokens.length) return res.json({ enviadas: 0 });
+  const tokensSnap = await admin.firestore().collection('tokens').get();
+  const tokens = tokensSnap.docs
+    .filter(d => adminPastorIds.includes(d.data().userId))
+    .map(d => d.data().token)
+    .filter(Boolean);
 
-    const message = {
-      notification: {
-        title: '🙏 Nova inscrição!',
-        body: `${nome} acabou de se inscrever no Encontro com Deus.`,
-      },
-      tokens,
-    };
+  if (!tokens.length) return res.json({ enviadas: 0 });
 
-    const response = await admin.messaging().sendEachForMulticast(message);
-    res.json({ enviadas: response.successCount });
-  });
+  const message = {
+    notification: {
+      title: '🙏 Nova inscrição!',
+      body: `${nome} acabou de se inscrever no Encontro com Deus.`,
+    },
+    tokens,
+  };
+
+  const response = await admin.messaging().sendEachForMulticast(message);
+  res.json({ enviadas: response.successCount });
 });
