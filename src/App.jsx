@@ -4218,6 +4218,7 @@ export default function App() {
             delAv={async (id) => {
               await deleteDoc(doc(db, "avisos", id));
             }}
+            users={users}
           />
         )}
         {pg === "checkin" && (
@@ -4970,230 +4971,219 @@ export default function App() {
   }
 
   // ── HOME ─────────────────────────────────────────────────────────────────────
-  function HomeV({
-    role,
-    ck,
-    mins,
-    ocorr,
-    avs,
-    qh,
-    qm,
-    on,
-    nav,
-    edit,
-    encH,
-    encM,
-    addAv,
-    delAv,
-  }) {
-    const [tab, setTab] = useState("mins");
-    const [av, setAv] = useState("");
-    const ch = ck.filter((c) => c.ok).length,
-      tot = ck.length;
-    const oc = ocorr.filter((o) => !o.res).length;
-    const tEnc = [...qh, ...qm].reduce((a, q) => a + q.enc.length, 0);
-    const tPass = on.reduce((a, o) => {
-      const passCheckin = [...(encH || []), ...(encM || [])].filter(
-        (e) => e.onibus === String(o.num) || e.onibus === o.num,
-      ).length;
-      const passManual = o.passManual?.length || 0;
-      const servos = o.servos?.length || 0;
-      return a + passCheckin + passManual + servos;
-    }, 0);
-    const prox = mins.find((m) => !m.sent);
-    const dC = {
-      Quinta: "#ff6b35",
-      Sexta: "#bf5af2",
-      Sábado: G.green,
-      Domingo: "#ff9f0a",
-    };
-    const ns = (n) => {
-      const s = String(n);
-      return {
-        color: G.t,
-        fontWeight: 800,
-        letterSpacing: -1,
-        fontSize: s.length > 5 ? 18 : s.length > 3 ? 24 : 32,
-      };
-    };
-    return (
-      <div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 10,
-            marginBottom: 14,
-          }}
-        >
-          {[
-            [`${ch}/${tot}`, "Check-in", "checkin"],
-            [
-              `${tPass}/${on.reduce((a, o) => a + (o.poltronas || 40), 0)}`,
-              "Ônibus",
-              "onibus",
-            ],
-            [tEnc, "Quartos", "quartos"],
-            [oc, "Ocorrências", "info"],
-          ].map(([n, l, p]) => (
-            <div
-              key={l}
-              onClick={() => nav(p)}
-              style={{
-                background: "#111",
-                border: "1px solid #1a1a1a",
-                borderRadius: 16,
-                padding: "28px 16px",
-                cursor: "pointer",
-              }}
-            >
-              <div style={ns(n)}>{n}</div>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  marginTop: 4,
-                }}
-              >
-                {l}
+function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users }) {
+  const [tab, setTab] = useState("dash");
+  const [av, setAv] = useState("");
+  const [filtroDias, setFiltroDias] = useState(7);
+
+  const ch = ck.filter((c) => c.ok).length, tot = ck.length;
+  const oc = ocorr.filter((o) => !o.res).length;
+  const tEnc = [...qh, ...qm].reduce((a, q) => a + q.enc.length, 0);
+  const tPass = on.reduce((a, o) => {
+    const passCheckin = [...(encH || []), ...(encM || [])].filter(e => e.onibus === String(o.num) || e.onibus === o.num).length;
+    return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
+  }, 0);
+
+  const META_ENC = 150;
+  const todosEnc = [...encH, ...encM];
+  const encPagos = todosEnc.filter(e => e.pago).length;
+  const encPendentes = todosEnc.length - encPagos;
+  const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
+
+  const servos = (users || []).filter(u => u.perfil === 'servo');
+  const servosPagos = servos.filter(u => u.pago).length;
+  const servosPendentes = servos.length - servosPagos;
+  const pctServos = servos.length ? Math.round((servosPagos / servos.length) * 100) : 0;
+
+  // Cadastros por dia
+  const hoje = new Date();
+  const diasAtras = new Date(hoje);
+  diasAtras.setDate(hoje.getDate() - filtroDias);
+
+  const cadastrosPorDia = {};
+  todosEnc.forEach(e => {
+    if (!e.criadoEm) return;
+    try {
+      const [d, t] = e.criadoEm.split(', ');
+      const [dia, mes, ano] = d.split('/');
+      const data = new Date(`${ano}-${mes}-${dia}`);
+      if (data >= diasAtras) {
+        const key = `${dia}/${mes}`;
+        cadastrosPorDia[key] = (cadastrosPorDia[key] || 0) + 1;
+      }
+    } catch {}
+  });
+
+  const diasOrdenados = Object.entries(cadastrosPorDia).sort((a, b) => {
+    const [dA, mA] = a[0].split('/');
+    const [dB, mB] = b[0].split('/');
+    return new Date(`2026-${mA}-${dA}`) - new Date(`2026-${mB}-${dB}`);
+  });
+
+  const maxCad = Math.max(...diasOrdenados.map(([, v]) => v), 1);
+
+  const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+
+  const BarPct = ({ val, max, color }) => (
+    <div style={{ background: '#1a1a1a', borderRadius: 4, height: 6, flex: 1 }}>
+      <div style={{ background: color, borderRadius: 4, height: 6, width: `${Math.min(100, (val / max) * 100)}%`, transition: 'width .4s' }} />
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Cards operacionais */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        {[
+          [`${ch}/${tot}`, "Check-in", "checkin"],
+          [`${tPass}/${on.reduce((a, o) => a + (o.poltronas || 40), 0)}`, "Ônibus", "onibus"],
+          [tEnc, "Quartos", "quartos"],
+          [oc, "Ocorrências", "info"],
+        ].map(([n, l, p]) => (
+          <div key={l} onClick={() => nav(p)} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "20px 16px", cursor: "pointer" }}>
+            <div style={{ color: G.t, fontWeight: 800, fontSize: String(n).length > 5 ? 18 : 28, letterSpacing: -1 }}>{n}</div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 4 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      <Seg opts={[["dash", "Dashboard"], ["mins", "Agenda"], ["avs", "Avisos"]]} val={tab} set={setTab} />
+
+      <div style={{ marginTop: 12 }}>
+        {tab === "dash" && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+            {/* Encontristas */}
+            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>👥 Encontristas</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: G.tm, fontSize: 11 }}>{todosEnc.length}/{META_ENC}</span>
+                  <Pill c={`${pctEncPagos}%`} bg="rgba(0,200,81,.12)" tc={G.green} />
+                </div>
+              </div>
+
+              {/* Barra meta */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: G.tm, fontSize: 11 }}>Meta: {META_ENC}</span>
+                  <span style={{ color: G.tm, fontSize: 11 }}>{Math.round((todosEnc.length / META_ENC) * 100)}% preenchido</span>
+                </div>
+                <div style={{ background: '#1a1a1a', borderRadius: 6, height: 8 }}>
+                  <div style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (todosEnc.length / META_ENC) * 100)}%`, transition: 'width .4s' }} />
+                </div>
+              </div>
+
+              {/* Pagos vs Pendentes */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>✓ Pagos</span>
+                  <BarPct val={encPagos} max={META_ENC} color={G.green} />
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{encPagos}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>⏳ Pend.</span>
+                  <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-        <Seg
-          opts={[
-            ["mins", "Agenda"],
-            ["avs", "Avisos"]
-          ]}
-          val={tab}
-          set={setTab}
-        />
-        <div style={{ marginTop: 12 }}>
-          {tab === "mins" &&
-            mins.map((m) => (
-              <div
-                key={m.id}
-                className="fu"
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderLeft: `3px solid ${m.sent ? G.green : dC[m.dia]}`,
-                  borderRadius: 13,
-                  padding: "12px 14px",
-                  marginBottom: 7,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <div style={{ color: G.t, fontWeight: 600, fontSize: 13 }}>
-                    {m.nome}
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                    {m.dia} · {m.hora}
-                  </div>
+
+            {/* Servos */}
+            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>🙌 Servos</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: G.tm, fontSize: 11 }}>{servos.length} total</span>
+                  <Pill c={`${pctServos}%`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
                 </div>
-                {m.sent && (
-                  <Pill c="✓ Enviado" bg="rgba(0,200,81,.1)" tc={G.green} />
-                )}
               </div>
-            ))}
-          {tab === "avs" && (
-            <>
-              {edit && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    marginBottom: 10,
-                  }}
-                >
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value) setAv(e.target.value);
-                    }}
-                    style={{ ...I, fontSize: 12 }}
-                    defaultValue=""
-                  >
-                    <option value="">Usar template de aviso...</option>
-                    {AVISOS_TEMPLATES.map((a, i) => (
-                      <option key={i} value={a.txt}>
-                        {a.txt.substring(0, 50)}...
-                      </option>
-                    ))}
-                  </select>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={av}
-                      onChange={(e) => setAv(e.target.value)}
-                      placeholder="Escrever aviso..."
-                      style={{ ...I, flex: 1 }}
-                    />
-                    <button
-                      onClick={() => {
-                        if (av.trim()) {
-                          vibrar(100);
-                          addAv(av.trim());
-                          setAv("");
-                        }
-                      }}
-                      style={BG({ padding: "13px 15px", borderRadius: 12 })}
-                    >
-                      +
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 60 }}>✓ Pagos</span>
+                  <BarPct val={servosPagos} max={servos.length || 1} color="#0a84ff" />
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>⏳ Pend.</span>
+                  <BarPct val={servosPendentes} max={servos.length || 1} color="#ff3b30" />
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPendentes}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cadastros por dia */}
+            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>📈 Cadastros por dia</div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[7, 14, 30].map(d => (
+                    <button key={d} onClick={() => setFiltroDias(d)} style={{ background: filtroDias === d ? G.green : '#1a1a1a', color: filtroDias === d ? '#000' : G.tm, border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      {d}d
                     </button>
-                  </div>
+                  ))}
+                </div>
+              </div>
+
+              {diasOrdenados.length === 0 ? (
+                <div style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum cadastro nesse período.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {diasOrdenados.map(([dia, qtd]) => (
+                    <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ color: G.tm, fontSize: 11, minWidth: 36 }}>{dia}</span>
+                      <BarPct val={qtd} max={maxCad} color="#0a84ff" />
+                      <span style={{ color: G.t, fontWeight: 700, fontSize: 13, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
+                    </div>
+                  ))}
                 </div>
               )}
-              {avs.map((a) => (
-                <div
-                  key={a.id}
-                  className="fu"
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${G.green}`,
-                    borderRadius: 13,
-                    padding: "12px 14px",
-                    marginBottom: 7,
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>
-                      {a.txt}
-                    </div>
-                    <div style={{ color: G.tm, fontSize: 11, marginTop: 4 }}>
-                      {a.autor} · {a.hr}
-                    </div>
-                  </div>
-                  {edit && (
-                    <span
-                      onClick={() => delAv(a.id)}
-                      style={{
-                        color: "rgba(255,59,48,.5)",
-                        cursor: "pointer",
-                        fontSize: 16,
-                        flexShrink: 0,
-                      }}
-                    >
-                      ×
-                    </span>
-                  )}
+            </div>
+
+          </div>
+        )}
+
+        {tab === "mins" && mins.map((m) => (
+          <div key={m.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${m.sent ? G.green : dC[m.dia]}`, borderRadius: 13, padding: "12px 14px", marginBottom: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: G.t, fontWeight: 600, fontSize: 13 }}>{m.nome}</div>
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{m.dia} · {m.hora}</div>
+            </div>
+            {m.sent && <Pill c="✓ Enviado" bg="rgba(0,200,81,.1)" tc={G.green} />}
+          </div>
+        ))}
+
+        {tab === "avs" && (
+          <>
+            {edit && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+                <select onChange={(e) => { if (e.target.value) setAv(e.target.value); }} style={{ ...I, fontSize: 12 }} defaultValue="">
+                  <option value="">Usar template de aviso...</option>
+                  {AVISOS_TEMPLATES.map((a, i) => (
+                    <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
+                  ))}
+                </select>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={av} onChange={(e) => setAv(e.target.value)} placeholder="Escrever aviso..." style={{ ...I, flex: 1 }} />
+                  <button onClick={() => { if (av.trim()) { vibrar(100); addAv(av.trim()); setAv(""); } }} style={BG({ padding: "13px 15px", borderRadius: 12 })}>+</button>
                 </div>
-              ))}
-            </>
-          )}
-        </div>
+              </div>
+            )}
+            {avs.map((a) => (
+              <div key={a.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 13, padding: "12px 14px", marginBottom: 7, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>{a.txt}</div>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4 }}>{a.autor} · {a.hr}</div>
+                </div>
+                {edit && <span onClick={() => delAv(a.id)} style={{ color: "rgba(255,59,48,.5)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>×</span>}
+              </div>
+            ))}
+          </>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ── CHECK-IN ─────────────────────────────────────────────────────────────────
   function CkV({ ck, setCk, on, edit, t }) {
