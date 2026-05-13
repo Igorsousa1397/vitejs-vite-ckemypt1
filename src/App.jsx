@@ -7499,7 +7499,6 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                 </div>
               ) : (
                 <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", margin: "4px 0 8px" }}>
-                  Nenhuma mala
                 </div>
               )}
               <AddMala num={o.num} />
