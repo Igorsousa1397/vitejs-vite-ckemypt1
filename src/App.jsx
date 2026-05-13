@@ -18,7 +18,7 @@ import {
 } from "./firebase";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
-import { QRCodeCanvas as QRCode } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { updatePassword } from 'firebase/auth';
 import jsPDF from "jspdf";
