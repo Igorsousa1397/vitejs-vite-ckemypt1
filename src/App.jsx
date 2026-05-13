@@ -1257,9 +1257,8 @@ function PagamentoV({ encId, nome, onVoltar, onPago }) {
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 180, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
 
         {/* ALTERADO: saudação com o nome */}
-        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 4 }}>Olá,</div>
         <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 8 }}>
-          {nome.split(' ')[0]} 👋
+          Olá, {nome.split(' ')[0]} 👋
         </div>
         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
           Para confirmar sua vaga, realize o pagamento abaixo.
