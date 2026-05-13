@@ -8961,22 +8961,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
           }}
         >
           {[
-            [
-              users.filter((u) => u.perfil !== "admin").length,
-              "Total",
-              "#636366",
-            ],
-            [
-              users.filter((u) => u.perfil !== "admin" && u.ativo !== false)
-                .length,
-              "Ativos",
-              G.green,
-            ],
-            [
-              users.filter((u) => u.perfil === "servo" && u.pago).length,
-              "Pagos",
-              "#0a84ff",
-            ],
+            [users.filter((u) => u.perfil === "servo").length, "Total", "#636366"],
+            [users.filter((u) => u.perfil === "servo" && u.ativo !== false).length, "Ativos", G.green],
+            [users.filter((u) => u.perfil === "servo" && u.pago).length, "Pagos", "#0a84ff"],
           ].map(([n, l, c]) => (
             <div
               key={l}
