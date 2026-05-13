@@ -359,20 +359,21 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       res.status(500).json({ error: err.message });
     }
   }
-  exports.notificarNovaInscricao = onRequest({ 
-  cors: ['https://encontrocomdeus-fonte.vercel.app'],
-}, async (req, res) => {
+  exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') return res.status(204).send('');
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
     const { nome } = req.body;
 
-    // Busca users admin e pastor
     const usersSnap = await admin.firestore().collection('users').get();
     const adminPastorIds = usersSnap.docs
       .filter(d => ['admin', 'pastor'].includes(d.data().perfil))
       .map(d => d.id);
 
-    // Busca tokens só desses users
     const tokensSnap = await admin.firestore().collection('tokens').get();
     const tokens = tokensSnap.docs
       .filter(d => adminPastorIds.includes(d.data().userId))
