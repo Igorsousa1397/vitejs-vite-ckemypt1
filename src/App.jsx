@@ -1134,12 +1134,24 @@ function JaInscritoV({ onVoltar }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <input
+         <input
             placeholder="CPF ou WhatsApp"
             value={busca}
             onChange={e => setBusca(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && buscar()}
-            style={{ ...iI, flex: 1, marginBottom: 0 }}
+            style={{ 
+              width: '100%',
+              background: '#1a1a1a',
+              border: '1px solid #2a2a2a',
+              borderRadius: 12,
+              padding: '14px 16px',
+              color: '#fff',
+              fontSize: 15,
+              outline: 'none',
+              boxSizing: 'border-box',
+              flex: 1,
+              marginBottom: 0
+            }}
           />
           <button onClick={buscar} disabled={loading} style={BG({ padding: '0 20px', borderRadius: 14, fontSize: 14, opacity: loading ? 0.7 : 1 })}>
             {loading ? '...' : 'Buscar'}
