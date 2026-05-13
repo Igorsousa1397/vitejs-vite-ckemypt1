@@ -1121,7 +1121,7 @@ function JaInscritoV({ onVoltar }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000' }}>
+    <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 20px 100px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 53px)', textAlign: 'center' }}>
       <style>{css}</style>
       <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 50 }}>
         <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
