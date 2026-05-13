@@ -7469,34 +7469,19 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                   )}
                   <SL c={`Passageiros via Check-in (${pass.length})`} />
                   {pass.length > 0 ? (
-                    <Tags items={pass.map((p) => p.nome)} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                      {pass.map((p, i) => (
+                        <div key={i} style={{ background: '#1a1a1a', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: G.green, flexShrink: 0 }} />
+                          <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div
-                      style={{
-                        color: G.tm,
-                        fontSize: 12,
-                        fontStyle: "italic",
-                        margin: "4px 0 8px",
-                      }}
-                    >
+                    <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", margin: "4px 0 8px" }}>
                       Nenhum ainda — atribua pelo Check-in
                     </div>
                   )}
-                  <SL c={`Passageiros Manual (${passManual.length})`} />
-                  <Tags
-                    items={passManual}
-                    onX={
-                      edit
-                        ? (i) =>
-                            upd(o.num, (x) => ({
-                              ...x,
-                              passManual: x.passManual.filter(
-                                (_, j) => j !== i,
-                              ),
-                            }))
-                        : undefined
-                    }
-                  />
                   {edit && (
                     <AddIn
                       ph="Adicionar passageiro manual..."
