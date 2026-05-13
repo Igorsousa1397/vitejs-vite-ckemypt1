@@ -1246,6 +1246,7 @@ return (
   </div>
 );
 }
+
 function PagamentoV({ encId, nome, onVoltar, onPago }) {
   const [msgPagamento, setMsgPagamento] = useState('');
 
@@ -1254,12 +1255,16 @@ function PagamentoV({ encId, nome, onVoltar, onPago }) {
       <style>{css}</style>
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 180, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
-        <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>
-          Inscrição realizada!
+
+        {/* ALTERADO: saudação com o nome */}
+        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 4 }}>Olá,</div>
+        <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 8 }}>
+          {nome.split(' ')[0]} 👋
         </div>
-        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
+        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
           Para confirmar sua vaga, realize o pagamento abaixo.
         </div>
+
         <button onClick={async () => {
           vibrar(50);
           try {
