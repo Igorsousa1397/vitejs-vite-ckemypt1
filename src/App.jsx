@@ -4978,7 +4978,7 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
 
   const ch = ck.filter((c) => c.ok).length, tot = ck.length;
   const oc = ocorr.filter((o) => !o.res).length;
-  const tEnc = [...qh, ...qm].reduce((a, q) => a + q.enc.length, 0);
+  const tEnc = [...qh, ...qm].length;
   const tPass = on.reduce((a, o) => {
     const passCheckin = [...(encH || []), ...(encM || [])].filter(e => e.onibus === String(o.num) || e.onibus === o.num).length;
     return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
