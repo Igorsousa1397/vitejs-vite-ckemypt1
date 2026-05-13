@@ -1093,6 +1093,8 @@ function JaInscritoV({ onVoltar }) {
   const [encontrista, setEncontrista] = useState(null);
   const [erro, setErro] = useState('');
   const [msgPagamento, setMsgPagamento] = useState('');
+  const [encId, setEncId] = useState(null);
+  const [done, setDone] = useState(false);
 
   const buscar = async () => {
     if (!busca.trim()) return;
@@ -1110,7 +1112,14 @@ function JaInscritoV({ onVoltar }) {
         );
       });
       if (found) {
-        setEncontrista({ id: found.id, ...found.data() });
+        const data = found.data();
+        if (data.pago) {
+          setEncontrista({ id: found.id, ...data });
+        } else {
+          setEncId(found.id);
+          setEncontrista({ id: found.id, ...data });
+          setDone(true);
+        }
       } else {
         setErro('Inscrição não encontrada. Verifique o CPF ou WhatsApp informado.');
       }
@@ -1215,6 +1224,78 @@ return (
     <BotaoFaq onFaq={() => {}} />
   </div>
 );
+}
+
+function PagamentoV({ encId, nome, onVoltar, onPago }) {
+  const [msgPagamento, setMsgPagamento] = useState('');
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{css}</style>
+      <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 180, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
+        <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>
+          Inscrição realizada!
+        </div>
+        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
+          Para confirmar sua vaga, realize o pagamento abaixo.
+        </div>
+        <button onClick={async () => {
+          vibrar(50);
+          try {
+            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'pix' }),
+            });
+            const data = await res.json();
+            if (data.init_point) window.location.href = data.init_point;
+            else alert('Erro ao gerar pagamento.');
+          } catch { alert('Erro ao gerar pagamento.'); }
+        }} style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: "#009ee3" }}>
+          PIX ou Boleto
+        </button>
+        <button onClick={async () => {
+          vibrar(50);
+          try {
+            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'credito' }),
+            });
+            const data = await res.json();
+            if (data.init_point) window.location.href = data.init_point;
+            else alert('Erro ao gerar pagamento.');
+          } catch { alert('Erro ao gerar pagamento.'); }
+        }} style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: "#009ee3" }}>
+          Cartão de Crédito
+        </button>
+        <div style={{ background: "rgba(251,146,60,.1)", border: "1px solid rgba(251,146,60,.3)", borderRadius: 14, padding: "14px 16px", marginBottom: 12, textAlign: "left" }}>
+          <div style={{ color: "#fb923c", fontWeight: 800, fontSize: 13, marginBottom: 6, textAlign: "center" }}>IMPORTANTE</div>
+          <div style={{ color: "rgba(255,255,255,.7)", fontSize: 13, lineHeight: 1.6 }}>
+            Após realizar o pagamento, retorne a este aplicativo e clique em "Já paguei — verificar" para obter seu QR Code de acesso ao encontro. Guarde-o com cuidado — ele será necessário no check-in.
+          </div>
+        </div>
+        <button onClick={async () => {
+          if (!encId) { setMsgPagamento('ID não encontrado. Tente novamente.'); return; }
+          const snap = await getDoc(doc(db, 'encontristas', encId));
+          if (snap.exists() && snap.data().pago) {
+            onPago();
+          } else {
+            setMsgPagamento('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
+          }
+        }} style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}>
+          ✓ Já paguei — verificar
+        </button>
+        {msgPagamento && (
+          <div style={{ background: "rgba(255,59,48,.1)", border: "1px solid rgba(255,59,48,.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 12, color: "#ff6b6b", fontSize: 13, lineHeight: 1.5 }}>
+            {msgPagamento}
+          </div>
+        )}
+        <button onClick={onVoltar} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>
+          Voltar
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ── WELCOME ──────────────────────────────────────────────────────────────────
@@ -1464,173 +1545,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   };
 
   if (done)
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-        }}
-      >
-        <style>{css}</style>
-        <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
-          <img
-            src="/IMG_2408.PNG"
-            alt="Encontro com Deus"
-            style={{
-              width: 180,
-              mixBlendMode: "screen",
-              display: "block",
-              margin: "0 auto 24px",
-            }}
-          />
-          <div
-            style={{
-              color: "#fff",
-              fontSize: 22,
-              fontWeight: 800,
-              marginBottom: 8,
-            }}
-          >
-            Inscrição realizada!
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,.5)",
-              fontSize: 16,
-              lineHeight: 1.6,
-              marginBottom: 24,
-            }}
-          >
-            Para confirmar sua vaga, realize o pagamento abaixo.
-          </div>
-          <button
-            onClick={async () => {
-              vibrar(50);
-              try {
-                const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'pix' }),
-                });
-                const data = await res.json();
-                if (data.init_point) {
-                  window.location.href = data.init_point;
-                } else {
-                  alert('Erro ao gerar pagamento.');
-                }
-              } catch { alert('Erro ao gerar pagamento.'); }
-            }}
-            style={{
-              ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }),
-              background: "#009ee3",
-            }}
-          >
-            PIX ou Boleto
-          </button>
-
-          <button
-            onClick={async () => {
-              vibrar(50);
-              try {
-                const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ encontristaId: encId, nome: form.nome, email: '', tipo: 'credito' }),
-                });
-                const data = await res.json();
-                if (data.init_point) {
-                  window.location.href = data.init_point;
-                } else {
-                  alert('Erro ao gerar pagamento.');
-                }
-              } catch { alert('Erro ao gerar pagamento.'); }
-            }}
-            style={{
-              ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }),
-              background: "#009ee3",
-            }}
-          >
-            Cartão de Crédito
-          </button>
-          <div
-            style={{
-              background: "rgba(251,146,60,.1)",
-              border: "1px solid rgba(251,146,60,.3)",
-              borderRadius: 14,
-              padding: "14px 16px",
-              marginBottom: 12,
-              textAlign: "left",
-            }}
-          >
-            <div
-              style={{
-                color: "#fb923c",
-                fontWeight: 800,
-                fontSize: 13,
-                marginBottom: 6,
-                textAlign: "center",
-              }}
-            >
-              IMPORTANTE
-            </div>
-            <div
-              style={{
-                color: "rgba(255,255,255,.7)",
-                fontSize: 13,
-                lineHeight: 1.6,
-              }}
-            >
-              Após realizar o pagamento, retorne a este aplicativo e clique em
-              "Já paguei — verificar" para obter seu QR Code de acesso ao
-              encontro . Guarde-o com cuidado — ele será necessário no check-in.
-            </div>
-          </div>
-          <button
-            onClick={async () => {
-              if (!encId) {
-                setMsgPagamento('ID não encontrado. Tente novamente.');
-                return;
-              }
-              const snap = await getDoc(doc(db, 'encontristas', encId));
-              if (snap.exists() && snap.data().pago) {
-                setScr('pagamento_confirmado');
-              } else {
-                setMsgPagamento('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
-              }
-            }}
-            style={BG({ width: '100%', padding: 14, borderRadius: 14, marginBottom: 12 })}
-          >
-            ✓ Já paguei — verificar
-          </button>
-          {msgPagamento && (
-            <div
-              style={{
-                background: "rgba(255,59,48,.1)",
-                border: "1px solid rgba(255,59,48,.3)",
-                borderRadius: 12,
-                padding: "10px 14px",
-                marginBottom: 12,
-                color: "#ff6b6b",
-                fontSize: 13,
-                lineHeight: 1.5,
-              }}
-            >
-              {msgPagamento}
-            </div>
-          )}
-          <button
-            onClick={onVoltar}
-            style={BK({ width: "100%", padding: 14, borderRadius: 14 })}
-          >
-            Voltar
-          </button>
-        </div>
-      </div>
-    );
+  return (
+    <PagamentoV
+      encId={encId}
+      nome={form.nome}
+      onVoltar={onVoltar}
+      onPago={() => setScr('pagamento_confirmado')}
+    />
+  );
 
   const iI = { ...I, marginBottom: 0 };
   const SLi = ({ c }) => (
