@@ -4325,6 +4325,7 @@ export default function App() {
               marginLeft: 10,
             }}
           >
+            ×
           </span>
         )}
         {pg === "louça" && (
