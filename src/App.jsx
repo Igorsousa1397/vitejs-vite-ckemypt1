@@ -6624,91 +6624,22 @@ export default function App() {
                       {e.igreja || "—"} · {e.celula || "Sem célula"}
                     </div>
                   </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {e.pagamentoId ? (
                       <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
+                        style={{ display: "flex", alignItems: "center", gap: 4 }}
                         onClick={(e2) => e2.stopPropagation()}
                       >
-                        <img
-                          src="/mp-logo.png"
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: "50%",
-                            objectFit: "cover",
-                          }}
-                        />
-                        <span
-                          style={{
-                            color: G.green,
-                            fontSize: 11,
-                            fontWeight: 700,
-                          }}
-                        >
-                          Pago
-                        </span>
+                        <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
+                        <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago</span>
                       </div>
                     ) : (
-                      <div
-                        onClick={async (e2) => {
-                          e2.stopPropagation();
-                          if (!edit) return;
-                          vibrar(30);
-                          await setDoc(
-                            doc(db, "encontristas", e.id),
-                            { pago: !e.pago },
-                            { merge: true },
-                          );
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          cursor: edit ? "pointer" : "default",
-                          userSelect: "none",
-                        }}
+                      <span
+                        onClick={(e2) => e2.stopPropagation()}
+                        style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}
                       >
-                        <div
-                          style={{
-                            width: 34,
-                            height: 20,
-                            borderRadius: 20,
-                            background: e.pago ? G.green : "#ff3b30",
-                            transition: "background .2s",
-                            position: "relative",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: 2,
-                              left: e.pago ? 15 : 2,
-                              width: 16,
-                              height: 16,
-                              borderRadius: "50%",
-                              background: "#fff",
-                              transition: "left .2s",
-                            }}
-                          />
-                        </div>
-                        <span
-                          style={{
-                            color: e.pago ? G.green : "#ff3b30",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            minWidth: 44,
-                          }}
-                        >
-                          {e.pago ? "Pago" : "Pendente"}
-                        </span>
-                      </div>
+                        Pendente
+                      </span>
                     )}
                     <span
                       style={{
@@ -6723,7 +6654,6 @@ export default function App() {
                     </span>
                   </div>
                 </div>
-
                 {/* Detalhes expandidos */}
                 {aberto && (
                   <div
@@ -9081,6 +9011,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
           <Acc
             key={i}
             title={u.nome}
+            ax={u.pago ? G.green : "#ff3b30"}
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 {!u.ativo && (
