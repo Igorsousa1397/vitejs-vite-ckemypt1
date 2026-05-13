@@ -8277,8 +8277,8 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   }}
                 >
                   ×
-                </span> */}
-              )}
+                </span>
+              )} */}
             </div>
           </div>
         ))}
