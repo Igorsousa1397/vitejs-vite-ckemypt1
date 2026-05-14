@@ -10967,8 +10967,6 @@ function LouçaV({ edit, t, users }) {
               {users
                 .filter(u =>
                   (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
-                  u.perfil !== "lider_celula" &&
-                  u.perfil !== "lider_geral" &&
                   u.perfil !== "admin" &&
                   u.nome
                 )
