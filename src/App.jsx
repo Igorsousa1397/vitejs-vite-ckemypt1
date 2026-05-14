@@ -10997,9 +10997,10 @@ function LouçaV({ edit, t, users }) {
                             value={u.perfil}
                             onClick={e => e.stopPropagation()}
                             onChange={async (e) => {
-                              e.stopPropagation();
-                              await setDoc(doc(db, "users", u.id), { perfil: e.target.value }, { merge: true });
-                              setUsers(users.map(x => x.id === u.id ? { ...x, perfil: e.target.value } : x));
+                              const novoPerfil = e.target.value;
+                              await setDoc(doc(db, "users", u.id), { perfil: novoPerfil }, { merge: true });
+                              setUsers(prev => prev.map(x => x.id === u.id ? { ...x, perfil: novoPerfil } : x));
+                              setExpandidos(prev => ({ ...prev, [u.id]: true }));
                               t("Perfil atualizado!");
                             }}
                             style={{ ...I, width: "auto", padding: "6px 9px", fontSize: 11, borderRadius: 9 }}
