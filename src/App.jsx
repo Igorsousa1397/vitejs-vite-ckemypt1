@@ -3312,7 +3312,9 @@ export default function App() {
 
   const temPermissao = (tela) => {
     if (role === "admin") return true;
-    if (role === "lider_geral") return true; // ← acesso total igual admin
+    if (role === "lider_geral") return true;
+    const telasFixas = ["mins", "avisos", "uniforme", "info", "ach", "saude"];
+    if (telasFixas.includes(tela)) return true;
     const p = permissoes[role];
     if (!p) return false;
     return (p.telas || []).includes(tela);
