@@ -445,6 +445,7 @@ const FUNCOES_INIT = [
   "Refeitório",
   "Cantina",
   "Louça",
+  "Panelas",
   "Mídia",
   "Kit Sobrevivência",
   "Etiquetar Sacolas",
@@ -3311,6 +3312,7 @@ export default function App() {
 
   const temPermissao = (tela) => {
     if (role === "admin") return true;
+    if (role === "lider_geral") return true; // ← acesso total igual admin
     const p = permissoes[role];
     if (!p) return false;
     return (p.telas || []).includes(tela);
@@ -4677,12 +4679,18 @@ export default function App() {
                               const LIDER_MAP = {
                                 "Templo": "lider_templo",
                                 "Cozinha": "lider_cozinha",
+                                "Refeitório": "lider_cozinha",
+                                "Louça": "lider_cozinha",
+                                "Panelas": "lider_cozinha",
                                 "Mídia": "lider_midia",
-                                "Cartas": "lider_cartas",
                                 "Presentes/Cartas": "lider_cartas",
                                 "Kit Cartas": "lider_cartas",
                                 "Som": "lider_som",
                                 "Itens Teatro/Dança": "lider_teatro",
+                                "Organizar itens do Templo": "lider_geral",
+                                "Intercessão": "lider_geral",
+                                "Crachá": "lider_geral",
+                                "Cantina": "lider_geral",
                               };
                               const perfilLider = user.perfil === "lider_staff"
                                 ? "lider_staff"
