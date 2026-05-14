@@ -10904,8 +10904,8 @@ function LouçaV({ edit, t, users }) {
       const novas = [...(escala[dia] || []), fn.trim()];
       const novaEscala = { ...escala, [dia]: novas };
       await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
+      setExpandidos(prev => ({ ...prev, [u.id]: true }))
       setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
-      setExpandidos(prev => ({ ...prev, [u.id]: true })); // ← mantém aberto
       t("✓");
     };
 
@@ -10914,8 +10914,8 @@ function LouçaV({ edit, t, users }) {
       const novas = (escala[dia] || []).filter((_, j) => j !== i);
       const novaEscala = { ...escala, [dia]: novas };
       await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
+      setExpandidos(prev => ({ ...prev, [u.id]: true }))
       setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
-      setExpandidos(prev => ({ ...prev, [u.id]: true })); // ← mantém aberto
     };
 
     const totalFuncoes = (u) => {
