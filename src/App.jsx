@@ -10932,12 +10932,17 @@ function LouçaV({ edit, t, users }) {
                         ["rest", "⛔ Restrições"],
                         ["img", "📷 Uso de Imagem"],
                         ["checkin", "✓ Check-in"],
+                        ["termo", "✎ Termo"],
                         ["quartos", "🛏 Quartos"],
                         ["enc", "👥 Encontristas"],
                         ["onibus", "🚌 Ônibus"],
                         ["louça", "🍽️ Louça"],
                         ["equipes", "📋 Equipes"],
                         ["servos", "👤 Servos"],
+                        ["ach", "🔎 Achados & Perdidos"],
+                        ["crac", "🪪 Crachás"],
+                        ["saude", "💊 Saúde"],
+                        ["test", "🙌 Testemunhos"],
                         ["back", "⚙️ Back Office"],
                       ].map(([id, label]) => {
                         const ativo = telasAtivas.includes(id);
