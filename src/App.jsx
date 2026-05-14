@@ -4608,53 +4608,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* SLIDE */}
-          {slides.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              {slides.length > 1 && (
-                <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 8 }}>
-                  {slides.map((_, i) => (
-                    <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#333", transition: "all .3s", cursor: "pointer" }} />
-                  ))}
-                </div>
-              )}
-
-              {slideAtual?.tipo === "min" && (
-                <div style={{ background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.2)", borderRadius: 14, padding: "13px 14px" }}>
-                  <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Próxima</div>
-                  <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{prox.nome}</div>
-                  <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
-                </div>
-              )}
-
-              {slideAtual?.tipo === "pagamento" && (
-                <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
-                  <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
-                  <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>R$ 220,00</strong></div>
-                  <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>
-                    Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong>
-                  </div>
-                  <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>
-                    PIX ou Boleto — R$ 220,00
-                  </button>
-                  <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>
-                    Cartão de Crédito — R$ 231,00
-                  </button>
-                </div>
-              )}
-
-              {slideAtual?.tipo === "uniforme" && (
-                <div onClick={() => setPg("suni")} style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
-                  <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Uniforme</div>
-                  <div style={{ color: G.t, fontSize: 16, fontWeight: 700 }}>{meuPedido?.status === "aberto" ? "Alteração aprovada — atualize seu pedido" : "Você ainda não fez seu pedido de uniforme"}</div>
-                  <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
-                    Prazo: <strong style={{ color: "#ff9f0a" }}>{new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}</strong> · Toque para acessar
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"]]} val={tab} set={setTab} />
 
           <div style={{ marginTop: 12 }}>
