@@ -10896,25 +10896,53 @@ function LouçaV({ edit, t, users }) {
         <Seg opts={[["grupos", "Grupos"], ["usuarios", "Usuários"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
 
-          {Object.entries(PERFIS).map(([k, v]) => (
-            <div
-              key={k}
-              style={{
-                background: G.card,
-                border: `1px solid ${G.cb}`,
-                borderLeft: `3px solid ${v.c}`,
-                borderRadius: 14,
-                padding: "12px 14px",
-                marginBottom: 8,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                <span style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{v.l}</span>
-                <Pill c={`${users.filter((u) => u.perfil === k).length} usuários`} bg="#1e1e1e" tc={G.tm} />
-              </div>
-              <div style={{ color: G.tm, fontSize: 12 }}>{pD[k] || "Permissões customizadas"}</div>
-            </div>
-          ))}
+          {tab === "grupos" && (
+            <>
+              {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => {
+                const telasAtivas = permissoes[k]?.telas || [];
+                return (
+                  <Acc key={k} title={v.l} ax={v.c} right={<Pill c={`${telasAtivas.length} telas`} bg="#1e1e1e" tc={G.tm} />}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {[
+                        ["mins", "📅 Agenda"],
+                        ["avisos", "📢 Avisos"],
+                        ["uniforme", "👕 Uniforme"],
+                        ["info", "⚠️ Ocorrências"],
+                        ["rest", "⛔ Restrições"],
+                        ["checkin", "✓ Check-in"],
+                        ["quartos", "🛏 Quartos"],
+                        ["enc", "👥 Encontristas"],
+                        ["onibus", "🚌 Ônibus"],
+                        ["louça", "🍽️ Louça"],
+                        ["equipes", "📋 Equipes"],
+                        ["servos", "👤 Servos"],
+                        ["back", "⚙️ Back Office"],
+                      ].map(([id, label]) => {
+                        const ativo = telasAtivas.includes(id);
+                        return (
+                          <div
+                            key={id}
+                            onClick={async () => {
+                              const novas = ativo
+                                ? telasAtivas.filter(t => t !== id)
+                                : [...telasAtivas, id];
+                              await setDoc(doc(db, "permissoes", k), { telas: novas }, { merge: true });
+                            }}
+                            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 10px", borderRadius: 10, background: ativo ? "rgba(0,200,81,.08)" : "#111", border: `1px solid ${ativo ? "rgba(0,200,81,.2)" : "#1e1e1e"}` }}
+                          >
+                            <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? G.green : "#444"}`, background: ativo ? "rgba(0,200,81,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              {ativo && <span style={{ color: G.green, fontSize: 11, fontWeight: 800 }}>✓</span>}
+                            </div>
+                            <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Acc>
+                );
+              })}
+            </>
+          )}
 
           {tab === "usuarios" && (
             <>
