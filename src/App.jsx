@@ -444,7 +444,7 @@ const FUNCOES_INIT = [
   "Crachá",
   "Refeitório",
   "Cantina",
-  "Louça",
+  "Cozinha",
   "Panelas",
   "Mídia",
   "Kit Sobrevivência",
@@ -683,7 +683,7 @@ const LABELS = {
   ach: "Achados & Perdidos",
   crac: "Crachás",
   saude: "Saúde",
-  louça: "Louça",
+  cozinha: "Cozinha",
   equipes: "Equipes",
   back: "Back Office",
   uniformes: "Uniformes",
@@ -3598,7 +3598,7 @@ export default function App() {
     ...(temPermissao("crac") ? [["🪪", "crac"]] : []),
     ...(temPermissao("saude") ? [["💊", "saude"]] : []),
     ...(temPermissao("uniformes") ? [["👕", "uniformes"]] : []),
-    ...(temPermissao("louça") ? [["🍽️", "louça"]] : []),
+    ...(temPermissao("cozinha") ? [["🍽️", "cozinha"]] : []),
     ...(temPermissao("equipes") ? [["📋", "equipes"]] : []),
     ...(temPermissao("test") ? [["🙌", "test"]] : []),
     ...(isAdm ? [["⚙️", "back"]] : []),
@@ -3791,7 +3791,7 @@ export default function App() {
                 : pg === "simg" ? "Uso de Imagem"
                 : pg === "ssaude" ? "Saúde"
                 : pg === "squartos" ? "Quartos"
-                : pg === "slouça" ? "Louça"
+                : pg === "scozinha" ? "Cozinha"
                 : pg === "scheckin" ? "Check-in"
                 : pg === "sonibus" ? "Ônibus"
                 : pg === "senc" ? "Encontristas"
@@ -4360,8 +4360,8 @@ export default function App() {
             setAbertos={setQuartosAbertos}
           />
         )}
-        {pg === "slouça" && (
-          <LouçaV edit={false} t={showT} users={users} />
+        {pg === "scozinha" && (
+          <CozinhaV edit={false} t={showT} users={users} />
         )}
         {pg === "scheckin" && (
           <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} />
@@ -4393,8 +4393,8 @@ export default function App() {
             t={showT}
           />
         )}
-        {pg === "louça" && (
-          <LouçaV edit={canC(role)} t={showT} users={users} />
+        {pg === "cozinha" && (
+          <CozinhaV edit={canC(role)} t={showT} users={users} />
         )}
         {pg === "uniformes" && (
           <UniV
@@ -4578,11 +4578,11 @@ export default function App() {
       );
     }
 
-  function LoucaServoV({ nome }) {
+  function CozinhaServoV({ nome }) {
     const [tarefas, setTarefas] = useState([]);
 
     useEffect(() => {
-      const unsub = onSnapshot(collection(db, 'louca'), (snap) => {
+      const unsub = onSnapshot(collection(db, 'cozinha'), (snap) => {
         const todas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setTarefas(todas.filter(t => (t.s || []).includes(nome)));
       });
@@ -4594,7 +4594,7 @@ export default function App() {
     return (
       <div style={{ marginTop: 16 }}>
         <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>
-          Louça
+          Cozinha
         </div>
         {tarefas.map(t => (
           <div
@@ -4760,7 +4760,7 @@ export default function App() {
                                 "Templo": "lider_templo",
                                 "Cozinha": "lider_cozinha",
                                 "Refeitório": "lider_cozinha",
-                                "Louça": "lider_cozinha",
+                                "Cozinha": "lider_cozinha",
                                 "Panelas": "lider_cozinha",
                                 "Mídia": "lider_midia",
                                 "Presentes/Cartas": "lider_cartas",
@@ -4822,7 +4822,7 @@ export default function App() {
                     );
                   })
                 )}
-                <LoucaServoV userId={user.id} nome={user.nome} />
+                <CozinhaServoV userId={user.id} nome={user.nome} />
               </div>
             )}
           </div>
@@ -8107,7 +8107,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     );
   }
 
-  function AddServoLouca({ tarefaId, servosJa, users, onAdd }) {
+  function AddServoCozinha({ tarefaId, servosJa, users, onAdd }) {
     const [busca, setBusca] = useState('');
     const [aberto, setAberto] = useState(false);
     const skipBlur = useRef(false);
@@ -8164,13 +8164,13 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 }
 
   // ── LOUÇA ────────────────────────────────────────────────────────────────────
-function LouçaV({ edit, t, users }) {
+function CozinhaV({ edit, t, users }) {
   const [tarefas, setTarefas] = useState([]);
   const [sh, setSh] = useState(false);
   const [f, setF] = useState({ r: '' });
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'louca'), (snap) => {
+    const unsub = onSnapshot(collection(db, 'cozinha'), (snap) => {
       setTarefas(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm - b.criadoEm));
     });
     return () => unsub();
@@ -8180,14 +8180,14 @@ function LouçaV({ edit, t, users }) {
 
   const criarTarefa = async () => {
     if (!f.r.trim()) return;
-    await addDoc(collection(db, 'louca'), { r: f.r.trim(), s: [], criadoEm: Date.now() });
+    await addDoc(collection(db, 'cozinha'), { r: f.r.trim(), s: [], criadoEm: Date.now() });
     setF({ r: '' });
     setSh(false);
     t('Tarefa criada!');
   };
 
   const addServо = async (id, nome) => {
-    const ref = doc(db, 'louca', id);
+    const ref = doc(db, 'cozinha', id);
     const snap = await getDoc(ref);
     if (!snap.exists()) return;
     await updateDoc(ref, { s: [...(snap.data().s || []), nome] });
@@ -8195,7 +8195,7 @@ function LouçaV({ edit, t, users }) {
   };
 
   const removeServo = async (id, i) => {
-    const ref = doc(db, 'louca', id);
+    const ref = doc(db, 'cozinha', id);
     const snap = await getDoc(ref);
     if (!snap.exists()) return;
     const novaLista = (snap.data().s || []).filter((_, j) => j !== i);
@@ -8203,7 +8203,7 @@ function LouçaV({ edit, t, users }) {
   };
 
   const deletarTarefa = async (id) => {
-    await deleteDoc(doc(db, 'louca', id));
+    await deleteDoc(doc(db, 'cozinha', id));
     t('Removido.');
   };
 
@@ -8215,7 +8215,7 @@ function LouçaV({ edit, t, users }) {
             onClick={() => setSh(!sh)}
             style={sh ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 }) : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}
           >
-            {sh ? '✕ Cancelar' : '＋ Nova Tarefa de Louça'}
+            {sh ? '✕ Cancelar' : '＋ Nova Tarefa de Cozinha'}
           </button>
           {sh && (
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -8249,7 +8249,7 @@ function LouçaV({ edit, t, users }) {
             onX={edit ? (i) => removeServo(l.id, i) : undefined}
           />
           {edit && (
-            <AddServoLouca tarefaId={l.id} servosJa={l.s || []} users={users} onAdd={addServо} />
+            <AddServoCozinha tarefaId={l.id} servosJa={l.s || []} users={users} onAdd={addServо} />
           )}
         </Acc>
       ))}
@@ -10948,7 +10948,7 @@ function LouçaV({ edit, t, users }) {
       admin: "Acesso total",
       lider_cartas: "Permissões customizadas",
       lider_celula: "Permissões customizadas",
-      lider_cozinha: "Edição da louça",
+      lider_cozinha: "Edição da cozinha",
       lider_geral: "Tudo exceto Back Office",
       lider_midia: "Líder Mídia",
       lider_quartos: "Edição de quartos",
@@ -11022,7 +11022,7 @@ function LouçaV({ edit, t, users }) {
                         ["quartos", "🛏 Quartos"],
                         ["enc", "👥 Encontristas"],
                         ["onibus", "🚌 Ônibus"],
-                        ["louça", "🍽️ Louça"],
+                        ["cozinha", "🍽️ Cozinha"],
                         ["equipes", "📋 Equipes"],
                         ["servos", "👤 Servos"],
                         ["ach", "🔎 Achados & Perdidos"],
