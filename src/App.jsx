@@ -3608,14 +3608,12 @@ export default function App() {
     ["servo", "lider_celula", "lider_midia"].includes(role)
   ) {
     const SERVO_MENU = [
-      ["📅", "smins", "Agenda"],
-      ["📢", "savs", "Avisos"],
-      ["👕", "suni", "Uniforme"],
-      ["⚠️", "sinfo", "Ocorrências"],
-      ...(role === "lider_celula" ? [["⛔", "srest", "Restrições"]] : []),
-      ...(role === "lider_midia" || (user?.funcoes || []).includes("Mídia")
-        ? [["📷", "simg", "Uso de Imagem"]]
-        : []),
+      ...(temPermissao("mins") ? [["📅", "smins", "Agenda"]] : []),
+      ...(temPermissao("avisos") ? [["📢", "savs", "Avisos"]] : []),
+      ...(temPermissao("uniforme") ? [["👕", "suni", "Uniforme"]] : []),
+      ...(temPermissao("info") ? [["⚠️", "sinfo", "Ocorrências"]] : []),
+      ...(temPermissao("rest") ? [["⛔", "srest", "Restrições"]] : []),
+      ...(temPermissao("img") ? [["📷", "simg", "Uso de Imagem"]] : []),
     ];
 
     return (
