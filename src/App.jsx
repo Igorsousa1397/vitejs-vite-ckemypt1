@@ -8589,7 +8589,7 @@ function LouçaV({ edit, t, users }) {
 
     const lista = users.filter(
       (u) =>
-        (u.perfil === "servo" || u.perfil === "lider_staff") &&
+        (u.perfil === "servo" || u.perfil === "lider_staff" || u.perfil === "staff") &&
         u.nome &&
         (filtro === "todos"
           ? true
