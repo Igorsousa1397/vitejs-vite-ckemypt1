@@ -10873,11 +10873,16 @@ function LouçaV({ edit, t, users }) {
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
   function BackV({ users, setUsers, fns, setFns, t }) {
-    const [tab, setTab] = useState("grupos");
+    const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
-    const [expandidos, setExpandidos] = useState({});
+    const expandidosRef = useRef({});
+    const [, forceUpdate] = useState(0);
+    const toggleExpandido = (id) => {
+      expandidosRef.current[id] = !expandidosRef.current[id];
+      forceUpdate(n => n + 1);
+    };
 
     const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
     const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
@@ -10905,6 +10910,7 @@ function LouçaV({ edit, t, users }) {
       const novaEscala = { ...escala, [dia]: novas };
       await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
       setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
+      setExpandidos(prev => ({ ...prev, [u.id]: true })); // ← mantém aberto
       t("✓");
     };
 
@@ -10914,6 +10920,7 @@ function LouçaV({ edit, t, users }) {
       const novaEscala = { ...escala, [dia]: novas };
       await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
       setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
+      setExpandidos(prev => ({ ...prev, [u.id]: true })); // ← mantém aberto
     };
 
     const totalFuncoes = (u) => {
