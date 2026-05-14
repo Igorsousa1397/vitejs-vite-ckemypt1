@@ -4715,8 +4715,8 @@ export default function App() {
                                     <>
                                       <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Líder</div>
                                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: colegas.length > 0 ? 8 : 0 }}>
-                                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#0a84ff" }} />
-                                        <span style={{ color: "#64b5f6", fontSize: 13, fontWeight: lider.id === user.id ? 700 : 400 }}>
+                                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
+                                          <span style={{ color: G.td, fontSize: 13, fontWeight: lider.id === user.id ? 700 : 400 }}>
                                           {lider.nome}{lider.id === user.id ? " (você)" : ""}
                                         </span>
                                       </div>
