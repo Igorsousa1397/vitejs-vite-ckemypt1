@@ -119,16 +119,17 @@ const BK = (x = {}) => ({
 
 const PERFIS = {
   admin: { l: "Admin", c: "#00c851" },
-  lider_geral: { l: "Líder Geral", c: "#0a84ff" },
-  pastor: { l: "Pastor", c: "#bf5af2" },
-  lider_staff: { l: "Líder Staff", c: "#ff9f0a" },
-  lider_quartos: { l: "Líder Quartos", c: "#ff6b35" },
-  lider_cozinha: { l: "Líder Cozinha", c: "#ff2d55" },
-  lider_templo: { l: "Líder Templo", c: "#64b5f6" },
-  servo: { l: "Servo", c: "#636366" },
-  lider_midia: { l: "Líder Mídia", c: "#ffd60a" },
-  lider_celula: { l: "Líder de Célula", c: "#ff6b35" },
   lider_cartas: { l: "Líder Cartas", c: "#ff2d55" },
+  lider_celula: { l: "Líder de Célula", c: "#ff6b35" },
+  lider_cozinha: { l: "Líder Cozinha", c: "#ff2d55" },
+  lider_geral: { l: "Líder Geral", c: "#0a84ff" },
+  lider_midia: { l: "Líder Mídia", c: "#ffd60a" },
+  lider_quartos: { l: "Líder Quartos", c: "#ff6b35" },
+  lider_staff: { l: "Líder Staff", c: "#ff9f0a" },
+  lider_templo: { l: "Líder Templo", c: "#64b5f6" },
+  pastor: { l: "Pastor", c: "#bf5af2" },
+  servo: { l: "Servo", c: "#636366" },
+  staff: { l: "Staff", c: "#ff9f0a" },
 };
 
 const canG = (p) =>
@@ -10868,13 +10869,17 @@ function LouçaV({ edit, t, users }) {
 
     const pD = {
       admin: "Acesso total",
-      lider_geral: "Tudo exceto Back Office",
-      pastor: "Edição geral",
-      lider_staff: "Operacional",
-      lider_quartos: "Edição de quartos",
+      lider_cartas: "Permissões customizadas",
+      lider_celula: "Permissões customizadas",
       lider_cozinha: "Edição da louça",
-      servo: "Somente visualização",
+      lider_geral: "Tudo exceto Back Office",
       lider_midia: "Líder Mídia",
+      lider_quartos: "Edição de quartos",
+      lider_staff: "Operacional",
+      lider_templo: "Permissões customizadas",
+      pastor: "Edição geral",
+      servo: "Somente visualização",
+      staff: "Operacional",
     };
 
     const toggleExpandido = (id) =>
@@ -10997,6 +11002,28 @@ function LouçaV({ edit, t, users }) {
                       {aberto && (
                         <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px" }}>
                           {u.email && <div style={{ color: G.tm, fontSize: 12, marginBottom: 12 }}>✉️ {u.email}</div>}
+
+                          {/* ADICIONA AQUI */}
+                            {u.perfil === "lider_celula" && (
+                              <div style={{ marginBottom: 12 }}>
+                                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Célula</div>
+                                <select
+                                  value={u.celula || ""}
+                                  onChange={async (e) => {
+                                    await setDoc(doc(db, "users", u.id), { celula: e.target.value }, { merge: true });
+                                    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, celula: e.target.value } : x));
+                                    setExpandidos(prev => ({ ...prev, [u.id]: true }));
+                                    t("Célula salva!");
+                                  }}
+                                  style={{ ...I, fontSize: 13 }}
+                                >
+                                  <option value="">Selecione a célula...</option>
+                                  {CELULAS.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
 
                           {/* Escala por dia */}
                           {DIAS.map(dia => (
