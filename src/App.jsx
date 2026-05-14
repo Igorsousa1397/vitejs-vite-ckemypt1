@@ -3086,6 +3086,7 @@ export default function App() {
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
   const [permissoes, setPermissoes] = useState({});
+  const [backTab, setBackTab] = useState("grupos");
   const unsubPermRef = useRef(null);
 
   // Inicializa quarto mães se não existir
@@ -4357,6 +4358,8 @@ export default function App() {
             expandidos={backExpandidos}
             setExpandidos={setBackExpandidos}
             permissoes={permissoes}
+            tab={backTab}
+            setTab={setBackTab}
           />
         )}
       </div>
@@ -10837,8 +10840,8 @@ function LouçaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes }) {
-    const [tab, setTab] = useState("usuarios");
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab }) {
+    // const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
