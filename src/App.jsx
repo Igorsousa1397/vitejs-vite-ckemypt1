@@ -4658,12 +4658,50 @@ export default function App() {
           <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"]]} val={tab} set={setTab} />
 
           <div style={{ marginTop: 12 }}>
-            {tab === "mins" && mins.map((m) => (
-              <div key={m.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[m.dia]}`, borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
-                <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{m.nome}</div>
-                <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>{m.dia} · {m.hora}</div>
+            {tab === "mins" && (
+              <div>
+                {slides.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    {slides.length > 1 && (
+                      <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 8 }}>
+                        {slides.map((_, i) => (
+                          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#333", transition: "all .3s", cursor: "pointer" }} />
+                        ))}
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "min" && (
+                      <div style={{ background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.2)", borderRadius: 14, padding: "13px 14px" }}>
+                        <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Próxima</div>
+                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{prox.nome}</div>
+                        <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "pagamento" && (
+                      <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
+                        <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>R$ 220,00</strong></div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
+                        <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>PIX ou Boleto — R$ 220,00</button>
+                        <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>Cartão de Crédito — R$ 231,00</button>
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "uniforme" && (
+                      <div onClick={() => setPg("suni")} style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                        <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Uniforme</div>
+                        <div style={{ color: G.t, fontSize: 16, fontWeight: 700 }}>{meuPedido?.status === "aberto" ? "Alteração aprovada — atualize seu pedido" : "Você ainda não fez seu pedido de uniforme"}</div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>Prazo: <strong style={{ color: "#ff9f0a" }}>{new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}</strong> · Toque para acessar</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {mins.map((m) => (
+                  <div key={m.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[m.dia]}`, borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
+                    <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{m.nome}</div>
+                    <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>{m.dia} · {m.hora}</div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
 
             {tab === "atr" && (
               <div>
@@ -4675,19 +4713,17 @@ export default function App() {
                   DIAS.map(dia => {
                     const fns = escala[dia] || [];
                     if (fns.length === 0) return null;
-                    const aberto = diasAbertos[dia] !== false; // aberto por padrão
+                    const aberto = diasAbertos[dia] !== false;
 
                     return (
-                      <div key={dia} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[dia]}`, borderRadius: 14, marginBottom: 8, overflow: "visible" }}>
-                        
-                        {/* Header do dia */}
+                      <div key={dia} style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[dia]}`, borderRadius: 14, marginBottom: 8 }}>
                         <div
                           onClick={() => toggleDia(dia)}
                           style={{ padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: dC[dia] }} />
-                            <span style={{ color: dC[dia], fontWeight: 700, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 }}>{dia}</span>
+                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: dC[dia] }} />
+                            <span style={{ color: G.td, fontWeight: 700, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>{dia}</span>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <Pill c={`${fns.length} função${fns.length > 1 ? 'ões' : ''}`} bg={`${dC[dia]}18`} tc={dC[dia]} />
@@ -4695,24 +4731,52 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Funções do dia */}
                         {aberto && (
-                          <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                          <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                             {fns.map((fn, i) => {
-                              const colegas = getColegasDia(dia, fn);
+                              const LIDER_MAP = {
+                                "Templo": "lider_templo",
+                                "Cozinha": "lider_cozinha",
+                                "Mídia": "lider_midia",
+                                "Cartas": "lider_cartas",
+                              };
+                              const perfilLider = user.perfil === "lider_staff"
+                                ? "lider_staff"
+                                : (LIDER_MAP[fn] || "lider_staff");
+
+                              const lider = (users || []).find(u => u.perfil === perfilLider);
+
+                              const colegas = (users || []).filter(u =>
+                                u.id !== user.id &&
+                                u.ativo !== false &&
+                                (u.escala?.[dia] || []).includes(fn)
+                              );
+
                               return (
                                 <div key={i} style={{ background: "#111", borderRadius: 12, padding: "10px 12px" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: colegas.length > 0 ? 8 : 0 }}>
-                                    <span style={{ color: dC[dia] }}>📋</span>
-                                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{fn}</span>
+                                  <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: lider || colegas.length > 0 ? 8 : 0 }}>
+                                    {fn}
                                   </div>
+
+                                  {lider && (
+                                    <>
+                                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Líder</div>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: colegas.length > 0 ? 8 : 0 }}>
+                                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#0a84ff" }} />
+                                        <span style={{ color: "#64b5f6", fontSize: 13, fontWeight: lider.id === user.id ? 700 : 400 }}>
+                                          {lider.nome}{lider.id === user.id ? " (você)" : ""}
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+
                                   {colegas.length > 0 && (
                                     <>
                                       <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Equipe</div>
                                       {colegas.map((c, j) => (
                                         <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: dC[dia] }} />
-                                          <span style={{ color: G.td, fontSize: 12 }}>{c.nome}</span>
+                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
+                                          <span style={{ color: G.td, fontSize: 13 }}>{c.nome}</span>
                                         </div>
                                       ))}
                                     </>
