@@ -11010,9 +11010,10 @@ function LouçaV({ edit, t, users }) {
                                 <select
                                   value={u.celula || ""}
                                   onChange={async (e) => {
-                                    await setDoc(doc(db, "users", u.id), { celula: e.target.value }, { merge: true });
-                                    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, celula: e.target.value } : x));
+                                    const novacelula = e.target.value;
+                                    await setDoc(doc(db, "users", u.id), { celula: novacelula }, { merge: true });
                                     setExpandidos(prev => ({ ...prev, [u.id]: true }));
+                                    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, celula: novacelula } : x));
                                     t("Célula salva!");
                                   }}
                                   style={{ ...I, fontSize: 13 }}
