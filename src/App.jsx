@@ -3082,6 +3082,7 @@ export default function App() {
   const [quartoTab, setQuartoTab] = useState("M");
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
+  const [backExpandidos, setBackExpandidos] = useState({});
 
   // Inicializa quarto mães se não existir
   const inicializarQuartoMaes = async () => {
@@ -4373,6 +4374,8 @@ export default function App() {
             fns={fns}
             setFns={setFns}
             t={showT}
+            expandidos={backExpandidos}
+            setExpandidos={setBackExpandidos}
           />
         )}
       </div>
@@ -10872,7 +10875,7 @@ function LouçaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t }) {
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos }) {
     const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
