@@ -10930,6 +10930,7 @@ function LouçaV({ edit, t, users }) {
                         ["uniforme", "👕 Uniforme"],
                         ["info", "⚠️ Ocorrências"],
                         ["rest", "⛔ Restrições"],
+                        ["img", "📷 Uso de Imagem"],
                         ["checkin", "✓ Check-in"],
                         ["quartos", "🛏 Quartos"],
                         ["enc", "👥 Encontristas"],
