@@ -130,6 +130,8 @@ const PERFIS = {
   pastor: { l: "Pastor", c: "#bf5af2" },
   servo: { l: "Servo", c: "#636366" },
   staff: { l: "Staff", c: "#ff9f0a" },
+  lider_som: { l: "Líder Som", c: "#30d158" },
+  lider_teatro: { l: "Líder Teatro", c: "#ff375f" },
 };
 
 const canG = (p) =>
@@ -4679,6 +4681,10 @@ export default function App() {
                                 "Cozinha": "lider_cozinha",
                                 "Mídia": "lider_midia",
                                 "Cartas": "lider_cartas",
+                                "Presentes/Cartas": "lider_cartas",
+                                "Kit Cartas": "lider_cartas",
+                                "Som": "lider_som",
+                                "Itens Teatro/Dança": "lider_teatro",
                               };
                               const perfilLider = user.perfil === "lider_staff"
                                 ? "lider_staff"
@@ -10865,6 +10871,8 @@ function LouçaV({ edit, t, users }) {
       pastor: "Edição geral",
       servo: "Somente visualização",
       staff: "Operacional",
+      lider_som: "Líder Som",
+      lider_teatro: "Líder Teatro",
     };
 
     const toggleExpandido = (id) =>
