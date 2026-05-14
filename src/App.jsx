@@ -4679,7 +4679,7 @@ export default function App() {
                             <span style={{ color: G.td, fontWeight: 700, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>{dia}</span>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <Pill c={`${fns.length} função${fns.length > 1 ? 'ões' : ''}`} bg={`${dC[dia]}18`} tc={dC[dia]} />
+                            <Pill c={`${fns.length} funç${fns.length > 1 ? 'ões' : 'ão'}`} bg={`${dC[dia]}18`} tc={dC[dia]} />
                             <span style={{ color: G.tm, fontSize: 12, transition: "transform .2s", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
                           </div>
                         </div>
