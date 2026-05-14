@@ -3609,14 +3609,29 @@ export default function App() {
     scr === "app" &&
     ["servo", "lider_celula", "lider_midia"].includes(role)
   ) {
-    const SERVO_MENU = [
-      ...(temPermissao("mins") ? [["📅", "smins", "Agenda"]] : []),
-      ...(temPermissao("avisos") ? [["📢", "savs", "Avisos"]] : []),
-      ...(temPermissao("uniforme") ? [["👕", "suni", "Uniforme"]] : []),
-      ...(temPermissao("info") ? [["⚠️", "sinfo", "Ocorrências"]] : []),
-      ...(temPermissao("rest") ? [["⛔", "srest", "Restrições"]] : []),
-      ...(temPermissao("img") ? [["📷", "simg", "Uso de Imagem"]] : []),
-    ];
+
+    const MAPA_SERVO = {
+      "mins": ["📅", "smins", "Agenda"],
+      "avisos": ["📢", "savs", "Avisos"],
+      "uniforme": ["👕", "suni", "Uniforme"],
+      "info": ["⚠️", "sinfo", "Ocorrências"],
+      "rest": ["⛔", "srest", "Restrições"],
+      "img": ["📷", "simg", "Uso de Imagem"],
+      "saude": ["💊", "ssaude", "Saúde"],
+      "quartos": ["🛏", "squartos", "Quartos"],
+      "louça": ["🍽️", "slouça", "Louça"],
+      "checkin": ["✓", "scheckin", "Check-in"],
+      "onibus": ["🚌", "sonibus", "Ônibus"],
+      "enc": ["👥", "senc", "Encontristas"],
+    };
+
+    const SERVO_MENU = Object.entries(MAPA_SERVO)
+      .filter(([tela]) => {
+        if (tela === "rest") return role === "lider_celula";
+        if (tela === "img") return role === "lider_midia" || Object.values(user?.escala || {}).flat().includes("Mídia");
+        return temPermissao(tela);
+      })
+      .map(([, item]) => item);
 
     return (
       <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
@@ -3773,6 +3788,12 @@ export default function App() {
                 : pg === "sinfo" ? "Ocorrências"
                 : pg === "srest" ? "Restrições"
                 : pg === "simg" ? "Uso de Imagem"
+                : pg === "ssaude" ? "Saúde"
+                : pg === "squartos" ? "Quartos"
+                : pg === "slouça" ? "Louça"
+                : pg === "scheckin" ? "Check-in"
+                : pg === "sonibus" ? "Ônibus"
+                : pg === "senc" ? "Encontristas"
                 : "Atribuições"}
               </span>
             )}
@@ -4310,8 +4331,66 @@ export default function App() {
             ph="Nome do encontrista..."
           />
         )}
-        {pg === "saude" && (
-          <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
+        {pg === "ssaude" && (
+          <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
+        )}
+
+        {pg === "ssaude" && (
+          <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
+        )}
+        {pg === "squartos" && (
+          <QV
+            qh={qh}
+            qm={qm}
+            uQH={uQH}
+            uQM={uQM}
+            setQh={setQh}
+            setQm={setQm}
+            edit={false}
+            t={showT}
+            encH={encH}
+            encM={encM}
+            users={users}
+            salvarQuarto={salvarQuarto}
+            deletarQuarto={deletarQuarto}
+            tab={quartoTab}
+            setTab={setQuartoTab}
+            abertos={quartosAbertos}
+            setAbertos={setQuartosAbertos}
+          />
+        )}
+        {pg === "slouça" && (
+          <LouçaV edit={false} t={showT} users={users} />
+        )}
+        {pg === "scheckin" && (
+          <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} />
+        )}
+        {pg === "sonibus" && (
+          <OnV
+            on={on}
+            uOn={uOn}
+            setOn={setOn}
+            encH={encH}
+            encM={encM}
+            edit={false}
+            t={showT}
+            salvarOnibus={salvarOnibus}
+            deletarOnibus={deletarOnibus}
+          />
+        )}
+        {pg === "senc" && (
+          <EncV
+            encH={encH}
+            setEncH={setEncH}
+            encM={encM}
+            setEncM={setEncM}
+            qh={qh}
+            qm={qm}
+            setQh={setQh}
+            setQm={setQm}
+            edit={false}
+            t={showT}
+          />
         )}
         {pg === "louça" && (
           <LouçaV edit={canC(role)} t={showT} users={users} />
