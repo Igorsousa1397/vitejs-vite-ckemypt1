@@ -3619,10 +3619,11 @@ export default function App() {
       "img": ["📷", "simg", "Uso de Imagem"],
       "saude": ["💊", "ssaude", "Saúde"],
       "quartos": ["🛏", "squartos", "Quartos"],
-      "louça": ["🍽️", "slouça", "Louça"],
       "checkin": ["✓", "scheckin", "Check-in"],
       "onibus": ["🚌", "sonibus", "Ônibus"],
-      "enc": ["👥", "senc", "Encontristas"],
+      "termo": ["✎", "stermo", "Termo"],
+      "ach": ["🔎", "sach", "Achados & Perdidos"],
+      "crac": ["🪪", "scrac", "Crachás"], 
     };
 
     const SERVO_MENU = Object.entries(MAPA_SERVO)
