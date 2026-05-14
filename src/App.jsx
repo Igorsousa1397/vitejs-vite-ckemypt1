@@ -128,6 +128,7 @@ const PERFIS = {
   servo: { l: "Servo", c: "#636366" },
   lider_midia: { l: "Líder Mídia", c: "#ffd60a" },
   lider_celula: { l: "Líder de Célula", c: "#ff6b35" },
+  lider_cartas: { l: "Líder Cartas", c: "#ff2d55" },
 };
 
 const canG = (p) =>
@@ -8588,7 +8589,7 @@ function LouçaV({ edit, t, users }) {
 
     const lista = users.filter(
       (u) =>
-        u.perfil !== "admin" &&
+        (u.perfil === "servo" || u.perfil === "lider_staff") &&
         u.nome &&
         (filtro === "todos"
           ? true
@@ -8597,20 +8598,10 @@ function LouçaV({ edit, t, users }) {
             : !u.ativo) &&
         (filtroPerfil === "todos"
           ? true
-          : filtroPerfil === "lideres"
-            ? [
-                "lider_geral",
-                "lider_staff",
-                "lider_quartos",
-                "lider_cozinha",
-                "lider_templo",
-                "lider_midia",
-                "pastor",
-              ].includes(u.perfil)
-            : filtroPerfil === "servo"
-              ? u.perfil === "servo"
-              : u.perfil === "lider_celula") &&
-        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),  // ← aqui
+          : filtroPerfil === "servo"
+            ? u.perfil === "servo"
+            : u.perfil === "lider_staff") &&
+        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
     return (
@@ -8754,9 +8745,8 @@ function LouçaV({ edit, t, users }) {
           <Seg
             opts={[
               ["todos", "Todos"],
-              ["lideres", "Líderes"],
               ["servo", "Servos"],
-              ["lider_celula", "Células"],
+              ["staff", "Staff"],
             ]}
             val={filtroPerfil}
             set={setFiltroPerfil}
