@@ -3087,6 +3087,7 @@ export default function App() {
   const [backExpandidos, setBackExpandidos] = useState({});
   const [permissoes, setPermissoes] = useState({});
   const [backTab, setBackTab] = useState("grupos");
+  const [backGruposAbertos, setBackGruposAbertos] = useState({});
   const unsubPermRef = useRef(null);
 
   // Inicializa quarto mães se não existir
@@ -4360,6 +4361,8 @@ export default function App() {
             permissoes={permissoes}
             tab={backTab}
             setTab={setBackTab}
+            gruposAbertos={backGruposAbertos}
+            setGruposAbertos={setBackGruposAbertos}
           />
         )}
       </div>
@@ -10840,7 +10843,7 @@ function LouçaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab }) {
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos }) {
     // const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
@@ -10904,7 +10907,14 @@ function LouçaV({ edit, t, users }) {
               {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => {
                 const telasAtivas = permissoes[k]?.telas || [];
                 return (
-                  <Acc key={k} title={v.l} ax={v.c} right={<Pill c={`${telasAtivas.length} telas`} bg="#1e1e1e" tc={G.tm} />}>
+                  <Acc
+                    key={k}
+                    title={v.l}
+                    ax={v.c}
+                    right={<Pill c={`${telasAtivas.length} telas`} bg="#1e1e1e" tc={G.tm} />}
+                    open={!!gruposAbertos[k]}
+                    onToggle={() => setGruposAbertos(prev => ({ ...prev, [k]: !prev[k] }))}
+                  >
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {[
                         ["mins", "📅 Agenda"],
