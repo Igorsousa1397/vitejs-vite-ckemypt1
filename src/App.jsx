@@ -11063,6 +11063,8 @@ function LouçaV({ edit, t, users }) {
 function AddFuncaoDia({ dia, fns, onAdd }) {
   const [busca, setBusca] = useState('');
   const [aberto, setAberto] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const inputRef = useRef(null);
   const skipBlur = useRef(false);
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
   const cor = dC[dia];
@@ -11071,31 +11073,23 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
     f.toLowerCase().includes(busca.toLowerCase()) && busca.length > 0
   );
 
+  const abrirDropdown = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+    }
+    setAberto(true);
+  };
+
   const confirmar = (fn) => {
     onAdd(fn);
     setBusca('');
     setAberto(false);
   };
 
-  return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          value={busca}
-          onChange={e => { setBusca(e.target.value); setAberto(true); }}
-          onFocus={() => setAberto(true)}
-          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
-          onKeyDown={e => e.key === 'Enter' && busca.trim() && confirmar(busca.trim())}
-          placeholder={`+ Função na ${dia}...`}
-          style={{ ...I, flex: 1, fontSize: 11, padding: '7px 10px', borderColor: `${cor}44` }}
-        />
-        <button
-          onMouseDown={() => busca.trim() && confirmar(busca.trim())}
-          style={{ ...BG({ padding: '7px 12px', borderRadius: 9, fontSize: 12 }), background: cor }}
-        >+</button>
-      </div>
-      {aberto && filtrados.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999, background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10, marginTop: 4, maxHeight: 160, overflowY: 'auto' }}>
+  const dropdown = aberto && filtrados.length > 0
+    ? ReactDOM.createPortal(
+        <div style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999, background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10, maxHeight: 160, overflowY: 'auto' }}>
           {filtrados.map((fn, i) => (
             <div
               key={i}
@@ -11107,8 +11101,30 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
               {fn}
             </div>
           ))}
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          ref={inputRef}
+          value={busca}
+          onChange={e => { setBusca(e.target.value); abrirDropdown(); }}
+          onFocus={abrirDropdown}
+          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+          onKeyDown={e => e.key === 'Enter' && busca.trim() && confirmar(busca.trim())}
+          placeholder={`+ Função na ${dia}...`}
+          style={{ ...I, flex: 1, fontSize: 11, padding: '7px 10px', borderColor: `${cor}44` }}
+        />
+        <button
+          onMouseDown={() => busca.trim() && confirmar(busca.trim())}
+          style={{ ...BG({ padding: '7px 12px', borderRadius: 9, fontSize: 12 }), background: cor }}
+        >+</button>
+      </div>
+      {dropdown}
     </div>
   );
 }
