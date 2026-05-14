@@ -8742,7 +8742,7 @@ function LouçaV({ edit, t, users }) {
 
         {/* FILTRO DE PERFIL */}
         <div style={{ marginBottom: 10 }}>
-          <Seg
+          {/* <Seg
             opts={[
               ["todos", "Todos"],
               ["servo", "Servos"],
@@ -8750,7 +8750,7 @@ function LouçaV({ edit, t, users }) {
             ]}
             val={filtroPerfil}
             set={setFiltroPerfil}
-          />
+          /> */}
         </div>
 
         {/* FILTRO ATIVO/INATIVO */}
