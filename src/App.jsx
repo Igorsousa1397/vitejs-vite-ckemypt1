@@ -4402,6 +4402,10 @@ export default function App() {
           p: "Como confirmo meu pagamento e obtenho o QR Code?",
           r: "Após realizar o pagamento, acesse novamente o app, vá em Já se inscreveu?, informe seu CPF ou WhatsApp e seu QR Code será exibido automaticamente."
         },
+        {
+          p: "Me inscrevi mas ainda não paguei, o que fazer?",
+          r: "Sua inscrição está salva! Para confirmar sua vaga, acesse 'Já se inscreveu?' na tela inicial, informe seu CPF ou WhatsApp e siga as instruções para realizar o pagamento via PIX, boleto ou cartão de crédito. Sua vaga só é garantida após a confirmação do pagamento."
+        },
       ];
 
       return (
