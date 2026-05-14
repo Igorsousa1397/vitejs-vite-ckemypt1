@@ -8778,10 +8778,6 @@ function LouçaV({ edit, t, users }) {
         t("Email inválido", "w");
         return;
       }
-      if (!f.fn) {
-        t("Selecione uma equipe/função", "w");
-        return;
-      }
       setLoading(true);
       try {
         const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
@@ -9186,19 +9182,22 @@ function LouçaV({ edit, t, users }) {
                     : "#2a2a2a",
               }}
             />
-            <select
-              style={I}
-              value={f.perfil}
-              onChange={(e) => setF({ ...f, perfil: e.target.value })}
-            >
-              {Object.entries(PERFIS)
-                .filter(([k]) => k !== "admin")
-                .map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v.l}
-                  </option>
-                ))}
-            </select>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['servo', 'Servo'], ['lider_staff', 'Staff']].map(([k, v]) => (
+                <button
+                  key={k}
+                  onClick={() => setF({ ...f, perfil: k })}
+                  style={{
+                    ...BK({ flex: 1, padding: "10px", borderRadius: 12, fontSize: 14 }),
+                    borderColor: f.perfil === k ? "rgba(0,200,81,.5)" : "#2a2a2a",
+                    color: f.perfil === k ? G.green : G.td,
+                    background: f.perfil === k ? "rgba(0,200,81,.08)" : "transparent",
+                  }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
             <select
               style={{
                 ...I,
