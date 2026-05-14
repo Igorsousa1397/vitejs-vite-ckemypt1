@@ -8600,7 +8600,7 @@ function LouçaV({ edit, t, users }) {
           ? true
           : filtroPerfil === "servo"
             ? u.perfil === "servo"
-            : u.perfil === "lider_staff") &&
+            : u.perfil === "staff" || u.perfil === "lider_staff") &&
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
@@ -8939,7 +8939,7 @@ function LouçaV({ edit, t, users }) {
               }}
             />
             <div style={{ display: 'flex', gap: 8 }}>
-              {[['servo', 'Servo'], ['lider_staff', 'Staff']].map(([k, v]) => (
+              {[['servo', 'Servo'], ['staff', 'Staff']].map(([k, v]) => (
                 <button
                   key={k}
                   onClick={() => setF({ ...f, perfil: k })}
