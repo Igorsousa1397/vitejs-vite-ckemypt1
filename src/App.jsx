@@ -10877,8 +10877,10 @@ function LouçaV({ edit, t, users }) {
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
-    const expandidosRef = useRef({});
-    const [, forceUpdate] = useState(0);
+    const [expandidos, setExpandidos] = useState({}); // ← ADICIONA
+
+    const toggleExpandido = (id) =>
+      setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
 
     const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
     const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
