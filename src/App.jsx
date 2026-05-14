@@ -9198,22 +9198,7 @@ function LouçaV({ edit, t, users }) {
                 </button>
               ))}
             </div>
-            <select
-              style={{
-                ...I,
-                borderColor: !f.fn ? "rgba(255,59,48,.4)" : "#2a2a2a",
-              }}
-              value={f.fn}
-              onChange={(e) => setF({ ...f, fn: e.target.value })}
-            >
-              <option value="">⚠️ Equipe / Função *</option>
-              {fnsDasEquipes.map((fn) => (
-                <option key={fn} value={fn}>
-                  {fn}
-                </option>
-              ))}
-            </select>
-            <button
+           <button
               onClick={add}
               disabled={loading}
               style={BG({
@@ -9223,7 +9208,7 @@ function LouçaV({ edit, t, users }) {
                 marginTop: 4,
                 opacity: loading ? 0.7 : 1,
               })}
-            >
+              >
               {loading ? "Cadastrando..." : "Confirmar e Enviar Email"}
             </button>
           </div>
