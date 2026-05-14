@@ -8830,8 +8830,11 @@ function LouçaV({ edit, t, users }) {
                 {!u.ativo && (
                   <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
                 )}
-                {u.perfil === "servo" && u.pago && (
-                  <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />
+                {u.perfil === "servo" && (
+                  <Pill c={u.pago ? "Pago ✓" : "Pendente"} bg="rgba(99,99,102,.2)" tc="#fff" />
+                )}
+                {(u.perfil === "staff" || u.perfil === "lider_staff") && u.pago && (
+                  <Pill c="Pago ✓" bg="rgba(255,159,10,.15)" tc="#ff9f0a" />
                 )}
                 <Pill
                   c={PERFIS[u.perfil]?.l || u.perfil}
