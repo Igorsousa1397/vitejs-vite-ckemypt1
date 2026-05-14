@@ -4547,435 +4547,182 @@ export default function App() {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({
-    user,
-    mins,
-    avs,
-    setPg,
-    pago,
-    uni,
-    dataLimiteUni,
-    dataLimitePagamento,
-    esc,
-    users,
-  }) {
+  function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
-    const dC = {
-      Quinta: "#ff6b35",
-      Sexta: "#bf5af2",
-      Sábado: G.green,
-      Domingo: "#ff9f0a",
-    };
+    const [diasAbertos, setDiasAbertos] = useState({});
+
+    const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+    const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
+
     const prox = mins.find((m) => !m.sent);
     const meuPedido = uni.find((u) => u.userId === user.id);
+    const escala = user.escala || {};
 
-    // Monta slides
+    const toggleDia = (dia) => setDiasAbertos(prev => ({ ...prev, [dia]: !prev[dia] }));
+
     const slides = [];
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
-    if ((!meuPedido || meuPedido.status === "aberto") && dataLimiteUni)
-      slides.push({ tipo: "uniforme" });
+    if ((!meuPedido || meuPedido.status === "aberto") && dataLimiteUni) slides.push({ tipo: "uniforme" });
 
     useEffect(() => {
       if (slides.length <= 1) return;
-      const interval = setInterval(() => {
-        setSlide((s) => (s + 1) % slides.length);
-      }, 5000);
+      const interval = setInterval(() => setSlide((s) => (s + 1) % slides.length), 5000);
       return () => clearInterval(interval);
     }, [slides.length]);
 
     const slideAtual = slides[slide];
 
+    // Busca colegas que têm a mesma função no mesmo dia
+    const getColegasDia = (dia, fn) => {
+      return (users || []).filter(u =>
+        u.id !== user.id &&
+        u.ativo !== false &&
+        (u.escala?.[dia] || []).includes(fn)
+      );
+    };
+
+    const temEscala = DIAS.some(d => (escala[d] || []).length > 0);
+
     return (
       <div>
-        <div
-          style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}
-        >
+        <div style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-              Olá, {user.nome.split(" ")[0]}
-              <span style={{ color: G.green }}>.</span>
+              Olá, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
             </div>
-            <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
-              Encontro com Deus
-            </div>
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Encontro com Deus</div>
           </div>
 
           {/* 3 quick cards */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            {[
-              ["📢", "Avisos", "savs"],
-              ["👕", "Uniforme", "suni"],
-              ["⚠️", "Ocorrências", "sinfo"],
-            ].map(([ic, l, p]) => (
-              <div
-                key={p}
-                onClick={() => setPg(p)}
-                style={{
-                  background: "#111",
-                  border: "1px solid #1a1a1a",
-                  borderRadius: 14,
-                  padding: "14px 10px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                }}
-              >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+            {[["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]].map(([ic, l, p]) => (
+              <div key={p} onClick={() => setPg(p)} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 10px", textAlign: "center", cursor: "pointer" }}>
                 <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
-                <div
-                  style={{
-                    color: G.tm,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: 0.5,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {l}
-                </div>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{l}</div>
               </div>
             ))}
           </div>
 
           {/* SLIDE */}
           {slides.length > 0 && (
-            <div style={{ marginBottom: 14, position: "relative" }}>
-              {/* Dots */}
+            <div style={{ marginBottom: 14 }}>
               {slides.length > 1 && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: 5,
-                    marginBottom: 8,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 8 }}>
                   {slides.map((_, i) => (
-                    <div
-                      key={i}
-                      onClick={() => setSlide(i)}
-                      style={{
-                        width: i === slide ? 16 : 6,
-                        height: 6,
-                        borderRadius: 3,
-                        background: i === slide ? G.green : "#333",
-                        transition: "all .3s",
-                        cursor: "pointer",
-                      }}
-                    />
+                    <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#333", transition: "all .3s", cursor: "pointer" }} />
                   ))}
                 </div>
               )}
 
-              {/* Slide: próxima ministração */}
               {slideAtual?.tipo === "min" && (
-                <div
-                  style={{
-                    background: "rgba(10,132,255,.1)",
-                    border: "1px solid rgba(10,132,255,.2)",
-                    borderRadius: 14,
-                    padding: "13px 14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#64b5f6",
-                      fontWeight: 700,
-                      fontSize: 11,
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Próxima
-                  </div>
-                  <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-                    {prox.nome}
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>
-                    {prox.dia} · {prox.hora}
-                  </div>
+                <div style={{ background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.2)", borderRadius: 14, padding: "13px 14px" }}>
+                  <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Próxima</div>
+                  <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{prox.nome}</div>
+                  <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
                 </div>
               )}
 
               {slideAtual?.tipo === "pagamento" && (
-                <div style={{
-                  background: "rgba(255,59,48,.08)",
-                  border: "1px solid rgba(255,59,48,.25)",
-                  borderRadius: 14,
-                  padding: "13px 14px",
-                }}>
-                  <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                    ⚠️ Pagamento Pendente
-                  </div>
-                  <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>
-                    Valor: <strong style={{ color: "#fff" }}>R$ 220,00</strong>
-                  </div>
+                <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
+                  <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
+                  <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>R$ 220,00</strong></div>
                   <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>
-                    Prazo: <strong style={{ color: "#ff6b6b" }}>
-                      {new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}
-                    </strong>
+                    Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong>
                   </div>
-                  <button onClick={async () => {
-                    vibrar(50);
-                    try {
-                      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix' }),
-                      });
-                      const data = await res.json();
-                      if (data.init_point) window.location.href = data.init_point;
-                    } catch { alert('Erro ao gerar pagamento.'); }
-                  }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>
+                  <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>
                     PIX ou Boleto — R$ 220,00
                   </button>
-                  <button onClick={async () => {
-                    vibrar(50);
-                    try {
-                      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito' }),
-                      });
-                      const data = await res.json();
-                      if (data.init_point) window.location.href = data.init_point;
-                    } catch { alert('Erro ao gerar pagamento.'); }
-                  }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>
+                  <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>
                     Cartão de Crédito — R$ 231,00
                   </button>
                 </div>
               )}
 
-              {/* Slide: uniforme pendente */}
               {slideAtual?.tipo === "uniforme" && (
-                <div
-                  onClick={() => setPg("suni")}
-                  style={{
-                    background: "rgba(255,159,10,.08)",
-                    border: "1px solid rgba(255,159,10,.25)",
-                    borderRadius: 14,
-                    padding: "13px 14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#ff9f0a",
-                      fontWeight: 700,
-                      fontSize: 11,
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                      marginBottom: 4,
-                    }}
-                  >
-                    👕 Uniforme
-                  </div>
-                  <div style={{ color: G.t, fontSize: 16, fontWeight: 700 }}>
-                    {meuPedido?.status === "aberto"
-                      ? "Alteração aprovada — atualize seu pedido"
-                      : "Você ainda não fez seu pedido de uniforme"}
-                  </div>
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,.5)",
-                      fontSize: 12,
-                      marginTop: 4,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Prazo:{" "}
-                    <strong style={{ color: "#ff9f0a" }}>
-                      {new Date(dataLimiteUni + "T12:00:00").toLocaleDateString(
-                        "pt-BR",
-                      )}
-                    </strong>{" "}
-                    · Toque para acessar
+                <div onClick={() => setPg("suni")} style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                  <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Uniforme</div>
+                  <div style={{ color: G.t, fontSize: 16, fontWeight: 700 }}>{meuPedido?.status === "aberto" ? "Alteração aprovada — atualize seu pedido" : "Você ainda não fez seu pedido de uniforme"}</div>
+                  <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                    Prazo: <strong style={{ color: "#ff9f0a" }}>{new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}</strong> · Toque para acessar
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* seg control */}
-          <Seg
-            opts={[
-              ["mins", "Agenda"],
-              ["atr", "Atribuições"],
-            ]}
-            val={tab}
-            set={setTab}
-          />
+          <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"]]} val={tab} set={setTab} />
+
           <div style={{ marginTop: 12 }}>
-            {tab === "mins" &&
-              mins.map((m) => (
-                <div
-                  key={m.id}
-                  className="fu"
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${dC[m.dia]}`,
-                    borderRadius: 14,
-                    padding: "12px 14px",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-                    {m.nome}
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>
-                    {m.dia} · {m.hora}
-                  </div>
-                </div>
-              ))}
+            {tab === "mins" && mins.map((m) => (
+              <div key={m.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[m.dia]}`, borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
+                <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{m.nome}</div>
+                <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>{m.dia} · {m.hora}</div>
+              </div>
+            ))}
+
             {tab === "atr" && (
               <div>
-                {(user.funcoes || []).length > 0 ? (
-                  (user.funcoes || []).map((f, i) => {
-                    const normalizar = (str) =>
-                      (str || "")
-                        .normalize("NFD")
-                        .replace(/[\u0300-\u036f]/g, "")
-                        .toLowerCase()
-                        .trim();
-
-                    const perfilLider = (users || []).find(
-                      (u) =>
-                        [
-                          "lider_staff",
-                          "lider_templo",
-                          "lider_cozinha",
-                          "lider_quartos",
-                          "lider_midia",
-                        ].includes(u.perfil) && (u.funcoes || []).includes(f),
-                    );
-
-                    const nomesLideres = [
-                      perfilLider?.liderEncontro,
-                      perfilLider?.liderEncontro2,
-                    ].filter(Boolean);
-
-                    const colegas = (users || []).filter(
-                      (u) =>
-                        u.id !== user.id &&
-                        u.ativo !== false &&
-                        u.perfil === "servo" &&
-                        (u.funcoes || []).includes(f) &&
-                        !nomesLideres.includes(u.nome),
-                    );
+                {!temEscala ? (
+                  <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+                    Sem atribuições. Fale com o admin.
+                  </div>
+                ) : (
+                  DIAS.map(dia => {
+                    const fns = escala[dia] || [];
+                    if (fns.length === 0) return null;
+                    const aberto = diasAbertos[dia] !== false; // aberto por padrão
 
                     return (
-                      <div
-                        key={i}
-                        className="fu"
-                        style={{
-                          background: G.card,
-                          border: `1px solid ${G.cb}`,
-                          borderLeft: `3px solid ${G.green}`,
-                          borderRadius: 14,
-                          padding: "12px 14px",
-                          marginBottom: 8,
-                        }}
-                      >
+                      <div key={dia} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[dia]}`, borderRadius: 14, marginBottom: 8, overflow: "visible" }}>
+                        
+                        {/* Header do dia */}
                         <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                            marginBottom: 10,
-                          }}
+                          onClick={() => toggleDia(dia)}
+                          style={{ padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
                         >
-                          <span style={{ color: G.green }}>📋</span>
-                          <span
-                            style={{
-                              color: G.t,
-                              fontWeight: 700,
-                              fontSize: 16,
-                            }}
-                          >
-                            {f}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: dC[dia] }} />
+                            <span style={{ color: dC[dia], fontWeight: 700, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 }}>{dia}</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <Pill c={`${fns.length} função${fns.length > 1 ? 'ões' : ''}`} bg={`${dC[dia]}18`} tc={dC[dia]} />
+                            <span style={{ color: G.tm, fontSize: 12, transition: "transform .2s", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
+                          </div>
                         </div>
 
-                        {nomesLideres.length > 0 && (
-                          <>
-                            <div
-                              style={{
-                                color: G.tm,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                letterSpacing: 1,
-                                textTransform: "uppercase",
-                                marginBottom: 6,
-                              }}
-                            >
-                              Líder
-                            </div>
-                            {nomesLideres.map((l, j) => (
-                              <div key={j} style={{ marginBottom: 4 }}>
-                                <span
-                                  style={{
-                                    color: G.td,
-                                    fontSize: 13,
-                                    fontWeight: l === user.nome ? 700 : 400,
-                                  }}
-                                >
-                                  {l}
-                                  {l === user.nome ? " (você)" : ""}
-                                </span>
-                              </div>
-                            ))}
-                          </>
-                        )}
-
-                        {colegas.length > 0 && (
-                          <>
-                            <div
-                              style={{
-                                color: G.tm,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                letterSpacing: 1,
-                                textTransform: "uppercase",
-                                marginBottom: 6,
-                                marginTop: nomesLideres.length ? 8 : 0,
-                              }}
-                            >
-                              Equipe
-                            </div>
-                            {colegas.map((c, j) => (
-                              <div key={j} style={{ marginBottom: 4 }}>
-                                <span style={{ color: G.td, fontSize: 13 }}>
-                                  {c.nome}
-                                </span>
-                              </div>
-                            ))}
-                          </>
+                        {/* Funções do dia */}
+                        {aberto && (
+                          <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                            {fns.map((fn, i) => {
+                              const colegas = getColegasDia(dia, fn);
+                              return (
+                                <div key={i} style={{ background: "#111", borderRadius: 12, padding: "10px 12px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: colegas.length > 0 ? 8 : 0 }}>
+                                    <span style={{ color: dC[dia] }}>📋</span>
+                                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{fn}</span>
+                                  </div>
+                                  {colegas.length > 0 && (
+                                    <>
+                                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Equipe</div>
+                                      {colegas.map((c, j) => (
+                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: dC[dia] }} />
+                                          <span style={{ color: G.td, fontSize: 12 }}>{c.nome}</span>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     );
                   })
-                ) : (
-                  <div
-                    style={{
-                      color: G.tm,
-                      textAlign: "center",
-                      padding: 28,
-                      fontSize: 13,
-                    }}
-                  >
-                    Sem atribuições. Fale com o admin.
-                  </div>
                 )}
-                {/* Louça */}
                 <LoucaServoV userId={user.id} nome={user.nome} />
               </div>
             )}
@@ -4984,7 +4731,6 @@ export default function App() {
       </div>
     );
   }
-
   // ── HOME ─────────────────────────────────────────────────────────────────────
 function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users }) {
   const [tab, setTab] = useState("dash");
@@ -11131,7 +10877,11 @@ function LouçaV({ edit, t, users }) {
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
-    const [perfis, setPerfis] = useState(PERFIS);
+    const [expandidos, setExpandidos] = useState({});
+
+    const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
+    const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+
     const pD = {
       admin: "Acesso total",
       lider_geral: "Tudo exceto Back Office",
@@ -11142,388 +10892,220 @@ function LouçaV({ edit, t, users }) {
       servo: "Somente visualização",
       lider_midia: "Líder Mídia",
     };
+
+    const toggleExpandido = (id) =>
+      setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
+
+    const getEscala = (u) => u.escala || { Quinta: [], Sexta: [], Sábado: [], Domingo: [] };
+
+    const addFuncaoDia = async (u, dia, fn) => {
+      if (!fn.trim()) return;
+      const escala = getEscala(u);
+      const novas = [...(escala[dia] || []), fn.trim()];
+      const novaEscala = { ...escala, [dia]: novas };
+      await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
+      setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
+      t("✓");
+    };
+
+    const removeFuncaoDia = async (u, dia, i) => {
+      const escala = getEscala(u);
+      const novas = (escala[dia] || []).filter((_, j) => j !== i);
+      const novaEscala = { ...escala, [dia]: novas };
+      await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
+      setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
+    };
+
+    const totalFuncoes = (u) => {
+      const escala = getEscala(u);
+      return DIAS.reduce((a, d) => a + (escala[d]?.length || 0), 0);
+    };
+
     return (
       <div>
-        <Seg
-          opts={[
-            ["grupos", "Grupos"],
-            ["usuarios", "Usuários"],
-          ]}
-          val={tab}
-          set={setTab}
-        />
+        <Seg opts={[["grupos", "Grupos"], ["usuarios", "Usuários"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
+
           {tab === "grupos" && (
             <>
               <button
                 onClick={() => setShGrp(!shGrp)}
-                style={
-                  shGrp
-                    ? BK({
-                        width: "100%",
-                        padding: 12,
-                        marginBottom: 12,
-                        borderRadius: 13,
-                      })
-                    : BG({
-                        width: "100%",
-                        padding: 12,
-                        marginBottom: 12,
-                        borderRadius: 13,
-                      })
-                }
+                style={shGrp ? BK({ width: "100%", padding: 12, marginBottom: 12, borderRadius: 13 }) : BG({ width: "100%", padding: 12, marginBottom: 12, borderRadius: 13 })}
               >
                 {shGrp ? "✕ Cancelar" : "＋ Criar Grupo de Acesso"}
               </button>
               {shGrp && (
-                <div
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderRadius: 14,
-                    padding: 16,
-                    marginBottom: 14,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  <input
-                    style={I}
-                    placeholder="Nome do grupo (ex: Líder Louça) *"
-                    value={grpForm.label}
-                    onChange={(e) =>
-                      setGrpForm({ ...grpForm, label: e.target.value })
-                    }
-                  />
-                  <div
-                    style={{ display: "flex", gap: 10, alignItems: "center" }}
-                  >
-                    <span style={{ color: G.tm, fontSize: 13 }}>
-                      Cor do grupo
-                    </span>
-                    <input
-                      type="color"
-                      value={grpForm.cor}
-                      onChange={(e) =>
-                        setGrpForm({ ...grpForm, cor: e.target.value })
-                      }
-                      style={{
-                        ...I,
-                        width: 60,
-                        padding: 4,
-                        borderRadius: 8,
-                        cursor: "pointer",
-                      }}
-                    />
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: grpForm.cor,
-                      }}
-                    />
+                <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <input style={I} placeholder="Nome do grupo *" value={grpForm.label} onChange={(e) => setGrpForm({ ...grpForm, label: e.target.value })} />
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <span style={{ color: G.tm, fontSize: 13 }}>Cor</span>
+                    <input type="color" value={grpForm.cor} onChange={(e) => setGrpForm({ ...grpForm, cor: e.target.value })} style={{ ...I, width: 60, padding: 4, borderRadius: 8, cursor: "pointer" }} />
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: grpForm.cor }} />
                   </div>
-                  <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5 }}>
-                    As permissões do novo grupo serão configuradas pelo
-                    desenvolvedor. Use para organização visual por enquanto.
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (!grpForm.label.trim()) return;
-                      const key = grpForm.label
-                        .toLowerCase()
-                        .replace(/\s+/g, "_")
-                        .replace(/[^a-z_]/g, "");
-                      t(
-                        `Grupo "${grpForm.label}" criado! Informe ao dev para configurar permissões.`,
-                      );
-                      setGrpForm({ label: "", cor: "#00c851" });
-                      setShGrp(false);
-                    }}
-                    style={BG({ padding: 12, borderRadius: 12 })}
-                  >
-                    Criar Grupo
-                  </button>
+                  <button onClick={() => { if (!grpForm.label.trim()) return; t(`Grupo "${grpForm.label}" criado!`); setGrpForm({ label: "", cor: "#00c851" }); setShGrp(false); }} style={BG({ padding: 12, borderRadius: 12 })}>Criar Grupo</button>
                 </div>
               )}
               {Object.entries(PERFIS).map(([k, v]) => (
-                <div
-                  key={k}
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${v.c}`,
-                    borderRadius: 14,
-                    padding: "12px 14px",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 3,
-                    }}
-                  >
-                    <span style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>
-                      {v.l}
-                    </span>
-                    <Pill
-                      c={`${users.filter((u) => u.perfil === k).length} usuários`}
-                      bg="#1e1e1e"
-                      tc={G.tm}
-                    />
+                <div key={k} style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${v.c}`, borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                    <span style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{v.l}</span>
+                    <Pill c={`${users.filter((u) => u.perfil === k).length} usuários`} bg="#1e1e1e" tc={G.tm} />
                   </div>
-                  <div style={{ color: G.tm, fontSize: 12 }}>
-                    {pD[k] || "Permissões customizadas"}
-                  </div>
+                  <div style={{ color: G.tm, fontSize: 12 }}>{pD[k] || "Permissões customizadas"}</div>
                 </div>
               ))}
             </>
           )}
+
           {tab === "usuarios" && (
             <>
-              <input
-                value={buscaUser}
-                onChange={(e) => setBuscaUser(e.target.value)}
-                placeholder="🔍 Buscar usuário..."
-                style={{ ...I, marginBottom: 12 }}
-              />
+              <input value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} placeholder="🔍 Buscar usuário..." style={{ ...I, marginBottom: 12 }} />
               {users
-                .filter(
-                  (u) =>
-                    (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
-                    u.perfil !== "lider_celula" &&
-                    u.perfil !== "lider_geral" &&
-                    u.perfil !== "admin" &&
-                    u.nome,
+                .filter(u =>
+                  (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
+                  u.perfil !== "lider_celula" &&
+                  u.perfil !== "lider_geral" &&
+                  u.perfil !== "admin" &&
+                  u.nome
                 )
-                .map((u, i) => (
-                  <div
-                    key={i}
-                    className="fu"
-                    style={{
-                      background: G.card,
-                      border: `1px solid ${G.cb}`,
-                      borderLeft: `3px solid ${PERFIS[u.perfil]?.c || G.green}`,
-                      borderRadius: 13,
-                      padding: "12px 14px",
-                      marginBottom: 7,
-                      overflow: "visible",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{ color: G.t, fontWeight: 700, fontSize: 13 }}
-                        >
-                          {u.nome}
-                        </div>
-                        <div
-                          style={{
-                            color: G.tm,
-                            fontSize: 11,
-                            marginTop: 2,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          ●●●●●●
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        <select
-                          value={u.perfil}
-                          onChange={async (e) => {
-                            await setDoc(
-                              doc(db, "users", u.id),
-                              { perfil: e.target.value },
-                              { merge: true },
-                            );
-                            setUsers(
-                              users.map((x) =>
-                                x.id === u.id
-                                  ? { ...x, perfil: e.target.value }
-                                  : x,
-                              ),
-                            );
-                            t("Perfil atualizado!");
-                          }}
-                          style={{
-                            ...I,
-                            width: "auto",
-                            padding: "6px 9px",
-                            fontSize: 11,
-                            borderRadius: 9,
-                          }}
-                        >
-                          {Object.entries(PERFIS).map(([k, v]) => (
-                            <option key={k} value={k}>
-                              {v.l}
-                            </option>
-                          ))}
-                        </select>
-                        {u.perfil === "servo" && (
-                          <span
-                            onClick={() => {
-                              setUsers(users.filter((x) => x.id !== u.id));
-                              t("Removido.");
-                            }}
-                            style={{
-                              color: "rgba(255,59,48,.4)",
-                              cursor: "pointer",
-                              fontSize: 16,
-                            }}
-                          >
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                .map((u, i) => {
+                  const aberto = !!expandidos[u.id];
+                  const escala = getEscala(u);
+                  const total = totalFuncoes(u);
 
-                    {(u.funcoes || []).length > 0 && (
+                  return (
+                    <div key={i} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${PERFIS[u.perfil]?.c || G.green}`, borderRadius: 13, marginBottom: 7, overflow: "visible" }}>
+                      
+                      {/* Header */}
                       <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: 6,
-                          marginTop: 10,
-                        }}
+                        onClick={() => toggleExpandido(u.id)}
+                        style={{ padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
                       >
-                        {(u.funcoes || []).map((fn, j) => (
-                          <span
-                            key={j}
-                            onClick={async () => {
-                              const novas = u.funcoes.filter((_, k) => k !== j);
-                              await setDoc(
-                                doc(db, "users", u.id),
-                                { funcoes: novas },
-                                { merge: true },
-                              );
-                              setUsers(
-                                users.map((x) =>
-                                  x.id === u.id ? { ...x, funcoes: novas } : x,
-                                ),
-                              );
-                              t("Função removida.");
+                        <div>
+                          <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{u.nome}</div>
+                          <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
+                            {PERFIS[u.perfil]?.l || u.perfil}
+                            {total > 0 && <span style={{ color: G.green, marginLeft: 6 }}>· {total} função{total > 1 ? 'ões' : ''}</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <select
+                            value={u.perfil}
+                            onClick={e => e.stopPropagation()}
+                            onChange={async (e) => {
+                              e.stopPropagation();
+                              await setDoc(doc(db, "users", u.id), { perfil: e.target.value }, { merge: true });
+                              setUsers(users.map(x => x.id === u.id ? { ...x, perfil: e.target.value } : x));
+                              t("Perfil atualizado!");
                             }}
-                            style={{
-                              background: "#1e1e1e",
-                              border: "1px solid #2a2a2a",
-                              borderRadius: 50,
-                              padding: "4px 10px",
-                              color: G.td,
-                              fontSize: 11,
-                              cursor: "pointer",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 5,
-                            }}
+                            style={{ ...I, width: "auto", padding: "6px 9px", fontSize: 11, borderRadius: 9 }}
                           >
-                            {fn}{" "}
-                            <span
-                              style={{
-                                color: "rgba(255,59,48,.6)",
-                                fontWeight: 800,
-                              }}
-                            >
-                              ×
-                            </span>
-                          </span>
-                        ))}
+                            {Object.entries(PERFIS).map(([k, v]) => (
+                              <option key={k} value={k}>{v.l}</option>
+                            ))}
+                          </select>
+                          <span style={{ color: G.tm, fontSize: 12, transition: "transform .2s", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
+                        </div>
                       </div>
-                    )}
-                    <AddFuncao
-                      u={u}
-                      fns={fns}
-                      users={users}
-                      setUsers={setUsers}
-                      t={t}
-                    />
-                  </div>
-                ))}
-            </>
-          )}
-          {tab === "funcoes" && (
-            <>
-              <AddIn
-                ph="Nova função..."
-                onAdd={(n) => {
-                  if (!fns.includes(n.trim())) {
-                    setFns([...fns, n.trim()]);
-                    t("Função criada!");
-                  } else t("Já existe", "w");
-                }}
-                mt={0}
-              />
-              <div style={{ height: 10 }} />
-              {fns.map((fn, i) => (
-                <div
-                  key={i}
-                  className="fu"
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${G.green}`,
-                    borderRadius: 13,
-                    padding: "12px 14px",
-                    marginBottom: 7,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
-                    📋 {fn}
-                  </span>
-                  <span
-                    onClick={() => {
-                      setFns(fns.filter((_, j) => j !== i));
-                      t("Removido.");
-                    }}
-                    style={{
-                      color: "rgba(255,59,48,.4)",
-                      cursor: "pointer",
-                      fontSize: 13,
-                    }}
-                  >
-                    🗑
-                  </span>
-                </div>
-              ))}
-              <div
-                style={{
-                  background: "rgba(0,200,81,.08)",
-                  border: "1px solid rgba(0,200,81,.15)",
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  marginTop: 10,
-                  color: G.tm,
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                }}
-              >
-                Funções criadas aqui aparecem no dropdown ao adicionar servo.
-              </div>
+
+                      {/* Expandido */}
+                      {aberto && (
+                        <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px" }}>
+                          {u.email && <div style={{ color: G.tm, fontSize: 12, marginBottom: 12 }}>✉️ {u.email}</div>}
+
+                          {/* Escala por dia */}
+                          {DIAS.map(dia => (
+                            <div key={dia} style={{ marginBottom: 12 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: dC[dia] }} />
+                                <span style={{ color: dC[dia], fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{dia}</span>
+                              </div>
+                              
+                              {/* Funções do dia */}
+                              {(escala[dia] || []).length > 0 && (
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                                  {(escala[dia] || []).map((fn, j) => (
+                                    <span
+                                      key={j}
+                                      onClick={() => removeFuncaoDia(u, dia, j)}
+                                      style={{ background: `${dC[dia]}18`, border: `1px solid ${dC[dia]}44`, borderRadius: 50, padding: "4px 10px", color: dC[dia], fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}
+                                    >
+                                      {fn} <span style={{ color: "rgba(255,59,48,.6)", fontWeight: 800 }}>×</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Input adicionar função */}
+                              <AddFuncaoDia
+                                dia={dia}
+                                fns={fns}
+                                onAdd={(fn) => addFuncaoDia(u, dia, fn)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </>
           )}
         </div>
       </div>
     );
   }
+
+function AddFuncaoDia({ dia, fns, onAdd }) {
+  const [busca, setBusca] = useState('');
+  const [aberto, setAberto] = useState(false);
+  const skipBlur = useRef(false);
+  const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+  const cor = dC[dia];
+
+  const filtrados = fns.filter(f =>
+    f.toLowerCase().includes(busca.toLowerCase()) && busca.length > 0
+  );
+
+  const confirmar = (fn) => {
+    onAdd(fn);
+    setBusca('');
+    setAberto(false);
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={busca}
+          onChange={e => { setBusca(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
+          onKeyDown={e => e.key === 'Enter' && busca.trim() && confirmar(busca.trim())}
+          placeholder={`+ Função na ${dia}...`}
+          style={{ ...I, flex: 1, fontSize: 11, padding: '7px 10px', borderColor: `${cor}44` }}
+        />
+        <button
+          onMouseDown={() => busca.trim() && confirmar(busca.trim())}
+          style={{ ...BG({ padding: '7px 12px', borderRadius: 9, fontSize: 12 }), background: cor }}
+        >+</button>
+      </div>
+      {aberto && filtrados.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999, background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 10, marginTop: 4, maxHeight: 160, overflowY: 'auto' }}>
+          {filtrados.map((fn, i) => (
+            <div
+              key={i}
+              onMouseDown={() => { skipBlur.current = true; confirmar(fn); }}
+              style={{ padding: '9px 12px', color: G.td, fontSize: 12, cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {fn}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 }
