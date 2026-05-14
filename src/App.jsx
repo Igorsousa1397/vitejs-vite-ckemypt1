@@ -3085,6 +3085,8 @@ export default function App() {
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
+  const [permissoes, setPermissoes] = useState({});
+  const unsubPermRef = useRef(null);
 
   // Inicializa quarto mães se não existir
   const inicializarQuartoMaes = async () => {
@@ -3249,6 +3251,12 @@ export default function App() {
             setSau(s.docs.map((d) => ({ id: d.id, ...d.data() })));
           });
 
+          unsubPermRef.current = onSnapshot(collection(db, "permissoes"), (s) => {
+            const p = {};
+            s.docs.forEach(d => { p[d.id] = d.data(); });
+            setPermissoes(p);
+          });
+
           if (Notification.permission !== "denied") {
             iniciarNotificacoes(firebaseUser.uid).then((token) => {
               if (token) setNotif(true);
@@ -3268,6 +3276,7 @@ export default function App() {
         unsubUsersRef.current?.();
         unsubEscRef.current?.();
         unsubSauRef.current?.();
+        unsubPermRef.current?.();
         setScr("welcome");
       }
       setSp(false);
@@ -3294,6 +3303,13 @@ export default function App() {
       { dataLimite: data },
       { merge: true },
     );
+  };
+
+  const temPermissao = (tela) => {
+    if (role === "admin") return true;
+    const p = permissoes[role];
+    if (!p) return false;
+    return (p.telas || []).includes(tela);
   };
 
   const showT = (m, tp = "s") => {
@@ -3562,61 +3578,23 @@ export default function App() {
   // menu drawer
   const MENU_ITEMS = [
     ["🏠", "home"],
-    ...([
-      "admin",
-      "lider_geral",
-      "pastor",
-      "lider_staff",
-      "lider_quartos",
-    ].includes(role)
-      ? [["👤", "servos"]]
-      : []),
-    ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
-      ? [["👥", "enc"]]
-      : []),
-    ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
-      ? [["✓", "checkin"]]
-      : []),
-    ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
-      ? [["✎", "termo"]]
-      : []),
-    ...([
-      "admin",
-      "lider_geral",
-      "pastor",
-      "lider_staff",
-      "lider_quartos",
-    ].includes(role)
-      ? [["🛏", "quartos"]]
-      : []),
-    ["🚌", "onibus"],
+    ...(temPermissao("servos") ? [["👤", "servos"]] : []),
+    ...(temPermissao("enc") ? [["👥", "enc"]] : []),
+    ...(temPermissao("checkin") ? [["✓", "checkin"]] : []),
+    ...(temPermissao("termo") ? [["✎", "termo"]] : []),
+    ...(temPermissao("quartos") ? [["🛏", "quartos"]] : []),
+    ...(temPermissao("onibus") ? [["🚌", "onibus"]] : []),
     ["📅", "mins"],
-    ["⛔", "rest"],
-    ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
-      ? [["📷", "img"]]
-      : []),
+    ...(temPermissao("rest") ? [["⛔", "rest"]] : []),
+    ...(temPermissao("img") ? [["📷", "img"]] : []),
     ["⚠️", "info"],
     ["🔎", "ach"],
     ["🪪", "crac"],
     ["💊", "saude"],
-    ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
-      ? [["👕", "uniformes"]]
-      : []),
-    ...([
-      "admin",
-      "lider_geral",
-      "pastor",
-      "lider_staff",
-      "lider_cozinha",
-    ].includes(role)
-      ? [["🍽️", "louça"]]
-      : []),
-    ...(["admin", "lider_geral", "pastor", "lider_staff"].includes(role)
-      ? [["📋", "equipes"]]
-      : []),
-    ...(["admin", "lider_templo", "pastor"].includes(role)
-      ? [["🙌", "test"]]
-      : []),
+    ...(temPermissao("uniformes") ? [["👕", "uniformes"]] : []),
+    ...(temPermissao("louça") ? [["🍽️", "louça"]] : []),
+    ...(temPermissao("equipes") ? [["📋", "equipes"]] : []),
+    ...(temPermissao("test") ? [["🙌", "test"]] : []),
     ...(isAdm ? [["⚙️", "back"]] : []),
   ];
 
@@ -4378,6 +4356,7 @@ export default function App() {
             t={showT}
             expandidos={backExpandidos}
             setExpandidos={setBackExpandidos}
+            permissoes={permissoes}
           />
         )}
       </div>
@@ -10858,7 +10837,7 @@ function LouçaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos }) {
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes }) {
     const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [shGrp, setShGrp] = useState(false);
@@ -10917,36 +10896,25 @@ function LouçaV({ edit, t, users }) {
         <Seg opts={[["grupos", "Grupos"], ["usuarios", "Usuários"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
 
-          {tab === "grupos" && (
-            <>
-              <button
-                onClick={() => setShGrp(!shGrp)}
-                style={shGrp ? BK({ width: "100%", padding: 12, marginBottom: 12, borderRadius: 13 }) : BG({ width: "100%", padding: 12, marginBottom: 12, borderRadius: 13 })}
-              >
-                {shGrp ? "✕ Cancelar" : "＋ Criar Grupo de Acesso"}
-              </button>
-              {shGrp && (
-                <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <input style={I} placeholder="Nome do grupo *" value={grpForm.label} onChange={(e) => setGrpForm({ ...grpForm, label: e.target.value })} />
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <span style={{ color: G.tm, fontSize: 13 }}>Cor</span>
-                    <input type="color" value={grpForm.cor} onChange={(e) => setGrpForm({ ...grpForm, cor: e.target.value })} style={{ ...I, width: 60, padding: 4, borderRadius: 8, cursor: "pointer" }} />
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: grpForm.cor }} />
-                  </div>
-                  <button onClick={() => { if (!grpForm.label.trim()) return; t(`Grupo "${grpForm.label}" criado!`); setGrpForm({ label: "", cor: "#00c851" }); setShGrp(false); }} style={BG({ padding: 12, borderRadius: 12 })}>Criar Grupo</button>
-                </div>
-              )}
-              {Object.entries(PERFIS).map(([k, v]) => (
-                <div key={k} style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${v.c}`, borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                    <span style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{v.l}</span>
-                    <Pill c={`${users.filter((u) => u.perfil === k).length} usuários`} bg="#1e1e1e" tc={G.tm} />
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 12 }}>{pD[k] || "Permissões customizadas"}</div>
-                </div>
-              ))}
-            </>
-          )}
+          {Object.entries(PERFIS).map(([k, v]) => (
+            <div
+              key={k}
+              style={{
+                background: G.card,
+                border: `1px solid ${G.cb}`,
+                borderLeft: `3px solid ${v.c}`,
+                borderRadius: 14,
+                padding: "12px 14px",
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <span style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{v.l}</span>
+                <Pill c={`${users.filter((u) => u.perfil === k).length} usuários`} bg="#1e1e1e" tc={G.tm} />
+              </div>
+              <div style={{ color: G.tm, fontSize: 12 }}>{pD[k] || "Permissões customizadas"}</div>
+            </div>
+          ))}
 
           {tab === "usuarios" && (
             <>
