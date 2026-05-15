@@ -10372,7 +10372,7 @@ function CozinhaV({ edit, t, users }) {
               ? "Aguardando aprovacao"
               : u.status === "aberto"
                 ? "Liberado para editar"
-                : "Confirmado";
+                : "Pedido realizado";
           return (
             <Acc
               key={i}
@@ -10381,8 +10381,8 @@ function CozinhaV({ edit, t, users }) {
               right={
                 <Pill
                   c={statusLabel}
-                  bg={`${statusColor}18`}
-                  tc={statusColor}
+                  bg="rgba(99,99,102,.15)"
+                  tc="#636366"
                 />
               }
             >
