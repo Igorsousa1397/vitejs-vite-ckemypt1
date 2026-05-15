@@ -8917,6 +8917,9 @@ function CozinhaV({ edit, t, users }) {
               : (PERFIS[u.perfil]?.c || G.green)}
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {u.primeiro && (
+                  <Pill c="1º acesso" bg="rgba(255,159,10,.15)" tc="#ff9f0a" />
+                )}
                 {!u.ativo && (
                   <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
                 )}
