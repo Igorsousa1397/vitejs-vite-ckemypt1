@@ -121,7 +121,6 @@ const PERFIS = {
   admin: { l: "Admin", c: "#00c851" },
   lider_cartas: { l: "Líder Cartas", c: "#ff2d55" },
   lider_celula: { l: "Líder de Célula", c: "#ff6b35" },
-  lider_cozinha: { l: "Líder Cozinha", c: "#ff2d55" },
   lider_geral: { l: "Líder Geral", c: "#0a84ff" },
   lider_midia: { l: "Líder Mídia", c: "#ffd60a" },
   lider_quartos: { l: "Líder Quartos", c: "#ff6b35" },
@@ -131,13 +130,13 @@ const PERFIS = {
   servo: { l: "Servo", c: "#636366" },
   staff: { l: "Staff", c: "#ff9f0a" },
   lider_som: { l: "Líder Som", c: "#30d158" },
-  lider_teatro: { l: "Líder Teatro", c: "#ff375f" },
+  lider_danca: { l: "Líder Dança", c: "#ff375f" },
 };
 
 const canG = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff"].includes(p);
 const canQ = (p) => ["admin", "lider_quartos"].includes(p);
-const canC = (p) => ["admin", "lider_cozinha"].includes(p);
+const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
 const canM = (p) => ["admin", "lider_geral", "lider_midia"].includes(p);
 
@@ -435,26 +434,11 @@ function Sheet({ open, onClose, title, children }) {
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
 const FUNCOES_INIT = [
-  "Som",
-  "Banheiro",
-  "Cozinha",
-  "Intercessão",
-  "Templo",
-  "Malas",
-  "Crachá",
-  "Refeitório",
-  "Cantina",
-  "Cozinha",
-  "Panelas",
-  "Mídia",
-  "Kit Sobrevivência",
-  "Etiquetar Sacolas",
-  "Dobrar Sacolas",
-  "Presentes/Cartas",
-  "Camisetas",
-  "Kit Cartas",
-  "Organizar itens do Templo",
-  "Itens Teatro/Dança",
+  "Som", "Banheiro", "Cozinha", "Intercessão", "Templo", "Malas", "Check-in",
+  "Refeitório", "Cantina", "Panelas", "Mídia", "Kit Sobrevivência",
+  "Etiquetar Sacolas", "Dobrar Sacolas", "Presentes/Cartas", "Camisetas",
+  "Kit Cartas+Pecado", "Organizar itens do Templo", "Itens Teatro/Dança",
+  "Servir comida", "Limpeza refeitório",
 ];
 
 const QH_INIT = [];
@@ -4812,19 +4796,27 @@ export default function App() {
                             {fns.map((fn, i) => {
                               const LIDER_MAP = {
                                 "Templo": "lider_templo",
-                                "Cozinha": "lider_cozinha",
-                                "Refeitório": "lider_cozinha",
-                                "Cozinha": "lider_cozinha",
-                                "Panelas": "lider_cozinha",
+                                "Cozinha": "lider_geral",
+                                "Refeitório": "lider_geral",
+                                "Louça": "lider_geral",
+                                "Panelas": "lider_geral",
                                 "Mídia": "lider_midia",
                                 "Presentes/Cartas": "lider_cartas",
-                                "Kit Cartas": "lider_cartas",
+                                "Kit Cartas+Pecado": "lider_cartas",
                                 "Som": "lider_som",
-                                "Itens Teatro/Dança": "lider_teatro",
+                                "Itens Teatro/Dança": "lider_danca",
                                 "Organizar itens do Templo": "lider_geral",
                                 "Intercessão": "lider_geral",
-                                "Crachá": "lider_geral",
+                                "Check-in": "lider_geral",
                                 "Cantina": "lider_geral",
+                                "Malas": "lider_geral",
+                                "Banheiro": "lider_staff",
+                                "Camisetas": "lider_staff",
+                                "Servir comida": "lider_staff",
+                                "Limpeza refeitório": "lider_staff",
+                                "Kit Sobrevivência": "lider_staff",
+                                "Etiquetar Sacolas": "lider_staff",
+                                "Dobrar Sacolas": "lider_staff",
                               };
                               const perfilLider = user.perfil === "lider_staff"
                                 ? "lider_staff"
@@ -10986,7 +10978,6 @@ function CozinhaV({ edit, t, users }) {
       admin: "Acesso total",
       lider_cartas: "Permissões customizadas",
       lider_celula: "Permissões customizadas",
-      lider_cozinha: "Edição da cozinha",
       lider_geral: "Tudo exceto Back Office",
       lider_midia: "Líder Mídia",
       lider_quartos: "Edição de quartos",
@@ -10996,7 +10987,7 @@ function CozinhaV({ edit, t, users }) {
       servo: "Somente visualização",
       staff: "Operacional",
       lider_som: "Líder Som",
-      lider_teatro: "Líder Teatro",
+      lider_danca: "Líder Dança",
     };
 
     const toggleExpandido = (id) =>
