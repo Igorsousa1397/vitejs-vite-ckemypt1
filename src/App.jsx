@@ -4643,13 +4643,15 @@ export default function App() {
 
     const toggleDia = (dia) => setDiasAbertos(prev => ({ ...prev, [dia]: !prev[dia] }));
 
-    const meuUniPago = meuPedido && (meuPedido.pagoSinal || meuPedido.pagoIntegral);
+    const meuUniPagoSinal = meuPedido?.pagoSinal === true;
+    const meuUniPagoIntegral = meuPedido?.pagoIntegral === true;
 
     const slides = [];
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
     if ((!meuPedido || meuPedido.status === "aberto") && dataLimiteUni) slides.push({ tipo: "uniforme" });
-    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPago && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
+    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
+    if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
 
     useEffect(() => {
       if (slides.length <= 1) return;
@@ -4741,6 +4743,28 @@ export default function App() {
                           Prazo: <strong style={{ color: "#ff6b6b" }}>
                             {new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}
                           </strong> · Toque para pagar
+                        </div>
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "uniforme_sinal_pago" && (
+                      <div
+                        onClick={() => setPg("suni")}
+                        style={{
+                          background: "rgba(255,159,10,.08)",
+                          border: "1px solid rgba(255,159,10,.25)",
+                          borderRadius: 14,
+                          padding: "13px 14px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                          👕 Uniforme — Sinal Pago ✓
+                        </div>
+                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
+                          Falta pagar o restante (50%)
+                        </div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                          Sinal confirmado · Toque para pagar o restante
                         </div>
                       </div>
                     )}
