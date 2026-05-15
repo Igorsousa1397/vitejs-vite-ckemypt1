@@ -9888,22 +9888,21 @@ function CozinhaV({ edit, t, users }) {
                       {saving ? "Salvando..." : "Salvar Alteracao"}
                     </button>
                   )}
-                  {meuPedido && (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && (
-                      <button
-                        onClick={solicitarAlteracao}
-                        style={{
-                          ...BK({
-                            width: "100%",
-                            padding: 14,
-                            borderRadius: 14,
-                          }),
-                          borderColor: "rgba(255,159,10,.4)",
-                          color: "#ff9f0a",
-                        }}
-                      >
-                        Solicitar Alteracao
-                      </button>
-                    )}
+                 {meuPedido && (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && (
+                  <button
+                    onClick={solicitarAlteracao}
+                    disabled={!prazoOk}
+                    style={{
+                      ...BK({ width: "100%", padding: 14, borderRadius: 14 }),
+                      borderColor: prazoOk ? "rgba(255,159,10,.4)" : "#2a2a2a",
+                      color: prazoOk ? "#ff9f0a" : G.tm,
+                      opacity: prazoOk ? 1 : 0.5,
+                      cursor: prazoOk ? "pointer" : "default",
+                    }}
+                  >
+                    Solicitar Alteracao
+                  </button>
+                )}
 
                   {/* Pagamento MP */}
                   {meuPedido && !meuPedido.naoQuerUniforme && (
