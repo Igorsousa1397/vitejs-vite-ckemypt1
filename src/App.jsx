@@ -3341,7 +3341,7 @@ export default function App() {
     if (f.perfil === "servo") setPg("smins");
   };
   const role = user?.perfil || "servo";
-  const isAdm = role === "admin";
+  const isAdm = role === "admin" || role === "lider_geral";
 
   const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
