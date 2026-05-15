@@ -3888,178 +3888,20 @@ export default function App() {
               t={showT}
               notifyAll={notifyAll}
             />
-          )}
-          {pg === "satr" && (
-            <div>
-              {(user.funcoes || []).length > 0 ? (
-                (user.funcoes || []).map((f, i) => {
-                  // Busca o perfil de líder que tem essa função
-                  const perfilLider = (users || []).find(
-                    (u) =>
-                      [
-                        "lider_staff",
-                        "lider_templo",
-                        "lider_cozinha",
-                        "lider_quartos",
-                      ].includes(u.perfil) && (u.funcoes || []).includes(f),
-                  );
-
-                  // Nomes dos líderes atribuídos
-                  const nomesLideres = [
-                    perfilLider?.liderEncontro,
-                    perfilLider?.liderEncontro2,
-                  ].filter(Boolean);
-
-                  // Colegas: mesma função, não é o próprio user, não é líder
-                  const colegas = (users || []).filter(
-                    (u) =>
-                      u.id !== user.id &&
-                      u.ativo !== false &&
-                      u.perfil === "servo" &&
-                      (u.funcoes || []).includes(f) &&
-                      !nomesLideres.includes(u.nome),
-                  );
-
-                  return (
-                    <div
-                      key={i}
-                      className="fu"
-                      style={{
-                        background: G.card,
-                        border: `1px solid ${G.cb}`,
-                        borderLeft: `3px solid ${G.green}`,
-                        borderRadius: 14,
-                        padding: "12px 14px",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          marginBottom: 10,
-                        }}
-                      >
-                        <span style={{ color: G.green }}>📋</span>
-                        <span
-                          style={{ color: G.t, fontWeight: 700, fontSize: 14 }}
-                        >
-                          {f}
-                        </span>
-                      </div>
-
-                      {nomesLideres.length > 0 && (
-                        <>
-                          <div
-                            style={{
-                              color: G.tm,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: 1,
-                              textTransform: "uppercase",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Líder
-                          </div>
-                          {nomesLideres.map((l, j) => (
-                            <div
-                              key={j}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                marginBottom: 4,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: "50%",
-                                  background: "#0a84ff",
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span
-                                style={{
-                                  color: "#64b5f6",
-                                  fontSize: 13,
-                                  fontWeight: l === user.nome ? 700 : 400,
-                                }}
-                              >
-                                {l}
-                                {l === user.nome ? " (você)" : ""}
-                              </span>
-                            </div>
-                          ))}
-                        </>
-                      )}
-
-                      {colegas.length > 0 && (
-                        <>
-                          <div
-                            style={{
-                              color: G.tm,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: 1,
-                              textTransform: "uppercase",
-                              marginBottom: 6,
-                              marginTop: nomesLideres.length ? 8 : 0,
-                            }}
-                          >
-                            Equipe
-                          </div>
-                          {colegas.map((c, j) => (
-                            <div
-                              key={j}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                marginBottom: 4,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: "50%",
-                                  background: G.green,
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span style={{ color: G.td, fontSize: 13 }}>
-                                {c.nome}
-                              </span>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <div
-                  style={{
-                    color: G.tm,
-                    textAlign: "center",
-                    padding: 28,
-                    fontSize: 13,
-                  }}
-                >
-                  Sem atribuições. Fale com o admin.
-                </div>
-              )}
-            </div>
-          )}
+          )} 
         </div>
       </div>
     );
   }
 
+  const TelaRestrita = () => (
+    <div style={{ textAlign: "center", padding: 48 }}>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Acesso restrito</div>
+      <div style={{ color: G.tm, fontSize: 13 }}>Você não tem permissão para acessar esta tela.</div>
+    </div>
+  );
+  
   return (
     <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
       <style>{css}</style>
@@ -4245,7 +4087,9 @@ export default function App() {
             sN={sN}
           />
         )}
-        {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} />}
+        {pg === "stermo" && (
+          temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} /> : <TelaRestrita />
+        )}
         {pg === "quartos" && (
           <QV
             qh={qh}
@@ -4314,17 +4158,11 @@ export default function App() {
             notifyAll={notifyAll}
           />
         )}
-        {pg === "ach" && <AchV ach={ach} setAch={setAch} t={showT} />}
-        {pg === "crac" && (
-          <ListV
-            icon="🪪"
-            color={G.green}
-            items={crac}
-            setItems={setCrac}
-            edit={canG(role)}
-            t={showT}
-            ph="Nome do encontrista..."
-          />
+        {pg === "sach" && (
+          temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
+        )}
+        {pg === "scrac" && (
+          temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={false} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
         )}
         {pg === "ssaude" && (
           <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
@@ -4334,58 +4172,21 @@ export default function App() {
           <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
         )}
         {pg === "squartos" && (
-          <QV
-            qh={qh}
-            qm={qm}
-            uQH={uQH}
-            uQM={uQM}
-            setQh={setQh}
-            setQm={setQm}
-            edit={false}
-            t={showT}
-            encH={encH}
-            encM={encM}
-            users={users}
-            salvarQuarto={salvarQuarto}
-            deletarQuarto={deletarQuarto}
-            tab={quartoTab}
-            setTab={setQuartoTab}
-            abertos={quartosAbertos}
-            setAbertos={setQuartosAbertos}
-          />
+          temPermissao("quartos")
+            ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={false} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
+            : <TelaRestrita />
         )}
         {pg === "scozinha" && (
-          <CozinhaV edit={false} t={showT} users={users} />
+          temPermissao("cozinha") ? <CozinhaV edit={false} t={showT} users={users} /> : <TelaRestrita />
         )}
         {pg === "scheckin" && (
-          <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} />
+          temPermissao("checkin") ? <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} /> : <TelaRestrita />
         )}
         {pg === "sonibus" && (
-          <OnV
-            on={on}
-            uOn={uOn}
-            setOn={setOn}
-            encH={encH}
-            encM={encM}
-            edit={false}
-            t={showT}
-            salvarOnibus={salvarOnibus}
-            deletarOnibus={deletarOnibus}
-          />
+          temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={false} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
         )}
         {pg === "senc" && (
-          <EncV
-            encH={encH}
-            setEncH={setEncH}
-            encM={encM}
-            setEncM={setEncM}
-            qh={qh}
-            qm={qm}
-            setQh={setQh}
-            setQm={setQm}
-            edit={false}
-            t={showT}
-          />
+          temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={false} t={showT} /> : <TelaRestrita />
         )}
         {pg === "cozinha" && (
           <CozinhaV edit={canC(role)} t={showT} users={users} />
