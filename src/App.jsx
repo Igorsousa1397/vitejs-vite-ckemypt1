@@ -8735,7 +8735,7 @@ function CozinhaV({ edit, t, users }) {
           ? true
           : filtroPerfil === "servo"
             ? u.perfil === "servo"
-            : (u.perfil === "staff" || u.perfil === "lider_staff" || u.tipo === "lider" || (u.perfil && u.perfil.startsWith("lider_"))))
+            : (u.perfil === "staff" || u.perfil === "lider_staff" || u.tipo === "lider" || (u.perfil && u.perfil.startsWith("lider_")))) &&
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
