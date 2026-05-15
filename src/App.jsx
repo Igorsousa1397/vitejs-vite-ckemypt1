@@ -4346,8 +4346,8 @@ export default function App() {
           <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
         )}
 
-        {pg === "ssaude" && (
-          <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
+        {pg === "saude" && (
+          <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
         )}
         {pg === "squartos" && (
           <QV
