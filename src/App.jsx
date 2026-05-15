@@ -8826,9 +8826,9 @@ function CozinhaV({ edit, t, users }) {
               </div>
 
               {/* Pagamento */}
-              {(u.tipo === "servo" || u.tipo === "staff" || u.perfil === "servo" || u.perfil === "staff" || u.perfil === "lider_staff") && (
-                <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
+              {u.perfil !== "admin" && u.perfil !== "pastor" && (
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
                   {u.pago ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
