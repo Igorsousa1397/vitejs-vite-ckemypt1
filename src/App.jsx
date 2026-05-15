@@ -3882,13 +3882,37 @@ export default function App() {
           )}
           {pg === "simg" && <ImgV encH={encH} encM={encM} />}
           {pg === "sinfo" && (
-            <InfoV
-              ocorr={ocorr}
-              setOcorr={setOcorr}
-              t={showT}
-              notifyAll={notifyAll}
-            />
-          )} 
+            <InfoV ocorr={ocorr} setOcorr={setOcorr} t={showT} notifyAll={notifyAll} />
+          )}
+          {pg === "squartos" && (
+            temPermissao("quartos")
+              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={false} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
+              : <TelaRestrita />
+          )}
+          {pg === "scheckin" && (
+            temPermissao("checkin") ? <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} /> : <TelaRestrita />
+          )}
+          {pg === "stermo" && (
+            temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} /> : <TelaRestrita />
+          )}
+          {pg === "sach" && (
+            temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
+          )}
+          {pg === "scrac" && (
+            temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={false} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
+          )}
+          {pg === "sonibus" && (
+            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={false} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
+          )}
+          {pg === "senc" && (
+            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={false} t={showT} /> : <TelaRestrita />
+          )}
+          {pg === "scozinha" && (
+            temPermissao("cozinha") ? <CozinhaV edit={false} t={showT} users={users} /> : <TelaRestrita />
+          )}
+          {pg === "ssaude" && (
+            <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
+          )}
         </div>
       </div>
     );
@@ -3901,6 +3925,8 @@ export default function App() {
       <div style={{ color: G.tm, fontSize: 13 }}>Você não tem permissão para acessar esta tela.</div>
     </div>
   );
+
+if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
   
   return (
     <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
