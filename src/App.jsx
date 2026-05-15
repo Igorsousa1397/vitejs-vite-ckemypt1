@@ -3794,7 +3794,10 @@ export default function App() {
                 : pg === "scheckin" ? "Check-in"
                 : pg === "sonibus" ? "Ônibus"
                 : pg === "senc" ? "Encontristas"
-                : "Atribuições"}
+                : pg === "stermo" ? "Termo"
+                : pg === "sach" ? "Achados & Perdidos"
+                : pg === "scrac" ? "Crachás"
+                : ""}
               </span>
             )}
           </div>
@@ -3922,7 +3925,7 @@ export default function App() {
       </div>
     );
   }
-  
+
   return (
     <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
       <style>{css}</style>
