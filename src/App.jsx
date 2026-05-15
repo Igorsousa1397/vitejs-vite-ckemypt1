@@ -9106,7 +9106,9 @@ function CozinhaV({ edit, t, users }) {
     const bloqueado =
       (meuPedido && meuPedido.status !== "aberto") ||
       (meuPedido && !meuPedido.status) ||
-      meuPedido?.naoQuerUniforme;
+      meuPedido?.naoQuerUniforme ||
+      meuPedido?.pagoSinal === true ||
+      meuPedido?.pagoIntegral === true;
     const [form, setForm] = useState(meuPedido || { camisa: "", qtdCamisas: "", calca: "", blusa: "", nomeCamiseta: "" });
     const [saving, setSaving] = useState(false);
 
@@ -9932,7 +9934,7 @@ function CozinhaV({ edit, t, users }) {
                       {saving ? "Salvando..." : "Salvar Alteracao"}
                     </button>
                   )}
-                 {meuPedido && (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && (
+                 {meuPedido && (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && !meuPedido.pagoSinal && !meuPedido.pagoIntegral && (
                   <button
                     onClick={solicitarAlteracao}
                     disabled={!prazoOk}
