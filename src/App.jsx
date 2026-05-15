@@ -9910,7 +9910,7 @@ function CozinhaV({ edit, t, users }) {
                   {meuPedido && !meuPedido.naoQuerUniforme && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                       <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginBottom: 4 }}>PIX ou Boleto</div>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <button onClick={async () => {
                           vibrar(50);
                           try {
@@ -9933,7 +9933,7 @@ function CozinhaV({ edit, t, users }) {
                         </button>
                       </div>
                       <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 4, marginBottom: 4 }}>Cartão de Crédito (+5%)</div>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <button onClick={async () => {
                           vibrar(50);
                           const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
