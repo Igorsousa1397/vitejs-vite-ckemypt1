@@ -11121,7 +11121,7 @@ function CozinhaV({ edit, t, users }) {
                           <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{u.nome}</div>
                           <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
                             {PERFIS[u.perfil]?.l || u.perfil}
-                            {total > 0 && <span style={{ color: G.green, marginLeft: 6 }}>· {total} função{total > 1 ? 'ões' : ''}</span>}
+                            {total > 0 && <span style={{ color: G.green, marginLeft: 6 }}>· {total} {total === 1 ? 'função' : 'funções'}</span>}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
