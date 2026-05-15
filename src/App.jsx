@@ -8722,7 +8722,7 @@ function CozinhaV({ edit, t, users }) {
       setLoading(false);
     };
 
-    const lista = users.filter(
+   const lista = users.filter(
       (u) =>
         u.perfil !== "admin" &&
         u.nome &&
@@ -8734,8 +8734,8 @@ function CozinhaV({ edit, t, users }) {
         (filtroPerfil === "todos"
           ? true
           : filtroPerfil === "servo"
-            ? (u.perfil === "servo")
-            : (u.tipo === "staff" || u.perfil === "staff" || Object.keys(PERFIS).filter(p => p.startsWith("lider_")).includes(u.perfil))
+            ? (u.tipo === "servo" || u.perfil === "servo")
+            : (u.tipo === "staff" || u.perfil === "staff" || u.perfil === "lider_staff")) &&
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
