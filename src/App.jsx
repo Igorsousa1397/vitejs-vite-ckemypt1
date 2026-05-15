@@ -4182,6 +4182,11 @@ export default function App() {
             notifyAll={notifyAll}
           />
         )}
+        {pg === "ach" && <AchV ach={ach} setAch={setAch} t={showT} />}
+        {pg === "crac" && (
+          <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={canG(role)} t={showT} ph="Nome do encontrista..." />
+        )}
+        {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} />}
         {pg === "sach" && (
           temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
         )}
