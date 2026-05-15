@@ -4728,7 +4728,11 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
   const encPendentes = todosEnc.length - encPagos;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
 
-  const servos = (users || []).filter(u => u.perfil === 'servo');
+  const servos = (users || []).filter(u => 
+    u.perfil !== 'admin' && 
+    u.perfil !== 'pastor' && 
+    u.nome
+  );
   const servosPagos = servos.filter(u => u.pago).length;
   const servosPendentes = servos.length - servosPagos;
   const pctServos = servos.length ? Math.round((servosPagos / servos.length) * 100) : 0;
