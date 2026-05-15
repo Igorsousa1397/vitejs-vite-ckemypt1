@@ -3599,10 +3599,15 @@ export default function App() {
   ];
 
   // ── SERVO SHELL ──
-  if (
-    scr === "app" &&
-    !["admin", "lider_geral", "pastor"].includes(role)
-  ) {
+    const TelaRestrita = () => (
+      <div style={{ textAlign: "center", padding: 48 }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Acesso restrito</div>
+        <div style={{ color: G.tm, fontSize: 13 }}>Você não tem permissão para acessar esta tela.</div>
+      </div>
+    );
+
+    if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
 
     const MAPA_SERVO = {
       "mins": ["📅", "smins", "Agenda"],
@@ -3917,16 +3922,6 @@ export default function App() {
       </div>
     );
   }
-
-  const TelaRestrita = () => (
-    <div style={{ textAlign: "center", padding: 48 }}>
-      <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
-      <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Acesso restrito</div>
-      <div style={{ color: G.tm, fontSize: 13 }}>Você não tem permissão para acessar esta tela.</div>
-    </div>
-  );
-
-if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
   
   return (
     <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
