@@ -9949,10 +9949,54 @@ function CozinhaV({ edit, t, users }) {
                 )}
 
                   {/* Pagamento MP */}
-                  {meuPedido && !meuPedido.naoQuerUniforme && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-                      <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginBottom: 4 }}>PIX ou Boleto</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {meuPedido && !meuPedido.naoQuerUniforme && (() => {
+                    const pagoSinal    = meuPedido.pagoSinal === true;
+                    const pagoIntegral = meuPedido.pagoIntegral === true;
+
+                    if (pagoIntegral) return (
+                      <div style={{ background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.2)", borderRadius: 14, padding: "12px 14px", marginTop: 8, textAlign: "center" }}>
+                        <div style={{ color: G.green, fontWeight: 700, fontSize: 14 }}>✓ Pagamento integral confirmado</div>
+                        <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>Seu uniforme está garantido!</div>
+                      </div>
+                    );
+
+                    if (pagoSinal) return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                        <div style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "10px 14px", textAlign: "center" }}>
+                          <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 13 }}>✓ Sinal pago — falta o restante (50%)</div>
+                          <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>
+                            R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")} restantes
+                          </div>
+                        </div>
+                        <div style={{ color: G.tm, fontSize: 11, textAlign: "center" }}>PIX ou Boleto</div>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_pix', valor: totalPedido() * 0.5, descricao: 'Uniforme Servo — Restante 50%' }) });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                          Pagar restante — R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
+                        </button>
+                        <div style={{ color: G.tm, fontSize: 11, textAlign: "center" }}>Cartão de Crédito (+5%)</div>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_credito', valor: valorCartao, descricao: 'Uniforme Servo — Restante 50% Crédito' }) });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                          Pagar restante — R$ {(Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
+                        </button>
+                      </div>
+                    );
+
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                        <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginBottom: 4 }}>PIX ou Boleto</div>
                         <button onClick={async () => {
                           vibrar(50);
                           try {
@@ -9960,7 +10004,7 @@ function CozinhaV({ edit, t, users }) {
                             const data = await res.json();
                             if (data.init_point) window.location.href = data.init_point;
                           } catch { alert('Erro ao gerar pagamento.'); }
-                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Sinal — R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
                         </button>
                         <button onClick={async () => {
@@ -9970,12 +10014,10 @@ function CozinhaV({ edit, t, users }) {
                             const data = await res.json();
                             if (data.init_point) window.location.href = data.init_point;
                           } catch { alert('Erro ao gerar pagamento.'); }
-                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Integral — R$ {totalPedido().toFixed(2).replace(".", ",")}
                         </button>
-                      </div>
-                      <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 4, marginBottom: 4 }}>Cartão de Crédito (+5%)</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 4, marginBottom: 4 }}>Cartão de Crédito (+5%)</div>
                         <button onClick={async () => {
                           vibrar(50);
                           const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
@@ -9984,7 +10026,7 @@ function CozinhaV({ edit, t, users }) {
                             const data = await res.json();
                             if (data.init_point) window.location.href = data.init_point;
                           } catch { alert('Erro ao gerar pagamento.'); }
-                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Sinal — R$ {(Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
                         </button>
                         <button onClick={async () => {
@@ -9995,12 +10037,12 @@ function CozinhaV({ edit, t, users }) {
                             const data = await res.json();
                             if (data.init_point) window.location.href = data.init_point;
                           } catch { alert('Erro ao gerar pagamento.'); }
-                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Integral — R$ {(Math.ceil(totalPedido() / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
                         </button>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
               {!prazoOk && (
