@@ -9888,8 +9888,7 @@ function CozinhaV({ edit, t, users }) {
                       {saving ? "Salvando..." : "Salvar Alteracao"}
                     </button>
                   )}
-                  {meuPedido &&
-                    (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && (
+                  {meuPedido && (meuPedido.status === "bloqueado" || !meuPedido.status) && !meuPedido.naoQuerUniforme && (
                       <button
                         onClick={solicitarAlteracao}
                         style={{
