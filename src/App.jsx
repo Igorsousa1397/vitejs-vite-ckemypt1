@@ -8873,9 +8873,9 @@ function CozinhaV({ edit, t, users }) {
           }}
         >
           {[
-            [users.filter((u) => u.perfil === "servo").length, "Total", "#636366"],
-            [users.filter((u) => u.perfil === "servo" && u.ativo !== false).length, "Ativos", G.green],
-            [users.filter((u) => u.perfil === "servo" && u.pago).length, "Pagos", "#0a84ff"],
+            [lista.length, "Total", "#636366"],
+            [lista.filter((u) => u.ativo !== false).length, "Ativos", G.green],
+            [lista.filter((u) => u.pago).length, "Pagos", "#0a84ff"],
           ].map(([n, l, c]) => (
             <div
               key={l}
