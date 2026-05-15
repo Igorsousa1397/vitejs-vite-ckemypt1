@@ -3197,7 +3197,16 @@ export default function App() {
           );
 
           unsubUsersRef.current = onSnapshot(collection(db, "users"), (s) => {
-            setUsers(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setUsers(s.docs.map((d) => {
+              const data = d.data();
+              // inferir tipo se não existir
+              const tipo = data.tipo || (
+                data.perfil === "staff" ? "staff" :
+                data.perfil === "lider_staff" ? "staff" :
+                "servo"
+              );
+              return { id: d.id, ...data, tipo };
+            }));
           });
 
           unsubUniRef.current = onSnapshot(collection(db, "uniformes"), (s) => {
