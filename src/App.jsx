@@ -10858,7 +10858,6 @@ function CozinhaV({ edit, t, users }) {
       <div>
         <Seg opts={[["grupos", "Grupos"], ["usuarios", "Funções"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
-
           {tab === "grupos" && (
             <>
               {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => {
