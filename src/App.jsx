@@ -8679,6 +8679,7 @@ function CozinhaV({ edit, t, users }) {
 
     const lista = users.filter(
       (u) =>
+        u.perfil !== "admin" &&
         (u.tipo === "servo" || u.tipo === "staff" || u.perfil === "servo" || u.perfil === "lider_staff" || u.perfil === "staff") &&
         u.nome &&
         (filtro === "todos"
@@ -8952,7 +8953,7 @@ function CozinhaV({ edit, t, users }) {
               </div>
 
               {/* Pagamento */}
-              {u.perfil === "servo" && (
+              {(u.tipo === "servo" || u.perfil === "servo") && (
                 <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
                   <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
                   {u.pago ? (
