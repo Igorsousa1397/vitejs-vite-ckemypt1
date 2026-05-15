@@ -4643,10 +4643,13 @@ export default function App() {
 
     const toggleDia = (dia) => setDiasAbertos(prev => ({ ...prev, [dia]: !prev[dia] }));
 
+    const meuUniPago = meuPedido && (meuPedido.pagoSinal || meuPedido.pagoIntegral);
+
     const slides = [];
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
     if ((!meuPedido || meuPedido.status === "aberto") && dataLimiteUni) slides.push({ tipo: "uniforme" });
+    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPago && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
 
     useEffect(() => {
       if (slides.length <= 1) return;
@@ -4717,11 +4720,28 @@ export default function App() {
                         <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito' }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>Cartão de Crédito — R$ 231,00</button>
                       </div>
                     )}
-                    {slideAtual?.tipo === "uniforme" && (
-                      <div onClick={() => setPg("suni")} style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
-                        <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Uniforme</div>
-                        <div style={{ color: G.t, fontSize: 16, fontWeight: 700 }}>{meuPedido?.status === "aberto" ? "Alteração aprovada — atualize seu pedido" : "Você ainda não fez seu pedido de uniforme"}</div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>Prazo: <strong style={{ color: "#ff9f0a" }}>{new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}</strong> · Toque para acessar</div>
+                    {slideAtual?.tipo === "uniforme_pagamento" && (
+                      <div
+                        onClick={() => setPg("suni")}
+                        style={{
+                          background: "rgba(255,59,48,.08)",
+                          border: "1px solid rgba(255,59,48,.25)",
+                          borderRadius: 14,
+                          padding: "13px 14px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                          👕 Pagamento de Uniforme
+                        </div>
+                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
+                          Você ainda não pagou seu uniforme
+                        </div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                          Prazo: <strong style={{ color: "#ff6b6b" }}>
+                            {new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}
+                          </strong> · Toque para pagar
+                        </div>
                       </div>
                     )}
                   </div>
