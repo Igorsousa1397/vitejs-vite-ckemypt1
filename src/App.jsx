@@ -4815,12 +4815,12 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
               {/* Pagos vs Pendentes */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>✓ Pagos</span>
+                  <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pago</span>
                   <BarPct val={encPagos} max={META_ENC} color={G.green} />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPagos}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>⏳ Pend.</span>
+                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pend.</span>
                   <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
                 </div>
@@ -4838,12 +4838,12 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 60 }}>✓ Pagos</span>
+                  <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pago</span>
                   <BarPct val={servosPagos} max={servos.length || 1} color="#0a84ff" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>⏳ Pend.</span>
+                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pend.</span>
                   <BarPct val={servosPendentes} max={servos.length || 1} color="#ff3b30" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPendentes}</span>
                 </div>
