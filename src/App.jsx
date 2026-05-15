@@ -3201,7 +3201,7 @@ export default function App() {
               const data = d.data();
               const tipo = data.tipo || (
                 data.perfil === "staff" ? "staff" :
-                data.perfil === "lider_staff" ? "staff" :
+                data.perfil?.startsWith("lider_") ? "lider" :
                 "servo"
               );
               return { id: d.id, ...data, tipo };
@@ -8731,11 +8731,11 @@ function CozinhaV({ edit, t, users }) {
           : filtro === "ativos"
             ? u.ativo !== false
             : !u.ativo) &&
-        (filtroPerfil === "todos"
+       (filtroPerfil === "todos"
           ? true
           : filtroPerfil === "servo"
-            ? (u.tipo === "servo" || u.perfil === "servo")
-            : (u.tipo === "staff" || u.perfil === "staff" || u.perfil === "lider_staff")) &&
+            ? u.perfil === "servo"
+            : (u.perfil === "staff" || u.perfil === "lider_staff" || u.tipo === "lider" || u.perfil?.startsWith("lider_")))
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
