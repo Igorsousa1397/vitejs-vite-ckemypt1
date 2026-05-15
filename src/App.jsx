@@ -3617,7 +3617,7 @@ export default function App() {
   // ── SERVO SHELL ──
   if (
     scr === "app" &&
-    ["servo", "lider_celula", "lider_midia"].includes(role)
+    !["admin", "lider_geral", "pastor"].includes(role)
   ) {
 
     const MAPA_SERVO = {
