@@ -8637,6 +8637,7 @@ function CozinhaV({ edit, t, users }) {
               email: f.email.trim(),
               nome: nm,
               perfil: f.perfil,
+              tipo: f.perfil,
               funcoes: f.fn ? [f.fn] : [],
             }),
           },
@@ -8669,7 +8670,7 @@ function CozinhaV({ edit, t, users }) {
 
     const lista = users.filter(
       (u) =>
-        (u.perfil === "servo" || u.perfil === "lider_staff" || u.perfil === "staff") &&
+        (u.tipo === "servo" || u.tipo === "staff" || u.perfil === "servo" || u.perfil === "lider_staff" || u.perfil === "staff") &&
         u.nome &&
         (filtro === "todos"
           ? true
@@ -8679,8 +8680,8 @@ function CozinhaV({ edit, t, users }) {
         (filtroPerfil === "todos"
           ? true
           : filtroPerfil === "servo"
-            ? u.perfil === "servo"
-            : u.perfil === "staff" || u.perfil === "lider_staff") &&
+            ? (u.tipo === "servo" || u.perfil === "servo")
+            : (u.tipo === "staff" || u.perfil === "staff" || u.perfil === "lider_staff")) &&
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
