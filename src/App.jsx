@@ -11137,7 +11137,7 @@ function CozinhaV({ edit, t, users }) {
                             }}
                             style={{ ...I, width: "auto", padding: "6px 9px", fontSize: 11, borderRadius: 9 }}
                           >
-                            {Object.entries(PERFIS).map(([k, v]) => (
+                            {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => (
                               <option key={k} value={k}>{v.l}</option>
                             ))}
                           </select>
