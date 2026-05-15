@@ -4803,11 +4803,11 @@ export default function App() {
                                   {lideres.length > 0 && (
                                     <>
                                       <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Líder</div>
-                                      {lideres.map((lider, j) => (
-                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: colegas.length > 0 ? 8 : 0 }}>
+                                      {lideres.map((l, j) => (
+                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: j === lideres.length - 1 && colegas.length > 0 ? 8 : 3 }}>
                                           <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
-                                          <span style={{ color: G.td, fontSize: 13, fontWeight: lider.id === user.id ? 700 : 400 }}>
-                                            {lider.nome}{lider.id === user.id ? " (você)" : ""}
+                                          <span style={{ color: G.td, fontSize: 13, fontWeight: l.id === user.id ? 700 : 400 }}>
+                                            {l.nome}{l.id === user.id ? " (você)" : ""}
                                           </span>
                                         </div>
                                       ))}
@@ -7386,7 +7386,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   const can = ['admin', 'lider_geral', 'pastor', 'lider_quartos'].includes(role);
 
   // Busca líderes de célula com suas restrições
-  const lideres = (users || []).filter(u => u.perfil === 'lider_celula' && u.celula);
+  const lideres = (users || []).filter(u => u.perfil === perfilLider);
 
   // Monta lista de restrições por célula
   const grupos = lideres.map(l => {
