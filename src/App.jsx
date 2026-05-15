@@ -4786,7 +4786,7 @@ export default function App() {
                                 ? "lider_staff"
                                 : (LIDER_MAP[fn] || "lider_staff");
 
-                              const lider = (users || []).find(u => u.perfil === perfilLider);
+                              const lideres = (users || []).filter(u => u.perfil === perfilLider);
 
                               const colegas = (users || []).filter(u =>
                                 u.id !== user.id &&
@@ -4800,15 +4800,17 @@ export default function App() {
                                     {fn}
                                   </div>
 
-                                  {lider && (
+                                  {lideres.length > 0 && (
                                     <>
                                       <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Líder</div>
-                                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: colegas.length > 0 ? 8 : 0 }}>
-                                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
+                                      {lideres.map((lider, j) => (
+                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: colegas.length > 0 ? 8 : 0 }}>
+                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
                                           <span style={{ color: G.td, fontSize: 13, fontWeight: lider.id === user.id ? 700 : 400 }}>
-                                          {lider.nome}{lider.id === user.id ? " (você)" : ""}
-                                        </span>
-                                      </div>
+                                            {lider.nome}{lider.id === user.id ? " (você)" : ""}
+                                          </span>
+                                        </div>
+                                      ))}
                                     </>
                                   )}
 
