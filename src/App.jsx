@@ -7430,7 +7430,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   const can = ['admin', 'lider_geral', 'pastor', 'lider_quartos'].includes(role);
 
   // Busca líderes de célula com suas restrições
-  const lideres = (users || []).filter(u => u.perfil === perfilLider);
+  const lideres = (users || []).filter(u => u.perfil === "lider_celula");
 
   // Monta lista de restrições por célula
   const grupos = lideres.map(l => {
