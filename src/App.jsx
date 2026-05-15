@@ -9906,103 +9906,63 @@ function CozinhaV({ edit, t, users }) {
                       </button>
                     )}
 
-                  {/* PIX Uniforme */}
-                  <div
-                    style={{
-                      background: G.card,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 14,
-                      padding: 16,
-                      marginTop: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: G.tm,
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: 1.5,
-                        textTransform: "uppercase",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Pagamento do Uniforme
-                    </div>
-                    <div style={{ color: G.td, fontSize: 12, marginBottom: 6 }}>
-                      PIX Nubank — Thaís Bezerra da Silva Rodrigues
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 14,
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: G.t,
-                          fontWeight: 700,
-                          fontSize: 15,
-                          flex: 1,
-                        }}
-                      >
-                        40617537895
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText("40617537895");
+                  {/* Pagamento MP */}
+                  {meuPedido && !meuPedido.naoQuerUniforme && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                      <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginBottom: 4 }}>PIX ou Boleto</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={async () => {
                           vibrar(50);
-                          t("Chave PIX copiada! ✓");
-                        }}
-                        style={{
-                          ...BK({
-                            padding: "6px 12px",
-                            borderRadius: 9,
-                            fontSize: 12,
-                            fontWeight: 700,
-                          }),
-                          borderColor: "rgba(0,200,81,.4)",
-                          color: G.green,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        📋 Copiar
-                      </button>
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_sinal_pix', valor: totalPedido() * 0.5, descricao: 'Uniforme Servo — Sinal 50%' }) });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                          Sinal — R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
+                        </button>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_pix', valor: totalPedido(), descricao: 'Uniforme Servo — Pagamento Integral' }) });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                          Integral — R$ {totalPedido().toFixed(2).replace(".", ",")}
+                        </button>
+                      </div>
+                      <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 4, marginBottom: 4 }}>Cartão de Crédito (+5%)</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_sinal_credito', valor: valorCartao, descricao: 'Uniforme Servo — Sinal 50% Crédito' }) });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                          Sinal — R$ {(Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
+                        </button>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          const valorCartao = Math.ceil(totalPedido() / 0.9501 * 100) / 100;
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_credito', valor: valorCartao, descricao: 'Uniforme Servo — Pagamento Integral Crédito' }) });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
+                          Integral — R$ {(Math.ceil(totalPedido() / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
+                        </button>
+                      </div>
                     </div>
-                    <a
-                      href="https://wa.me/5511997187584?text=Olá%20Thaís!%20Realizei%20o%20pagamento%20do%20uniforme%20e%20gostaria%20de%20enviar%20o%20comprovante."
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                        background: "rgba(37,211,102,.1)",
-                        border: "1px solid rgba(37,211,102,.3)",
-                        color: "#25d366",
-                        borderRadius: 10,
-                        padding: "10px",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
-                    >
-                      💬 Enviar comprovante para Thaís
-                    </a>
-                  </div>
+                  )}
                 </div>
               )}
               {!prazoOk && (
-                <div
-                  style={{
-                    color: G.tm,
-                    textAlign: "center",
-                    padding: 28,
-                    fontSize: 13,
-                  }}
-                >
+                <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
                   O prazo para solicitacao encerrou.
                 </div>
               )}
