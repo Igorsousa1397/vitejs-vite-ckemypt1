@@ -53,7 +53,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       name: nome || 'Encontrista',
       email: email || 'encontrocomdeus@email.com',
     },
-    external_reference: encontristaId,
+    external_reference: (tipo && tipo.includes('uniforme')) ? `${tipo}||${encontristaId}` : encontristaId,
     back_urls: {
       success: `https://encontrocomdeus-fonte.vercel.app?pago=true&id=${encontristaId}`,
       failure: `https://encontrocomdeus-fonte.vercel.app?pago=false&id=${encontristaId}`,
@@ -134,17 +134,34 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
           const payment = JSON.parse(responseData);
           if (payment.status === 'approved') {
             const referenceId = payment.external_reference;
-            const encRef = admin.firestore().collection('encontristas').doc(referenceId);
-            const encSnap = await encRef.get();
-            if (encSnap.exists) {
-              await encRef.update({ pago: true, pagamentoId: paymentId });
-              console.log(`Encontrista ${referenceId} marcado como pago!`);
+
+            // Uniforme: external_reference = "uniforme_sinal_pix||userId"
+            if (referenceId && referenceId.includes('||')) {
+              const [tipo, userId] = referenceId.split('||');
+              const uniRef = admin.firestore().collection('uniformes').doc(userId);
+
+              if (tipo.includes('uniforme_integral')) {
+                await uniRef.set({ pagoIntegral: true, pagoSinal: true }, { merge: true });
+                console.log(`Uniforme integral pago: ${userId}`);
+              } else if (tipo.includes('uniforme_sinal')) {
+                await uniRef.set({ pagoSinal: true }, { merge: true });
+                console.log(`Uniforme sinal pago: ${userId}`);
+              }
+
             } else {
-              const userRef = admin.firestore().collection('users').doc(referenceId);
-              const userSnap = await userRef.get();
-              if (userSnap.exists) {
-                await userRef.update({ pago: true, pagamentoId: paymentId });
-                console.log(`Servo ${referenceId} marcado como pago!`);
+              // Pagamento normal de encontrista ou servo
+              const encRef = admin.firestore().collection('encontristas').doc(referenceId);
+              const encSnap = await encRef.get();
+              if (encSnap.exists) {
+                await encRef.update({ pago: true, pagamentoId: paymentId });
+                console.log(`Encontrista ${referenceId} marcado como pago!`);
+              } else {
+                const userRef = admin.firestore().collection('users').doc(referenceId);
+                const userSnap = await userRef.get();
+                if (userSnap.exists) {
+                  await userRef.update({ pago: true, pagamentoId: paymentId });
+                  console.log(`Servo ${referenceId} marcado como pago!`);
+                }
               }
             }
           }

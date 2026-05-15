@@ -10399,8 +10399,8 @@ function CozinhaV({ edit, t, users }) {
               };
 
               const wb = new ExcelJS.Workbook();
-              buildAba(wb, "SERVO", uni.filter((u) => u.perfil === "servo" && u.pago === true && !u.naoQuerUniforme));
-              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.pago === true && !u.naoQuerUniforme));
+              buildAba(wb, "SERVO", uni.filter((u) => u.perfil === "servo" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
+              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
@@ -10444,6 +10444,14 @@ function CozinhaV({ edit, t, users }) {
           </div>
         )}
         {uni.filter(u => !u.naoQuerUniforme).map((u, i) => {
+          const pagoIntegral = u.pagoIntegral === true;
+          const pagoSinal    = u.pagoSinal === true || pagoIntegral;
+
+          const borderColor =
+            pagoIntegral ? G.green :
+            pagoSinal    ? "#ff9f0a" :
+                          "#ff3b30";
+
           const statusColor =
             u.status === "pendente"
               ? "#ff9f0a"
@@ -10460,7 +10468,7 @@ function CozinhaV({ edit, t, users }) {
             <Acc
               key={i}
               title={u.nome}
-              ax={statusColor}
+              ax={borderColor}
               right={
                 <Pill
                   c={statusLabel}
@@ -10493,62 +10501,30 @@ function CozinhaV({ edit, t, users }) {
                   )}
                 </div>
 
-                {/* FLAG PAGO */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span style={{ color: G.tm, fontSize: 12 }}>Pagamento</span>
-                  <div
-                    onClick={async () => {
-                      await setDoc(
-                        doc(db, "uniformes", u.userId),
-                        { pago: !u.pago },
-                        { merge: true },
-                      );
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 34,
-                        height: 20,
-                        borderRadius: 20,
-                        background: u.pago ? G.green : "#ff3b30",
-                        transition: "background .2s",
-                        position: "relative",
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 2,
-                          left: u.pago ? 15 : 2,
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          background: "#fff",
-                          transition: "left .2s",
-                        }}
-                      />
+                {/* PAGAMENTO — via MP, sem toggle */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ color: G.tm, fontSize: 12, fontWeight: 600 }}>Pagamento</span>
+
+                  {/* Sinal — só mostra se não pagou integral */}
+                  {!pagoIntegral && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: G.tm, fontSize: 12 }}>Sinal (50%)</span>
+                      {pagoSinal
+                        ? <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
+                        : <Pill c="Pendente" bg="rgba(255,59,48,.1)" tc="#ff6b6b" />
+                      }
                     </div>
-                    <span
-                      style={{
-                        color: u.pago ? G.green : "#ff3b30",
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {u.pago ? "Pago" : "Pendente"}
+                  )}
+
+                  {/* Integral */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: G.tm, fontSize: 12 }}>
+                      {pagoSinal && !pagoIntegral ? "Restante (50%)" : "Integral"}
                     </span>
+                    {pagoIntegral
+                      ? <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
+                      : <Pill c="Pendente" bg="rgba(255,59,48,.1)" tc="#ff6b6b" />
+                    }
                   </div>
                 </div>
 
