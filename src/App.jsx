@@ -8561,7 +8561,7 @@ function CozinhaV({ edit, t, users }) {
           ? true
           : filtroPerfil === "servo"
             ? u.perfil === "servo"
-            : (u.perfil === "staff" || u.perfil === "lider_staff"))
+            : (u.perfil === "staff" || u.perfil === "lider_staff")) &&
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
     );
 
