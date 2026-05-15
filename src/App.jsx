@@ -4796,7 +4796,7 @@ export default function App() {
 
                               return (
                                 <div key={i} style={{ background: "#111", borderRadius: 12, padding: "10px 12px" }}>
-                                  <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: lider || colegas.length > 0 ? 8 : 0 }}>
+                                  <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: lideres.length > 0 || colegas.length > 0 ? 8 : 0 }}>
                                     {fn}
                                   </div>
 
