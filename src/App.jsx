@@ -10558,7 +10558,7 @@ function CozinhaV({ edit, t, users }) {
                   Salvo em: {u.data}
                 </div>
                 {u.status === "pendente" && (
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <button
                       onClick={() => aprovar(u.userId)}
                       style={BG({
