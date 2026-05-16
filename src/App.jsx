@@ -3898,7 +3898,11 @@ export default function App() {
               : <TelaRestrita />
           )}
           {pg === "scheckin" && (
-            temPermissao("checkin") ? <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} /> : <TelaRestrita />
+            temPermissao("checkin") 
+              ? <CkV ck={ck} setCk={setCk} on={on} edit={
+                  Object.values(user?.escala || {}).flat().includes("Check-in")
+                } t={showT} /> 
+              : <TelaRestrita />
           )}
           {pg === "stermo" && (
             temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} /> : <TelaRestrita />
@@ -4208,9 +4212,7 @@ export default function App() {
         {pg === "scozinha" && (
           temPermissao("cozinha") ? <CozinhaV edit={false} t={showT} users={users} /> : <TelaRestrita />
         )}
-        {pg === "scheckin" && (
-          temPermissao("checkin") ? <CkV ck={ck} setCk={setCk} on={on} edit={false} t={showT} /> : <TelaRestrita />
-        )}
+        
         {pg === "sonibus" && (
           temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={false} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
         )}
