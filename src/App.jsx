@@ -3068,6 +3068,7 @@ export default function App() {
   const unsubUsersRef = useRef(null);
   const unsubEscRef = useRef(null);
   const unsubSauRef = useRef(null);
+  const enviando = useRef(false);
   const [quartoTab, setQuartoTab] = useState("M");
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
@@ -3361,6 +3362,7 @@ export default function App() {
   };
   const notifyAll = async (msg) => {
     if (enviando.current) return;
+    enviando.current = true;
     showT(msg, "n");
     try {
       await fetch(
@@ -4115,9 +4117,6 @@ export default function App() {
             sN={sN}
           />
         )}
-        {pg === "stermo" && (
-          temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} /> : <TelaRestrita />
-        )}
         {pg === "quartos" && (
           <QV
             qh={qh}
@@ -4191,33 +4190,8 @@ export default function App() {
           <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={canG(role)} t={showT} ph="Nome do encontrista..." />
         )}
         {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} />}
-        {pg === "sach" && (
-          temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
-        )}
-        {pg === "scrac" && (
-          temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={false} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
-        )}
-        {pg === "ssaude" && (
-          <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
-        )}
-
         {pg === "saude" && (
           <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
-        )}
-        {pg === "squartos" && (
-          temPermissao("quartos")
-            ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={false} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
-            : <TelaRestrita />
-        )}
-        {pg === "scozinha" && (
-          temPermissao("cozinha") ? <CozinhaV edit={false} t={showT} users={users} /> : <TelaRestrita />
-        )}
-        
-        {pg === "sonibus" && (
-          temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={false} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
-        )}
-        {pg === "senc" && (
-          temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={false} t={showT} /> : <TelaRestrita />
         )}
         {pg === "cozinha" && (
           <CozinhaV edit={canC(role)} t={showT} users={users} />
