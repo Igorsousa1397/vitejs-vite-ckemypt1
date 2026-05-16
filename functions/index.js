@@ -181,25 +181,31 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
 exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const { titulo, horario } = req.body;
+  try {
+    const { titulo, horario } = req.body;
+    console.log('notificarMinisterio chamado:', { titulo, horario });
 
-  const tokensSnap = await admin.firestore().collection('tokens').get();
-  const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
-  console.log('admins encontrados:', adminPastorIds);
-  console.log('tokens encontrados:', tokens.length);
-  if (!tokens.length) return res.json({ enviadas: 0 });
+    const tokensSnap = await admin.firestore().collection('tokens').get();
+    const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+    console.log('tokens encontrados:', tokens.length);
+    
+    if (!tokens.length) return res.json({ enviadas: 0 });
 
-  const message = {
-    notification: {
-      title: titulo,
-      body: horario ? `Começa às ${horario}` : 'Toque para ver detalhes.',
-    },
-    tokens,
-  };
+    const message = {
+      notification: {
+        title: titulo,
+        body: horario ? `Começa às ${horario}` : 'Toque para ver detalhes.',
+      },
+      tokens,
+    };
 
-  const response = await admin.messaging().sendEachForMulticast(message);
-  console.log(`${response.successCount} notificações enviadas`);
-  res.json({ enviadas: response.successCount });
+    const response = await admin.messaging().sendEachForMulticast(message);
+    console.log(`${response.successCount} notificações enviadas`);
+    res.json({ enviadas: response.successCount });
+  } catch (err) {
+    console.error('Erro notificarMinisterio:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── CRIAR SERVO ──────────────────────────────────────────────────────────────
