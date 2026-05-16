@@ -185,6 +185,8 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
 
   const tokensSnap = await admin.firestore().collection('tokens').get();
   const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+  console.log('admins encontrados:', adminPastorIds);
+  console.log('tokens encontrados:', tokens.length);
   if (!tokens.length) return res.json({ enviadas: 0 });
 
   const message = {
