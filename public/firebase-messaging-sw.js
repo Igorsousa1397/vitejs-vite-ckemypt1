@@ -21,3 +21,20 @@ messaging.onBackgroundMessage((payload) => {
     vibrate: [200, 100, 200],
   });
 });
+
+// Evita duplicata quando o app está aberto
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow('/'));
+});
+
+self.addEventListener('push', (event) => {
+  // Se o app está em foreground (cliente focado), não mostra a notificação do SW
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const focused = clientList.some((c) => c.focused);
+      if (focused) return; // app aberto e focado — FCM já entrega direto
+      // se não está focado, deixa o onBackgroundMessage cuidar
+    })
+  );
+});
