@@ -12,15 +12,15 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification;
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-  });
-});
+// messaging.onBackgroundMessage((payload) => {
+//   const { title, body } = payload.notification;
+//   self.registration.showNotification(title, {
+//     body,
+//     icon: '/icon-192.png',
+//     badge: '/icon-192.png',
+//     vibrate: [200, 100, 200],
+//   });
+// });
 
 // Evita duplicata quando o app está aberto
 self.addEventListener('notificationclick', (event) => {
