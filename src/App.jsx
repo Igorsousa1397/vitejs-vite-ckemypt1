@@ -5518,7 +5518,9 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
                                 );
                                 t("Notificação enviada! 🔔");
                               } catch (err) {
-                                sN(m.nome, m.hora); // fallback local
+                                console.error("Erro notificarMinisterio:", err);
+                                t("Erro ao notificar: " + err.message, "w");
+                                sN(m.nome, m.hora);
                               }
                             }}
                             style={{
