@@ -9899,6 +9899,9 @@ function CozinhaV({ edit, t, users }) {
     const [dataLimitePedidoLocal, setDataLimitePedidoLocal] = useState(dataLimitePedido || "");
     const [dataLimiteRestanteLocal, setDataLimiteRestanteLocal] = useState(dataLimiteRestante || "");
 
+    useEffect(() => { setDataLimitePedidoLocal(dataLimitePedido || ""); }, [dataLimitePedido]);
+    useEffect(() => { setDataLimiteRestanteLocal(dataLimiteRestante || ""); }, [dataLimiteRestante]);
+
     const salvarData = async () => {
       if (!dataTemp) return;
       setSavingData(true);
