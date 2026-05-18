@@ -10453,7 +10453,7 @@ function CozinhaV({ edit, t, users }) {
               >
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   <Pill
-                    c={`Camiseta ${u.camisa} x${u.qtdCamisas || 0}`}
+                    c={`Camiseta ${u.camisa} x${u.qtdCamisas || 1}`}
                     bg="#1e1e1e"
                     tc={G.td}
                   />
