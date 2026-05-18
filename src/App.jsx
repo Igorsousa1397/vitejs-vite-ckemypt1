@@ -9885,8 +9885,6 @@ function CozinhaV({ edit, t, users }) {
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
-    const [dataLimitePedido, setDataLimitePedido] = useState("");
-    const [dataLimiteRestante, setDataLimiteRestante] = useState("");
 
     useEffect(() => {
       getDoc(doc(db, "config", "uniformes")).then(s => {
