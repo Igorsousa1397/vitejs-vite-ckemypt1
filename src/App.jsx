@@ -4440,7 +4440,8 @@ export default function App() {
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
     if (meuPedido?.status === "aberto" && dataLimiteUni) slides.push({ tipo: "uniforme" });
-    if ((!meuPedido || (!meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral)) && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
+    if (!meuPedido && dataLimiteUni) slides.push({ tipo: "uniforme_sem_pedido" });
+    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
 
     useEffect(() => {
@@ -4533,6 +4534,15 @@ export default function App() {
                           Prazo: <strong style={{ color: "#ff6b6b" }}>
                             {new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}
                           </strong> · Toque para pagar
+                        </div>
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "uniforme_sem_pedido" && (
+                      <div onClick={() => setPg("suni")} style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                        <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Pedido de Uniforme</div>
+                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>Você ainda não fez seu pedido de uniforme</div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                          Prazo: <strong style={{ color: "#ff9f0a" }}>{new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}</strong> · Toque para pedir
                         </div>
                       </div>
                     )}
