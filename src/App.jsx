@@ -3882,6 +3882,8 @@ export default function App() {
               user={user}
               role={role}
               edit={isAdm}
+              dataLimitePedido={dataLimitePedido}
+              dataLimiteRestante={dataLimiteRestante}
               t={showT}
             />
           )}
@@ -4204,8 +4206,6 @@ export default function App() {
             role={role}
             edit={isAdm}
             t={showT}
-            dataLimitePedido={dataLimitePedido}
-            dataLimiteRestante={dataLimiteRestante}
           />
         )}
         {pg === "equipes" && (
