@@ -4204,6 +4204,8 @@ export default function App() {
             role={role}
             edit={isAdm}
             t={showT}
+            dataLimitePedido={dataLimitePedido}
+            dataLimiteRestante={dataLimiteRestante}
           />
         )}
         {pg === "equipes" && (
@@ -8898,17 +8900,7 @@ function CozinhaV({ edit, t, users }) {
     );
   }
 
-  function UniV({
-    uni,
-    setUni,
-    dataLimite,
-    setDataLimite,
-    dataLimitePagamento,
-    user,
-    role,
-    edit,
-    t,
-  }) {
+  function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, dataLimitePedido, dataLimiteRestante, user, role, edit, t }) {
     const isAdm = edit;
     const hoje = new Date().toISOString().split("T")[0];
     const prazoDefinido = !!dataLimite;
@@ -9680,9 +9672,14 @@ function CozinhaV({ edit, t, users }) {
                           {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
                         </span>
                       </div>
-                      <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>
-                        * Encomenda mediante 50% do valor
+                      <div style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.2)", borderRadius: 10, padding: "10px 12px", marginTop: 10 }}>
+                      <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 12, marginBottom: 4 }}>📋 Condições do pedido</div>
+                      <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.7 }}>
+                        {dataLimitePedido && <>• Pedido até <strong style={{ color: "#fff" }}>{new Date(dataLimitePedido + "T12:00:00").toLocaleDateString("pt-BR")}</strong><br/></>}
+                        • Pedido mediante entrada de <strong style={{ color: "#fff" }}>50% do valor</strong><br/>
+                        {dataLimiteRestante && <>• Restante até <strong style={{ color: "#fff" }}>{new Date(dataLimiteRestante + "T12:00:00").toLocaleDateString("pt-BR")}</strong></>}
                       </div>
+                    </div>
                     </div>
                   )}
 
