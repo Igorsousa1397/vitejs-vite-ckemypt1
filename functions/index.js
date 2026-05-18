@@ -209,7 +209,7 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
 });
 
 // ── CRIAR SERVO ──────────────────────────────────────────────────────────────
-exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USER', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'] }, async (req, res) => {
+exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'] }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { email, nome, perfil, funcoes } = req.body.data || req.body;
@@ -230,15 +230,6 @@ exports.criarServo = onRequest({ cors: true, secrets: ['WEB_API_KEY', 'GMAIL_USE
       pago: false,
       primeiro: true,
     });
-
-    const apiKey = process.env.WEB_API_KEY;
-    const emailRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
-    });
-    const emailData = await emailRes.json();
-    console.log('Email API response:', JSON.stringify(emailData));
 
     try {
       const transporter = nodemailer.createTransport({
