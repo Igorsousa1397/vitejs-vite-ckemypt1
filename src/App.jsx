@@ -9898,6 +9898,8 @@ function CozinhaV({ edit, t, users }) {
     const [savingData, setSavingData] = useState(false);
     const [dataLimitePedidoLocal, setDataLimitePedidoLocal] = useState(dataLimitePedido || "");
     const [dataLimiteRestanteLocal, setDataLimiteRestanteLocal] = useState(dataLimiteRestante || "");
+    const [editPedido, setEditPedido] = useState(false);
+    const [editRestante, setEditRestante] = useState(false);
 
     useEffect(() => { setDataLimitePedidoLocal(dataLimitePedido || ""); }, [dataLimitePedido]);
     useEffect(() => { setDataLimiteRestanteLocal(dataLimiteRestante || ""); }, [dataLimiteRestante]);
@@ -10075,33 +10077,49 @@ function CozinhaV({ edit, t, users }) {
         {/* DATAS DE PAGAMENTO UNIFORME */}
         <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
           <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Condições de Pagamento</div>
-          
-          <div style={{ marginBottom: 10 }}>
+
+          {/* Prazo para Pedido */}
+          <div style={{ marginBottom: 14 }}>
             <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Pedido</div>
-            <input
-              type="date"
-              value={dataLimitePedidoLocal}
-              onChange={async (e) => {
-                setDataLimitePedidoLocal(e.target.value);
-                await setDoc(doc(db, "config", "uniformes"), { dataLimitePedido: e.target.value }, { merge: true });
-                t("Salvo!");
-              }}
-              style={{ ...I, marginBottom: 0 }}
-            />
+            {dataLimitePedidoLocal && !editPedido ? (
+              <>
+                <div style={{ color: G.td, fontSize: 16, padding: "10px 0", marginBottom: 10 }}>
+                  {new Date(dataLimitePedidoLocal + "T12:00:00").toLocaleDateString("pt-BR")}
+                </div>
+                <button onClick={() => setEditPedido(true)} style={BK({ width: "100%", padding: 12, borderRadius: 12 })}>Alterar Data</button>
+              </>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <input type="date" value={dataLimitePedidoLocal} onChange={e => setDataLimitePedidoLocal(e.target.value)} style={{ ...I, flex: 1, marginBottom: 0 }} />
+                <button onClick={async () => {
+                  await setDoc(doc(db, "config", "uniformes"), { dataLimitePedido: dataLimitePedidoLocal }, { merge: true });
+                  setEditPedido(false);
+                  t("Salvo!");
+                }} style={BG({ padding: "12px 16px", borderRadius: 12 })}>✓</button>
+              </div>
+            )}
           </div>
 
+          {/* Prazo para Restante */}
           <div>
             <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Restante (50%)</div>
-            <input
-              type="date"
-              value={dataLimiteRestanteLocal}
-              onChange={async (e) => {
-                setDataLimiteRestanteLocal(e.target.value);
-                await setDoc(doc(db, "config", "uniformes"), { dataLimiteRestante: e.target.value }, { merge: true });
-                t("Salvo!");
-              }}
-              style={{ ...I, marginBottom: 0 }}
-            />
+            {dataLimiteRestanteLocal && !editRestante ? (
+              <>
+                <div style={{ color: G.td, fontSize: 16, padding: "10px 0", marginBottom: 10 }}>
+                  {new Date(dataLimiteRestanteLocal + "T12:00:00").toLocaleDateString("pt-BR")}
+                </div>
+                <button onClick={() => setEditRestante(true)} style={BK({ width: "100%", padding: 12, borderRadius: 12 })}>Alterar Data</button>
+              </>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <input type="date" value={dataLimiteRestanteLocal} onChange={e => setDataLimiteRestanteLocal(e.target.value)} style={{ ...I, flex: 1, marginBottom: 0 }} />
+                <button onClick={async () => {
+                  await setDoc(doc(db, "config", "uniformes"), { dataLimiteRestante: dataLimiteRestanteLocal }, { merge: true });
+                  setEditRestante(false);
+                  t("Salvo!");
+                }} style={BG({ padding: "12px 16px", borderRadius: 12 })}>✓</button>
+              </div>
+            )}
           </div>
         </div>
 
