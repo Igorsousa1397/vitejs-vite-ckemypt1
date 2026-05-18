@@ -3170,16 +3170,14 @@ export default function App() {
             setEsc(s.docs.map((d) => ({ id: d.id, ...d.data() })));
           });
 
-          unsubConfigRef.current = onSnapshot(
-            doc(db, "config", "uniformes"),
-            (s) => {
-              if (s.exists()) {
-                if (s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
-                if (s.data().dataLimitePagamento)
-                  setDataLimitePagamento(s.data().dataLimitePagamento);
-              }
-            },
-          );
+          unsubConfigRef.current = onSnapshot(doc(db, "config", "uniformes"), (s) => {
+            if (s.exists()) {
+              if (s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
+              if (s.data().dataLimitePagamento) setDataLimitePagamento(s.data().dataLimitePagamento);
+              if (s.data().dataLimitePedido) setDataLimitePedido(s.data().dataLimitePedido);
+              if (s.data().dataLimiteRestante) setDataLimiteRestante(s.data().dataLimiteRestante);
+            }
+          });
 
           unsubUsersRef.current = onSnapshot(collection(db, "users"), (s) => {
             setUsers(s.docs.map((d) => {
@@ -9890,6 +9888,17 @@ function CozinhaV({ edit, t, users }) {
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
+    const [dataLimitePedido, setDataLimitePedido] = useState("");
+    const [dataLimiteRestante, setDataLimiteRestante] = useState("");
+
+    useEffect(() => {
+      getDoc(doc(db, "config", "uniformes")).then(s => {
+        if (s.exists()) {
+          if (s.data().dataLimitePedido) setDataLimitePedido(s.data().dataLimitePedido);
+          if (s.data().dataLimiteRestante) setDataLimiteRestante(s.data().dataLimiteRestante);
+        }
+      });
+    }, []);
 
     const aprovar = async (userId) => {
       await setDoc(
@@ -10052,6 +10061,39 @@ function CozinhaV({ edit, t, users }) {
             pendente{pendentes > 1 ? "s" : ""}
           </div>
         )}
+
+        {/* DATAS DE PAGAMENTO UNIFORME */}
+        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+          <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Condições de Pagamento</div>
+          
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Pedido</div>
+            <input
+              type="date"
+              value={dataLimitePedido}
+              onChange={async (e) => {
+                setDataLimitePedido(e.target.value);
+                await setDoc(doc(db, "config", "uniformes"), { dataLimitePedido: e.target.value }, { merge: true });
+                t("Salvo!");
+              }}
+              style={{ ...I, marginBottom: 0 }}
+            />
+          </div>
+
+          <div>
+            <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Restante (50%)</div>
+            <input
+              type="date"
+              value={dataLimiteRestante}
+              onChange={async (e) => {
+                setDataLimiteRestante(e.target.value);
+                await setDoc(doc(db, "config", "uniformes"), { dataLimiteRestante: e.target.value }, { merge: true });
+                t("Salvo!");
+              }}
+              style={{ ...I, marginBottom: 0 }}
+            />
+          </div>
+        </div>
 
         {/* RESUMO */}
         {uniFiltrado.length > 0 && (
