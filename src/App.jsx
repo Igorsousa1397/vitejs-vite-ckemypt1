@@ -4439,8 +4439,8 @@ export default function App() {
     const slides = [];
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
-    if ((!meuPedido || meuPedido.status === "aberto") && dataLimiteUni) slides.push({ tipo: "uniforme" });
-    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
+    if (meuPedido?.status === "aberto" && dataLimiteUni) slides.push({ tipo: "uniforme" });
+    if ((!meuPedido || (!meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral)) && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
 
     useEffect(() => {
