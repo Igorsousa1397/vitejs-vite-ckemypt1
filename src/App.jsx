@@ -8467,7 +8467,15 @@ function CozinhaV({ edit, t, users }) {
     const upd = (id, fn) =>
       setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento || "");
-    const [savingDataPag, setSavingDataPag] = useState(false);
+    const [savingData, setSavingData] = useState(false);
+
+    const salvarData = async () => {
+      if (!dataTemp) return;
+      setSavingData(true);
+      setDataLimite(dataTemp);
+      await setDoc(doc(db, "config", "uniformes"), { dataLimite: dataTemp }, { merge: true });
+      setSavingData(false);
+    };
 
     const salvarDataPag = async () => {
       if (!dataTempPag) {
@@ -9885,15 +9893,6 @@ function CozinhaV({ edit, t, users }) {
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
-
-    useEffect(() => {
-      getDoc(doc(db, "config", "uniformes")).then(s => {
-        if (s.exists()) {
-          if (s.data().dataLimitePedido) setDataLimitePedido(s.data().dataLimitePedido);
-          if (s.data().dataLimiteRestante) setDataLimiteRestante(s.data().dataLimiteRestante);
-        }
-      });
-    }, []);
 
     const aprovar = async (userId) => {
       await setDoc(
