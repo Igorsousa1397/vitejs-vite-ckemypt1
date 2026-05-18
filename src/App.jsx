@@ -9894,6 +9894,8 @@ function CozinhaV({ edit, t, users }) {
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
     const [savingData, setSavingData] = useState(false);
+    const [dataLimitePedidoLocal, setDataLimitePedidoLocal] = useState(dataLimitePedido || "");
+    const [dataLimiteRestanteLocal, setDataLimiteRestanteLocal] = useState(dataLimiteRestante || "");
 
     const salvarData = async () => {
       if (!dataTemp) return;
@@ -10073,9 +10075,9 @@ function CozinhaV({ edit, t, users }) {
             <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Pedido</div>
             <input
               type="date"
-              value={dataLimitePedido}
+              value={dataLimitePedidoLocal}
               onChange={async (e) => {
-                setDataLimitePedido(e.target.value);
+                setDataLimitePedidoLocal(e.target.value);
                 await setDoc(doc(db, "config", "uniformes"), { dataLimitePedido: e.target.value }, { merge: true });
                 t("Salvo!");
               }}
@@ -10087,9 +10089,9 @@ function CozinhaV({ edit, t, users }) {
             <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Restante (50%)</div>
             <input
               type="date"
-              value={dataLimiteRestante}
+              value={dataLimiteRestanteLocal}
               onChange={async (e) => {
-                setDataLimiteRestante(e.target.value);
+                setDataLimiteRestanteLocal(e.target.value);
                 await setDoc(doc(db, "config", "uniformes"), { dataLimiteRestante: e.target.value }, { merge: true });
                 t("Salvo!");
               }}
