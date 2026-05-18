@@ -8934,9 +8934,9 @@ function CozinhaV({ edit, t, users }) {
     const precoItem = (item, tam) => {
       if (!tam) return 0;
       const grande = ["G1", "G2", "G3", "G4"].includes(tam);
-      if (item === "camisa") return grande ? 43 : 37;
-      if (item === "blusa") return grande ? 105 : 90;
-      if (item === "calca") return grande ? 75 : 70;
+      if (item === "camisa") return grande ? 47 : 43;
+      if (item === "blusa") return grande ? 115 : 105;
+      if (item === "calca") return grande ? 90 : 80;
       return 0;
     };
 
