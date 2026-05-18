@@ -9893,6 +9893,15 @@ function CozinhaV({ edit, t, users }) {
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
+    const [savingData, setSavingData] = useState(false);
+
+    const salvarData = async () => {
+      if (!dataTemp) return;
+      setSavingData(true);
+      setDataLimite(dataTemp);
+      await setDoc(doc(db, "config", "uniformes"), { dataLimite: dataTemp }, { merge: true });
+      setSavingData(false);
+    };
 
     const aprovar = async (userId) => {
       await setDoc(
