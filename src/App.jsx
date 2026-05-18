@@ -3072,6 +3072,8 @@ export default function App() {
   const [quartoTab, setQuartoTab] = useState("M");
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
+  const [dataLimitePedido, setDataLimitePedido] = useState("");
+  const [dataLimiteRestante, setDataLimiteRestante] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
   const [permissoes, setPermissoes] = useState({});
   const [backTab, setBackTab] = useState("grupos");
