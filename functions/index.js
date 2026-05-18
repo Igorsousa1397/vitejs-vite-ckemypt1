@@ -30,7 +30,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
 
   const { encontristaId, nome, email, tipo } = req.body;
   const isCredito = tipo === 'credito' || tipo === 'servo_credito';
-  const valor = tipo === 'credito' ? 378.00 : tipo === 'servo_pix' ? 220.00 : tipo === 'servo_credito' ? 231.00 : 360.00;
+  const valor = tipo === 'credito' ? 378.00 : tipo === 'servo_pix' ? 200.00 : tipo === 'servo_credito' ? 210.00 : 360.00;
 
   if (!encontristaId) return res.status(400).send('encontristaId obrigatório');
   const encSnap = await admin.firestore().collection('encontristas').doc(encontristaId).get();
