@@ -9179,75 +9179,17 @@ function CozinhaV({ edit, t, users }) {
                         </button>
                       ))}
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 20,
-                        marginBottom: 14,
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          !bloqueado &&
-                          setForm({
-                            ...form,
-                            qtdCamisas: Math.max(0, (form.qtdCamisas || 0) - 1),
-                          })
-                        }
-                        style={{
-                          ...BK({
-                            padding: "6px 18px",
-                            borderRadius: 10,
-                            fontSize: 20,
-                            fontWeight: 700,
-                          }),
-                          cursor: bloqueado ? "default" : "pointer",
-                        }}
-                      >
-                        −
-                      </button>
-                      <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: "center" }}>
-                        {form.qtdCamisas || 0}
-                      </span>
-                      <button
-                        onClick={() =>
-                          !bloqueado &&
-                          setForm({
-                            ...form,
-                            qtdCamisas: Math.min(3, (form.qtdCamisas || 0) + 1),
-                          })
-                        }
-                        style={{
-                          ...BK({
-                            padding: "6px 18px",
-                            borderRadius: 10,
-                            fontSize: 20,
-                            fontWeight: 700,
-                          }),
-                          cursor: bloqueado ? "default" : "pointer",
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>
-                      Nome na Camiseta
-                    </div>
-                    <input
-                      placeholder="Primeiro nome e sobrenome"
-                      value={form.nomeCamiseta || ""}
-                      disabled={bloqueado}
-                      onChange={(e) =>
-                        setForm({ ...form, nomeCamiseta: e.target.value })
-                      }
-                      style={{
-                        ...I,
-                        marginBottom: 0,
-                        opacity: bloqueado ? 0.6 : 1,
-                        cursor: bloqueado ? "default" : "text",
-                      }}
-                    />
+                    {form.camisa && (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 14 }}>
+                          <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.max(0, (form.qtdCamisas || 0) - 1) })} style={{ ...BK({ padding: "6px 18px", borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? "default" : "pointer" }}>−</button>
+                          <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: "center" }}>{form.qtdCamisas || 1}</span>
+                          <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.min(3, (form.qtdCamisas || 0) + 1) })} style={{ ...BK({ padding: "6px 18px", borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? "default" : "pointer" }}>+</button>
+                        </div>
+                        <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>Nome na Camiseta</div>
+                        <input placeholder="Primeiro nome e sobrenome" value={form.nomeCamiseta || ""} disabled={bloqueado} onChange={(e) => setForm({ ...form, nomeCamiseta: e.target.value })} style={{ ...I, marginBottom: 0, opacity: bloqueado ? 0.6 : 1, cursor: bloqueado ? "default" : "text" }} />
+                      </>
+                    )}
                   </div>
 
                   {/* CALÇA */}
