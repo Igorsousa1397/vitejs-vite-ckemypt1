@@ -9908,8 +9908,8 @@ function CozinhaV({ edit, t, users }) {
               : "qtdBlusas";
         return {
           ...a,
-          [tm]: uniFiltrado.filter((u) => u[key] === tm)
-            .reduce((s, u) => s + (u[qtdKey] || 1), 0),
+          [tm]: uniFiltrado.filter((u) => u[key] === tm && u[key] !== "")
+           .reduce((s, u) => s + (u[qtdKey] || 1), 0),
         };
       }, {});
 
