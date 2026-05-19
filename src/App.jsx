@@ -8802,11 +8802,12 @@ function CozinhaV({ edit, t, users }) {
           <Acc
             key={i}
             title={u.nome}
-            ax={u.perfil === "servo" 
-            ? (u.pago ? G.green : "#ff3b30") 
-            : u.perfil === "staff" || u.perfil === "lider_staff"
-              ? (u.pago ? G.green : "#ff3b30")
-              : (u.pago ? G.green : "#ff3b30")}
+            ax={
+              u.perfil === "pastor" ? (u.pago ? "#bf5af2" : "#bf5af2") :
+              u.perfil === "lider_geral" ? (u.pago ? "#0a84ff" : "#0a84ff") :
+              u.perfil?.startsWith("lider_") ? (PERFIS[u.perfil]?.c || "#ff9f0a") :
+              u.pago ? G.green : "#ff3b30"
+            }
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 {u.primeiro && (
