@@ -8805,8 +8805,8 @@ function CozinhaV({ edit, t, users }) {
             ax={u.perfil === "servo" 
             ? (u.pago ? G.green : "#ff3b30") 
             : u.perfil === "staff" || u.perfil === "lider_staff"
-              ? (u.pago ? "#ff9f0a" : "#ff3b30")
-              : (PERFIS[u.perfil]?.c || G.green)}
+              ? (u.pago ? G.green : "#ff3b30")
+              : (u.pago ? G.green : "#ff3b30")}
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 {u.primeiro && (
