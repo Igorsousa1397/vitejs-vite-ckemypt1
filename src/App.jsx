@@ -4438,6 +4438,9 @@ export default function App() {
     const meuUniPagoSinal = meuPedido?.pagoSinal === true;
     const meuUniPagoIntegral = meuPedido?.pagoIntegral === true;
 
+    const hoje2 = new Date();
+    const dataEvento = new Date("2026-06-26");
+
     const slides = [];
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
@@ -4445,6 +4448,7 @@ export default function App() {
     if (!meuPedido && dataLimiteUni) slides.push({ tipo: "uniforme_sem_pedido" });
     if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
+    if (hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
 
     useEffect(() => {
       if (slides.length <= 1) return;
@@ -4567,6 +4571,25 @@ export default function App() {
                         </div>
                         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
                           Sinal confirmado · Toque para pagar o restante
+                        </div>
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "jejum" && (
+                      <div style={{
+                        background: "rgba(0,200,81,.08)",
+                        border: "1px solid rgba(0,200,81,.25)",
+                        borderRadius: 14,
+                        padding: "13px 14px",
+                      }}>
+                        <div style={{ color: G.green, fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                          🙏 Jejum
+                        </div>
+                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+                          Lembre-se do seu jejum!
+                        </div>
+                        <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.6 }}>
+                          • Retire ao menos <strong style={{ color: "#fff" }}>1 refeição</strong> por dia<br/>
+                          • Mínimo de <strong style={{ color: "#fff" }}>6h de jejum</strong>
                         </div>
                       </div>
                     )}
