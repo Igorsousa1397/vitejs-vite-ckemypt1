@@ -9267,7 +9267,7 @@ function CozinhaV({ edit, t, users }) {
                         marginBottom: 10,
                       }}
                     >
-                      Calca
+                      Calça
                     </div>
                     <div
                       style={{
@@ -9612,7 +9612,7 @@ function CozinhaV({ edit, t, users }) {
                           }}
                         >
                           <span style={{ color: G.td, fontSize: 13 }}>
-                            Calca {form.calca}
+                            Calça {form.calca}
                           </span>
                           <span
                             style={{
