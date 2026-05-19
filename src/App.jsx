@@ -8584,7 +8584,7 @@ function CozinhaV({ edit, t, users }) {
             ? (u.perfil === "servo" || (u.perfil && u.perfil.startsWith("lider_")))
             : (u.perfil === "staff" || u.perfil === "lider_staff")) &&
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
-    );
+    ).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     return (
       <div>
