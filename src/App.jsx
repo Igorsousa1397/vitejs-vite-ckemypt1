@@ -9199,16 +9199,8 @@ function CozinhaV({ edit, t, users }) {
                       >
                         −
                       </button>
-                      <span
-                        style={{
-                          color: G.t,
-                          fontSize: 24,
-                          fontWeight: 800,
-                          minWidth: 24,
-                          textAlign: "center",
-                        }}
-                      >
-                        {form.qtdCamisas || 1}
+                      <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: "center" }}>
+                        {form.qtdCamisas || 0}
                       </span>
                       <button
                         onClick={() =>
