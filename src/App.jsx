@@ -8987,9 +8987,9 @@ function CozinhaV({ edit, t, users }) {
         camisa: form.camisa,
         qtdCamisas: form.qtdCamisas || 0,
         calca: form.calca || "",
-        qtdCalcas: form.qtdCalcas || 1,
+        qtdCalcas: form.calca ? (form.qtdCalcas || 1) : 0,
         blusa: form.blusa || "",
-        qtdBlusas: form.qtdBlusas || 1,
+        qtdBlusas: form.blusa ? (form.qtdBlusas || 1) : 0,
         status: "bloqueado",
         data: new Date().toLocaleString("pt-BR"),
       };
