@@ -8816,7 +8816,7 @@ function CozinhaV({ edit, t, users }) {
                 {!u.ativo && (
                   <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
                 )}
-                {u.perfil === "servo" && u.pago && (
+                {u.pago && (
                   <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />
                 )}
                 <Pill
