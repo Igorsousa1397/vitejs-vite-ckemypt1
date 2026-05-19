@@ -10110,11 +10110,6 @@ function CozinhaV({ edit, t, users }) {
                     }}
                   >
                     {label}
-                    {key === "camisa" && (
-                      <span style={{ color: G.tm, marginLeft: 8 }}>
-                        (total: {uniFiltrado.reduce((a, u) => a + (u.qtdCamisas || 0), 0)})
-                      </span>
-                    )}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {TAMANHOS.filter((tm) => r[tm] > 0).map((tm) => (
