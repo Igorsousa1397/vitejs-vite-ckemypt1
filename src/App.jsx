@@ -9139,6 +9139,17 @@ function CozinhaV({ edit, t, users }) {
                         marginBottom: 14,
                       }}
                     >
+                      <button
+                        onClick={() => !bloqueado && setForm({ ...form, camisa: "", qtdCamisas: 0 })}
+                        style={{
+                          ...BK({ padding: "7px 13px", borderRadius: 50, fontSize: 12 }),
+                          borderColor: !form.camisa ? "rgba(255,59,48,.5)" : "#2a2a2a",
+                          color: !form.camisa ? "#ff6b6b" : G.td,
+                          cursor: bloqueado ? "default" : "pointer",
+                        }}
+                      >
+                        Nao quero
+                      </button>
                       {TAMANHOS.map((tm) => (
                         <button
                           key={tm}
@@ -9170,6 +9181,11 @@ function CozinhaV({ edit, t, users }) {
                     </div>
                     <div style={{ color: G.tm, fontSize: 11, marginBottom: 8 }}>
                       Quantidade (max. 3)
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 14 }}>
+                      <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.max(0, (form.qtdCamisas || 0) - 1) })} style={{ ...BK({ padding: "6px 18px", borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? "default" : "pointer" }}>−</button>
+                      <span style={{ color: G.t, fontSize: 24, fontWeight: 800, minWidth: 24, textAlign: "center" }}>{form.qtdCamisas || 1}</span>
+                      <button onClick={() => !bloqueado && setForm({ ...form, qtdCamisas: Math.min(3, (form.qtdCamisas || 0) + 1) })} style={{ ...BK({ padding: "6px 18px", borderRadius: 10, fontSize: 20, fontWeight: 700 }), cursor: bloqueado ? "default" : "pointer" }}>+</button>
                     </div>
                     <div
                       style={{
