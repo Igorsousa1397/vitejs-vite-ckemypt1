@@ -4513,7 +4513,6 @@ export default function App() {
             <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
               Shalom, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
             </div>
-            <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Encontro com Deus</div>
           </div>
 
           {/* 3 quick cards */}
