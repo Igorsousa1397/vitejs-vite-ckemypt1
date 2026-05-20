@@ -7705,6 +7705,11 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 )}
                 <div style={{ color: G.tm, fontSize: 11, marginTop: 4 }}>
                   🕐 {o.hr}
+                  {o.res && o.resolvido_por && (
+                    <div style={{ color: G.green, fontSize: 11, marginTop: 2 }}>
+                      ✓ Resolvido por {o.resolvido_por} às {o.resolvido_hr}
+                    </div>
+                  )}
                 </div>
               </div>
               <div
@@ -7719,7 +7724,11 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 10 }}>
                 <button
                   onClick={async () => {
-                    await setDoc(doc(db, "ocorrencias", String(o.id)), { res: !o.res }, { merge: true });
+                    await setDoc(doc(db, "ocorrencias", String(o.id)), { 
+                      res: !o.res,
+                      resolvido_por: !o.res ? user.nome : null,
+                      resolvido_hr: !o.res ? new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null,
+                    }, { merge: true });
                   }}
                   style={{
                     background: o.res ? "rgba(0,200,81,.1)" : "rgba(255,159,10,.1)",
