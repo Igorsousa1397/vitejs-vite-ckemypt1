@@ -4452,11 +4452,16 @@ export default function App() {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
+  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
     const [diasAbertos, setDiasAbertos] = useState({});
     const touchStartX = useRef(0);
+    const [avsVistos, setAvsVistos] = useState(() => {
+      try { return JSON.parse(localStorage.getItem(`avs_vistos_${user.id}`) || "[]"); } catch { return []; }
+    });
+
+    const avsNaoVistos = avs.filter(a => !avsVistos.includes(a.id)).length;
 
     const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
     const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
@@ -4513,12 +4518,27 @@ export default function App() {
 
           {/* 3 quick cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
-            {[["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]].map(([ic, l, p]) => (
-              <div key={p} onClick={() => setPg(p)} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 10px", textAlign: "center", cursor: "pointer" }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{l}</div>
-              </div>
-            ))}
+            {[["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]].map(([ic, l, p]) => {
+              const badge = p === "savs" ? avsNaoVistos : p === "sinfo" ? ocorr.length : 0;
+              return (
+                <div key={p} onClick={() => {
+                  setPg(p);
+                  if (p === "savs") {
+                    const todos = avs.map(a => a.id);
+                    setAvsVistos(todos);
+                    localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
+                  }
+                }} style={{ position: "relative", background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 10px", textAlign: "center", cursor: "pointer" }}>
+                  {badge > 0 && (
+                    <div style={{ position: "absolute", top: 6, right: 6, background: "#ff3b30", borderRadius: 50, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", padding: "0 4px" }}>
+                      {badge}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
+                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{l}</div>
+                </div>
+              );
+            })}
           </div>
 
           <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"], ["minfo", "Ministrações"]]} val={tab} set={setTab} />
@@ -4766,7 +4786,7 @@ export default function App() {
                   },
                   {
                     titulo: "Envio", dia: "Quinta · 23:30",
-                    resumo: "Oração com todos os servos antes da partida. É muito importante que nenhum servo falte — a oração em si já é o ato e a ministração.",
+                    resumo: "Oração com todos os servos antes da partida. É muito importante que nenhum servo falte",
                     ato: null,
                   },
                   {
