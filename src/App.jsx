@@ -7737,18 +7737,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 >
                   {o.res ? "✓ OK" : "Resolver"}
                 </button>
-                <span
-                  onClick={async () => {
-                    await setDoc(doc(db, "ocorrencias", String(o.id)), { res: !o.res }, { merge: true });
-                  }}
-                  style={{
-                    color: "rgba(255,59,48,.35)",
-                    cursor: "pointer",
-                    fontSize: 11,
-                  }}
-                >
-                  Remover
-                </span>
               </div>
             </div>
           </div>
