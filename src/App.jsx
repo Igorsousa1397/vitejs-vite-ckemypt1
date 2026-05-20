@@ -3049,7 +3049,7 @@ export default function App() {
   const [rest, setRest] = useState(REST_INIT);
   const [ck, setCk] = useState(CK_INIT);
   const [img, setImg] = useState([]);
-  const [ocorr, setOcorr] = useState([]);
+  const unsubOcorrRef = useRef(null);
   const [ach, setAch] = useState([]);
   const [crac, setCrac] = useState([]);
   const [sau, setSau] = useState([]);
@@ -3251,6 +3251,10 @@ export default function App() {
             setSau(s.docs.map((d) => ({ id: d.id, ...d.data() })));
           });
 
+          unsubOcorrRef.current = onSnapshot(collection(db, "ocorrencias"), (s) => {
+            setOcorr(s.docs.map(d => d.data()).sort((a, b) => b.id - a.id));
+          });
+          
           unsubPermRef.current = onSnapshot(collection(db, "permissoes"), (s) => {
             const p = {};
             s.docs.forEach(d => { p[d.id] = d.data(); });
@@ -7556,18 +7560,10 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   function InfoV({ ocorr, setOcorr, t, notifyAll }) {
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({ tipo: "", local: "", desc: "" });
-    const registrar = () => {
+    const registrar = async () => {
       if (!f.tipo) return;
-      const nova = {
-        id: Date.now(),
-        ...f,
-        res: false,
-        hr: new Date().toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setOcorr([nova, ...ocorr]);
+      const nova = { id: Date.now(), ...f, res: false, hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) };
+      await setDoc(doc(db, "ocorrencias", String(nova.id)), nova);
       notifyAll(`⚠️ Ocorrência: ${f.tipo}${f.local ? " — " + f.local : ""}`);
       setF({ tipo: "", local: "", desc: "" });
       setSh(false);
@@ -7623,7 +7619,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 "🛏️ Cama quebrada",
                 "💡 Elétrico",
                 "🚪 Porta",
-                "🌡️ Temperatura",
                 "⚠️ Outro",
               ].map((x) => (
                 <option key={x}>{x}</option>
@@ -7721,13 +7716,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 }}
               >
                 <button
-                  onClick={() =>
-                    setOcorr(
-                      ocorr.map((x) =>
-                        x.id === o.id ? { ...x, res: !x.res } : x,
-                      ),
-                    )
-                  }
+                  onClick={async () => {
+                    await deleteDoc(doc(db, "ocorrencias", String(o.id)));
+                  }}
                   style={{
                     background: o.res
                       ? "rgba(0,200,81,.1)"
@@ -7746,7 +7737,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   {o.res ? "✓ OK" : "Resolver"}
                 </button>
                 <span
-                  onClick={() => setOcorr(ocorr.filter((x) => x.id !== o.id))}
+                  onClick={async () => {
+                    await setDoc(doc(db, "ocorrencias", String(o.id)), { res: !o.res }, { merge: true });
+                  }}
                   style={{
                     color: "rgba(255,59,48,.35)",
                     cursor: "pointer",
