@@ -4426,6 +4426,7 @@ export default function App() {
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
     const [diasAbertos, setDiasAbertos] = useState({});
+    const touchStartX = useRef(0);
 
     const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
     const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
@@ -4496,7 +4497,17 @@ export default function App() {
             {tab === "mins" && (
               <div>
                 {slides.length > 0 && (
-                  <div style={{ marginBottom: 14 }}>
+                    <div
+                      style={{ marginBottom: 14 }}
+                      onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+                      onTouchEnd={e => {
+                        const dx = e.changedTouches[0].clientX - touchStartX.current;
+                        if (Math.abs(dx) > 50) {
+                          if (dx < 0) setSlide(s => (s + 1) % slides.length);
+                          else setSlide(s => (s - 1 + slides.length) % slides.length);
+                        }
+                      }}
+                    >
                     {slides.length > 1 && (
                       <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 8 }}>
                         {slides.map((_, i) => (
