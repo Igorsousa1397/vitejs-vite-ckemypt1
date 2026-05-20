@@ -3548,6 +3548,9 @@ export default function App() {
           ←
         </button>
       )}
+          {pg === "home" ? (
+      <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85, position: "absolute", left: "50%", transform: "translateX(-50%)" }} />
+    ) : (
       <span
         style={{
           flex: 1,
@@ -3559,8 +3562,9 @@ export default function App() {
           whiteSpace: "nowrap",
         }}
       >
-        {LABELS[pg] || "servos."}
+        {LABELS[pg]}
       </span>
+    )}
       <button
         onClick={async () => {
           const token = await iniciarNotificacoes(user?.id);
