@@ -3051,6 +3051,7 @@ export default function App() {
   const [img, setImg] = useState([]);
   const unsubOcorrRef = useRef(null);
   const [ach, setAch] = useState([]);
+  const [ocorr, setOcorr] = useState([]);
   const [crac, setCrac] = useState([]);
   const [sau, setSau] = useState([]);
   const [avs, setAvs] = useState([]);
@@ -3254,7 +3255,7 @@ export default function App() {
           unsubOcorrRef.current = onSnapshot(collection(db, "ocorrencias"), (s) => {
             setOcorr(s.docs.map(d => d.data()).sort((a, b) => b.id - a.id));
           });
-          
+
           unsubPermRef.current = onSnapshot(collection(db, "permissoes"), (s) => {
             const p = {};
             s.docs.forEach(d => { p[d.id] = d.data(); });
