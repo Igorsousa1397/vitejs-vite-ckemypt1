@@ -8835,7 +8835,7 @@ function CozinhaV({ edit, t, users }) {
                 <Pill
                   c={PERFIS[u.perfil]?.l || u.perfil}
                   bg={`${PERFIS[u.perfil]?.c || "#636366"}18`}
-                  tc={PERFIS[u.perfil]?.c || "#fff"}
+                  tc={u.perfil === "servo" ? "#fff" : (PERFIS[u.perfil]?.c || "#fff")}
                 />
               </div>
             }
