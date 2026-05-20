@@ -539,6 +539,7 @@ const AVISOS_TEMPLATES = [
   { txt: "🍽️ Jantar às 20h." },
   { txt: "🍽️ Almoço às 13h30. Retorno às 15h." },
   { txt: "📢 Recados pós encontro. Obrigado por servir!" },
+  { txt: "🙏 Jejum - Lembre-se: retire ao menos 1 refeição por dia e mantenha 6h de jejum. Deus honra cada sacrifício! 💚" },
 ];
 
 const REST_INIT = [
