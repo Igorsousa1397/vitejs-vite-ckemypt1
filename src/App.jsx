@@ -127,6 +127,7 @@ const PERFIS = {
   lider_staff: { l: "Líder Staff", c: "#ff9f0a" },
   lider_templo: { l: "Líder Templo", c: "#64b5f6" },
   pastor: { l: "Pastor", c: "#bf5af2" },
+  pastor_auxiliar: { l: "Pastor Auxiliar", c: "#bf5af2" },
   servo: { l: "Servo", c: "#636366" },
   staff: { l: "Staff", c: "#ff9f0a" },
   lider_som: { l: "Líder Som", c: "#30d158" },
@@ -4443,7 +4444,7 @@ export default function App() {
 
     const slides = [];
     if (prox) slides.push({ tipo: "min", data: prox });
-    if (!pago && dataLimitePagamento) slides.push({ tipo: "pagamento" });
+    if (!pago && dataLimitePagamento && role !== "pastor_auxiliar") slides.push({ tipo: "pagamento" });
     if (meuPedido?.status === "aberto" && dataLimiteUni) slides.push({ tipo: "uniforme" });
     if (!meuPedido && dataLimiteUni) slides.push({ tipo: "uniforme_sem_pedido" });
     if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
@@ -10836,6 +10837,7 @@ function CozinhaV({ edit, t, users }) {
       lider_staff: "Operacional",
       lider_templo: "Permissões customizadas",
       pastor: "Edição geral",
+      pastor_auxiliar: "Somente visualização",
       servo: "Somente visualização",
       staff: "Operacional",
       lider_som: "Líder Som",
