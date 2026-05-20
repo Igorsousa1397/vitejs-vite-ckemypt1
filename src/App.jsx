@@ -4082,6 +4082,7 @@ export default function App() {
         {pg === "home" && (
           <HomeV
             role={role}
+            user={user}
             ck={ck}
             mins={mins}
             ocorr={ocorr}
@@ -4852,7 +4853,7 @@ export default function App() {
     );
   }
   // ── HOME ─────────────────────────────────────────────────────────────────────
-function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users }) {
+function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users }) {
   const [tab, setTab] = useState("dash");
   const [av, setAv] = useState("");
   const [filtroDias, setFiltroDias] = useState(7);
@@ -4917,6 +4918,13 @@ function HomeV({ role, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, 
 
   return (
     <div>
+      {/* Saudação */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
+          Shalom, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
+        </div>
+        <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Encontro com Deus</div>
+      </div>
       {/* Cards operacionais */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
         {[
