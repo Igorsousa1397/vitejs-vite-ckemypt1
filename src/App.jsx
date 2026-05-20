@@ -8816,6 +8816,7 @@ function CozinhaV({ edit, t, users }) {
             title={u.nome}
             ax={
               u.perfil === "pastor" ? (u.pago ? "#bf5af2" : "#bf5af2") :
+              u.perfil === "pastor_auxiliar" ? "#9b59b6" :
               u.perfil === "lider_geral" ? (u.pago ? "#0a84ff" : "#0a84ff") :
               u.perfil?.startsWith("lider_") ? (PERFIS[u.perfil]?.c || "#ff9f0a") :
               u.pago ? G.green : "#ff3b30"
