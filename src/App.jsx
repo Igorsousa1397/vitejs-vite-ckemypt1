@@ -4670,7 +4670,7 @@ export default function App() {
               <div>
                 {!temEscala ? (
                   <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
-                    Sem atribuições. Fale com o admin.
+                    Sem atribuições. Aguarde.
                   </div>
                 ) : (
                   DIAS.map(dia => {
