@@ -7716,17 +7716,14 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   alignItems: "flex-end",
                 }}
               >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 10 }}>
                 <button
                   onClick={async () => {
                     await setDoc(doc(db, "ocorrencias", String(o.id)), { res: !o.res }, { merge: true });
                   }}
                   style={{
-                    background: o.res
-                      ? "rgba(0,200,81,.1)"
-                      : "rgba(255,159,10,.1)",
-                    border: `1px solid ${
-                      o.res ? "rgba(0,200,81,.3)" : "rgba(255,159,10,.3)"
-                    }`,
+                    background: o.res ? "rgba(0,200,81,.1)" : "rgba(255,159,10,.1)",
+                    border: `1px solid ${o.res ? "rgba(0,200,81,.3)" : "rgba(255,159,10,.3)"}`,
                     color: o.res ? G.green : "#ff9f0a",
                     borderRadius: 9,
                     padding: "5px 10px",
@@ -7737,6 +7734,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 >
                   {o.res ? "✓ OK" : "Resolver"}
                 </button>
+              </div>
               </div>
             </div>
           </div>
