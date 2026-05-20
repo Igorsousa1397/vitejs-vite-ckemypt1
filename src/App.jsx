@@ -4511,7 +4511,7 @@ export default function App() {
         <div style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-              Olá, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
+              Shalom, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
             </div>
             <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Encontro com Deus</div>
           </div>
