@@ -4422,6 +4422,35 @@ export default function App() {
       </div>
     );
   }
+
+  function MinCard({ m }) {
+    const [aberto, setAberto] = useState(false);
+    return (
+      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, overflow: "hidden" }}>
+        <div onClick={() => setAberto(!aberto)} style={{ padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+          <div>
+            <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{m.titulo}</div>
+            <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{m.dia}</div>
+          </div>
+          <span style={{ color: G.tm, fontSize: 12, display: "inline-block", transform: aberto ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+        </div>
+        {aberto && (
+          <div style={{ borderTop: `1px solid ${G.cb}`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <div style={{ color: G.green, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Resumo</div>
+              <div style={{ color: G.td, fontSize: 13, lineHeight: 1.6 }}>{m.resumo}</div>
+            </div>
+            {m.ato && (
+              <div>
+                <div style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Ato</div>
+                <div style={{ color: G.td, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-line" }}>{m.ato}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
   function ServoHomeV({ user, mins, avs, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
     const [tab, setTab] = useState("mins");
@@ -4492,7 +4521,7 @@ export default function App() {
             ))}
           </div>
 
-          <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"]]} val={tab} set={setTab} />
+          <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"], ["minfo", "Ministrações"]]} val={tab} set={setTab} />
 
           <div style={{ marginTop: 12 }}>
             {tab === "mins" && (
@@ -4725,6 +4754,72 @@ export default function App() {
                   })
                 )}
                 <CozinhaServoV userId={user.id} nome={user.nome} />
+              </div>
+            )}
+            {tab === "minfo" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                {[
+                  {
+                    titulo: "Pré-Encontro", dia: "Quinta · 20:00",
+                    resumo: "Momento de organização dos itens que vão para o sítio do encontro. Algumas escalas serão definidas pelo líder geral.",
+                    ato: null,
+                  },
+                  {
+                    titulo: "Envio", dia: "Quinta · 23:30",
+                    resumo: "Oração com todos os servos antes da partida. É muito importante que nenhum servo falte — a oração em si já é o ato e a ministração.",
+                    ato: null,
+                  },
+                  {
+                    titulo: "Encontro com o Mundo, Encontro com Deus", dia: "Sexta · 23:00",
+                    resumo: "Em breve...",
+                    ato: "Apelo para que os encontristas aceitem a Jesus. Os servos fazem a oração de confissão junto aos encontristas: \"Senhor Jesus, eu reconheço que sou um pecador e preciso do Teu perdão. Eu creio que Tu morreste na cruz por mim e ressuscitaste para me dar a vida eterna. Hoje, eu Te aceito como meu único e suficiente Senhor e Salvador da minha vida. Entra no meu coração, guia os meus passos e transforma-me na pessoa que desejas que eu seja. Entrego a minha vida a Ti. Em nome de Jesus. Amém.\"",
+                  },
+                  {
+                    titulo: "Ministração Peniel", dia: "Sábado · 08:30",
+                    resumo: "Em breve...",
+                    ato: "Os encontristas vão ao microfone e dizem o nome espiritual que carregam até então. Ao terminar, os servos declaram no mundo espiritual que o nome é trocado e que ele se chamará Israel, príncipe de Deus. Os servos abraçam a pessoa e oram declarando que ela não carrega mais o nome antigo.",
+                  },
+                  {
+                    titulo: "Ministração Cura", dia: "Sábado · 10:30",
+                    resumo: "Em breve...",
+                    ato: "Semelhante ao ato da Ministração Peniel. O encontrista vai ao microfone para liberar perdão por algo que fez e pedir perdão também. Ao finalizar, os servos abraçam e oram declarando que as correntes que o aprisionavam nessa mágoa foram quebradas e que ele está livre.",
+                  },
+                  {
+                    titulo: "Ministração Escamas", dia: "Sábado · 15:30",
+                    resumo: "Em breve...",
+                    ato: "Uma venda é colocada nos olhos dos encontristas simbolizando escamas que deixam a pessoa cega no mundo espiritual. Após o pastor iniciar a ministração, os servos retiram as vendas e oram pelos encontristas como ato profético de que as escamas foram retiradas e que agora eles enxergam com os olhos espirituais.",
+                  },
+                  {
+                    titulo: "Ministração Libertação", dia: "Sábado · 17:00",
+                    resumo: "Em breve...",
+                    ato: "⚠️ Pontos de atenção:\n1. Servos oram pelos encontristas e staffs dão apoio atrás para evitar quedas.\n2. Oração de libertação é feita com a mão na cabeça do encontrista.\n3. Demônios são expulsos em nome de Jesus — se manifestar, dê uma ordem a todas as entidades e expulse em nome de Jesus.\n4. Não pergunte o nome frequentemente — só após a oração para confirmar que não há mais entidades.\n5. Não abrace o encontrista nesse momento — pode ser perigoso.\n6. Não é permitido ir ao banheiro — se necessário, procure os pastores.\n\nApós todas as renúncias, nos revestimos de toda armadura do Céu e celebramos juntos a libertação.",
+                  },
+                  {
+                    titulo: "Ministração Amor de Deus", dia: "Sábado · 21:30",
+                    resumo: "Em breve...",
+                    ato: "1. Ao finalizar a ministração, todos os servos oram por todos os encontristas declarando o amor de Deus sobre suas vidas.\n2. Todos vão para a fogueira para ver os pecados serem queimados na cruz.",
+                  },
+                  {
+                    titulo: "Ministração Sonhos", dia: "Domingo · 08:30",
+                    resumo: "Em breve...",
+                    ato: "Todos fazem uma caixa imaginária do tamanho dos seus sonhos. De forma profética os sonhos são colocados dentro dessa caixa e enviados ao céu lançando a caixa para cima. Em seguida é distribuída uma uva para cada pessoa — colocamos profeticamente os sonhos de Deus dentro da uva e a ingerimos para que os sonhos de Deus sejam gerados em nós.",
+                  },
+                  {
+                    titulo: "Unção de Multiplicação", dia: "Domingo · 09:30",
+                    resumo: "Em breve...",
+                    ato: "É feita uma oração sobre todos os encontristas declarando unção de multiplicação sobre eles, para que possam multiplicar em todas as áreas da vida.",
+                  },
+                  {
+                    titulo: "Batismo com Espírito Santo", dia: "Domingo · 10:30",
+                    resumo: "Em breve...",
+                    ato: "É realizada a oração para batismo com Espírito Santo. Hora do servo entregar tudo e repartir toda unção que está sobre ele com o encontrista.",
+                  },
+                  {
+                    titulo: "Oração Estilo de Vida", dia: "Domingo · 15:00",
+                    resumo: "Em breve...",
+                    ato: "São entregues os presentes e cartas enviadas pela família do encontrista. Um dos atos mais importantes do encontro — muita atenção ao colocar a sacola à frente do encontrista.",
+                  },
+                ].map((m, i) => <MinCard key={i} m={m} />)}
               </div>
             )}
           </div>
