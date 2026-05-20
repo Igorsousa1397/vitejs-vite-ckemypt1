@@ -3515,8 +3515,7 @@ export default function App() {
     );
   // shared top bar
   const TB = () => (
-    <div
-      style={{
+    <div style={{
         background: "#000",
         borderBottom: "1px solid #1a1a1a",
         padding: "14px 16px",
@@ -3526,8 +3525,8 @@ export default function App() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-      }}
-    >
+        position: "relative",
+      }}>
       {pg === "home" ? (
         <button
           onClick={() => setMenu(true)}
@@ -3548,23 +3547,13 @@ export default function App() {
           ←
         </button>
       )}
-          {pg === "home" ? (
-      <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85, position: "absolute", left: "50%", transform: "translateX(-50%)" }} />
-    ) : (
-      <span
-        style={{
-          flex: 1,
-          color: G.t,
-          fontSize: 15,
-          fontWeight: 700,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {LABELS[pg]}
-      </span>
-    )}
+      <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+      {pg === "home" ? (
+        <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
+      ) : (
+        <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{LABELS[pg]}</span>
+      )}
+    </div>
       <button
         onClick={async () => {
           const token = await iniciarNotificacoes(user?.id);
