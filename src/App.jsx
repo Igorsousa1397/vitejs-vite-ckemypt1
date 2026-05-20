@@ -4519,7 +4519,7 @@ export default function App() {
           {/* 3 quick cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
             {[["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]].map(([ic, l, p]) => {
-              const badge = p === "savs" ? avsNaoVistos : p === "sinfo" ? ocorr.length : 0;
+              const badge = p === "savs" ? avsNaoVistos : p === "sinfo" ? (ocorr?.length || 0) : 0;
               return (
                 <div key={p} onClick={() => {
                   setPg(p);
