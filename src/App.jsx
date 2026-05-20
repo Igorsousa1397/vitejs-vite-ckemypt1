@@ -4454,7 +4454,7 @@ export default function App() {
 
     useEffect(() => {
       if (slides.length <= 1) return;
-      const interval = setInterval(() => setSlide((s) => (s + 1) % slides.length), 5000);
+      const interval = setInterval(() => setSlide((s) => (s + 1) % slides.length), 10000);
       return () => clearInterval(interval);
     }, [slides.length]);
 
@@ -8779,7 +8779,7 @@ function CozinhaV({ edit, t, users }) {
           {[
             [lista.length, "Total", "#636366"],
             [lista.filter((u) => u.ativo !== false).length, "Ativos", G.green],
-            [lista.filter((u) => u.pago && u.ativo !== false).length, "Pagos", "#0a84ff"],
+            [lista.filter((u) => u.pago && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", "#0a84ff"],
           ].map(([n, l, c]) => (
             <div
               key={l}
@@ -8860,7 +8860,7 @@ function CozinhaV({ edit, t, users }) {
               </div>
 
               {/* Pagamento */}
-              {u.perfil !== "admin" && u.perfil !== "pastor" && (
+              {u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && (
               <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
                 <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
                   {u.pago ? (
