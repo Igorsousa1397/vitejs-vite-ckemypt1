@@ -7718,7 +7718,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               >
                 <button
                   onClick={async () => {
-                    await deleteDoc(doc(db, "ocorrencias", String(o.id)));
+                    await setDoc(doc(db, "ocorrencias", String(o.id)), { res: !o.res }, { merge: true });
                   }}
                   style={{
                     background: o.res
