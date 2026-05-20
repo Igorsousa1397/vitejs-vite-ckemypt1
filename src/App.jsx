@@ -3808,7 +3808,7 @@ export default function App() {
           {/* Direita */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
-            <Pill c={PERFIS[u.perfil]?.l || u.perfil} bg={`${PERFIS[u.perfil]?.c || "#636366"}18`} tc={PERFIS[u.perfil]?.c || "#636366"} />
+            <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />
             <button
               onClick={async () => {
                 const token = await iniciarNotificacoes(user?.id);
@@ -8834,8 +8834,8 @@ function CozinhaV({ edit, t, users }) {
                 )}
                 <Pill
                   c={PERFIS[u.perfil]?.l || u.perfil}
-                  bg={(u.perfil === "staff" || u.perfil === "lider_staff") ? "rgba(255,159,10,.15)" : "rgba(99,99,102,.2)"}
-                  tc={(u.perfil === "staff" || u.perfil === "lider_staff") ? "#ff9f0a" : "#fff"}
+                  bg={`${PERFIS[u.perfil]?.c || "#636366"}18`}
+                  tc={PERFIS[u.perfil]?.c || "#fff"}
                 />
               </div>
             }
