@@ -9767,8 +9767,11 @@ function CozinhaV({ edit, t, users }) {
                       <div style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.2)", borderRadius: 10, padding: "10px 12px", marginTop: 10 }}>
                       <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 12, marginBottom: 4 }}>📋 Condições do pedido</div>
                       <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.7 }}>
-                        {dataLimitePedido && <>• Pedido até <strong style={{ color: "#fff" }}>{new Date(dataLimitePedido + "T12:00:00").toLocaleDateString("pt-BR")}</strong><br/></>}
+                        {dataLimitePedido && <>
+                        • Pedido até <strong style={{ color: "#fff" }}>{new Date(dataLimitePedido + "T12:00:00").toLocaleDateString("pt-BR")}
+                          </strong><br/></>}
                         • Pedido mediante entrada de <strong style={{ color: "#fff" }}>50% do valor</strong><br/>
+                        • O pedido só será confirmado mediante ao pagamento ao menos do Sinal
                         {dataLimiteRestante && <>• Restante até <strong style={{ color: "#fff" }}>{new Date(dataLimiteRestante + "T12:00:00").toLocaleDateString("pt-BR")}</strong></>}
                       </div>
                     </div>
