@@ -296,10 +296,14 @@ exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
     .map(d => d.id);
 
   const tokensSnap = await admin.firestore().collection('tokens').get();
-  const tokens = tokensSnap.docs
+  const tokensPorUser = {};
+  tokensSnap.docs
     .filter(d => adminPastorIds.includes(d.data().userId))
-    .map(d => d.data().token)
-    .filter(Boolean);
+    .forEach(d => {
+      const data = d.data();
+      if (data.token) tokensPorUser[data.userId] = data.token;
+    });
+  const tokens = Object.values(tokensPorUser);
 
   if (!tokens.length) return res.json({ enviadas: 0 });
 
