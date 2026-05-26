@@ -8685,22 +8685,36 @@ function CozinhaV({ edit, t, users }) {
       setLoading(false);
     };
 
-   const lista = users.filter(
-      (u) =>
-        u.perfil !== "admin" &&
-        u.nome &&
-        (filtro === "todos"
-          ? true
-          : filtro === "ativos"
-            ? u.ativo !== false
-            : !u.ativo) &&
-       (filtroPerfil === "todos"
-          ? true
-          : filtroPerfil === "servo"
-            ? (u.perfil === "servo" || (u.perfil && u.perfil.startsWith("lider_")))
-            : (u.perfil === "staff" || u.perfil === "lider_staff")) &&
-        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
-    ).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const ORDEM_PERFIL = (perfil) => {
+    if (perfil === "pastor") return 0;
+    if (perfil === "pastor_auxiliar") return 1;
+    if (perfil === "lider_geral") return 2;
+    if (perfil?.startsWith("lider_")) return 3;
+    if (perfil === "staff") return 4;
+    return 5;
+  };
+
+  const lista = users.filter(
+    (u) =>
+      u.perfil !== "admin" &&
+      u.nome &&
+      (filtro === "todos"
+        ? true
+        : filtro === "ativos"
+          ? u.ativo !== false
+          : !u.ativo) &&
+      (filtroPerfil === "todos"
+        ? true
+        : filtroPerfil === "servo"
+          ? (u.perfil === "servo" || u.perfil === "pastor" || u.perfil === "pastor_auxiliar" || (u.perfil && u.perfil.startsWith("lider_")))
+          : (u.perfil === "staff" || u.perfil === "lider_staff")) &&
+      (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
+  ).sort((a, b) => {
+    const ordemA = ORDEM_PERFIL(a.perfil);
+    const ordemB = ORDEM_PERFIL(b.perfil);
+    if (ordemA !== ordemB) return ordemA - ordemB;
+    return a.nome.localeCompare(b.nome, "pt-BR");
+  });
 
     return (
       <div>
