@@ -7391,8 +7391,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   {pass.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
                       {pass.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p, i) => (
-                        <div key={i} style={{ background: '#1a1a1a', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: G.green, flexShrink: 0 }} />
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: '1px solid #1e1e1e' }}>
+                          <span style={{ color: G.tm, fontSize: 11, minWidth: 18 }}>{i + 1}.</span>
                           <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
                         </div>
                       ))}
