@@ -8740,7 +8740,11 @@ function CozinhaV({ edit, t, users }) {
         ? true
         : filtro === "ativos"
           ? u.ativo !== false
-          : !u.ativo) &&
+          : filtro === "inativos"
+            ? !u.ativo
+            : filtro === "primeiro_acesso"
+              ? u.primeiro === true
+              : true) &&
       (filtroPerfil === "todos"
         ? true
         : filtroPerfil === "servo"
@@ -8895,11 +8899,12 @@ function CozinhaV({ edit, t, users }) {
           <Seg
             opts={[
               ["todos", "Todos"],
-              ["servo", "Servos"],
-              ["staff", "Staff"],
+              ["ativos", "Ativos"],
+              ["inativos", "Inativos"],
+              ["primeiro_acesso", "1º Acesso"],
             ]}
-            val={filtroPerfil}
-            set={setFiltroPerfil}
+            val={filtro}
+            set={setFiltro}
           />
         </div>
 
