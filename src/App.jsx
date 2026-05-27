@@ -6972,13 +6972,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
 
     const upd = async (num, fn) => {
-      const lista = isH ? qh : qm;
-      const quarto = lista.find((q) => q.num === num);
-      if (!quarto) return;
-      const atualizado = fn(quarto);
-      if (isH) uQH(num, () => atualizado);
-      else uQM(num, () => atualizado);
-      await salvarQuarto(colecao, atualizado);
+      const onibus = on.find((o) => o.num === num);
+      if (!onibus) return;
+      const atualizado = fn(onibus);
+      uOn(num, () => atualizado);
+      await salvarOnibus(atualizado);
     };
 
     const tipoColor = {
@@ -7392,7 +7390,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   <SL c={`Passageiros via Check-in (${pass.length})`} />
                   {pass.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
-                      {pass.map((p, i) => (
+                      {pass.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p, i) => (
                         <div key={i} style={{ background: '#1a1a1a', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: G.green, flexShrink: 0 }} />
                           <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
