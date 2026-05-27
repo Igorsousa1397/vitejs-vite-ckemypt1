@@ -8727,7 +8727,9 @@ function CozinhaV({ edit, t, users }) {
     if (perfil === "lider_geral") return 2;
     if (perfil?.startsWith("lider_")) return 3;
     if (perfil === "staff") return 4;
-    return 5;
+    if (perfil === "servo") return 5;
+    if (perfil === "cozinha") return 6;
+    return 7;
   };
 
   const lista = users.filter(
@@ -8742,7 +8744,7 @@ function CozinhaV({ edit, t, users }) {
       (filtroPerfil === "todos"
         ? true
         : filtroPerfil === "servo"
-          ? (u.perfil === "servo" || u.perfil === "pastor" || u.perfil === "pastor_auxiliar" || (u.perfil && u.perfil.startsWith("lider_")))
+          ? (u.perfil === "servo" || u.perfil === "cozinha" || u.perfil === "pastor" || u.perfil === "pastor_auxiliar" || (u.perfil && u.perfil.startsWith("lider_")))
           : (u.perfil === "staff" || u.perfil === "lider_staff")) &&
       (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
   ).sort((a, b) => {
