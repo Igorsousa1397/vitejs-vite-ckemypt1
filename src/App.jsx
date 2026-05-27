@@ -4381,7 +4381,7 @@ export default function App() {
                 marginTop: 16,
               }}
             >
-              Ainda tem dúvidas?<br/> Fale conosco
+              Ainda tem dúvidas? Fale conosco
             </a>
           </div>
         </div>
