@@ -1524,7 +1524,7 @@ const CELULAS = [
   "Transbordo",
   "Yeshua",
   "Outra",
-  "Não faço partecipo de célula",
+  "Não tenho de célula",
 ];
 
 function Inscricao({ onVoltar, onPago, onFaq }) {
@@ -5037,7 +5037,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Por Célula</div>
-                <span style={{ color: G.tm, fontSize: 11 }}>{todosEnc.length} inscritos</span>
               </div>
               {celulasOrdenadas.length === 0 ? (
                 <div style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum inscrito ainda.</div>
