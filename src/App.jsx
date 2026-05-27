@@ -8908,13 +8908,27 @@ function CozinhaV({ edit, t, users }) {
           />
         </div>
 
-        {/* FILTRO ATIVO/INATIVO */}
+        {/* FILTRO DE PERFIL */}
+        <div style={{ marginBottom: 10 }}>
+          <Seg
+            opts={[
+              ["todos", "Todos"],
+              ["servo", "Servos"],
+              ["staff", "Staff"],
+            ]}
+            val={filtroPerfil}
+            set={setFiltroPerfil}
+          />
+        </div>
+
+        {/* FILTRO ATIVO/INATIVO/1º ACESSO */}
         <div style={{ marginBottom: 10 }}>
           <Seg
             opts={[
               ["todos", "Todos"],
               ["ativos", "Ativos"],
               ["inativos", "Inativos"],
+              ["primeiro_acesso", "1º Acesso"],
             ]}
             val={filtro}
             set={setFiltro}
