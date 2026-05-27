@@ -3352,6 +3352,7 @@ export default function App() {
     const admins = ["admin", "lider_geral", "pastor"];
     if (!admins.includes(f.perfil)) setPg("smins");
   };
+
   const role = user?.perfil || "servo";
   const isAdm = role === "admin" || role === "lider_geral";
 
@@ -3824,7 +3825,7 @@ export default function App() {
           </div>
         </div>
         {/* home com 3 cards */}
-        {pg === "smins" && (
+        {(pg === "smins" || pg === "home") && (
           <ServoHomeV
             user={user}
             mins={mins}
