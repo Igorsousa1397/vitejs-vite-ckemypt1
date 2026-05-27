@@ -3338,11 +3338,13 @@ export default function App() {
     unsubOnRef.current?.();
     unsubUsersRef.current?.();
     unsubEscRef.current?.();
+    unsubOcorrRef.current?.();
     await signOut(auth);
     setUser(null);
     setScr("welcome");
     setPg("home");
   };
+  
   const login = (f) => {
     setUser(f);
     setScr("app");
@@ -5047,8 +5049,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {celulasOrdenadas.map(([celula, qtd]) => (
                     <div key={celula} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ color: celula === "Sem célula" ? G.tm : G.td, fontSize: 12, minWidth: 120, fontStyle: celula === "Sem célula" ? "italic" : "normal" }}>{celula}</span>
-                      <BarPct val={qtd} max={maxCelula} color={celula === "Sem célula" ? "#636366" : "#bf5af2"} />
+                      <span style={{ color: G.td, fontSize: 12, minWidth: 120 }}>{celula}</span>
+                      <BarPct val={qtd} max={maxCelula} color="#bf5af2" />
                       <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
                     </div>
                   ))}
