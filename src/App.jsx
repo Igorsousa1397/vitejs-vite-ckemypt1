@@ -3349,7 +3349,8 @@ export default function App() {
   const login = (f) => {
     setUser(f);
     setScr("app");
-    if (f.perfil === "servo") setPg("smins");
+    const admins = ["admin", "lider_geral", "pastor"];
+    if (!admins.includes(f.perfil)) setPg("smins");
   };
   const role = user?.perfil || "servo";
   const isAdm = role === "admin" || role === "lider_geral";
