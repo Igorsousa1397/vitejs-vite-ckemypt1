@@ -1524,7 +1524,7 @@ const CELULAS = [
   "Transbordo",
   "Yeshua",
   "Outra",
-  "Não tenho de célula",
+  "Não tenho célula",
 ];
 
 function Inscricao({ onVoltar, onPago, onFaq }) {
