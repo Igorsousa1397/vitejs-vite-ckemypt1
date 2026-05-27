@@ -4859,21 +4859,20 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
   }, 0);
 
-  // Inscritos por célula
-  const celulasPorQtd = {};
-  todosEnc.forEach(e => {
-    const celula = e.celula || "Sem célula";
-    celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
-  });
-  const celulasOrdenadas = Object.entries(celulasPorQtd)
-    .sort((a, b) => b[1] - a[1]);
-  const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
-
   const META_ENC = 150;
   const todosEnc = [...encH, ...encM];
   const encPagos = todosEnc.filter(e => e.pago).length;
   const encPendentes = todosEnc.length - encPagos;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
+
+  // Inscritos por célula  ← depois usa todosEnc
+  const celulasPorQtd = {};
+  todosEnc.forEach(e => {
+    const celula = e.celula || "Sem célula";
+    celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
+  });
+  const celulasOrdenadas = Object.entries(celulasPorQtd).sort((a, b) => b[1] - a[1]);
+  const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
 
   const servos = (users || []).filter(u => 
     u.perfil !== 'admin' && 
