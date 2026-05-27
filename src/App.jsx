@@ -3344,7 +3344,7 @@ export default function App() {
     setScr("welcome");
     setPg("home");
   };
-  
+
   const login = (f) => {
     setUser(f);
     setScr("app");
@@ -6574,19 +6574,18 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {e.pagamentoId ? (
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 4 }}
-                        onClick={(e2) => e2.stopPropagation()}
-                      >
-                        <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
-                        <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>Pago</span>
+                    {e.pago ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }} onClick={(e2) => e2.stopPropagation()}>
+                        {e.pagamentoId 
+                          ? <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
+                          : <span style={{ fontSize: 14 }}>💵</span>
+                        }
+                        <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>
+                          {e.pagamentoId ? "Pago" : "Pago fora do app"}
+                        </span>
                       </div>
                     ) : (
-                      <span
-                        onClick={(e2) => e2.stopPropagation()}
-                        style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}
-                      >
+                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}>
                         Pendente
                       </span>
                     )}
