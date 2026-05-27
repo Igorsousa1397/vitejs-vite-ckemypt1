@@ -4859,6 +4859,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
   }, 0);
 
+  // Inscritos por célula
+  const celulasPorQtd = {};
+  todosEnc.forEach(e => {
+    const celula = e.celula || "Sem célula";
+    celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
+  });
+  const celulasOrdenadas = Object.entries(celulasPorQtd)
+    .sort((a, b) => b[1] - a[1]);
+  const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
+
   const META_ENC = 150;
   const todosEnc = [...encH, ...encM];
   const encPagos = todosEnc.filter(e => e.pago).length;
@@ -5024,7 +5034,26 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </div>
               )}
             </div>
-
+            {/* Inscritos por Célula */}
+            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Por Célula</div>
+                <span style={{ color: G.tm, fontSize: 11 }}>{todosEnc.length} inscritos</span>
+              </div>
+              {celulasOrdenadas.length === 0 ? (
+                <div style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum inscrito ainda.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {celulasOrdenadas.map(([celula, qtd]) => (
+                    <div key={celula} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ color: celula === "Sem célula" ? G.tm : G.td, fontSize: 12, minWidth: 120, fontStyle: celula === "Sem célula" ? "italic" : "normal" }}>{celula}</span>
+                      <BarPct val={qtd} max={maxCelula} color={celula === "Sem célula" ? "#636366" : "#bf5af2"} />
+                      <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
