@@ -4868,11 +4868,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   // Inscritos por célula  ← depois usa todosEnc
   const celulasPorQtd = {};
   todosEnc.forEach(e => {
-    const celula = e.celula || "Sem célula";
+    let celula = e.celula || "Sem célula";
+    if (celula === "Não faço parte de célula" || celula === "Não tenho célula") {
+      celula = "Sem célula";
+    }
     celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
   });
-  const celulasOrdenadas = Object.entries(celulasPorQtd).sort((a, b) => b[1] - a[1]);
-  const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
 
   const servos = (users || []).filter(u => 
     u.perfil !== 'admin' && 
