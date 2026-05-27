@@ -4872,10 +4872,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     if (celula === "Não faço parte de célula" || celula === "Não tenho célula") {
       celula = "Sem célula";
     }
-    celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
+   celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
   });
+  const celulasOrdenadas = Object.entries(celulasPorQtd).sort((a, b) => b[1] - a[1]);
+  const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
 
-  const servos = (users || []).filter(u => 
+  const servos = (users || []).filter(u =>
     u.perfil !== 'admin' && 
     u.perfil !== 'pastor' && 
     u.nome
