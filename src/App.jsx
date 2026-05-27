@@ -3530,7 +3530,6 @@ export default function App() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        position: "relative",
       }}>
       {pg === "home" ? (
         <button
