@@ -3828,8 +3828,10 @@ export default function App() {
             user={user}
             mins={mins}
             avs={avs}
+            ocorr={ocorr}
             setPg={setPg}
             pago={user?.pago}
+            role={role}
             uni={uni}
             dataLimiteUni={dataLimiteUni}
             dataLimitePagamento={dataLimitePagamento}
@@ -4454,7 +4456,7 @@ export default function App() {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
+  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
     const [diasAbertos, setDiasAbertos] = useState({});
