@@ -2081,7 +2081,13 @@ function Termo({ cpf, onVoltar }) {
     
     const agora = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
     const endCompleto = `${end}, ${num}, ${comp}`;
-    const termoTexto = `O(a) signatário(a)...`; // mantém o texto completo
+    const termoTexto = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
+
+      A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 26, 27 e 28 de junho de 2026.
+
+      Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.
+
+      Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
 
     let urlDoc = null;
     let urlRosto = null;
