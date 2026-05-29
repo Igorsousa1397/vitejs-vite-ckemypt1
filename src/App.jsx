@@ -2748,7 +2748,6 @@ function TermoAdminV({ encH, encM, t }) {
 
     y += 8;
     hr();
-
     // Assinatura
     y += 10;
     pdf.setFontSize(10);
@@ -2759,21 +2758,7 @@ function TermoAdminV({ encH, encM, t }) {
     pdf.setTextColor(120, 120, 120);
     pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
-      const totalPages = pdf.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(
-          `Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`,
-          margin,
-          287,
-        );
-        pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, {
-          align: "right",
-        });
-      }
-  // FOTOS
+      // FOTOS
       if (termo.fotoDocumento || termo.fotoRosto) {
         pdf.addPage();
         let yF = 20;
@@ -2803,18 +2788,12 @@ function TermoAdminV({ encH, encM, t }) {
         pdf.setPage(i);
         pdf.setFontSize(8);
         pdf.setTextColor(150, 150, 150);
-        pdf.text(
-          `Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`,
-          margin,
-          287,
-        );
-        pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, {
-          align: "right",
-        });
+        pdf.text(`Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`, margin, 287);
+        pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, { align: "right" });
       }
 
-    pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
-  };
+      pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
+    };
 
   const cnt = (a) => {
     if (a === "enviar")
