@@ -2662,8 +2662,8 @@ const exportarPDF = async (termo) => {
 
     if (y + 50 > 270) { pdf.addPage(); y = 20; }
     y += 8;
+    if (y + 40 > 270) { pdf.addPage(); y = 20; }
     hr();
-    y += 10;
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(30, 30, 30);
