@@ -2195,9 +2195,10 @@ function Termo({ cpf, onVoltar }) {
           </div>
           <button
             onClick={async () => {
-              const termo = termos.find((t) => t.encontristaId === enc.id);
-              if (!termo) { alert("Dados do termo não encontrados."); return; }
-              await exportarPDF(termo);
+              const snap = await getDocs(collection(db, "termos"));
+              const termoDoc = snap.docs.find(d => d.data().encontristaId === enc.id);
+              if (!termoDoc) { alert("Termo não encontrado."); return; }
+              await exportarPDF({ id: termoDoc.id, ...termoDoc.data() });
             }}
             style={BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 12 })}
           >
