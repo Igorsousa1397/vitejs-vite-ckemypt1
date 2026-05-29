@@ -2561,7 +2561,7 @@ function Termo({ cpf, onVoltar }) {
           )}
           <label style={{ display: "block", background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.3)", borderRadius: 12, padding: "12px", textAlign: "center", color: "#64b5f6", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             {fotoDoc ? "Trocar documento" : "📷 Tirar foto / Anexar"}
-            <input type="file" accept="image/*,application/pdf" capture="environment" style={{ display: "none" }}
+            <input type="file" accept="image/*,application/pdf" style={{ display: "none" }}
               onChange={e => {
                 const file = e.target.files[0];
                 if (!file) return;
