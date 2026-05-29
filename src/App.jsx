@@ -2669,6 +2669,11 @@ const exportarPDF = async (termo) => {
     pdf.text(`Assinado digitalmente por: ${termo.nome}`, margin, y);
     y += 6;
     pdf.setTextColor(120, 120, 120);
+    if (y + 20 > 270) { pdf.addPage(); y = 20; }
+    pdf.text(`Assinado digitalmente por: ${termo.nome}`, margin, y);
+    y += 6;
+    pdf.setTextColor(120, 120, 120);
+    if (y + 10 > 270) { pdf.addPage(); y = 20; }
     pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
     const addImg = async (url, titulo, isPdf = false) => {
