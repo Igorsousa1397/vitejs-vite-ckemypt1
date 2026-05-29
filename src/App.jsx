@@ -2660,7 +2660,6 @@ const exportarPDF = async (termo) => {
       y += lines.length * 6 + 2;
     });
 
-    if (y + 50 > 270) { pdf.addPage(); y = 20; }
     y += 8;
     if (y + 40 > 270) { pdf.addPage(); y = 20; }
     hr();
