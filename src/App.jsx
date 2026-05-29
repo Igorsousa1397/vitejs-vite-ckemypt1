@@ -2195,10 +2195,9 @@ function Termo({ cpf, onVoltar }) {
           </div>
           <button
             onClick={async () => {
-              const snap = await getDocs(collection(db, "termos"));
-              const termoDoc = snap.docs.find(d => d.data().encontristaId === enc.id);
-              if (!termoDoc) { alert("Termo não encontrado."); return; }
-              await exportarPDF({ id: termoDoc.id, ...termoDoc.data() });
+              const termo = termos.find((t) => t.encontristaId === enc.id);
+              if (!termo) { alert("Dados do termo não encontrados."); return; }
+              await exportarPDF(termo);
             }}
             style={BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 12 })}
           >
@@ -2574,53 +2573,7 @@ function Termo({ cpf, onVoltar }) {
   );
 }
 
-function TermoAdminV({ encH, encM, t }) {
-  const [aba, setAba] = useState("enviar");
-  const [s, setS] = useState("");
-  const [termos, setTermos] = useState([]);
-
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "termos"), (snap) => {
-      setTermos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
-    return () => unsub();
-  }, []);
-
-  const todos = [...encH, ...encM].filter(
-    (e) => e.pago && e.chegou && e.onibus,
-  );
-
-  const lista = useMemo(() => {
-    const filtrado = todos.filter((e) =>
-      e.nome.toLowerCase().includes(s.toLowerCase()),
-    );
-    if (aba === "enviar")
-      return filtrado.filter((e) => !e.termoEnviado && !e.termoAssinado);
-    if (aba === "aguardando")
-      return filtrado.filter((e) => e.termoEnviado && !e.termoAssinado);
-    return filtrado.filter((e) => e.termoAssinado);
-  }, [todos, aba, s]);
-
-  const enviar = async (enc) => {
-    const tel = enc.whatsapp?.replace(/\D/g, "");
-    if (!tel) {
-      t("WhatsApp não cadastrado");
-      return;
-    }
-    const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
-    const msg = encodeURIComponent(
-      `Olá ${enc.nome.split(" ")[0]}! Assine o termo do evento Encontro com Deus: ${link}`,
-    );
-    await setDoc(
-      doc(db, "encontristas", enc.id),
-      { termoEnviado: true },
-      { merge: true },
-    );
-    t("Termo enviado!");
-    window.location.href = `https://wa.me/55${tel}?text=${msg}`;
-  };
-
-  const exportarPDF = async (termo) => {
+const exportarPDF = async (termo) => {
     if (!termo) {
       alert("Dados do termo não encontrados.");
       return;
@@ -2758,6 +2711,52 @@ function TermoAdminV({ encH, encM, t }) {
     }
 
     pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
+  };
+
+function TermoAdminV({ encH, encM, t }) {
+  const [aba, setAba] = useState("enviar");
+  const [s, setS] = useState("");
+  const [termos, setTermos] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "termos"), (snap) => {
+      setTermos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  const todos = [...encH, ...encM].filter(
+    (e) => e.pago && e.chegou && e.onibus,
+  );
+
+  const lista = useMemo(() => {
+    const filtrado = todos.filter((e) =>
+      e.nome.toLowerCase().includes(s.toLowerCase()),
+    );
+    if (aba === "enviar")
+      return filtrado.filter((e) => !e.termoEnviado && !e.termoAssinado);
+    if (aba === "aguardando")
+      return filtrado.filter((e) => e.termoEnviado && !e.termoAssinado);
+    return filtrado.filter((e) => e.termoAssinado);
+  }, [todos, aba, s]);
+
+  const enviar = async (enc) => {
+    const tel = enc.whatsapp?.replace(/\D/g, "");
+    if (!tel) {
+      t("WhatsApp não cadastrado");
+      return;
+    }
+    const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
+    const msg = encodeURIComponent(
+      `Olá ${enc.nome.split(" ")[0]}! Assine o termo do evento Encontro com Deus: ${link}`,
+    );
+    await setDoc(
+      doc(db, "encontristas", enc.id),
+      { termoEnviado: true },
+      { merge: true },
+    );
+    t("Termo enviado!");
+    window.location.href = `https://wa.me/55${tel}?text=${msg}`;
   };
 
   const cnt = (a) => {
