@@ -2636,7 +2636,7 @@ function TermoAdminV({ encH, encM, t }) {
     window.location.href = `https://wa.me/55${tel}?text=${msg}`;
   };
 
-  const exportarPDF = (enc) => {
+  const exportarPDF = async (enc) => {
     const termo = termos.find((t) => t.encontristaId === enc.id);
     if (!termo) {
       alert("Dados do termo não encontrados.");
@@ -2753,21 +2753,59 @@ function TermoAdminV({ encH, encM, t }) {
     pdf.setTextColor(120, 120, 120);
     pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
+      const totalPages = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(
+          `Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`,
+          margin,
+          287,
+        );
+        pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, {
+          align: "right",
+        });
+      }
+  // FOTOS
+      if (termo.fotoDocumento || termo.fotoRosto) {
+        pdf.addPage();
+        let yF = 20;
+        const addImg = async (url, titulo) => {
+          try {
+            const blob = await fetch(url).then(r => r.blob());
+            const dataUrl = await new Promise(res => {
+              const fr = new FileReader();
+              fr.onload = () => res(fr.result);
+              fr.readAsDataURL(blob);
+            });
+            pdf.setFontSize(11);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(30, 30, 30);
+            pdf.text(titulo, margin, yF);
+            yF += 8;
+            pdf.addImage(dataUrl, 'JPEG', margin, yF, 170, 110);
+            yF += 118;
+          } catch {}
+        };
+        if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE");
+        if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
+      }
 
-    const totalPages = pdf.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i);
-      pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text(
-        `Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`,
-        margin,
-        287,
-      );
-      pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, {
-        align: "right",
-      });
-    }
+      const totalPages = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(
+          `Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`,
+          margin,
+          287,
+        );
+        pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, {
+          align: "right",
+        });
+      }
 
     pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
   };
