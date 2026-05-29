@@ -2706,7 +2706,7 @@ function TermoAdminV({ encH, encM, t }) {
     pdf.text(termo.nome, margin, y);
     y += 5;
     pdf.setTextColor(120, 120, 120);
-    pdf.text("Assinatura do participante", margin, y);
+    pdf.text(`Assinado digitalmente por ${termo.nome}`, margin, y);
 
     // Rodapé
     const totalPages = pdf.internal.getNumberOfPages();
