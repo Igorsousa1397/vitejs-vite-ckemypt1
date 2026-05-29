@@ -2764,11 +2764,18 @@ function TermoAdminV({ encH, encM, t }) {
         let yF = 20;
         const addImg = async (url, titulo) => {
           try {
-            const blob = await fetch(url).then(r => r.blob());
-            const dataUrl = await new Promise(res => {
-              const fr = new FileReader();
-              fr.onload = () => res(fr.result);
-              fr.readAsDataURL(blob);
+            const dataUrl = await new Promise((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg'));
+              };
+              img.onerror = reject;
+              img.src = url;
             });
             pdf.setFontSize(11);
             pdf.setFont("helvetica", "bold");
@@ -2777,7 +2784,9 @@ function TermoAdminV({ encH, encM, t }) {
             yF += 8;
             pdf.addImage(dataUrl, 'JPEG', margin, yF, 170, 110);
             yF += 118;
-          } catch {}
+          } catch (e) {
+            console.error("Erro ao carregar imagem:", e);
+          }
         };
         if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE");
         if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
