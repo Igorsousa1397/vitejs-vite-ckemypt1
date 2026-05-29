@@ -2902,13 +2902,11 @@ function TermoAdminV({ encH, encM, t }) {
           {aba === "assinado" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
-                onClick={() => exportarPDF(enc)}
-                style={BK({
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                })}
+                onClick={async () => {
+                  const termo = termos.find((t) => t.encontristaId === enc.id);
+                  if (!termo) { alert("Dados do termo não encontrados."); return; }
+                  await exportarPDF(termo);
+                }}
               >
                 Exportar PDF
               </button>
