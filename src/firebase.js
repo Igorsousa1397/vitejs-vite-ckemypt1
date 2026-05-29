@@ -2,6 +2,9 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "firebase/auth";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+export const storage = getStorage(app);
+export { ref, uploadBytes, getDownloadURL };
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,

@@ -24,6 +24,7 @@ import { updatePassword } from 'firebase/auth';
 import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
+import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -2015,6 +2016,16 @@ function Termo({ cpf, onVoltar }) {
   const [aceite, setAceite] = useState(false);
   const [assinado, setAssinado] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fotoDoc, setFotoDoc] = useState(null);
+  const [fotoRosto, setFotoRosto] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewRosto, setPreviewRosto] = useState(null);
+
+  const uploadFoto = async (file, caminho) => {
+    const storageRef = ref(storage, caminho);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  };
 
   const buscarCep = async (valor) => {
     const limpo = valor.replace(/\D/g, "");
@@ -2064,6 +2075,8 @@ function Termo({ cpf, onVoltar }) {
       alert("Você precisa aceitar os termos para assinar.");
       return;
     }
+    if (!fotoDoc) { alert("Anexe uma foto do documento."); return; }
+    if (!fotoRosto) { alert("Tire uma selfie para validar."); return; }
     setSaving(true);
     const agora = new Date().toLocaleString("pt-BR", {
       dateStyle: "long",
@@ -2079,6 +2092,8 @@ function Termo({ cpf, onVoltar }) {
       Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
 
     try {
+      const urlDoc = await uploadFoto(fotoDoc, `termos/${enc.id}/documento`);
+      const urlRosto = await uploadFoto(fotoRosto, `termos/${enc.id}/selfie`);
       await setDoc(
         doc(db, "encontristas", enc.id),
         {
@@ -2086,6 +2101,8 @@ function Termo({ cpf, onVoltar }) {
           endereco: endCompleto,
           termoAssinado: true,
           termoAssinadoEm: agora,
+          fotoDocumento: urlDoc,
+          fotoRosto: urlRosto,
         },
         { merge: true },
       );
@@ -2108,6 +2125,8 @@ function Termo({ cpf, onVoltar }) {
         autorizaImagem: enc.autorizaImagem,
         assinadoEm: agora,
         termoTexto,
+        fotoDocumento: urlDoc,
+        fotoRosto: urlRosto,
       });
     } catch (err) {
       console.error("Erro ao salvar termo:", err);
@@ -2528,6 +2547,50 @@ function Termo({ cpf, onVoltar }) {
             Li e concordo com todos os termos acima, incluindo as regras do
             evento e a autorização de uso de imagem.
           </div>
+        </div>
+
+        {/* FOTO DO DOCUMENTO */}
+        <div style={{ background: "#111", borderRadius: 14, padding: 14, marginBottom: 12, border: `1px solid ${fotoDoc ? "rgba(0,200,81,.3)" : "#222"}` }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>📄 Foto do Documento *</div>
+          <div style={{ color: "rgba(255,255,255,.4)", fontSize: 12, marginBottom: 10 }}>Tire foto ou anexe o RG, CNH ou documento digital (PDF).</div>
+          {previewDoc && (
+            <img src={previewDoc} style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 200, objectFit: "cover" }} />
+          )}
+          {fotoDoc && !previewDoc && (
+            <div style={{ color: G.green, fontSize: 12, marginBottom: 10 }}>✓ {fotoDoc.name}</div>
+          )}
+          <label style={{ display: "block", background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.3)", borderRadius: 12, padding: "12px", textAlign: "center", color: "#64b5f6", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            {fotoDoc ? "Trocar documento" : "📷 Tirar foto / Anexar"}
+            <input type="file" accept="image/*,application/pdf" capture="environment" style={{ display: "none" }}
+              onChange={e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setFotoDoc(file);
+                if (file.type.startsWith("image/")) setPreviewDoc(URL.createObjectURL(file));
+                else setPreviewDoc(null);
+              }}
+            />
+          </label>
+        </div>
+
+        {/* SELFIE */}
+        <div style={{ background: "#111", borderRadius: 14, padding: 14, marginBottom: 20, border: `1px solid ${fotoRosto ? "rgba(0,200,81,.3)" : "#222"}` }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>🤳 Selfie para validação *</div>
+          <div style={{ color: "rgba(255,255,255,.4)", fontSize: 12, marginBottom: 10 }}>Tire uma foto do seu rosto para validar a assinatura.</div>
+          {previewRosto && (
+            <img src={previewRosto} style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 200, objectFit: "cover" }} />
+          )}
+          <label style={{ display: "block", background: "rgba(191,90,242,.1)", border: "1px solid rgba(191,90,242,.3)", borderRadius: 12, padding: "12px", textAlign: "center", color: "#bf5af2", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            {fotoRosto ? "Tirar outra selfie" : "🤳 Tirar selfie"}
+            <input type="file" accept="image/*" capture="user" style={{ display: "none" }}
+              onChange={e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setFotoRosto(file);
+                setPreviewRosto(URL.createObjectURL(file));
+              }}
+            />
+          </label>
         </div>
 
         <button
