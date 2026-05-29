@@ -2070,7 +2070,13 @@ function Termo({ cpf, onVoltar }) {
       timeStyle: "short",
     });
     const endCompleto = `${end}, ${num}, ${comp}`;
-    const termoTexto = `Termo de Concordância...`; // mantém o texto completo
+    const termoTexto = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
+
+      A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 26, 27 e 28 de junho de 2026.
+
+      Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.
+
+      Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
 
     try {
       await setDoc(
@@ -2696,19 +2702,16 @@ function TermoAdminV({ encH, encM, t }) {
     hr();
 
     // Assinatura
-    line(`Assinado em: ${termo.assinadoEm || "—"}`, 10);
     y += 10;
-    pdf.setDrawColor(30, 30, 30);
-    pdf.line(margin, y, margin + 80, y);
-    y += 6;
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
-    pdf.text(termo.nome, margin, y);
-    y += 5;
+    pdf.setTextColor(30, 30, 30);
+    pdf.text(`Assinado digitalmente por: ${termo.nome}`, margin, y);
+    y += 6;
     pdf.setTextColor(120, 120, 120);
-    pdf.text(`Assinado digitalmente por ${termo.nome}`, margin, y);
+    pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
-    // Rodapé
+
     const totalPages = pdf.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
