@@ -2109,6 +2109,7 @@ function Termo({ cpf, onVoltar }) {
       });
     } catch (err) {
       console.error("Erro ao salvar termo:", err);
+      alert("Erro termo: " + err.message);
     }
 
     setAssinado(true);
