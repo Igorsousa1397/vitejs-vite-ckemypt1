@@ -2672,27 +2672,27 @@ const exportarPDF = async (termo) => {
     pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
     const addImg = async (url, titulo, isPdf = false) => {
+      if (isPdf) {
+        pdf.addPage();
+        let yF = 20;
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(titulo, margin, yF);
+        yF += 10;
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(100, 100, 100);
+        pdf.text("Documento anexado digitalmente.", margin, yF);
+        yF += 6;
+        pdf.setTextColor(10, 100, 200);
+        pdf.textWithLink("Clique aqui para visualizar o documento", margin, yF, { url });
+        return;
+      }
+
+      let dataUrl = null;
       try {
-        if (isPdf) {
-          // só registra no PDF que há um documento anexo
-          pdf.addPage();
-          let yF = 20;
-          pdf.setFontSize(12);
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(30, 30, 30);
-          pdf.text(titulo, margin, yF);
-          yF += 10;
-          pdf.setFontSize(10);
-          pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(100, 100, 100);
-          pdf.text("Documento anexado digitalmente.", margin, yF);
-          yF += 6;
-          pdf.setTextColor(10, 100, 200);
-          pdf.textWithLink("Clique aqui para visualizar o documento", margin, yF, { url });
-          return;
-        }
-        // imagem normal
-        const dataUrl = await new Promise((resolve, reject) => {
+        dataUrl = await new Promise((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => {
@@ -2705,31 +2705,26 @@ const exportarPDF = async (termo) => {
           img.onerror = reject;
           img.src = url;
         });
-        pdf.addPage();
-        let yF = 20;
-        pdf.setFontSize(12);
-        pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(30, 30, 30);
-        pdf.text(titulo, margin, yF);
-        yF += 10;
-        pdf.addImage(dataUrl, 'JPEG', margin, yF, 170, 130);
       } catch (e) {
         console.error("Erro ao carregar imagem:", e);
+        return; // ← não adiciona página se falhar
       }
+
+      pdf.addPage();
+      let yF = 20;
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(30, 30, 30);
+      pdf.text(titulo, margin, yF);
+      yF += 10;
+      pdf.addImage(dataUrl, 'JPEG', margin, yF, 170, 130);
     };
 
-    const ext = termo.fotoDocumento?.split('?')[0]?.split('.').pop()?.toLowerCase();
-    const isDocPdf = ext === 'pdf' || ext === 'heic' || ext === 'heif';
-    if (termo.fotoDocumento) {
-      // tenta como imagem, se falhar mostra link
-      try {
-        await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", false);
-      } catch {
-        await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", true);
-      }
-    }
-    if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
-    if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
+    const ext = termo.fotoDocumento?.split('?')[0]?.split('%2F').pop()?.toLowerCase();
+    const isDocPdf = ext === 'documento' || termo.fotoDocumento?.includes('application/pdf');
+    if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", isDocPdf);
+    if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO", false);
+
 
     const totalPages = pdf.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
