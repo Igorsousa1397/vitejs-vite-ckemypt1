@@ -3,8 +3,6 @@ import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, upd
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "firebase/auth";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-export const storage = getStorage(app);
-export { ref, uploadBytes, getDownloadURL };
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,6 +17,8 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const messaging = getMessaging(app);
+export const storage = getStorage(app);
+export { ref, uploadBytes, getDownloadURL };
 
 export {
   signInWithEmailAndPassword,
