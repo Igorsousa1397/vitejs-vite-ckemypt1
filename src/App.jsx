@@ -2671,8 +2671,27 @@ const exportarPDF = async (termo) => {
     pdf.setTextColor(120, 120, 120);
     pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
-    const addImg = async (url, titulo) => {
+    const addImg = async (url, titulo, isPdf = false) => {
       try {
+        if (isPdf) {
+          // só registra no PDF que há um documento anexo
+          pdf.addPage();
+          let yF = 20;
+          pdf.setFontSize(12);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(30, 30, 30);
+          pdf.text(titulo, margin, yF);
+          yF += 10;
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(100, 100, 100);
+          pdf.text("Documento anexado digitalmente.", margin, yF);
+          yF += 6;
+          pdf.setTextColor(10, 100, 200);
+          pdf.textWithLink("Clique aqui para visualizar o documento", margin, yF, { url });
+          return;
+        }
+        // imagem normal
         const dataUrl = await new Promise((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
@@ -2698,6 +2717,10 @@ const exportarPDF = async (termo) => {
         console.error("Erro ao carregar imagem:", e);
       }
     };
+
+const isDocPdf = termo.fotoDocumento?.includes('%2F') && termo.fotoDocumento?.includes('documento');
+if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", isDocPdf);
+if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
 
     if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE");
     if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
