@@ -2720,7 +2720,15 @@ const exportarPDF = async (termo) => {
 
     const ext = termo.fotoDocumento?.split('?')[0]?.split('.').pop()?.toLowerCase();
     const isDocPdf = ext === 'pdf' || ext === 'heic' || ext === 'heif';
-    if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", isDocPdf);
+    if (termo.fotoDocumento) {
+      // tenta como imagem, se falhar mostra link
+      try {
+        await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", false);
+      } catch {
+        await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE", true);
+      }
+    }
+    if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
     if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
 
     const totalPages = pdf.internal.getNumberOfPages();
