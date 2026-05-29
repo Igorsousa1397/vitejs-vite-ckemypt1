@@ -2661,7 +2661,7 @@ const exportarPDF = async (termo) => {
     });
 
     y += 8;
-    if (y + 40 > 270) { pdf.addPage(); y = 20; }
+    if (y + 40 > 285) { pdf.addPage(); y = 20; }
     hr();
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
