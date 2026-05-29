@@ -2182,50 +2182,28 @@ function Termo({ cpf, onVoltar }) {
       </div>
     );
 
-  if (assinado)
+    if (assinado)
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-        }}
-      >
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <style>{css}</style>
         <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
-          <img
-            src="/IMG_2408.PNG"
-            alt="Encontro com Deus"
-            style={{
-              width: 140,
-              mixBlendMode: "screen",
-              display: "block",
-              margin: "0 auto 20px",
-            }}
-          />
+          <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
           <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-          <div
-            style={{
-              color: "#fff",
-              fontSize: 20,
-              fontWeight: 800,
-              marginBottom: 8,
-            }}
-          >
-            Termo assinado!
+          <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Termo assinado!</div>
+          <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+            Seu termo foi registrado com sucesso.
           </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,.5)",
-              fontSize: 13,
-              lineHeight: 1.6,
+          <button
+            onClick={async () => {
+              const snap = await getDocs(collection(db, "termos"));
+              const termoDoc = snap.docs.find(d => d.data().encontristaId === enc.id);
+              if (!termoDoc) { alert("Termo não encontrado."); return; }
+              await exportarPDF({ id: termoDoc.id, ...termoDoc.data() });
             }}
+            style={BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 12 })}
           >
-            Seu termo foi registrado com sucesso. Pode fechar esta página.
-          </div>
+            📄 Baixar meu termo
+          </button>
         </div>
       </div>
     );
@@ -2642,8 +2620,7 @@ function TermoAdminV({ encH, encM, t }) {
     window.location.href = `https://wa.me/55${tel}?text=${msg}`;
   };
 
-  const exportarPDF = async (enc) => {
-    const termo = termos.find((t) => t.encontristaId === enc.id);
+  const exportarPDF = async (termo) => {
     if (!termo) {
       alert("Dados do termo não encontrados.");
       return;
@@ -2670,7 +2647,6 @@ function TermoAdminV({ encH, encM, t }) {
       y += 8;
     };
 
-    // Cabeçalho
     pdf.setFillColor(240, 240, 240);
     pdf.rect(0, 0, pageW, 30, "F");
     pdf.setFontSize(13);
@@ -2680,26 +2656,14 @@ function TermoAdminV({ encH, encM, t }) {
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(100, 100, 100);
-    pdf.text(
-      "R. Catiguá, 130 - Ipês (Polvilho), Cajamar - SP, 07750-000 | Tel: (11) 94718-7017",
-      pageW / 2,
-      21,
-      { align: "center" },
-    );
+    pdf.text("R. Catiguá, 130 - Ipês (Polvilho), Cajamar - SP, 07750-000 | Tel: (11) 94718-7017", pageW / 2, 21, { align: "center" });
     y = 40;
 
-    // Título
     pdf.setTextColor(30, 30, 30);
-    line(
-      "Termo de Concordância com as Ministrações e Autorização de Uso de Imagem",
-      14,
-      true,
-      "center",
-    );
+    line("Termo de Concordância com as Ministrações e Autorização de Uso de Imagem", 14, true, "center");
     y += 2;
     hr();
 
-    // Dados do signatário
     line("DADOS DO SIGNATÁRIO", 10, true);
     y += 2;
 
@@ -2728,7 +2692,6 @@ function TermoAdminV({ encH, encM, t }) {
     y += 2;
     hr();
 
-    // Texto do termo
     line("TERMO", 10, true);
     y += 2;
     pdf.setFontSize(11);
@@ -2738,17 +2701,13 @@ function TermoAdminV({ encH, encM, t }) {
     const paragrafos = textoLimpo.split("\n").filter((p) => p.trim());
     paragrafos.forEach((p) => {
       const lines = pdf.splitTextToSize(p, 170);
-      if (y + lines.length * 6 > 270) {
-        pdf.addPage();
-        y = 20;
-      }
+      if (y + lines.length * 6 > 270) { pdf.addPage(); y = 20; }
       pdf.text(lines, margin, y);
       y += lines.length * 6 + 4;
     });
 
     y += 8;
     hr();
-    // Assinatura
     y += 10;
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
@@ -2758,51 +2717,48 @@ function TermoAdminV({ encH, encM, t }) {
     pdf.setTextColor(120, 120, 120);
     pdf.text(`Assinado em: ${termo.assinadoEm || "—"} pelo app Encontro com Deus`, margin, y);
 
-      // FOTOS
-      if (termo.fotoDocumento || termo.fotoRosto) {
+    const addImg = async (url, titulo) => {
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg'));
+          };
+          img.onerror = reject;
+          img.src = url;
+        });
         pdf.addPage();
         let yF = 20;
-        const addImg = async (url, titulo) => {
-          try {
-            const dataUrl = await new Promise((resolve, reject) => {
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                canvas.getContext('2d').drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg'));
-              };
-              img.onerror = reject;
-              img.src = url;
-            });
-            pdf.setFontSize(11);
-            pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(30, 30, 30);
-            pdf.text(titulo, margin, yF);
-            yF += 8;
-            pdf.addImage(dataUrl, 'JPEG', margin, yF, 170, 110);
-            yF += 118;
-          } catch (e) {
-            console.error("Erro ao carregar imagem:", e);
-          }
-        };
-        if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE");
-        if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(titulo, margin, yF);
+        yF += 10;
+        pdf.addImage(dataUrl, 'JPEG', margin, yF, 170, 130);
+      } catch (e) {
+        console.error("Erro ao carregar imagem:", e);
       }
-
-      const totalPages = pdf.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(`Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`, margin, 287);
-        pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, { align: "right" });
-      }
-
-      pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
     };
+
+    if (termo.fotoDocumento) await addImg(termo.fotoDocumento, "DOCUMENTO DE IDENTIDADE");
+    if (termo.fotoRosto) await addImg(termo.fotoRosto, "SELFIE DE VALIDAÇÃO");
+
+    const totalPages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Igreja Apostólica Fonte — CNPJ 52.268.825/0001-95`, margin, 287);
+      pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 287, { align: "right" });
+    }
+
+    pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
+  };
 
   const cnt = (a) => {
     if (a === "enviar")
