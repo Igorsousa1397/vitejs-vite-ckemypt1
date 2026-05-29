@@ -2632,7 +2632,7 @@ const exportarPDF = async (termo) => {
       const lines = pdf.splitTextToSize(String(valor || "—"), 170);
       y += 5;
       pdf.text(lines, margin, y);
-      y += lines.length * 6 + 4;
+      y += lines.length * 6 + 2;
     };
 
     campo("Nome", termo.nome);
@@ -2657,7 +2657,7 @@ const exportarPDF = async (termo) => {
       const lines = pdf.splitTextToSize(p, 170);
       if (y + lines.length * 6 > 270) { pdf.addPage(); y = 20; }
       pdf.text(lines, margin, y);
-      y += lines.length * 6 + 4;
+      y += lines.length * 6 + 2;
     });
 
     y += 8;
