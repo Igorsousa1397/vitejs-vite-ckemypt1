@@ -4633,7 +4633,7 @@ export default function App() {
                       </div>
                     )}
                     {slideAtual?.tipo === "pagamento" && (() => {
-                    const depois = new Date() > new Date("2026-06-01");
+                    const depois = new Date() > new Date("2026-06-01T03:00:00");
                     const pixValor    = role === "cozinha" ? (depois ? 100  : 80)  : (depois ? 220  : 200);
                     const creditoValor = role === "cozinha" ? (depois ? 105  : 84)  : (depois ? 231  : 210);
                     const pixLabel    = `R$ ${pixValor.toFixed(2).replace(".", ",")}`;
