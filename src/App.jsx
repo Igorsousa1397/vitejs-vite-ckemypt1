@@ -4632,15 +4632,47 @@ export default function App() {
                         <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
                       </div>
                     )}
-                    {slideAtual?.tipo === "pagamento" && (
+                    {slideAtual?.tipo === "pagamento" && (() => {
+                    const depois = new Date() > new Date("2026-06-01");
+                    const pixValor    = role === "cozinha" ? (depois ? 100  : 80)  : (depois ? 220  : 200);
+                    const creditoValor = role === "cozinha" ? (depois ? 105  : 84)  : (depois ? 231  : 210);
+                    const pixLabel    = `R$ ${pixValor.toFixed(2).replace(".", ",")}`;
+                    const creditoLabel = `R$ ${creditoValor.toFixed(2).replace(".", ",")}`;
+
+                    return (
                       <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
                         <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>R$ {role === "cozinha" ? (new Date() <= new Date("2026-06-01") ? "80,00" : "100,00") : "200,00"}</strong></div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>{pixLabel}</strong></div>
                         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
-                        <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix', valor: role === "cozinha" ? (new Date() <= new Date("2026-05-31") ? 80 : 100) : 200 }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>PIX ou Boleto — R$ {role === "cozinha" ? (new Date() <= new Date("2026-05-31") ? "80,00" : "100,00") : "200,00"}</button>
-                        <button onClick={async () => { vibrar(50); try { const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito', valor: role === "cozinha" ? 105 : 210 }) }); const data = await res.json(); if (data.init_point) window.location.href = data.init_point; } catch { alert('Erro ao gerar pagamento.'); } }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>Cartão de Crédito — R$ {role === "cozinha" ? (new Date() <= new Date("2026-05-31") ? "84,00" : "105,00") : "210,00"}</button>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                              method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix', valor: pixValor })
+                            });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>
+                          PIX ou Boleto — {pixLabel}
+                        </button>
+                        <button onClick={async () => {
+                          vibrar(50);
+                          try {
+                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
+                              method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito', valor: creditoValor })
+                            });
+                            const data = await res.json();
+                            if (data.init_point) window.location.href = data.init_point;
+                          } catch { alert('Erro ao gerar pagamento.'); }
+                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>
+                          Cartão de Crédito — {creditoLabel}
+                        </button>
                       </div>
-                    )}
+                    );
+                  })()}
                     {slideAtual?.tipo === "uniforme_pagamento" && (
                       <div
                         onClick={() => setPg("suni")}
