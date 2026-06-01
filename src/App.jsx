@@ -11204,11 +11204,26 @@ function CozinhaV({ edit, t, users }) {
             <>
               <input value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} placeholder="🔍 Buscar usuário..." style={{ ...I, marginBottom: 12 }} />
               {users
-                .filter(u =>
+               .filter(u =>
                   (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
                   u.perfil !== "admin" &&
                   u.nome
                 )
+                .sort((a, b) => {
+                  const ORDEM = (p) => {
+                    if (p === "pastor") return 0;
+                    if (p === "pastor_auxiliar") return 1;
+                    if (p === "lider_geral") return 2;
+                    if (p?.startsWith("lider_")) return 3;
+                    if (p === "servo") return 4;
+                    if (p === "cozinha") return 5;
+                    if (p === "staff") return 6;
+                    return 7;
+                  };
+                  const diff = ORDEM(a.perfil) - ORDEM(b.perfil);
+                  if (diff !== 0) return diff;
+                  return a.nome.localeCompare(b.nome, "pt-BR");
+                })
                 .map((u, i) => {
                   const aberto = !!expandidos[u.id];
                   const escala = getEscala(u);
