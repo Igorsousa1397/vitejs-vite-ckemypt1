@@ -10628,7 +10628,7 @@ function CozinhaV({ edit, t, users }) {
             Nenhum pedido ainda.
           </div>
         )}
-        {uni.filter(u => !u.naoQuerUniforme).map((u, i) => {
+        {uni.filter(u => !u.naoQuerUniforme).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map((u, i) => {
           const pagoIntegral = u.pagoIntegral === true;
           const pagoSinal    = u.pagoSinal === true || pagoIntegral;
 
