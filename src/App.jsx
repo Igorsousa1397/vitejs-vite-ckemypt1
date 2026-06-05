@@ -10464,7 +10464,7 @@ function CozinhaV({ edit, t, users }) {
                 TAMANHOS.forEach((tm) => {
                   const cam = dados
                     .filter((u) => u.camisa === tm)
-                    .map((u) => [u.nomeCamiseta || u.nome, u.qtdCamisas || 0]);
+                    .map((u) => [u.nomeCamiseta || u.nome, u.qtdCamisas || 1]);
                   const blu = dados
                     .filter((u) => u.blusa === tm)
                     .map((u) => [u.nome, u.qtdBlusas || 1]);
