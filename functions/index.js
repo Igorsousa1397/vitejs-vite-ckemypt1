@@ -1,36 +1,9 @@
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const https = require('https');
 const nodemailer = require('nodemailer');
 
 admin.initializeApp();
-
-// ── NOTIFICAR AVISO ──────────────────────────────────────────────────────────
-// exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => {
-//   const aviso = event.data.data();
-//   const tokensSnap = await admin.firestore().collection('tokens').get();
-  
-//   // deduplica por userId
-//   const tokensPorUser = {};
-//   tokensSnap.docs.forEach(d => {
-//     const data = d.data();
-//     if (data.token && data.userId) tokensPorUser[data.userId] = data.token;
-//   });
-//   const tokens = Object.values(tokensPorUser);
-  
-//   if (!tokens.length) return null;
-//   const message = {
-//     notification: {
-//       title: `${aviso.autor || 'Admin'} — Novo aviso`,
-//       body: aviso.txt,
-//     },
-//     tokens,
-//   };
-//   const response = await admin.messaging().sendEachForMulticast(message);
-//   console.log(`${response.successCount} notificações enviadas`);
-//   return null;
-// });
 
 // ── CRIAR PAGAMENTO MERCADO PAGO ─────────────────────────────────────────────
 exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
@@ -147,32 +120,24 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
           if (payment.status === 'approved') {
             const referenceId = payment.external_reference;
 
-            // Uniforme: external_reference = "uniforme_sinal_pix||userId"
             if (referenceId && referenceId.includes('||')) {
               const [tipo, userId] = referenceId.split('||');
               const uniRef = admin.firestore().collection('uniformes').doc(userId);
-
               if (tipo.includes('uniforme_integral')) {
                 await uniRef.set({ pagoIntegral: true, pagoSinal: true }, { merge: true });
-                console.log(`Uniforme integral pago: ${userId}`);
               } else if (tipo.includes('uniforme_sinal')) {
                 await uniRef.set({ pagoSinal: true }, { merge: true });
-                console.log(`Uniforme sinal pago: ${userId}`);
               }
-
             } else {
-              // Pagamento normal de encontrista ou servo
               const encRef = admin.firestore().collection('encontristas').doc(referenceId);
               const encSnap = await encRef.get();
               if (encSnap.exists) {
                 await encRef.update({ pago: true, pagamentoId: paymentId });
-                console.log(`Encontrista ${referenceId} marcado como pago!`);
               } else {
                 const userRef = admin.firestore().collection('users').doc(referenceId);
                 const userSnap = await userRef.get();
                 if (userSnap.exists) {
                   await userRef.update({ pago: true, pagamentoId: paymentId });
-                  console.log(`Servo ${referenceId} marcado como pago!`);
                 }
               }
             }
@@ -195,12 +160,11 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
 
   try {
     const { titulo, horario } = req.body;
-    console.log('notificarMinisterio chamado:', { titulo, horario });
 
     const tokensSnap = await admin.firestore().collection('tokens').get();
+    // 1 token por documento (ID do doc = userId), sem duplicatas
     const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
-    console.log('tokens encontrados:', tokens.length);
-    
+
     if (!tokens.length) return res.json({ enviadas: 0 });
 
     const message = {
@@ -215,7 +179,7 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
     console.log(`${response.successCount} notificações enviadas`);
     res.json({ enviadas: response.successCount });
   } catch (err) {
-    console.error('Erro notificarMinisterio:', err.message, err.stack);
+    console.error('Erro notificarMinisterio:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -275,7 +239,6 @@ exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIE
           </div>
         `,
       });
-      console.log('Email de boas-vindas enviado para:', email);
     } catch (mailErr) {
       console.error('Erro email boas-vindas:', mailErr.message);
     }
@@ -299,17 +262,18 @@ exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
   const { nome } = req.body;
 
   const usersSnap = await admin.firestore().collection('users').get();
-  const adminPastorIds = usersSnap.docs
-    .filter(d => ['admin', 'pastor'].includes(d.data().perfil))
-    .map(d => d.id);
+  const adminPastorIds = new Set(
+    usersSnap.docs
+      .filter(d => ['admin', 'pastor'].includes(d.data().perfil))
+      .map(d => d.id)
+  );
 
   const tokensSnap = await admin.firestore().collection('tokens').get();
-  const tokensPorUser = {};
-  tokensSnap.docs.forEach(d => {
-    const data = d.data();
-    if (data.token && data.userId) tokensPorUser[data.userId] = data.token;
-  });
-  const tokens = Object.values(tokensPorUser);
+  // filtra por admins/pastores usando o ID do documento (= userId)
+  const tokens = tokensSnap.docs
+    .filter(d => adminPastorIds.has(d.id))
+    .map(d => d.data().token)
+    .filter(Boolean);
 
   if (!tokens.length) return res.json({ enviadas: 0 });
 
