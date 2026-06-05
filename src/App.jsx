@@ -9232,9 +9232,9 @@ function CozinhaV({ edit, t, users }) {
       const pedido = {
         nome: user.nome,
         perfil: user.perfil,
-        nomeCamiseta: form.nomeCamiseta.trim(),
+        nomeCamiseta: form.nomeCamiseta?.trim() || "",
         camisa: form.camisa,
-        qtdCamisas: form.qtdCamisas || 0,
+        qtdCamisas: form.camisa ? (form.qtdCamisas || 1) : 0,
         calca: form.calca || "",
         qtdCalcas: form.calca ? (form.qtdCalcas || 1) : 0,
         blusa: form.blusa || "",
@@ -10581,8 +10581,8 @@ function CozinhaV({ edit, t, users }) {
               };
 
               const wb = new ExcelJS.Workbook();
-              buildAba(wb, "SERVO", uni.filter((u) => u.perfil === "servo" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
-              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
+              buildAba(wb, "SERVO", uni.filter((u) => (u.perfil === "servo" || u.perfil === "cozinha") && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
+              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.perfil !== "cozinha" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
