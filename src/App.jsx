@@ -9536,10 +9536,7 @@ function CozinhaV({ edit, t, users }) {
                               !bloqueado &&
                               setForm({
                                 ...form,
-                                qtdCalcas: Math.max(
-                                  1,
-                                  (form.qtdCalcas || 1) - 1,
-                                ),
+                                qtdCalcas: Math.min(3, (form.qtdCalcas || 1) + 1)
                               })
                             }
                             style={{
