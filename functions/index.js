@@ -10,7 +10,15 @@ admin.initializeApp();
 exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => {
   const aviso = event.data.data();
   const tokensSnap = await admin.firestore().collection('tokens').get();
-  const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+  
+  // deduplica por userId
+  const tokensPorUser = {};
+  tokensSnap.docs.forEach(d => {
+    const data = d.data();
+    if (data.token && data.userId) tokensPorUser[data.userId] = data.token;
+  });
+  const tokens = Object.values(tokensPorUser);
+  
   if (!tokens.length) return null;
   const message = {
     notification: {
@@ -297,12 +305,10 @@ exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
 
   const tokensSnap = await admin.firestore().collection('tokens').get();
   const tokensPorUser = {};
-  tokensSnap.docs
-    .filter(d => adminPastorIds.includes(d.data().userId))
-    .forEach(d => {
-      const data = d.data();
-      if (data.token) tokensPorUser[data.userId] = data.token;
-    });
+  tokensSnap.docs.forEach(d => {
+    const data = d.data();
+    if (data.token && data.userId) tokensPorUser[data.userId] = data.token;
+  });
   const tokens = Object.values(tokensPorUser);
 
   if (!tokens.length) return res.json({ enviadas: 0 });
