@@ -4787,34 +4787,39 @@ export default function App() {
                           <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                             {fns.map((fn, i) => {
                               const LIDER_MAP = {
-                                "Templo": "lider_templo",
-                                "Cozinha": "lider_geral",
-                                "Refeitório": "lider_geral",
-                                "Louça": "lider_geral",
-                                "Panelas": "lider_geral",
-                                "Mídia": "lider_midia",
-                                "Presentes/Cartas": "lider_cartas",
-                                "Kit Cartas+Pecado": "lider_cartas",
-                                "Som": "lider_som",
-                                "Itens Teatro/Dança": "lider_danca",
-                                "Organizar itens do Templo": "lider_geral",
-                                "Intercessão": "lider_geral",
-                                "Check-in": "lider_geral",
-                                "Cantina": "lider_geral",
-                                "Malas": "lider_geral",
-                                "Banheiro": "lider_staff",
-                                "Camisetas": "lider_staff",
-                                "Servir comida": "lider_staff",
-                                "Limpeza refeitório": "lider_staff",
-                                "Kit Sobrevivência": "lider_staff",
-                                "Etiquetar Sacolas": "lider_staff",
-                                "Dobrar Sacolas": "lider_staff",
+                                // Líder Geral (só)
+                                "Intercessão": ["lider_geral"],
+                                "Malas": ["lider_geral"],
+                                "Crachá": ["lider_geral"],
+                                "Refeitório": ["lider_geral"],
+                                "Cantina": ["lider_geral"],
+                                "Louça": ["lider_geral"],
+                                "Panelas": ["lider_geral"],
+                                "Kit Sobrevivência": ["lider_geral"],
+                                "Etiquetar Sacolas": ["lider_geral"],
+                                "Dobrar Sacolas": ["lider_geral"],
+                                "Organizar itens do Templo": ["lider_geral"],
+                                "Cozinha": ["lider_geral"],
+                                "Check-in": ["lider_geral"],
+                                // Líder Geral + específico
+                                "Templo": ["lider_geral", "lider_templo"],
+                                "Mídia": ["lider_midia"],
+                                "Presentes/Cartas": ["lider_geral", "lider_cartas"],
+                                // Líder Staff (só)
+                                "Banheiro": ["lider_staff"],
+                                "Camisetas": ["lider_staff"],
+                                "Servir comida": ["lider_staff"],
+                                "Limpeza refeitório": ["lider_staff"],
+                                "Kit Cartas+Pecado": ["lider_staff"],
+                                // Outros
+                                "Som": ["lider_som"],
+                                "Itens Teatro/Dança": ["lider_danca"],
                               };
-                              const perfilLider = user.perfil === "lider_staff"
-                                ? "lider_staff"
-                                : (LIDER_MAP[fn] || "lider_staff");
+                              const perfisLider = user.perfil === "lider_staff"
+                                ? ["lider_staff"]
+                                : (LIDER_MAP[fn] || ["lider_staff"]);
 
-                              const lideres = (users || []).filter(u => u.perfil === perfilLider);
+                              const lideres = (users || []).filter(u => perfisLider.includes(u.perfil));
 
                               const colegas = (users || []).filter(u =>
                                 u.id !== user.id &&
