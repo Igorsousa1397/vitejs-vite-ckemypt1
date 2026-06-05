@@ -10,7 +10,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { encontristaId, nome, email, tipo } = req.body;
-  const isCredito = tipo === 'credito' || tipo === 'servo_credito';
+  const isCredito = tipo === 'credito' || tipo === 'servo_credito' || (tipo && tipo.includes('credito'));
   const valor = req.body.valor || (
     tipo === 'credito' ? 378.00 :
     tipo === 'servo_pix' ? 200.00 :
