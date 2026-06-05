@@ -7,30 +7,30 @@ const nodemailer = require('nodemailer');
 admin.initializeApp();
 
 // ── NOTIFICAR AVISO ──────────────────────────────────────────────────────────
-exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => {
-  const aviso = event.data.data();
-  const tokensSnap = await admin.firestore().collection('tokens').get();
+// exports.notificarAviso = onDocumentCreated('avisos/{avisoId}', async (event) => {
+//   const aviso = event.data.data();
+//   const tokensSnap = await admin.firestore().collection('tokens').get();
   
-  // deduplica por userId
-  const tokensPorUser = {};
-  tokensSnap.docs.forEach(d => {
-    const data = d.data();
-    if (data.token && data.userId) tokensPorUser[data.userId] = data.token;
-  });
-  const tokens = Object.values(tokensPorUser);
+//   // deduplica por userId
+//   const tokensPorUser = {};
+//   tokensSnap.docs.forEach(d => {
+//     const data = d.data();
+//     if (data.token && data.userId) tokensPorUser[data.userId] = data.token;
+//   });
+//   const tokens = Object.values(tokensPorUser);
   
-  if (!tokens.length) return null;
-  const message = {
-    notification: {
-      title: `${aviso.autor || 'Admin'} — Novo aviso`,
-      body: aviso.txt,
-    },
-    tokens,
-  };
-  const response = await admin.messaging().sendEachForMulticast(message);
-  console.log(`${response.successCount} notificações enviadas`);
-  return null;
-});
+//   if (!tokens.length) return null;
+//   const message = {
+//     notification: {
+//       title: `${aviso.autor || 'Admin'} — Novo aviso`,
+//       body: aviso.txt,
+//     },
+//     tokens,
+//   };
+//   const response = await admin.messaging().sendEachForMulticast(message);
+//   console.log(`${response.successCount} notificações enviadas`);
+//   return null;
+// });
 
 // ── CRIAR PAGAMENTO MERCADO PAGO ─────────────────────────────────────────────
 exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
