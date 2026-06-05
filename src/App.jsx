@@ -41,14 +41,11 @@ const iniciarNotificacoes = async (userId = null) => {
     if (permission !== "granted") return null;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
     if (token && userId) {
+      // salva sempre com userId como ID — sobrescreve automaticamente
       await setDoc(
-        doc(db, "tokens", userId), // ← volta para userId como ID
-        {
-          token,
-          userId,
-          data: new Date().toISOString(),
-        },
-        { merge: true },
+        doc(db, "tokens", userId),
+        { token, userId, data: new Date().toISOString() },
+        { merge: false } // ← substitui completamente, não faz merge
       );
     }
     return token;
