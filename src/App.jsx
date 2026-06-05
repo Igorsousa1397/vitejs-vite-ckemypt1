@@ -10673,10 +10673,10 @@ function CozinhaV({ edit, t, users }) {
                     />
                   )}
                   {u.calca && (
-                    <Pill c={`Calca ${u.calca}`} bg="#1e1e1e" tc={G.td} />
+                    <Pill c={`Calca ${u.calca} x${u.qtdCalcas || 1}`} bg="#1e1e1e" tc={G.td} />
                   )}
                   {u.blusa && (
-                    <Pill c={`Blusa ${u.blusa}`} bg="#1e1e1e" tc={G.td} />
+                    <Pill c={`Blusa ${u.blusa} x${u.qtdBlusas || 1}`} bg="#1e1e1e" tc={G.td} />
                   )}
                 </div>
 
