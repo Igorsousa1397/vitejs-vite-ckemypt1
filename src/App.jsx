@@ -4805,12 +4805,12 @@ export default function App() {
                                 "Templo": ["lider_geral", "lider_templo"],
                                 "Mídia": ["lider_midia"],
                                 "Presentes/Cartas": ["lider_geral", "lider_cartas"],
-                                // Líder Staff (só)
-                                "Banheiro": ["lider_staff"],
-                                "Camisetas": ["lider_staff"],
-                                "Servir comida": ["lider_staff"],
-                                "Limpeza refeitório": ["lider_staff"],
-                                "Kit Cartas+Pecado": ["lider_staff"],
+                                // Líder Staff + Geral
+                                "Banheiro": ["lider_staff", "lider_geral"],
+                                "Camisetas": ["lider_staff", "lider_geral"],
+                                "Servir comida": ["lider_staff", "lider_geral"],
+                                "Limpeza refeitório": ["lider_staff", "lider_geral"],
+                                "Kit Cartas+Pecado": ["lider_staff", "lider_geral"],
                                 // Outros
                                 "Som": ["lider_som"],
                                 "Itens Teatro/Dança": ["lider_danca"],
