@@ -9235,6 +9235,10 @@ function CozinhaV({ edit, t, users }) {
     };
 
     const salvarPedido = async () => {
+      if (form.camisa && !form.nomeCamiseta?.trim()) {
+        t("⚠️ Preencha o nome na camiseta antes de salvar.");
+        return;
+      }
       setSaving(true);
       const pedido = {
         nome: user.nome,
