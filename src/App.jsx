@@ -9229,7 +9229,9 @@ function CozinhaV({ edit, t, users }) {
       const camisa = precoItem("camisa", form.camisa) * (form.qtdCamisas || 1);
       const calca = precoItem("calca", form.calca) * (form.qtdCalcas || 1);
       const blusa = precoItem("blusa", form.blusa) * (form.qtdBlusas || 1);
-      return camisa + calca + blusa;
+      const calc = camisa + calca + blusa;
+      // fallback: usa valorTotal salvo no Firestore quando form está vazio (ex: prazo encerrado)
+      return calc > 0 ? calc : (meuPedido?.valorTotal || 0);
     };
 
     const salvarPedido = async () => {
@@ -9244,6 +9246,7 @@ function CozinhaV({ edit, t, users }) {
         qtdCalcas: form.calca ? (form.qtdCalcas || 1) : 0,
         blusa: form.blusa || "",
         qtdBlusas: form.blusa ? (form.qtdBlusas || 1) : 0,
+        valorTotal: totalPedido(),
         status: "bloqueado",
         data: new Date().toLocaleString("pt-BR"),
       };
