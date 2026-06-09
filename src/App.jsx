@@ -4975,7 +4975,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const servos = (users || []).filter(u =>
     u.nome &&
-    (u.perfil === 'servo' || u.perfil === 'cozinha' || (u.perfil?.startsWith('lider_') && u.perfil !== 'lider_geral'))
+    u.perfil !== 'admin' &&
+    u.perfil !== 'pastor' &&
+    u.perfil !== 'pastor_auxiliar' &&
+    u.perfil !== 'lider_geral'
   );
 
   // Data de corte para valor do servo (meia-noite Brasília = 03:00 UTC)
@@ -4990,6 +4993,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const pagoEm = u.pagoEm ? new Date(u.pagoEm) : null;
     const antesDoCorte = pagoEm ? pagoEm < CORTE : false;
     if (u.perfil === 'cozinha') return antesDoCorte ? 80 : 100;
+    // servo, staff, líderes (exceto geral/pastor) → mesmo valor
     return antesDoCorte ? 200 : 220;
   };
 
