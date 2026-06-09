@@ -4974,9 +4974,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
 
   const servos = (users || []).filter(u =>
-    u.perfil !== 'admin' && 
-    u.perfil !== 'pastor' && 
-    u.nome
+    u.nome &&
+    (u.perfil === 'servo' || u.perfil === 'cozinha' || (u.perfil?.startsWith('lider_') && u.perfil !== 'lider_geral'))
   );
 
   // Data de corte para valor do servo (meia-noite Brasília = 03:00 UTC)
