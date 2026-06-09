@@ -4978,9 +4978,26 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     u.perfil !== 'pastor' && 
     u.nome
   );
-  const servosPagos = servos.filter(u => u.pago).length;
-  const servosPendentes = servos.length - servosPagos;
-  const pctServos = servos.length ? Math.round((servosPagos / servos.length) * 100) : 0;
+
+  // Data de corte para valor do servo (meia-noite Brasília = 03:00 UTC)
+  const depoisCorte = new Date() > new Date("2026-06-01T03:00:00");
+  const valorServoPix      = depoisCorte ? 220 : 200;
+  const valorServoCreditoM = depoisCorte ? 231 : 210; // médio: média pix+credito p/ projeção
+  const valorCozinhaPix    = depoisCorte ? 100 : 80;
+
+  const getValorServo = (u) => {
+    if (u.perfil === 'cozinha') return valorCozinhaPix;
+    return valorServoPix;
+  };
+
+  const servosPagos     = servos.filter(u => u.pago === true);
+  const servosAbonados  = servos.filter(u => u.pago === 'abonado');
+  const servosPendentes = servos.filter(u => !u.pago);
+
+  const totalArrecadado = servosPagos.reduce((acc, u) => acc + getValorServo(u), 0);
+  const totalAReceber   = servosPendentes.reduce((acc, u) => acc + getValorServo(u), 0);
+
+  const pctServos = servos.length ? Math.round((servosPagos.length / servos.length) * 100) : 0;
 
   // Cadastros por dia
   const hoje = new Date();
@@ -5083,6 +5100,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             </div>
 
             {/* Servos */}
+            {(role === 'admin' || role === 'pastor' || role === 'pastor_auxiliar' || role === 'lider_geral') && (
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Servos</div>
@@ -5091,19 +5109,65 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   <Pill c={`${pctServos}%`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+              {/* Barras pagos/pendentes/abonados */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pago</span>
-                  <BarPct val={servosPagos} max={servos.length || 1} color="#0a84ff" />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos}</span>
+                  <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagos</span>
+                  <BarPct val={servosPagos.length} max={servos.length || 1} color="#0a84ff" />
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos.length}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pend.</span>
-                  <BarPct val={servosPendentes} max={servos.length || 1} color="#ff3b30" />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPendentes}</span>
+                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pend.</span>
+                  <BarPct val={servosPendentes.length} max={servos.length || 1} color="#ff3b30" />
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPendentes.length}</span>
+                </div>
+                {servosAbonados.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: '#636366', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Abonado</span>
+                    <BarPct val={servosAbonados.length} max={servos.length || 1} color="#636366" />
+                    <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosAbonados.length}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Divisor */}
+              <div style={{ height: 1, background: G.cb, marginBottom: 14 }} />
+
+              {/* Projeção financeira */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Financeiro</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: G.green }} />
+                    <span style={{ color: G.tm, fontSize: 13 }}>Arrecadado</span>
+                  </div>
+                  <span style={{ color: G.green, fontWeight: 800, fontSize: 15 }}>
+                    R$ {totalArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff9f0a' }} />
+                    <span style={{ color: G.tm, fontSize: 13 }}>A receber</span>
+                  </div>
+                  <span style={{ color: '#ff9f0a', fontWeight: 800, fontSize: 15 }}>
+                    R$ {totalAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ height: 1, background: G.cb, margin: '2px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção total</span>
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>
+                    R$ {(totalArrecadado + totalAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
+                  * Baseado em R${valorServoPix}/servo e R${valorCozinhaPix}/cozinha (PIX). Abonados não contabilizados.
                 </div>
               </div>
             </div>
+            )}
 
             {/* Cadastros por dia */}
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
@@ -9027,7 +9091,7 @@ function CozinhaV({ edit, t, users }) {
           {[
             [lista.length, "Total", "#636366"],
             [lista.filter((u) => u.ativo !== false).length, "Ativos", G.green],
-            [lista.filter((u) => u.pago && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", "#0a84ff"],
+            [lista.filter((u) => u.pago === true && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", "#0a84ff"],
           ].map(([n, l, c]) => (
             <div
               key={l}
@@ -9067,7 +9131,7 @@ function CozinhaV({ edit, t, users }) {
               u.perfil === "pastor_auxiliar" ? "#9b59b6" :
               u.perfil === "lider_geral" ? (u.pago ? "#0a84ff" : "#0a84ff") :
               u.perfil?.startsWith("lider_") ? (PERFIS[u.perfil]?.c || "#ff9f0a") :
-              u.pago ? G.green : "#ff3b30"
+              u.pago === true ? G.green : u.pago === 'abonado' ? "#636366" : "#ff3b30"
             }
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -9077,8 +9141,11 @@ function CozinhaV({ edit, t, users }) {
                 {!u.ativo && (
                   <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
                 )}
-                {u.pago && (
+                {u.pago === true && (
                   <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />
+                )}
+                {u.pago === 'abonado' && (
+                  <Pill c="Abonado" bg="rgba(99,99,102,.2)" tc="#aaa" />
                 )}
                 <Pill
                   c={PERFIS[u.perfil]?.l || u.perfil}
