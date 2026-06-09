@@ -4984,9 +4984,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const valorServoCreditoM = depoisCorte ? 231 : 210; // médio: média pix+credito p/ projeção
   const valorCozinhaPix    = depoisCorte ? 100 : 80;
 
+  const CORTE = new Date("2026-06-01T03:00:00");
   const getValorServo = (u) => {
-    if (u.perfil === 'cozinha') return valorCozinhaPix;
-    return valorServoPix;
+    // Usa pagoEm se disponível, senão assume que pagou depois do corte
+    const pagoEm = u.pagoEm ? new Date(u.pagoEm) : null;
+    const antesDoCorte = pagoEm ? pagoEm < CORTE : false;
+    if (u.perfil === 'cozinha') return antesDoCorte ? 80 : 100;
+    return antesDoCorte ? 200 : 220;
   };
 
   const servosPagos     = servos.filter(u => u.pago === true);

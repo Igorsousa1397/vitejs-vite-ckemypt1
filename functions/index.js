@@ -137,7 +137,7 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
                 const userRef = admin.firestore().collection('users').doc(referenceId);
                 const userSnap = await userRef.get();
                 if (userSnap.exists) {
-                  await userRef.update({ pago: true, pagamentoId: paymentId });
+                  await userRef.update({ pago: true, pagamentoId: paymentId, pagoEm: new Date().toISOString() });
                 }
               }
             }
