@@ -4955,7 +4955,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
   }, 0);
 
-  const META_ENC = 150;
+  const META_ENC = 140;
   const todosEnc = [...encH, ...encM];
   const VALOR_ENC = 360;
   const encPagosLista = todosEnc.filter(e => e.pago);
@@ -4992,6 +4992,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const valorServoCreditoM = depoisCorte ? 231 : 210; // médio: média pix+credito p/ projeção
   const valorCozinhaPix    = depoisCorte ? 100 : 80;
 
+  const META_SERVO = 140;
   const CORTE = new Date("2026-06-01T03:00:00");
   const getValorServo = (u) => {
     // Usa pagoEm se disponível, senão assume que pagou depois do corte
@@ -5151,8 +5152,18 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Servos</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: G.tm, fontSize: 11 }}>{servos.length} total</span>
+                  <span style={{ color: G.tm, fontSize: 11 }}>{servos.length}/{META_SERVO}</span>
                   <Pill c={`${pctServos}%`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
+                </div>
+              </div>
+              {/* Barra meta */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: G.tm, fontSize: 11 }}>Meta: {META_SERVO}</span>
+                  <span style={{ color: G.tm, fontSize: 11 }}>{Math.round((servos.length / META_SERVO) * 100)}% preenchido</span>
+                </div>
+                <div style={{ background: '#1a1a1a', borderRadius: 6, height: 8 }}>
+                  <div style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (servos.length / META_SERVO) * 100)}%`, transition: 'width .4s' }} />
                 </div>
               </div>
 
@@ -5160,18 +5171,18 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagos</span>
-                  <BarPct val={servosPagos.length} max={servos.length || 1} color="#0a84ff" />
+                  <BarPct val={servosPagos.length} max={META_SERVO} color="#0a84ff" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos.length}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pend.</span>
-                  <BarPct val={servosPendentes.length} max={servos.length || 1} color="#ff3b30" />
+                  <BarPct val={servosPendentes.length} max={META_SERVO} color="#ff3b30" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPendentes.length}</span>
                 </div>
                 {servosAbonados.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: '#636366', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Abonado</span>
-                    <BarPct val={servosAbonados.length} max={servos.length || 1} color="#636366" />
+                    <BarPct val={servosAbonados.length} max={META_SERVO} color="#636366" />
                     <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosAbonados.length}</span>
                   </div>
                 )}
@@ -5209,7 +5220,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   </span>
                 </div>
                 <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
-                  * Baseado em R${valorServoPix}/servo e R${valorCozinhaPix}/cozinha (PIX). Abonados não contabilizados.
+                  * R${valorServoPix}/servo·staff·líder e R${valorCozinhaPix}/cozinha (PIX). Abonados não contabilizados.
                 </div>
               </div>
             </div>
