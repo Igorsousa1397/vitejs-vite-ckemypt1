@@ -8822,7 +8822,7 @@ function CozinhaV({ edit, t, users }) {
 
   // ── SERVOS ───────────────────────────────────────────────────────────────────
   function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
-    const [filtroPerfil, setFiltroPerfil] = useState("todos");
+    const [filtroPerfil, setFiltroPerfil] = useState("sem_celula");
     const [filtroStatus, setFiltroStatus] = useState("todos");
     const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
@@ -8933,6 +8933,7 @@ function CozinhaV({ edit, t, users }) {
 
   const filtroPerfilFn = (u) => {
     if (filtroPerfil === "todos") return true;
+    if (filtroPerfil === "sem_celula") return u.perfil !== "lider_celula";
     if (filtroPerfil === "servo") return u.perfil === "servo";
     if (filtroPerfil === "cozinha") return u.perfil === "cozinha";
     if (filtroPerfil === "staff") return u.perfil === "staff";
@@ -9149,6 +9150,7 @@ function CozinhaV({ edit, t, users }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {[
                   ["todos", "Todos os perfis"],
+                  ["sem_celula", "Padrão (sem Líder de Célula)"],
                   ["servo", "Servo"],
                   ["cozinha", "Cozinha"],
                   ["staff", "Staff"],
