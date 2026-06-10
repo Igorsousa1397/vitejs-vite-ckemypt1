@@ -9136,8 +9136,8 @@ function CozinhaV({ edit, t, users }) {
         >
           {[
             [lista.length, "Total", "#636366"],
-            [lista.filter((u) => u.ativo !== false).length, "Ativos", G.green],
             [lista.filter((u) => u.pago === true && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", "#0a84ff"],
+            [lista.filter((u) => u.pago === 'abonado').length, "Abonados", "#636366"],
           ].map(([n, l, c]) => (
             <div
               key={l}
@@ -9222,18 +9222,44 @@ function CozinhaV({ edit, t, users }) {
               </div>
 
               {/* Pagamento */}
-              {u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && (
+              {u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && u.perfil !== "lider_geral" && (
               <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
                 <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
-                  {u.pago ? (
+                {/* Status atual */}
+                <div style={{ marginBottom: 10 }}>
+                  {u.pago === true && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
                       <span style={{ color: G.green, fontSize: 13, fontWeight: 700 }}>Pago via Mercado Pago</span>
                     </div>
-                  ) : (
+                  )}
+                  {u.pago === 'abonado' && (
+                    <span style={{ color: "#aaa", fontSize: 13, fontWeight: 700 }}>Abonado — pagamento dispensado</span>
+                  )}
+                  {!u.pago && (
                     <span style={{ color: "#ff3b30", fontSize: 13, fontWeight: 700 }}>Pendente</span>
                   )}
                 </div>
+                {/* Botão Abonar / Desfazer abono */}
+                {u.pago !== true && (
+                  <button
+                    onClick={async () => {
+                      const novoStatus = u.pago === 'abonado' ? false : 'abonado';
+                      await setDoc(doc(db, "users", u.id), { pago: novoStatus }, { merge: true });
+                      upd(u.id, (x) => ({ ...x, pago: novoStatus }));
+                      t(novoStatus === 'abonado' ? "Servo abonado." : "Abono removido.");
+                    }}
+                    style={{
+                      ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 }),
+                      borderColor: u.pago === 'abonado' ? "rgba(255,159,10,.4)" : "rgba(99,99,102,.4)",
+                      color: u.pago === 'abonado' ? "#ff9f0a" : "#aaa",
+                      background: u.pago === 'abonado' ? "rgba(255,159,10,.08)" : "rgba(99,99,102,.08)",
+                    }}
+                  >
+                    {u.pago === 'abonado' ? "↩ Desfazer abono" : "Abonar pagamento"}
+                  </button>
+                )}
+              </div>
               )}
             </div>
             </div>
