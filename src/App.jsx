@@ -4537,11 +4537,12 @@ export default function App() {
     const dataEvento = new Date("2026-06-26");
 
     const slides = [];
+    const prazoUniOk = dataLimiteUni && new Date() <= new Date(dataLimiteUni + "T23:59:59");
     if (prox) slides.push({ tipo: "min", data: prox });
     if (!pago && dataLimitePagamento && role !== "pastor_auxiliar") slides.push({ tipo: "pagamento" });
-    if (meuPedido?.status === "aberto" && dataLimiteUni) slides.push({ tipo: "uniforme" });
-    if (!meuPedido && dataLimiteUni) slides.push({ tipo: "uniforme_sem_pedido" });
-    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_pagamento" });
+    if (meuPedido?.status === "aberto" && prazoUniOk) slides.push({ tipo: "uniforme" });
+    if (!meuPedido && prazoUniOk) slides.push({ tipo: "uniforme_sem_pedido" });
+    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && prazoUniOk) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
     if (hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
 
