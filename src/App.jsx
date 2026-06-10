@@ -8823,6 +8823,8 @@ function CozinhaV({ edit, t, users }) {
   // ── SERVOS ───────────────────────────────────────────────────────────────────
   function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
+    const [filtroStatus, setFiltroStatus] = useState("todos");
+    const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({
       nome: "",
@@ -8831,7 +8833,7 @@ function CozinhaV({ edit, t, users }) {
       perfil: "servo",
       fn: "",
     });
-    const [filtro, setFiltro] = useState("todos");
+    const [filtro, setFiltro] = useState("todos"); // mantido por compatibilidade
     const [loading, setLoading] = useState(false);
     const fnsDasEquipes = useMemo(
       () => [...new Set(esc.filter((e) => e.equipe).map((e) => e.equipe))],
@@ -8929,24 +8931,35 @@ function CozinhaV({ edit, t, users }) {
     return 7;
   };
 
+  const filtroPerfilFn = (u) => {
+    if (filtroPerfil === "todos") return true;
+    if (filtroPerfil === "servo") return u.perfil === "servo";
+    if (filtroPerfil === "cozinha") return u.perfil === "cozinha";
+    if (filtroPerfil === "staff") return u.perfil === "staff";
+    if (filtroPerfil === "lider") return u.perfil?.startsWith("lider_");
+    if (filtroPerfil === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
+    return true;
+  };
+
+  const filtroStatusFn = (u) => {
+    if (filtroStatus === "todos") return true;
+    if (filtroStatus === "pagos") return u.pago === true;
+    if (filtroStatus === "pendentes") return !u.pago;
+    if (filtroStatus === "abonados") return u.pago === "abonado";
+    if (filtroStatus === "ativos") return u.ativo !== false;
+    if (filtroStatus === "inativos") return u.ativo === false;
+    if (filtroStatus === "primeiro_acesso") return u.primeiro === true;
+    return true;
+  };
+
+  const filtrosAtivos = (filtroPerfil !== "todos" ? 1 : 0) + (filtroStatus !== "todos" ? 1 : 0);
+
   const lista = users.filter(
     (u) =>
       u.perfil !== "admin" &&
       u.nome &&
-      (filtro === "todos"
-        ? true
-        : filtro === "ativos"
-          ? u.ativo !== false
-          : filtro === "inativos"
-            ? !u.ativo
-            : filtro === "primeiro_acesso"
-              ? u.primeiro === true
-              : true) &&
-      (filtroPerfil === "todos"
-        ? true
-        : filtroPerfil === "servo"
-          ? (u.perfil === "servo" || u.perfil === "cozinha" || u.perfil === "pastor" || u.perfil === "pastor_auxiliar" || (u.perfil && u.perfil.startsWith("lider_")))
-          : (u.perfil === "staff" || u.perfil === "lider_staff")) &&
+      filtroPerfilFn(u) &&
+      filtroStatusFn(u) &&
       (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
   ).sort((a, b) => {
     const ordemA = ORDEM_PERFIL(a.perfil);
@@ -9091,40 +9104,117 @@ function CozinhaV({ edit, t, users }) {
           </div>
         )}
 
-        {/* FILTRO DE PERFIL */}
-        <div style={{ marginBottom: 10 }}>
-          <Seg
-            opts={[
-              ["todos", "Todos"],
-              ["servo", "Servos"],
-              ["staff", "Staff"],
-            ]}
-            val={filtroPerfil}
-            set={setFiltroPerfil}
+        {/* BUSCA + FUNIL */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="🔍 Buscar..."
+            style={{ ...I, marginBottom: 0, flex: 1 }}
           />
+          <button
+            onClick={() => setShFiltro(true)}
+            style={{
+              ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
+              position: "relative",
+              borderColor: filtrosAtivos > 0 ? "rgba(10,132,255,.5)" : undefined,
+              color: filtrosAtivos > 0 ? "#0a84ff" : G.td,
+              background: filtrosAtivos > 0 ? "rgba(10,132,255,.08)" : undefined,
+              fontSize: 18,
+              height: 44,
+            }}
+          >
+            ⚙️
+            {filtrosAtivos > 0 && (
+              <span style={{
+                position: "absolute", top: 4, right: 4,
+                background: "#0a84ff", color: "#fff",
+                fontSize: 10, fontWeight: 800,
+                borderRadius: "50%", width: 16, height: 16,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {filtrosAtivos}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* FILTRO ATIVO/INATIVO/1º ACESSO */}
-        <div style={{ marginBottom: 10 }}>
-          <Seg
-            opts={[
-              ["todos", "Todos"],
-              ["ativos", "Ativos"],
-              ["inativos", "Inativos"],
-              ["primeiro_acesso", "1º Acesso"],
-            ]}
-            val={filtro}
-            set={setFiltro}
-          />
-        </div>
+        {/* MODAL DE FILTROS */}
+        <Sheet open={shFiltro} onClose={() => setShFiltro(false)} title="Filtros">
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {/* BUSCA */}
-        <input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="🔍 Buscar..."
-          style={{ ...I, marginBottom: 14 }}
-        />
+            {/* Perfil */}
+            <div>
+              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Perfil</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  ["todos", "Todos os perfis"],
+                  ["servo", "Servo"],
+                  ["cozinha", "Cozinha"],
+                  ["staff", "Staff"],
+                  ["lider", "Líderes"],
+                  ["pastor", "Pastores"],
+                ].map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setFiltroPerfil(val)}
+                    style={{
+                      ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
+                      borderColor: filtroPerfil === val ? "rgba(10,132,255,.5)" : "#2a2a2a",
+                      color: filtroPerfil === val ? "#0a84ff" : G.td,
+                      background: filtroPerfil === val ? "rgba(10,132,255,.08)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}
+                  >
+                    {label}
+                    {filtroPerfil === val && <span style={{ fontSize: 16 }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div>
+              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Status</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  ["todos", "Todos"],
+                  ["pagos", "Pagos"],
+                  ["pendentes", "Pendentes"],
+                  ["abonados", "Abonados"],
+                  ["ativos", "Ativos"],
+                  ["inativos", "Inativos"],
+                  ["primeiro_acesso", "1º Acesso"],
+                ].map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setFiltroStatus(val)}
+                    style={{
+                      ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
+                      borderColor: filtroStatus === val ? "rgba(48,209,88,.5)" : "#2a2a2a",
+                      color: filtroStatus === val ? G.green : G.td,
+                      background: filtroStatus === val ? "rgba(48,209,88,.08)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}
+                  >
+                    {label}
+                    {filtroStatus === val && <span style={{ fontSize: 16 }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Limpar */}
+            {filtrosAtivos > 0 && (
+              <button
+                onClick={() => { setFiltroPerfil("todos"); setFiltroStatus("todos"); }}
+                style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        </Sheet>
 
         <div
           style={{
