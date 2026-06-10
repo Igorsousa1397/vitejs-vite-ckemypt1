@@ -5138,10 +5138,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção total</span>
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>
-                    R$ {(encArrecadado + encAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {(META_ENC * VALOR_ENC).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-                <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>* R$ {VALOR_ENC}/encontrista</div>
+                <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>* {META_ENC} encontristas × R$ {VALOR_ENC}</div>
               </div>
             </div>
 
