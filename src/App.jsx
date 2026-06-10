@@ -10528,29 +10528,81 @@ function CozinhaV({ edit, t, users }) {
               if (!total) return null;
               return (
                 <div key={key} style={{ marginBottom: 12 }}>
-                  <div
-                    style={{
-                      color: G.td,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      marginBottom: 6,
-                    }}
-                  >
+                  <div style={{ color: G.td, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
                     {label}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {TAMANHOS.filter((tm) => r[tm] > 0).map((tm) => (
-                      <Pill
-                        key={tm}
-                        c={`${tm}: ${r[tm]}`}
-                        bg="#1e1e1e"
-                        tc={G.td}
-                      />
+                      <Pill key={tm} c={`${tm}: ${r[tm]}`} bg="#1e1e1e" tc={G.td} />
                     ))}
                   </div>
                 </div>
               );
             })}
+
+            {/* Financeiro uniformes */}
+            {(() => {
+              const precoItemFn = (item, tam, qtd) => {
+                if (!tam) return 0;
+                const grande = ["G1","G2","G3","G4"].includes(tam);
+                let p = 0;
+                if (item === "camisa") p = grande ? 47 : 43;
+                else if (item === "blusa") p = grande ? 115 : 105;
+                else if (item === "calca") p = grande ? 90 : 80;
+                return p * (qtd || 1);
+              };
+              const calcTotal = (u) =>
+                precoItemFn("camisa", u.camisa, u.qtdCamisas) +
+                precoItemFn("calca", u.calca, u.qtdCalcas) +
+                precoItemFn("blusa", u.blusa, u.qtdBlusas);
+
+              const uniComPedido = uniFiltrado.filter(u => !u.naoQuerUniforme);
+              let arrecadadoSinal = 0, arrecadadoIntegral = 0, aReceber = 0;
+
+              uniComPedido.forEach(u => {
+                const vTotal = u.valorTotal || calcTotal(u);
+                if (u.pagoIntegral) {
+                  arrecadadoIntegral += vTotal;
+                } else if (u.pagoSinal) {
+                  arrecadadoSinal += vTotal * 0.5;
+                  aReceber += vTotal * 0.5;
+                } else {
+                  aReceber += vTotal;
+                }
+              });
+
+              const totalArrecadado = arrecadadoSinal + arrecadadoIntegral;
+              const fmt = (v) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+              return (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ height: 1, background: G.cb, marginBottom: 12 }} />
+                  <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Financeiro</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: G.green }} />
+                        <span style={{ color: G.tm, fontSize: 13 }}>Arrecadado</span>
+                      </div>
+                      <span style={{ color: G.green, fontWeight: 800, fontSize: 15 }}>{fmt(totalArrecadado)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff9f0a' }} />
+                        <span style={{ color: G.tm, fontSize: 13 }}>A receber</span>
+                      </div>
+                      <span style={{ color: '#ff9f0a', fontWeight: 800, fontSize: 15 }}>{fmt(aReceber)}</span>
+                    </div>
+                    <div style={{ height: 1, background: G.cb }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Total esperado</span>
+                      <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>{fmt(totalArrecadado + aReceber)}</span>
+                    </div>
+                    <div style={{ color: G.tm, fontSize: 10 }}>* Inclui sinal pago + restante pendente + integrais</div>
+                  </div>
+                </div>
+              );
+            })()}
           </Acc>
         )}
 
