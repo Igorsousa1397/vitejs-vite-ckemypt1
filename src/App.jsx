@@ -8822,7 +8822,7 @@ function CozinhaV({ edit, t, users }) {
 
   // ── SERVOS ───────────────────────────────────────────────────────────────────
   function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
-    const [filtroPerfil, setFiltroPerfil] = useState("sem_celula");
+    const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
     const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
@@ -8924,16 +8924,16 @@ function CozinhaV({ edit, t, users }) {
     if (perfil === "pastor") return 0;
     if (perfil === "pastor_auxiliar") return 1;
     if (perfil === "lider_geral") return 2;
-    if (perfil?.startsWith("lider_")) return 3;
-    if (perfil === "staff") return 4;
-    if (perfil === "servo") return 5;
-    if (perfil === "cozinha") return 6;
-    return 7;
+    if (perfil?.startsWith("lider_") && perfil !== "lider_celula") return 3;
+    if (perfil === "lider_celula") return 4;
+    if (perfil === "staff") return 5;
+    if (perfil === "servo") return 6;
+    if (perfil === "cozinha") return 7;
+    return 8;
   };
 
   const filtroPerfilFn = (u) => {
     if (filtroPerfil === "todos") return true;
-    if (filtroPerfil === "sem_celula") return u.perfil !== "lider_celula";
     if (filtroPerfil === "servo") return u.perfil === "servo";
     if (filtroPerfil === "cozinha") return u.perfil === "cozinha";
     if (filtroPerfil === "staff") return u.perfil === "staff";
@@ -9150,7 +9150,6 @@ function CozinhaV({ edit, t, users }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {[
                   ["todos", "Todos os perfis"],
-                  ["sem_celula", "Padrão (sem Líder de Célula)"],
                   ["servo", "Servo"],
                   ["cozinha", "Cozinha"],
                   ["staff", "Staff"],
