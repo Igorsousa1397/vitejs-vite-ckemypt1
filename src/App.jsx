@@ -4957,9 +4957,14 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const META_ENC = 150;
   const todosEnc = [...encH, ...encM];
-  const encPagos = todosEnc.filter(e => e.pago).length;
-  const encPendentes = todosEnc.length - encPagos;
+  const VALOR_ENC = 360;
+  const encPagosLista = todosEnc.filter(e => e.pago);
+  const encPendentesLista = todosEnc.filter(e => !e.pago);
+  const encPagos = encPagosLista.length;
+  const encPendentes = encPendentesLista.length;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
+  const encArrecadado = encPagos * VALOR_ENC;
+  const encAReceber = encPendentes * VALOR_ENC;
 
   // Inscritos por célula  ← depois usa todosEnc
   const celulasPorQtd = {};
@@ -5092,7 +5097,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               </div>
 
               {/* Pagos vs Pendentes */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pago</span>
                   <BarPct val={encPagos} max={META_ENC} color={G.green} />
@@ -5103,6 +5108,40 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
                 </div>
+              </div>
+
+              {/* Divisor */}
+              <div style={{ height: 1, background: G.cb, marginBottom: 14 }} />
+
+              {/* Projeção financeira encontristas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Financeiro</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: G.green }} />
+                    <span style={{ color: G.tm, fontSize: 13 }}>Arrecadado</span>
+                  </div>
+                  <span style={{ color: G.green, fontWeight: 800, fontSize: 15 }}>
+                    R$ {encArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff9f0a' }} />
+                    <span style={{ color: G.tm, fontSize: 13 }}>A receber</span>
+                  </div>
+                  <span style={{ color: '#ff9f0a', fontWeight: 800, fontSize: 15 }}>
+                    R$ {encAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ height: 1, background: G.cb, margin: '2px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção total</span>
+                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>
+                    R$ {(encArrecadado + encAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>* R$ {VALOR_ENC}/encontrista</div>
               </div>
             </div>
 
