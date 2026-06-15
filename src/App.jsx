@@ -4970,13 +4970,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const META_ENC = 140;
   const todosEnc = [...encH, ...encM];
   const VALOR_ENC = 360;
+  const VALOR_ENC_ITAJAI = 200;
+  const getValorEnc = (e) => e.igreja === 'Fonte Itajaí' ? VALOR_ENC_ITAJAI : VALOR_ENC;
   const encPagosLista = todosEnc.filter(e => e.pago);
   const encPendentesLista = todosEnc.filter(e => !e.pago);
   const encPagos = encPagosLista.length;
   const encPendentes = encPendentesLista.length;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
-  const encArrecadado = encPagos * VALOR_ENC;
-  const encAReceber = encPendentes * VALOR_ENC;
+  const encArrecadado = encPagosLista.reduce((acc, e) => acc + getValorEnc(e), 0);
+  const encAReceber = encPendentesLista.reduce((acc, e) => acc + getValorEnc(e), 0);
 
   // Inscritos por célula  ← depois usa todosEnc
   const celulasPorQtd = {};
