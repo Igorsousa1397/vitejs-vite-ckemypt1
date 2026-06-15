@@ -1148,6 +1148,7 @@ function JaInscritoV({ onVoltar }) {
       <PagamentoV
         encId={encId}
         nome={encontrista.nome}
+        igreja={encontrista.igreja}
         onVoltar={() => { setDone(false); setEncontrista(null); setBusca(''); }}
         onPago={() => setEncontrista({ ...encontrista, pago: true })}
       />
@@ -1260,28 +1261,35 @@ return (
               <div style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 20, color: '#ff9f0a', fontSize: 13, lineHeight: 1.6 }}>
                 Sua inscrição foi encontrada mas o pagamento ainda não foi confirmado. Gere o link abaixo para concluir.
               </div>
-              <button onClick={async () => {
-                vibrar(50);
-                try {
-                  const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'pix' }) });
-                  const data = await res.json();
-                  if (data.init_point) window.location.href = data.init_point;
-                  else setMsgPagamento('Erro ao gerar pagamento.');
-                } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
-              }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: '#009ee3' }}>
-                PIX ou Boleto — R$ 360,00
-              </button>
-              <button onClick={async () => {
-                vibrar(50);
-                try {
-                  const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'credito' }) });
-                  const data = await res.json();
-                  if (data.init_point) window.location.href = data.init_point;
-                  else setMsgPagamento('Erro ao gerar pagamento.');
-                } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
-              }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15 }), background: '#009ee3' }}>
-                Cartão de Crédito — R$ 378,00
-              </button>
+              {(() => {
+                const isItajai = encontrista.igreja === 'Fonte Itajaí';
+                const valPix = isItajai ? 200 : 360;
+                const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 378;
+                return (<>
+                  <button onClick={async () => {
+                    vibrar(50);
+                    try {
+                      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'pix', valor: valPix }) });
+                      const data = await res.json();
+                      if (data.init_point) window.location.href = data.init_point;
+                      else setMsgPagamento('Erro ao gerar pagamento.');
+                    } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
+                  }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: '#009ee3' }}>
+                    PIX ou Boleto — R$ {valPix.toFixed(2).replace('.', ',')}
+                  </button>
+                  <button onClick={async () => {
+                    vibrar(50);
+                    try {
+                      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'credito', valor: valCredito }) });
+                      const data = await res.json();
+                      if (data.init_point) window.location.href = data.init_point;
+                      else setMsgPagamento('Erro ao gerar pagamento.');
+                    } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
+                  }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15 }), background: '#009ee3' }}>
+                    Cartão de Crédito — R$ {valCredito.toFixed(2).replace('.', ',')}
+                  </button>
+                </>);
+              })()}
               {msgPagamento && <div style={{ color: '#ff6b6b', fontSize: 13, marginTop: 10 }}>{msgPagamento}</div>}
             </>
           )}
@@ -1295,8 +1303,11 @@ return (
 );
 }
 
-function PagamentoV({ encId, nome, onVoltar, onPago }) {
+function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
   const [msgPagamento, setMsgPagamento] = useState('');
+  const isItajai = igreja === 'Fonte Itajaí';
+  const valPix = isItajai ? 200 : 360;
+  const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 378;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -1304,7 +1315,6 @@ function PagamentoV({ encId, nome, onVoltar, onPago }) {
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 180, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
 
-        {/* ALTERADO: saudação com o nome */}
         <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 8 }}>
           Olá, {nome.split(' ')[0]} 👋
         </div>
@@ -1317,28 +1327,28 @@ function PagamentoV({ encId, nome, onVoltar, onPago }) {
           try {
             const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'pix' }),
+              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'pix', valor: valPix }),
             });
             const data = await res.json();
             if (data.init_point) window.location.href = data.init_point;
             else alert('Erro ao gerar pagamento.');
           } catch { alert('Erro ao gerar pagamento.'); }
         }} style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: "#009ee3" }}>
-          PIX ou Boleto
+          PIX ou Boleto — R$ {valPix.toFixed(2).replace('.', ',')}
         </button>
         <button onClick={async () => {
           vibrar(50);
           try {
             const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'credito' }),
+              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'credito', valor: valCredito }),
             });
             const data = await res.json();
             if (data.init_point) window.location.href = data.init_point;
             else alert('Erro ao gerar pagamento.');
           } catch { alert('Erro ao gerar pagamento.'); }
         }} style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: "#009ee3" }}>
-          Cartão de Crédito
+          Cartão de Crédito — R$ {valCredito.toFixed(2).replace('.', ',')}
         </button>
         <div style={{ background: "rgba(251,146,60,.1)", border: "1px solid rgba(251,146,60,.3)", borderRadius: 14, padding: "14px 16px", marginBottom: 12, textAlign: "left" }}>
           <div style={{ color: "#fb923c", fontWeight: 800, fontSize: 13, marginBottom: 6, textAlign: "center" }}>IMPORTANTE</div>
@@ -1629,6 +1639,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     <PagamentoV
       encId={encId}
       nome={form.nome}
+      igreja={form.igreja === 'Outra' ? form.igrejaCustom : form.igreja}
       onVoltar={onVoltar}
       onPago={() => setScr('pagamento_confirmado')}
     />
