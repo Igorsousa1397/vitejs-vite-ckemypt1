@@ -4574,30 +4574,40 @@ export default function App() {
             </div>
           </div>
 
-          {/* 3 quick cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
-            {[["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]].map(([ic, l, p]) => {
-              const badge = p === "savs" ? avsNaoVistos : p === "sinfo" ? (ocorr?.length || 0) : 0;
-              return (
-                <div key={p} onClick={() => {
-                  setPg(p);
-                  if (p === "savs") {
-                    const todos = avs.map(a => a.id);
-                    setAvsVistos(todos);
-                    localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
-                  }
-                }} style={{ position: "relative", background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 10px", textAlign: "center", cursor: "pointer" }}>
-                  {badge > 0 && (
-                    <div style={{ position: "absolute", top: 6, right: 6, background: "#ff3b30", borderRadius: 50, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", padding: "0 4px" }}>
-                      {badge}
+          {/* quick cards */}
+          {(() => {
+            const baseCards = [["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]];
+            const extraCards = [];
+            if ((user?.telasExtra || []).includes("quartos") || role === "lider_quartos") extraCards.push(["🛏", "Quartos", "squartos"]);
+            if ((user?.telasExtra || []).includes("onibus")) extraCards.push(["🚌", "Ônibus", "sonibus"]);
+            const allCards = [...baseCards, ...extraCards];
+            const cols = allCards.length > 3 ? "1fr 1fr" : "1fr 1fr 1fr";
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: 16 }}>
+                {allCards.map(([ic, l, p]) => {
+                  const badge = p === "savs" ? avsNaoVistos : p === "sinfo" ? (ocorr?.length || 0) : 0;
+                  return (
+                    <div key={p} onClick={() => {
+                      setPg(p);
+                      if (p === "savs") {
+                        const todos = avs.map(a => a.id);
+                        setAvsVistos(todos);
+                        localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
+                      }
+                    }} style={{ position: "relative", background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 10px", textAlign: "center", cursor: "pointer" }}>
+                      {badge > 0 && (
+                        <div style={{ position: "absolute", top: 6, right: 6, background: "#ff3b30", borderRadius: 50, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", padding: "0 4px" }}>
+                          {badge}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
+                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{l}</div>
                     </div>
-                  )}
-                  <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
-                  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{l}</div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"], ["minfo", "Ministrações"]]} val={tab} set={setTab} />
 
