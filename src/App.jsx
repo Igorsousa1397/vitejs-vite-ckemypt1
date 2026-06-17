@@ -438,7 +438,7 @@ const FUNCOES_INIT = [
   "Refeitório", "Cantina", "Panelas", "Mídia", "Kit Sobrevivência",
   "Etiquetar Sacolas", "Dobrar Sacolas", "Presentes/Cartas", "Camisetas",
   "Kit Cartas+Pecado", "Organizar itens do Templo", "Itens Teatro/Dança",
-  "Servir comida", "Limpeza refeitório", "Quartos",
+  "Servir comida", "Limpeza refeitório", "Quartos", "Organizar itens STAFF",
 ];
 
 const QH_INIT = [];
@@ -4817,6 +4817,7 @@ export default function App() {
                                 "Cozinha": ["lider_geral"],
                                 "Check-in": ["lider_geral"],
                                 "Quartos": ["lider_geral", "lider_quartos"],
+                                "Organizar itens STAFF": ["lider_staff", "lider_geral"],
                                 // Líder Geral + específico
                                 "Templo": ["lider_geral", "lider_templo"],
                                 "Mídia": ["lider_midia"],
