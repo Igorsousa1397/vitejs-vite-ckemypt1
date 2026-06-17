@@ -5169,8 +5169,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               {/* Barras pagos/pendentes/abonados */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagos</span>
-                  <BarPct val={servosPagos.length} max={servos.length || 1} color="#0a84ff" />
+                  <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagos</span>
+                  <BarPct val={servosPagos.length} max={servos.length || 1} color={G.green} />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos.length}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -9259,7 +9259,7 @@ function CozinhaV({ edit, t, users }) {
         >
           {[
             [lista.length, "Total", "#636366"],
-            [lista.filter((u) => u.pago === true && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", "#0a84ff"],
+            [lista.filter((u) => u.pago === true && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", G.green],
             [lista.filter((u) => u.pago === 'abonado').length, "Abonados", "#636366"],
             [lista.filter((u) => u.pago === 'pagar_depois').length, "Pagar dep.", "#0a84ff"],
           ].map(([n, l, c]) => (
