@@ -136,7 +136,6 @@ const PERFIS = {
 const canG = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff"].includes(p);
 const canQ = (p) => ["admin", "lider_quartos"].includes(p);
-const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
 const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
 const canM = (p) => ["admin", "lider_geral", "lider_midia"].includes(p);
@@ -3422,6 +3421,7 @@ export default function App() {
 
   const role = user?.perfil || "servo";
   const isAdm = role === "admin" || role === "lider_geral";
+  const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
 
   const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
@@ -7478,8 +7478,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           const ocupados =
             o.tipo === "Servos"
               ? servos.length
-              : o.resp.length +
-                o.templo.length +
+              : (o.resp?.length || 0) +
+                (o.templo?.length || 0) +
                 pass.length +
                 passManual.length;
           const poltronas = o.poltronas || 40;
