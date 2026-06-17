@@ -3697,7 +3697,7 @@ export default function App() {
 
     const SERVO_MENU = Object.entries(MAPA_SERVO)
       .filter(([tela]) => {
-        if (tela === "rest") return role === "lider_celula";
+        if (tela === "rest") return role === "lider_celula" || user?.liderCelula === true;
         if (tela === "img") return role === "lider_midia" || Object.values(user?.escala || {}).flat().includes("Mídia");
         return temPermissao(tela);
       })
@@ -3959,7 +3959,7 @@ export default function App() {
               t={showT}
             />
           )}
-          {pg === "srest" && role === "lider_celula" && (
+          {pg === "srest" && (role === "lider_celula" || user?.liderCelula === true) && (
             <ServoRestV user={user} encH={encH} encM={encM} t={showT} />
           )}
           {pg === "simg" && <ImgV encH={encH} encM={encM} />}
@@ -7648,7 +7648,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   const can = ['admin', 'lider_geral', 'pastor', 'lider_quartos'].includes(role);
 
   // Busca líderes de célula com suas restrições
-  const lideres = (users || []).filter(u => u.perfil === "lider_celula");
+  const lideres = (users || []).filter(u => u.perfil === "lider_celula" || u.liderCelula === true);
 
   // Monta lista de restrições por célula
   const grupos = lideres.map(l => {
@@ -11619,25 +11619,49 @@ function CozinhaV({ edit, t, users }) {
                           {u.email && <div style={{ color: G.tm, fontSize: 12, marginBottom: 12 }}>✉️ {u.email}</div>}
 
                           {/* ADICIONA AQUI */}
-                            {u.perfil === "lider_celula" && (
+                            {/* Toggle Líder de Célula — visível para servo */}
+                            {(u.perfil === "servo" || u.perfil === "lider_celula") && (
                               <div style={{ marginBottom: 12 }}>
-                                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Célula</div>
-                                <select
-                                  value={u.celula || ""}
-                                  onChange={async (e) => {
-                                    const novacelula = e.target.value;
-                                    await setDoc(doc(db, "users", u.id), { celula: novacelula }, { merge: true });
-                                    setExpandidos(prev => ({ ...prev, [u.id]: true }));
-                                    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, celula: novacelula } : x));
-                                    t("Célula salva!");
-                                  }}
-                                  style={{ ...I, fontSize: 13 }}
-                                >
-                                  <option value="">Selecione a célula...</option>
-                                  {CELULAS.map(c => (
-                                    <option key={c} value={c}>{c}</option>
+                                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Líder de Célula</div>
+                                <div style={{ display: "flex", gap: 8, marginBottom: u.liderCelula ? 10 : 0 }}>
+                                  {[true, false].map(val => (
+                                    <button
+                                      key={String(val)}
+                                      onClick={async () => {
+                                        const novo = { liderCelula: val };
+                                        if (!val) novo.celula = "";
+                                        await setDoc(doc(db, "users", u.id), novo, { merge: true });
+                                        setUsers(prev => prev.map(x => x.id === u.id ? { ...x, ...novo } : x));
+                                        t(val ? "Marcado como Líder de Célula." : "Líder de Célula removido.");
+                                      }}
+                                      style={{
+                                        ...BK({ flex: 1, padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 700 }),
+                                        background: (u.liderCelula === true) === val ? (val ? "rgba(255,107,53,.12)" : "rgba(99,99,102,.1)") : "transparent",
+                                        borderColor: (u.liderCelula === true) === val ? (val ? "rgba(255,107,53,.5)" : "#444") : "#2a2a2a",
+                                        color: (u.liderCelula === true) === val ? (val ? "#ff6b35" : G.td) : G.tm,
+                                      }}
+                                    >
+                                      {val ? "Sim" : "Não"}
+                                    </button>
                                   ))}
-                                </select>
+                                </div>
+                                {u.liderCelula === true && (
+                                  <select
+                                    value={u.celula || ""}
+                                    onChange={async (e) => {
+                                      const novacelula = e.target.value;
+                                      await setDoc(doc(db, "users", u.id), { celula: novacelula }, { merge: true });
+                                      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, celula: novacelula } : x));
+                                      t("Célula salva!");
+                                    }}
+                                    style={{ ...I, fontSize: 13 }}
+                                  >
+                                    <option value="">Selecione a célula...</option>
+                                    {CELULAS.map(c => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
+                                )}
                               </div>
                             )}
 
