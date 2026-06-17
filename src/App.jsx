@@ -6207,6 +6207,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       const atualizado = fn(quarto);
       if (isH) uQH(num, () => atualizado);
       else uQM(num, () => atualizado);
+      // Se número mudou, deletar doc antigo antes de criar novo
+      if (atualizado.num !== num) {
+        await deletarQuarto(colecao, num);
+      }
       await salvarQuarto(colecao, atualizado);
     };
 
