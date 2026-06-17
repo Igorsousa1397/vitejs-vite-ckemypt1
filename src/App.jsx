@@ -3891,6 +3891,9 @@ export default function App() {
             dataLimitePagamento={dataLimitePagamento}
             esc={esc}
             users={users}
+            qh={qh}
+            qm={qm}
+            on={on}
           />
         )}
         <div
@@ -4510,7 +4513,7 @@ export default function App() {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users }) {
+  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users, qh, qm, on }) {
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
     const [diasAbertos, setDiasAbertos] = useState({});
@@ -4576,35 +4579,41 @@ export default function App() {
 
           {/* quick cards */}
           {(() => {
-            const baseCards = [["📢", "Avisos", "savs"], ["👕", "Uniforme", "suni"], ["⚠️", "Ocorrências", "sinfo"]];
-            const extraCards = [];
-            if ((user?.telasExtra || []).includes("quartos") || role === "lider_quartos") extraCards.push(["🛏", "Quartos", "squartos"]);
-            if ((user?.telasExtra || []).includes("onibus")) extraCards.push(["🚌", "Ônibus", "sonibus"]);
-            const allCards = [...baseCards, ...extraCards];
-            const cols = allCards.length > 3 ? "1fr 1fr" : "1fr 1fr 1fr";
+            const temQuartos = (user?.telasExtra || []).includes("quartos") || role === "lider_quartos";
+            const temOnibus = (user?.telasExtra || []).includes("onibus");
+            const cards = [
+              [avsNaoVistos > 0 ? avsNaoVistos : "📢", "Avisos", "savs"],
+              ["👕", "Uniforme", "suni"],
+              [ocorr?.length || 0, "Ocorrências", "sinfo"],
+              ...(temQuartos ? [[uni?.filter ? "" : "", "Quartos", "squartos"]] : []),
+              ...(temOnibus ? [["", "Ônibus", "sonibus"]] : []),
+            ];
+            // Com dados reais para quartos e onibus
+            const quartosTot = (qh?.length || 0) + (qm?.length || 0);
+            const onibusTot = on?.reduce((a, o) => a + (o.poltronas || 40), 0) || 0;
+            const cardsComValor = [
+              [avsNaoVistos > 0 ? avsNaoVistos : "—", "Avisos", "savs"],
+              ["—", "Uniforme", "suni"],
+              [ocorr?.length || 0, "Ocorrências", "sinfo"],
+              ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
+              ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
+            ];
+            const cols = cardsComValor.length > 3 ? "1fr 1fr" : "1fr 1fr 1fr";
             return (
               <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: 16 }}>
-                {allCards.map(([ic, l, p]) => {
-                  const badge = p === "savs" ? avsNaoVistos : p === "sinfo" ? (ocorr?.length || 0) : 0;
-                  return (
-                    <div key={p} onClick={() => {
-                      setPg(p);
-                      if (p === "savs") {
-                        const todos = avs.map(a => a.id);
-                        setAvsVistos(todos);
-                        localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
-                      }
-                    }} style={{ position: "relative", background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 10px", textAlign: "center", cursor: "pointer" }}>
-                      {badge > 0 && (
-                        <div style={{ position: "absolute", top: 6, right: 6, background: "#ff3b30", borderRadius: 50, minWidth: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", padding: "0 4px" }}>
-                          {badge}
-                        </div>
-                      )}
-                      <div style={{ fontSize: 22, marginBottom: 6 }}>{ic}</div>
-                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{l}</div>
-                    </div>
-                  );
-                })}
+                {cardsComValor.map(([n, l, p]) => (
+                  <div key={p} onClick={() => {
+                    setPg(p);
+                    if (p === "savs") {
+                      const todos = avs.map(a => a.id);
+                      setAvsVistos(todos);
+                      localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
+                    }
+                  }} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "20px 16px", cursor: "pointer" }}>
+                    <div style={{ color: G.t, fontWeight: 800, fontSize: String(n).length > 5 ? 18 : 28, letterSpacing: -1 }}>{n}</div>
+                    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 4 }}>{l}</div>
+                  </div>
+                ))}
               </div>
             );
           })()}
