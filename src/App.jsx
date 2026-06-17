@@ -3594,58 +3594,37 @@ export default function App() {
         padding: "14px 16px",
         display: "flex",
         alignItems: "center",
-        gap: 10,
         position: "sticky",
         top: 0,
         zIndex: 50,
       }}>
-      {pg === "home" ? (
-        <button
-          onClick={() => setMenu(true)}
-          style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}
-        >
-          ☰
-        </button>
-      ) : (
-        <button
-          onClick={() => nav("home")}
-          style={BK({
-            padding: "8px 13px",
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 700,
-          })}
-        >
-          ←
-        </button>
-      )}
+      {/* Esquerda */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+        {pg === "home" ? (
+          <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
+        ) : (
+          <button onClick={() => nav("home")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+        )}
+      </div>
+      {/* Centro */}
       <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-      {pg === "home" ? (
-        <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
-      ) : (
-        <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{LABELS[pg]}</span>
-      )}
-    </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {pg === "home" ? (
+          <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
+        ) : (
+          <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{LABELS[pg]}</span>
+        )}
+      </div>
+      {/* Direita */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
         {pg === "home" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
         {pg === "home" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
         <button
           onClick={async () => {
             const token = await iniciarNotificacoes(user?.id);
-            if (token) {
-              setNotif(true);
-              showT("Notificações ativas!", "n");
-            } else {
-              showT("Permissão negada", "w");
-            }
+            if (token) { setNotif(true); showT("Notificações ativas!", "n"); }
+            else showT("Permissão negada", "w");
           }}
-          style={BK({
-            padding: "8px 11px",
-            borderRadius: 10,
-            fontSize: 13,
-            borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a",
-            color: notif ? G.green : G.td,
-          })}
+          style={BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td })}
         >
           🔔
         </button>
@@ -3849,11 +3828,13 @@ export default function App() {
           zIndex: 50,
         }}>
           {/* Esquerda */}
-          {pg === "smins" ? (
-            <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
-          ) : (
-            <button onClick={() => setPg("smins")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
-          )}
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+            {pg === "smins" ? (
+              <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
+            ) : (
+              <button onClick={() => setPg("smins")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+            )}
+          </div>
 
           {/* Centro */}
           <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -3881,7 +3862,7 @@ export default function App() {
           </div>
 
           {/* Direita */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
             {pg === "smins" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
             {pg === "smins" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
             <button
