@@ -3380,6 +3380,8 @@ export default function App() {
     if (role === "lider_geral") return true;
     const telasFixas = ["mins", "avisos", "uniforme", "info"];
     if (telasFixas.includes(tela)) return true;
+    // Telas extras atribuídas individualmente ao usuário
+    if ((user?.telasExtra || []).includes(tela)) return true;
     const p = permissoes[role];
     if (!p) return false;
     return (p.telas || []).includes(tela);
@@ -11664,6 +11666,68 @@ function CozinhaV({ edit, t, users }) {
                                 )}
                               </div>
                             )}
+
+{/* Telas extras individuais */}
+                          {(() => {
+                            const TELAS_LISTA = [
+                              ["mins", "📅 Agenda"],
+                              ["avisos", "📢 Avisos"],
+                              ["uniforme", "👕 Uniforme"],
+                              ["info", "⚠️ Ocorrências"],
+                              ["rest", "⛔ Restrições"],
+                              ["img", "📷 Uso de Imagem"],
+                              ["checkin", "✓ Check-in"],
+                              ["termo", "✎ Termo"],
+                              ["quartos", "🛏 Quartos"],
+                              ["enc", "👥 Encontristas"],
+                              ["onibus", "🚌 Ônibus"],
+                              ["cozinha", "🍽️ Cozinha"],
+                              ["equipes", "📋 Equipes"],
+                              ["servos", "👤 Servos"],
+                              ["ach", "🔎 Achados & Perdidos"],
+                              ["crac", "🪪 Crachás"],
+                              ["saude", "💊 Saúde"],
+                              ["test", "🙌 Testemunhos"],
+                              ["back", "⚙️ Back Office"],
+                            ];
+                            const telasPerfil = permissoes[u.perfil]?.telas || [];
+                            const telasFixas = ["mins", "avisos", "uniforme", "info"];
+                            const telasExtra = u.telasExtra || [];
+                            // só mostra telas que o perfil NÃO tem por padrão
+                            const telasDisponiveis = TELAS_LISTA.filter(([id]) =>
+                              !telasPerfil.includes(id) && !telasFixas.includes(id)
+                            );
+                            if (!telasDisponiveis.length) return null;
+                            return (
+                              <div style={{ marginBottom: 12 }}>
+                                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Telas extras</div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {telasDisponiveis.map(([id, label]) => {
+                                    const ativo = telasExtra.includes(id);
+                                    return (
+                                      <div
+                                        key={id}
+                                        onClick={async () => {
+                                          const novas = ativo
+                                            ? telasExtra.filter(t => t !== id)
+                                            : [...telasExtra, id];
+                                          await setDoc(doc(db, "users", u.id), { telasExtra: novas }, { merge: true });
+                                          setUsers(prev => prev.map(x => x.id === u.id ? { ...x, telasExtra: novas } : x));
+                                          showT(ativo ? `${label} removida.` : `${label} habilitada.`);
+                                        }}
+                                        style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 10px", borderRadius: 10, background: ativo ? "rgba(10,132,255,.08)" : "#111", border: `1px solid ${ativo ? "rgba(10,132,255,.25)" : "#1e1e1e"}` }}
+                                      >
+                                        <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? "#0a84ff" : "#444"}`, background: ativo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                          {ativo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                                        </div>
+                                        <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{label}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* Escala por dia */}
                           {DIAS.map(dia => (
