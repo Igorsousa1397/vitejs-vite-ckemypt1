@@ -3970,7 +3970,7 @@ export default function App() {
           )}
           {pg === "squartos" && (
             temPermissao("quartos")
-              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={false} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
+              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role)} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
               : <TelaRestrita />
           )}
           {pg === "scheckin" && (
