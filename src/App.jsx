@@ -8853,6 +8853,59 @@ function CozinhaV({ edit, t, users }) {
   }
 
   // ── SERVOS ───────────────────────────────────────────────────────────────────
+  function PagarDepoisWidget({ u, upd, t }) {
+    const [pdData, setPdData] = useState(u.pagarDepoisData || "");
+    const [pdObs, setPdObs] = useState(u.pagarDepoisObs || "");
+    const [pdAtivo, setPdAtivo] = useState(u.pago === 'pagar_depois');
+
+    return (
+      <>
+        <div
+          onClick={() => {
+            if (pdAtivo) {
+              setPdAtivo(false);
+              const update = { pago: false, pagarDepoisData: null, pagarDepoisObs: null };
+              setDoc(doc(db, "users", u.id), update, { merge: true });
+              upd(u.id, (x) => ({ ...x, ...update }));
+              t("Status removido.");
+            } else {
+              setPdAtivo(true);
+            }
+          }}
+          style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: pdAtivo ? 10 : 0 }}
+        >
+          <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${pdAtivo ? "#0a84ff" : "#444"}`, background: pdAtivo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {pdAtivo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+          </div>
+          <span style={{ color: pdAtivo ? "#0a84ff" : G.td, fontSize: 13, fontWeight: 600 }}>Pagar depois</span>
+        </div>
+        {pdAtivo && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Data prevista</div>
+              <input type="date" value={pdData} onChange={(e) => setPdData(e.target.value)} style={{ ...I, fontSize: 13, marginBottom: 0 }} />
+            </div>
+            <div>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Observações</div>
+              <input type="text" value={pdObs} onChange={(e) => setPdObs(e.target.value)} placeholder="Ex: vai pagar na sexta..." style={{ ...I, fontSize: 13, marginBottom: 0 }} />
+            </div>
+            <button
+              onClick={async () => {
+                const update = { pago: 'pagar_depois', pagarDepoisData: pdData, pagarDepoisObs: pdObs };
+                await setDoc(doc(db, "users", u.id), update, { merge: true });
+                upd(u.id, (x) => ({ ...x, ...update }));
+                t("Salvo!");
+              }}
+              style={BG({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 })}
+            >
+              Salvar
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
+
   function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -9380,58 +9433,7 @@ function CozinhaV({ edit, t, users }) {
                     {/* Pagar depois */}
                     {u.pago !== 'abonado' && (
                       <div style={{ background: "#1a1a1a", borderRadius: 10, padding: "10px 12px" }}>
-                        {(() => {
-                          const [pdData, setPdData] = React.useState(u.pagarDepoisData || "");
-                          const [pdObs, setPdObs] = React.useState(u.pagarDepoisObs || "");
-                          const [pdAtivo, setPdAtivo] = React.useState(u.pago === 'pagar_depois');
-                          return (
-                            <>
-                              <div
-                                onClick={() => {
-                                  if (pdAtivo) {
-                                    // desmarcar imediatamente
-                                    setPdAtivo(false);
-                                    const update = { pago: false, pagarDepoisData: null, pagarDepoisObs: null };
-                                    setDoc(doc(db, "users", u.id), update, { merge: true });
-                                    upd(u.id, (x) => ({ ...x, ...update }));
-                                    t("Status removido.");
-                                  } else {
-                                    setPdAtivo(true);
-                                  }
-                                }}
-                                style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: pdAtivo ? 10 : 0 }}
-                              >
-                                <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${pdAtivo ? "#0a84ff" : "#444"}`, background: pdAtivo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  {pdAtivo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
-                                </div>
-                                <span style={{ color: pdAtivo ? "#0a84ff" : G.td, fontSize: 13, fontWeight: 600 }}>Pagar depois</span>
-                              </div>
-                              {pdAtivo && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                  <div>
-                                    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Data prevista</div>
-                                    <input type="date" value={pdData} onChange={(e) => setPdData(e.target.value)} style={{ ...I, fontSize: 13, marginBottom: 0 }} />
-                                  </div>
-                                  <div>
-                                    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Observações</div>
-                                    <input type="text" value={pdObs} onChange={(e) => setPdObs(e.target.value)} placeholder="Ex: vai pagar na sexta..." style={{ ...I, fontSize: 13, marginBottom: 0 }} />
-                                  </div>
-                                  <button
-                                    onClick={async () => {
-                                      const update = { pago: 'pagar_depois', pagarDepoisData: pdData, pagarDepoisObs: pdObs };
-                                      await setDoc(doc(db, "users", u.id), update, { merge: true });
-                                      upd(u.id, (x) => ({ ...x, ...update }));
-                                      t("Salvo!");
-                                    }}
-                                    style={BG({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 })}
-                                  >
-                                    Salvar
-                                  </button>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
+                        <PagarDepoisWidget u={u} upd={upd} t={t} />
                       </div>
                     )}
                     {/* Abonar */}
