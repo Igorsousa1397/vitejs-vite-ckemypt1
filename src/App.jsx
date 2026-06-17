@@ -136,6 +136,7 @@ const PERFIS = {
 const canG = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff"].includes(p);
 const canQ = (p) => ["admin", "lider_quartos"].includes(p);
+const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
 const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
 const canM = (p) => ["admin", "lider_geral", "lider_midia"].includes(p);
@@ -3970,7 +3971,7 @@ export default function App() {
           )}
           {pg === "squartos" && (
             temPermissao("quartos")
-              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role)} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
+              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role) || canExtra("quartos")} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
               : <TelaRestrita />
           )}
           {pg === "scheckin" && (
@@ -3987,19 +3988,19 @@ export default function App() {
             temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
           )}
           {pg === "scrac" && (
-            temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={false} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
+            temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={isAdm || canExtra("crac")} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
           )}
           {pg === "sonibus" && (
-            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={false} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
+            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
           )}
           {pg === "senc" && (
-            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={false} t={showT} /> : <TelaRestrita />
+            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} /> : <TelaRestrita />
           )}
           {pg === "scozinha" && (
-            temPermissao("cozinha") ? <CozinhaV edit={false} t={showT} users={users} /> : <TelaRestrita />
+            temPermissao("cozinha") ? <CozinhaV edit={isAdm || canExtra("cozinha")} t={showT} users={users} /> : <TelaRestrita />
           )}
           {pg === "ssaude" && (
-            <SauV sau={sau} setSau={setSau} edit={false} t={showT} />
+            <SauV sau={sau} setSau={setSau} edit={isAdm || canExtra("saude")} t={showT} />
           )}
         </div>
       </div>
@@ -4180,7 +4181,7 @@ export default function App() {
           />
         )}
         {pg === "checkin" && (
-          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role)} t={showT} />
+          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} />
         )}
         {pg === "mins" && (
           <MinsV
@@ -4200,7 +4201,7 @@ export default function App() {
             uQM={uQM}
             setQh={setQh}
             setQm={setQm}
-            edit={canQ(role)}
+            edit={canQ(role) || canExtra("quartos")}
             t={showT}
             encH={encH}
             encM={encM}
