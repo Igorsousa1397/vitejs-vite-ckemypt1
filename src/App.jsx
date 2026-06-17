@@ -5013,7 +5013,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const servosPagos     = servos.filter(u => u.pago === true);
   const servosAbonados  = servos.filter(u => u.pago === 'abonado');
-  const servosPendentes = servos.filter(u => !u.pago);
+  const servosPendentes = servos.filter(u => !u.pago && u.ativo !== false);
 
   const totalArrecadado = servosPagos.reduce((acc, u) => acc + getValorServo(u), 0);
   const totalAReceber   = servosPendentes.reduce((acc, u) => acc + getValorServo(u), 0);
