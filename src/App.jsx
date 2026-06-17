@@ -3878,8 +3878,8 @@ export default function App() {
 
           {/* Direita */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
-            <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />
+            {pg === "home" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            {pg === "home" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
             <button
               onClick={async () => {
                 const token = await iniciarNotificacoes(user?.id);
