@@ -3626,26 +3626,30 @@ export default function App() {
         <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{LABELS[pg]}</span>
       )}
     </div>
-      <button
-        onClick={async () => {
-          const token = await iniciarNotificacoes(user?.id);
-          if (token) {
-            setNotif(true);
-            showT("Notificações ativas!", "n");
-          } else {
-            showT("Permissão negada", "w");
-          }
-        }}
-        style={BK({
-          padding: "8px 11px",
-          borderRadius: 10,
-          fontSize: 13,
-          borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a",
-          color: notif ? G.green : G.td,
-        })}
-      >
-        🔔
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {pg === "home" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+        {pg === "home" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
+        <button
+          onClick={async () => {
+            const token = await iniciarNotificacoes(user?.id);
+            if (token) {
+              setNotif(true);
+              showT("Notificações ativas!", "n");
+            } else {
+              showT("Permissão negada", "w");
+            }
+          }}
+          style={BK({
+            padding: "8px 11px",
+            borderRadius: 10,
+            fontSize: 13,
+            borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a",
+            color: notif ? G.green : G.td,
+          })}
+        >
+          🔔
+        </button>
+      </div>
     </div>
   );
 
@@ -3852,7 +3856,7 @@ export default function App() {
           )}
 
           {/* Centro */}
-          <div style={{ flex: 1, display: "flex", justifyContent: "center", paddingLeft: 60 }}>
+          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
             {pg === "smins" ? (
               <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
             ) : (
@@ -3878,8 +3882,8 @@ export default function App() {
 
           {/* Direita */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {pg === "home" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
-            {pg === "home" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
+            {pg === "smins" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            {pg === "smins" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
             <button
               onClick={async () => {
                 const token = await iniciarNotificacoes(user?.id);
