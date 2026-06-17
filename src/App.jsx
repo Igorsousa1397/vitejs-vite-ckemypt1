@@ -11700,31 +11700,41 @@ function CozinhaV({ edit, t, users }) {
                             if (!telasDisponiveis.length) return null;
                             return (
                               <div style={{ marginBottom: 12 }}>
-                                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Telas extras</div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                  {telasDisponiveis.map(([id, label]) => {
-                                    const ativo = telasExtra.includes(id);
-                                    return (
-                                      <div
-                                        key={id}
-                                        onClick={async () => {
-                                          const novas = ativo
-                                            ? telasExtra.filter(t => t !== id)
-                                            : [...telasExtra, id];
-                                          await setDoc(doc(db, "users", u.id), { telasExtra: novas }, { merge: true });
-                                          setUsers(prev => prev.map(x => x.id === u.id ? { ...x, telasExtra: novas } : x));
-                                          showT(ativo ? `${label} removida.` : `${label} habilitada.`);
-                                        }}
-                                        style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 10px", borderRadius: 10, background: ativo ? "rgba(10,132,255,.08)" : "#111", border: `1px solid ${ativo ? "rgba(10,132,255,.25)" : "#1e1e1e"}` }}
-                                      >
-                                        <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? "#0a84ff" : "#444"}`, background: ativo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                          {ativo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                                <button
+                                  onClick={() => setExpandidos(prev => ({ ...prev, [`telas_${u.id}`]: !prev[`telas_${u.id}`] }))}
+                                  style={{ ...BK({ width: "100%", padding: "10px 14px", borderRadius: 12, fontSize: 13, fontWeight: 600 }), display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: telasExtra.length > 0 ? "rgba(10,132,255,.4)" : "#2a2a2a", background: telasExtra.length > 0 ? "rgba(10,132,255,.06)" : "transparent" }}
+                                >
+                                  <span style={{ color: telasExtra.length > 0 ? "#0a84ff" : G.td }}>
+                                    🖥 Telas extras {telasExtra.length > 0 ? `(${telasExtra.length})` : ""}
+                                  </span>
+                                  <span style={{ color: G.tm, fontSize: 11 }}>{expandidos[`telas_${u.id}`] ? "▲" : "▼"}</span>
+                                </button>
+                                {expandidos[`telas_${u.id}`] && (
+                                  <div style={{ marginTop: 6, background: "#111", borderRadius: 10, border: "1px solid #1e1e1e", overflow: "hidden" }}>
+                                    {telasDisponiveis.map(([id, label], idx) => {
+                                      const ativo = telasExtra.includes(id);
+                                      return (
+                                        <div
+                                          key={id}
+                                          onClick={async () => {
+                                            const novas = ativo
+                                              ? telasExtra.filter(t => t !== id)
+                                              : [...telasExtra, id];
+                                            await setDoc(doc(db, "users", u.id), { telasExtra: novas }, { merge: true });
+                                            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, telasExtra: novas } : x));
+                                            showT(ativo ? `${label} removida.` : `${label} habilitada.`);
+                                          }}
+                                          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 14px", background: ativo ? "rgba(10,132,255,.08)" : "transparent", borderTop: idx > 0 ? "1px solid #1e1e1e" : "none" }}
+                                        >
+                                          <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? "#0a84ff" : "#444"}`, background: ativo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                            {ativo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                                          </div>
+                                          <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{label}</span>
                                         </div>
-                                        <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{label}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             );
                           })()}
