@@ -5013,7 +5013,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const servosPagos     = servos.filter(u => u.pago === true);
   const servosAbonados  = servos.filter(u => u.pago === 'abonado');
-  const servosPendentes = servos.filter(u => !u.pago && u.ativo !== false);
+  const servosPendentes = servos.filter(u => !u.pago && u.ativo !== false && u.pago !== 'pagar_depois');
+  const servosPagarDepois = servos.filter(u => u.pago === 'pagar_depois' && u.ativo !== false);
 
   const totalArrecadado = servosPagos.reduce((acc, u) => acc + getValorServo(u), 0);
   const totalAReceber   = servosPendentes.reduce((acc, u) => acc + getValorServo(u), 0);
@@ -5184,6 +5185,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosAbonados.length}</span>
                   </div>
                 )}
+                {servosPagarDepois.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagar dep.</span>
+                    <BarPct val={servosPagarDepois.length} max={servos.length || 1} color="#0a84ff" />
+                    <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagarDepois.length}</span>
+                  </div>
+                )}
               </div>
 
               {/* Divisor */}
@@ -5217,6 +5225,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     R$ {(totalArrecadado + totalAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
+                {servosPagarDepois.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0a84ff' }} />
+                      <span style={{ color: G.tm, fontSize: 13 }}>Pagar depois ({servosPagarDepois.length})</span>
+                    </div>
+                    <span style={{ color: '#0a84ff', fontWeight: 800, fontSize: 15 }}>
+                      R$ {servosPagarDepois.reduce((acc, u) => acc + getValorServo(u), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
                 <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
                   * R${valorServoPix}/servo·staff·líder e R${valorCozinhaPix}/cozinha (PIX). Abonados não contabilizados.
                 </div>
@@ -9242,6 +9261,7 @@ function CozinhaV({ edit, t, users }) {
             [lista.length, "Total", "#636366"],
             [lista.filter((u) => u.pago === true && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", "#0a84ff"],
             [lista.filter((u) => u.pago === 'abonado').length, "Abonados", "#636366"],
+            [lista.filter((u) => u.pago === 'pagar_depois').length, "Pagar dep.", "#0a84ff"],
           ].map(([n, l, c]) => (
             <div
               key={l}
@@ -9281,7 +9301,7 @@ function CozinhaV({ edit, t, users }) {
               u.perfil === "pastor_auxiliar" ? "#9b59b6" :
               u.perfil === "lider_geral" ? (u.pago ? "#0a84ff" : "#0a84ff") :
               u.perfil?.startsWith("lider_") ? (PERFIS[u.perfil]?.c || "#ff9f0a") :
-              u.pago === true ? G.green : u.pago === 'abonado' ? "#636366" : "#ff3b30"
+              u.pago === true ? G.green : u.pago === 'abonado' ? "#636366" : u.pago === 'pagar_depois' ? "#0a84ff" : "#ff3b30"
             }
             right={
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -9296,6 +9316,9 @@ function CozinhaV({ edit, t, users }) {
                 )}
                 {u.pago === 'abonado' && (
                   <Pill c="Abonado" bg="rgba(99,99,102,.2)" tc="#aaa" />
+                )}
+                {u.pago === 'pagar_depois' && (
+                  <Pill c="Pagar depois" bg="rgba(10,132,255,.12)" tc="#0a84ff" />
                 )}
                 <Pill
                   c={PERFIS[u.perfil]?.l || u.perfil}
@@ -9340,28 +9363,90 @@ function CozinhaV({ edit, t, users }) {
                   {u.pago === 'abonado' && (
                     <span style={{ color: "#aaa", fontSize: 13, fontWeight: 700 }}>Abonado — pagamento dispensado</span>
                   )}
+                  {u.pago === 'pagar_depois' && (
+                    <div>
+                      <span style={{ color: "#0a84ff", fontSize: 13, fontWeight: 700 }}>Pagar depois</span>
+                      {u.pagarDepoisData && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📅 {new Date(u.pagarDepoisData + 'T12:00:00').toLocaleDateString('pt-BR')}</div>}
+                      {u.pagarDepoisObs && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>💬 {u.pagarDepoisObs}</div>}
+                    </div>
+                  )}
                   {!u.pago && (
                     <span style={{ color: "#ff3b30", fontSize: 13, fontWeight: 700 }}>Pendente</span>
                   )}
                 </div>
                 {/* Botão Abonar / Desfazer abono */}
                 {u.pago !== true && (
-                  <button
-                    onClick={async () => {
-                      const novoStatus = u.pago === 'abonado' ? false : 'abonado';
-                      await setDoc(doc(db, "users", u.id), { pago: novoStatus }, { merge: true });
-                      upd(u.id, (x) => ({ ...x, pago: novoStatus }));
-                      t(novoStatus === 'abonado' ? "Servo abonado." : "Abono removido.");
-                    }}
-                    style={{
-                      ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 }),
-                      borderColor: u.pago === 'abonado' ? "rgba(255,159,10,.4)" : "rgba(99,99,102,.4)",
-                      color: u.pago === 'abonado' ? "#ff9f0a" : "#aaa",
-                      background: u.pago === 'abonado' ? "rgba(255,159,10,.08)" : "rgba(99,99,102,.08)",
-                    }}
-                  >
-                    {u.pago === 'abonado' ? "↩ Desfazer abono" : "Abonar pagamento"}
-                  </button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* Pagar depois */}
+                    {u.pago !== 'abonado' && (
+                      <div style={{ background: "#1a1a1a", borderRadius: 10, padding: "10px 12px" }}>
+                        <div
+                          onClick={async () => {
+                            const novoStatus = u.pago === 'pagar_depois' ? false : 'pagar_depois';
+                            const update = { pago: novoStatus };
+                            if (novoStatus === false) { update.pagarDepoisData = null; update.pagarDepoisObs = null; }
+                            await setDoc(doc(db, "users", u.id), update, { merge: true });
+                            upd(u.id, (x) => ({ ...x, ...update }));
+                            t(novoStatus === 'pagar_depois' ? "Marcado como Pagar Depois." : "Status removido.");
+                          }}
+                          style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: u.pago === 'pagar_depois' ? 10 : 0 }}
+                        >
+                          <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${u.pago === 'pagar_depois' ? "#0a84ff" : "#444"}`, background: u.pago === 'pagar_depois' ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {u.pago === 'pagar_depois' && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                          </div>
+                          <span style={{ color: u.pago === 'pagar_depois' ? "#0a84ff" : G.td, fontSize: 13, fontWeight: 600 }}>Pagar depois</span>
+                        </div>
+                        {u.pago === 'pagar_depois' && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div>
+                              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Data prevista</div>
+                              <input
+                                type="date"
+                                defaultValue={u.pagarDepoisData || ""}
+                                onBlur={async (e) => {
+                                  await setDoc(doc(db, "users", u.id), { pagarDepoisData: e.target.value }, { merge: true });
+                                  upd(u.id, (x) => ({ ...x, pagarDepoisData: e.target.value }));
+                                }}
+                                style={{ ...I, fontSize: 13, marginBottom: 0 }}
+                              />
+                            </div>
+                            <div>
+                              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Observações</div>
+                              <input
+                                type="text"
+                                defaultValue={u.pagarDepoisObs || ""}
+                                placeholder="Ex: vai pagar na sexta..."
+                                onBlur={async (e) => {
+                                  await setDoc(doc(db, "users", u.id), { pagarDepoisObs: e.target.value }, { merge: true });
+                                  upd(u.id, (x) => ({ ...x, pagarDepoisObs: e.target.value }));
+                                }}
+                                style={{ ...I, fontSize: 13, marginBottom: 0 }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Abonar */}
+                    {u.pago !== 'pagar_depois' && (
+                      <button
+                        onClick={async () => {
+                          const novoStatus = u.pago === 'abonado' ? false : 'abonado';
+                          await setDoc(doc(db, "users", u.id), { pago: novoStatus }, { merge: true });
+                          upd(u.id, (x) => ({ ...x, pago: novoStatus }));
+                          t(novoStatus === 'abonado' ? "Servo abonado." : "Abono removido.");
+                        }}
+                        style={{
+                          ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 }),
+                          borderColor: u.pago === 'abonado' ? "rgba(255,159,10,.4)" : "rgba(99,99,102,.4)",
+                          color: u.pago === 'abonado' ? "#ff9f0a" : "#aaa",
+                          background: u.pago === 'abonado' ? "rgba(255,159,10,.08)" : "rgba(99,99,102,.08)",
+                        }}
+                      >
+                        {u.pago === 'abonado' ? "↩ Desfazer abono" : "Abonar pagamento"}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
               )}
