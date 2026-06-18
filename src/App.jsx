@@ -6773,6 +6773,41 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           val={g}
           set={setG}
         />
+        <button
+          onClick={async () => {
+            const todos = [...encM, ...encH];
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet("Encontristas");
+            ws.columns = [
+              { header: "Nome", key: "nome", width: 40 },
+              { header: "Sexo", key: "sexo", width: 12 },
+              { header: "Igreja", key: "igreja", width: 25 },
+              { header: "Célula", key: "celula", width: 25 },
+              { header: "Camiseta", key: "camiseta", width: 14 },
+              { header: "Pago", key: "pago", width: 10 },
+            ];
+            ws.getRow(1).font = { bold: true };
+            ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A1A1A" } };
+            todos.sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach(e => {
+              ws.addRow({
+                nome: e.nome || "",
+                sexo: e.sexo || "",
+                igreja: e.igreja === "Outra" ? (e.igrejaCustom || "Outra") : (e.igreja || ""),
+                celula: e.celula || "",
+                camiseta: e.camiseta || "",
+                pago: e.pago ? "Sim" : "Não",
+              });
+            });
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = "encontristas.xlsx"; a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginTop: 10, marginBottom: 0 }) }}
+        >
+          📥 Exportar Excel
+        </button>
         <input
           value={busca}
           onChange={e => { setBusca(e.target.value); setExpandido({}); }}
