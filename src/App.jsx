@@ -25,7 +25,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, CheckSquare } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -3635,25 +3635,25 @@ export default function App() {
 
   // menu drawer
   const MENU_ITEMS = [
-    ["🏠", "home"],
-    ...(temPermissao("servos") ? [["👤", "servos"]] : []),
-    ...(temPermissao("enc") ? [["👥", "enc"]] : []),
-    ...(temPermissao("checkin") ? [["✓", "checkin"]] : []),
-    ...(temPermissao("termo") ? [["✎", "termo"]] : []),
-    ...(temPermissao("quartos") ? [["🛏", "quartos"]] : []),
-    ...(temPermissao("onibus") ? [["🚌", "onibus"]] : []),
-    ...(temPermissao("mins") ? [["📅", "mins"]] : []),
-    ...(temPermissao("rest") ? [["⛔", "rest"]] : []),
-    ...(temPermissao("img") ? [["📷", "img"]] : []),
-    ...(temPermissao("info") ? [["⚠️", "info"]] : []),
-    ...(temPermissao("ach") ? [["🔎", "ach"]] : []),
-    ...(temPermissao("crac") ? [["🪪", "crac"]] : []),
-    ...(temPermissao("saude") ? [["💊", "saude"]] : []),
-    ...(temPermissao("uniformes") ? [["👕", "uniformes"]] : []),
-    ...(temPermissao("cozinha") ? [["🍽️", "cozinha"]] : []),
-    ...(temPermissao("equipes") ? [["📋", "equipes"]] : []),
-    ...(temPermissao("test") ? [["🙌", "test"]] : []),
-    ...(isAdm ? [["⚙️", "back"]] : []),
+    [Home, "home"],
+    ...(temPermissao("servos") ? [[Users, "servos"]] : []),
+    ...(temPermissao("enc") ? [[Users, "enc"]] : []),
+    ...(temPermissao("checkin") ? [[CheckSquare, "checkin"]] : []),
+    ...(temPermissao("termo") ? [[FileText, "termo"]] : []),
+    ...(temPermissao("quartos") ? [[BedDouble, "quartos"]] : []),
+    ...(temPermissao("onibus") ? [[Bus, "onibus"]] : []),
+    ...(temPermissao("mins") ? [[Calendar, "mins"]] : []),
+    ...(temPermissao("rest") ? [[ShieldOff, "rest"]] : []),
+    ...(temPermissao("img") ? [[Image, "img"]] : []),
+    ...(temPermissao("info") ? [[AlertTriangle, "info"]] : []),
+    ...(temPermissao("ach") ? [[Search, "ach"]] : []),
+    ...(temPermissao("crac") ? [[CreditCard, "crac"]] : []),
+    ...(temPermissao("saude") ? [[Pill, "saude"]] : []),
+    ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
+    ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
+    ...(temPermissao("equipes") ? [[List, "equipes"]] : []),
+    ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
+    ...(isAdm ? [[Settings, "back"]] : []),
   ];
 
   // ── SERVO SHELL ──
@@ -3778,11 +3778,7 @@ export default function App() {
                     textAlign: "left",
                   }}
                 >
-                  <span
-                    style={{ fontSize: 16, width: 18, textAlign: "center" }}
-                  >
-                    {ic}
-                  </span>
+                  {(() => { const Icon = ic; return <Icon size={16} style={{ flexShrink: 0 }} />; })()}
                   {lb}
                 </button>
               ))}
