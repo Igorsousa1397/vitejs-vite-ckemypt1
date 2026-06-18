@@ -11674,25 +11674,25 @@ function CozinhaV({ edit, t, users }) {
                   >
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {[
-                        ["mins", "📅 Agenda"],
-                        ["avisos", "📢 Avisos"],
-                        ["uniforme", "👕 Uniforme"],
-                        ["info", "⚠️ Ocorrências"],
-                        ["rest", "⛔ Restrições"],
-                        ["img", "📷 Uso de Imagem"],
-                        ["checkin", "✓ Check-in"],
-                        ["termo", "✎ Termo"],
-                        ["quartos", "🛏 Quartos"],
-                        ["enc", "👥 Encontristas"],
-                        ["onibus", "🚌 Ônibus"],
-                        ["cozinha", "🍽️ Cozinha"],
-                        ["equipes", "📋 Equipes"],
-                        ["servos", "👤 Servos"],
-                        ["ach", "🔎 Achados & Perdidos"],
-                        ["crac", "🪪 Crachás"],
-                        ["saude", "💊 Saúde"],
-                        ["test", "🙌 Testemunhos"],
-                        ["back", "⚙️ Back Office"],
+                        ["mins", "Agenda"],
+                        ["avisos", "Avisos"],
+                        ["uniforme", "Uniforme"],
+                        ["info", "Ocorrências"],
+                        ["rest", "Restrições"],
+                        ["img", "Uso de Imagem"],
+                        ["checkin", "Check-in"],
+                        ["termo", "Termo"],
+                        ["quartos", "Quartos"],
+                        ["enc", "Encontristas"],
+                        ["onibus", "Ônibus"],
+                        ["cozinha", "Cozinha"],
+                        ["equipes", "Equipes"],
+                        ["servos", "Servos"],
+                        ["ach", "Achados & Perdidos"],
+                        ["crac", "Crachás"],
+                        ["saude", "Saúde"],
+                        ["test", "Testemunhos"],
+                        ["back", "Back Office"],
                       ].map(([id, label]) => {
                         const ativo = telasAtivas.includes(id);
                         return (
@@ -11880,25 +11880,25 @@ function CozinhaV({ edit, t, users }) {
 {/* Telas extras individuais */}
                           {(() => {
                             const TELAS_LISTA = [
-                              ["mins", "📅 Agenda"],
-                              ["avisos", "📢 Avisos"],
-                              ["uniforme", "👕 Uniforme"],
-                              ["info", "⚠️ Ocorrências"],
-                              ["rest", "⛔ Restrições"],
-                              ["img", "📷 Uso de Imagem"],
-                              ["checkin", "✓ Check-in"],
-                              ["termo", "✎ Termo"],
-                              ["quartos", "🛏 Quartos"],
-                              ["enc", "👥 Encontristas"],
-                              ["onibus", "🚌 Ônibus"],
-                              ["cozinha", "🍽️ Cozinha"],
-                              ["equipes", "📋 Equipes"],
-                              ["servos", "👤 Servos"],
-                              ["ach", "🔎 Achados & Perdidos"],
-                              ["crac", "🪪 Crachás"],
-                              ["saude", "💊 Saúde"],
-                              ["test", "🙌 Testemunhos"],
-                              ["back", "⚙️ Back Office"],
+                              ["mins", "Agenda"],
+                              ["avisos", "Avisos"],
+                              ["uniforme", "Uniforme"],
+                              ["info", "Ocorrências"],
+                              ["rest", "Restrições"],
+                              ["img", "Uso de Imagem"],
+                              ["checkin", "Check-in"],
+                              ["termo", "Termo"],
+                              ["quartos", "Quartos"],
+                              ["enc", "Encontristas"],
+                              ["onibus", "Ônibus"],
+                              ["cozinha", "Cozinha"],
+                              ["equipes", "Equipes"],
+                              ["servos", "Servos"],
+                              ["ach", "Achados & Perdidos"],
+                              ["crac", "Crachás"],
+                              ["saude", "Saúde"],
+                              ["test", "Testemunhos"],
+                              ["back", "Back Office"],
                             ];
                             const telasPerfil = permissoes[u.perfil]?.telas || [];
                             const telasFixas = ["mins", "avisos", "uniforme", "info"];
@@ -11915,7 +11915,7 @@ function CozinhaV({ edit, t, users }) {
                                   style={{ ...BK({ width: "100%", padding: "10px 14px", borderRadius: 12, fontSize: 13, fontWeight: 600 }), display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: telasExtra.length > 0 ? "rgba(10,132,255,.4)" : "#2a2a2a", background: telasExtra.length > 0 ? "rgba(10,132,255,.06)" : "transparent" }}
                                 >
                                   <span style={{ color: telasExtra.length > 0 ? "#0a84ff" : G.td }}>
-                                    🖥 Telas extras {telasExtra.length > 0 ? `(${telasExtra.length})` : ""}
+                                    Telas extras {telasExtra.length > 0 ? `(${telasExtra.length})` : ""}
                                   </span>
                                   <span style={{ color: G.tm, fontSize: 11 }}>{expandidos[`telas_${u.id}`] ? "▲" : "▼"}</span>
                                 </button>
