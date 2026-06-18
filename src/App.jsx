@@ -11722,6 +11722,45 @@ function CozinhaV({ edit, t, users }) {
 
           {tab === "usuarios" && (
             <>
+              <button
+                onClick={async () => {
+                  const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
+                  const wb = new ExcelJS.Workbook();
+                  const ws = wb.addWorksheet("Escalas");
+                  ws.columns = [
+                    { header: "Nome", key: "nome", width: 35 },
+                    { header: "Perfil", key: "perfil", width: 20 },
+                    { header: "Quinta", key: "Quinta", width: 35 },
+                    { header: "Sexta", key: "Sexta", width: 35 },
+                    { header: "Sábado", key: "Sábado", width: 35 },
+                    { header: "Domingo", key: "Domingo", width: 35 },
+                  ];
+                  ws.getRow(1).font = { bold: true };
+                  ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+                  const lista = users
+                    .filter(u => u.perfil !== "admin" && u.nome && u.ativo !== false)
+                    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+                  lista.forEach(u => {
+                    const escala = u.escala || {};
+                    ws.addRow({
+                      nome: u.nome || "",
+                      perfil: PERFIS[u.perfil]?.l || u.perfil || "",
+                      Quinta: (escala["Quinta"] || []).join(", "),
+                      Sexta: (escala["Sexta"] || []).join(", "),
+                      "Sábado": (escala["Sábado"] || []).join(", "),
+                      Domingo: (escala["Domingo"] || []).join(", "),
+                    });
+                  });
+                  const buf = await wb.xlsx.writeBuffer();
+                  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = "escalas.xlsx"; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 12 }) }}
+              >
+                Exportar Escalas (XLSX)
+              </button>
               <input value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} placeholder="🔍 Buscar usuário..." style={{ ...I, marginBottom: 12 }} />
               {users
                .filter(u =>
