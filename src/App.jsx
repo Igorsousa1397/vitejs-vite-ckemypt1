@@ -3778,7 +3778,7 @@ export default function App() {
                     textAlign: "left",
                   }}
                 >
-                  {(() => { const Icon = ic; return <Icon size={16} style={{ flexShrink: 0 }} />; })()}
+                  <span style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}>{ic}</span>
                   {lb}
                 </button>
               ))}
@@ -4075,9 +4075,7 @@ export default function App() {
                   textAlign: "left",
                 }}
               >
-                <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
-                  {ic}
-                </span>
+                {(() => { const Icon = ic; return <Icon size={16} color="currentColor" style={{ flexShrink: 0, width: 18 }} />; })()}
                 <span style={{ flex: 1 }}>{LABELS[p]}</span>
                 {p === "uniformes" &&
                   uni.filter((u) => u.status === "pendente").length > 0 && (
