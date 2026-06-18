@@ -2017,6 +2017,16 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
 function Termo({ cpf, onVoltar }) {
   const [enc, setEnc] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Timeout de segurança — se demorar mais de 8s em loading, mostrar erro
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadingTimeout(true);
+      setLoading(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
   const [rg, setRg] = useState("");
   const [cep, setCep] = useState("");
   const [num, setNum] = useState("");
@@ -2131,6 +2141,16 @@ function Termo({ cpf, onVoltar }) {
     setAssinado(true);
     setSaving(false);
   };
+
+  if (loadingTimeout)
+    return (
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 32, textAlign: "center", fontFamily: "sans-serif" }}>
+        <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 160, mixBlendMode: "screen", opacity: 0.85 }} />
+        <div style={{ color: "#fff", fontSize: 16, fontWeight: 700, marginTop: 8 }}>Não foi possível carregar</div>
+        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6 }}>Para melhor experiência, abra o link no Safari ou Chrome.</div>
+        <button onClick={() => window.location.reload()} style={{ marginTop: 8, background: "#30d158", color: "#000", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Tentar novamente</button>
+      </div>
+    );
 
   if (loading)
     return (
