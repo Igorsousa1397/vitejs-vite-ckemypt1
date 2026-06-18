@@ -6688,10 +6688,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     edit,
     t,
   }) {
-    const [g, setG] = useState("M");
+    const [g, setG] = useState("T");
+    const [filtroStatus, setFiltroStatus] = useState("todos");
     const [expandido, setExpandido] = useState({});
     const [busca, setBusca] = useState('');
-    const lista = [...(g === "M" ? encM : encH)].filter(e => e.nome.toLowerCase().includes(busca.toLowerCase())).sort((a, b) => {
+    const baseList = g === "T" ? [...encM, ...encH] : g === "M" ? [...encM] : [...encH];
+    const lista = baseList.filter(e =>
+      e.nome.toLowerCase().includes(busca.toLowerCase()) &&
+      (filtroStatus === "todos" ? true : filtroStatus === "pago" ? e.pago : !e.pago)
+    ).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
       if (!a.criadoEm) return 1;
       if (!b.criadoEm) return -1;
@@ -6769,10 +6774,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           ))}
         </div>
         <Seg
-          opts={[["M", "♀ Mulheres"], ["H", "♂ Homens"]]}
+          opts={[["T", "Todos"], ["M", "♀ Mulheres"], ["H", "♂ Homens"]]}
           val={g}
           set={setG}
         />
+        <div style={{ marginTop: 8 }}>
+          <Seg
+            opts={[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"]]}
+            val={filtroStatus}
+            set={setFiltroStatus}
+          />
+        </div>
         <button
           onClick={async () => {
             const todos = [...encM, ...encH];
