@@ -6693,12 +6693,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   }) {
     const [g, setG] = useState("T");
     const [filtroStatus, setFiltroStatus] = useState("todos");
+    const [filtroCelula, setFiltroCelula] = useState("todas");
     const [expandido, setExpandido] = useState({});
     const [busca, setBusca] = useState('');
     const baseList = g === "T" ? [...encM, ...encH] : g === "M" ? [...encM] : [...encH];
+    const celulasUnicas = ["todas", ...Array.from(new Set(baseList.map(e => e.celula).filter(Boolean))).sort()];
     const lista = baseList.filter(e =>
       e.nome.toLowerCase().includes(busca.toLowerCase()) &&
-      (filtroStatus === "todos" ? true : filtroStatus === "pago" ? e.pago : !e.pago)
+      (filtroStatus === "todos" ? true : filtroStatus === "pago" ? e.pago : !e.pago) &&
+      (filtroCelula === "todas" ? true : e.celula === filtroCelula)
     ).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
       if (!a.criadoEm) return 1;
@@ -6777,7 +6780,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           ))}
         </div>
         <Seg
-          opts={[["T", "Todos"], ["M", "♀ Mulheres"], ["H", "♂ Homens"]]}
+          opts={[["T", "Todos"], ["M", "Mulheres"], ["H", "Homens"]]}
           val={g}
           set={setG}
         />
@@ -6788,6 +6791,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             set={setFiltroStatus}
           />
         </div>
+        <select
+          value={filtroCelula}
+          onChange={e => setFiltroCelula(e.target.value)}
+          style={{ ...I, marginTop: 8, marginBottom: 0, fontSize: 13 }}
+        >
+          {celulasUnicas.map(c => (
+            <option key={c} value={c}>{c === "todas" ? "Todas as células" : c}</option>
+          ))}
+        </select>
         <button
           onClick={async () => {
             const todos = [...encM, ...encH];
@@ -6819,7 +6831,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           }}
           style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginTop: 10, marginBottom: 0 }) }}
         >
-          📥 Exportar Excel
+          Exportar Excel
         </button>
         <input
           value={busca}
