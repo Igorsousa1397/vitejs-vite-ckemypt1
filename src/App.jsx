@@ -25,7 +25,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -3648,7 +3648,7 @@ export default function App() {
     ...(temPermissao("info") ? [[AlertTriangle, "info"]] : []),
     ...(temPermissao("ach") ? [[Search, "ach"]] : []),
     ...(temPermissao("crac") ? [[CreditCard, "crac"]] : []),
-    ...(temPermissao("saude") ? [[Pill, "saude"]] : []),
+    ...(temPermissao("saude") ? [[PillIcon, "saude"]] : []),
     ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
     ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
     ...(temPermissao("equipes") ? [[List, "equipes"]] : []),
