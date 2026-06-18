@@ -25,7 +25,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -5813,7 +5813,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     }
               }
             >
-              {sh ? "✕ Cancelar" : "＋ Nova Ministração / Ato"}
+              {sh ? "Cancelar" : "+ Nova Ministração / Ato"}
             </button>
             {sh && (
               <div
@@ -5987,7 +5987,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               cursor: "pointer",
                             }}
                           >
-                            🔔
+                            <Bell size={14} />
                           </button>
                         ) : (
                           <button
@@ -6004,7 +6004,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               fontSize: 11,
                             })}
                           >
-                            ↩
+                            <RotateCcw size={14} />
                           </button>
                         ))}
                       {edit && (
@@ -6018,7 +6018,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             fontSize: 13,
                           }}
                         >
-                          🗑
+                          <Trash2 size={14} />
                         </span>
                       )}
                     </div>
