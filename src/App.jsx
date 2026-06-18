@@ -25,6 +25,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, CheckSquare } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -4591,9 +4592,10 @@ export default function App() {
             // Com dados reais para quartos e onibus
             const quartosTot = (qh?.length || 0) + (qm?.length || 0);
             const onibusTot = on?.reduce((a, o) => a + (o.poltronas || 40), 0) || 0;
+            const CARD_ICONS = { savs: Megaphone, suni: Shirt, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus };
             const cardsComValor = [
-              [avsNaoVistos > 0 ? avsNaoVistos : "—", "Avisos", "savs"],
-              ["—", "Uniforme", "suni"],
+              [avsNaoVistos > 0 ? avsNaoVistos : null, "Avisos", "savs"],
+              [null, "Uniforme", "suni"],
               [ocorr?.length || 0, "Ocorrências", "sinfo"],
               ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
               ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
@@ -4601,19 +4603,26 @@ export default function App() {
             const cols = cardsComValor.length > 3 ? "1fr 1fr" : "1fr 1fr 1fr";
             return (
               <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: 16 }}>
-                {cardsComValor.map(([n, l, p]) => (
-                  <div key={p} onClick={() => {
-                    setPg(p);
-                    if (p === "savs") {
-                      const todos = avs.map(a => a.id);
-                      setAvsVistos(todos);
-                      localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
-                    }
-                  }} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "20px 16px", cursor: "pointer" }}>
-                    <div style={{ color: G.t, fontWeight: 800, fontSize: String(n).length > 5 ? 18 : 28, letterSpacing: -1 }}>{n}</div>
-                    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 4 }}>{l}</div>
-                  </div>
-                ))}
+                {cardsComValor.map(([n, l, p]) => {
+                  const Icon = CARD_ICONS[p];
+                  return (
+                    <div key={p} onClick={() => {
+                      setPg(p);
+                      if (p === "savs") {
+                        const todos = avs.map(a => a.id);
+                        setAvsVistos(todos);
+                        localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
+                      }
+                    }} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "16px 14px", cursor: "pointer", position: "relative" }}>
+                      {n !== null && n > 0 && (
+                        <div style={{ position: "absolute", top: 8, right: 8, background: "#ff3b30", borderRadius: 50, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", padding: "0 4px" }}>{n}</div>
+                      )}
+                      <Icon size={22} color={G.tm} style={{ marginBottom: 8 }} />
+                      <div style={{ color: G.t, fontWeight: 800, fontSize: n !== null ? 22 : 13, letterSpacing: n !== null ? -0.5 : 0 }}>{n !== null ? n : ""}</div>
+                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: n !== null ? 2 : 0 }}>{l}</div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })()}
