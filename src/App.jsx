@@ -6806,8 +6806,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               { header: "Célula", key: "celula", width: 25 },
               { header: "Camiseta", key: "camiseta", width: 14 },
             ];
-            ws.getRow(1).font = { bold: true };
-            ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A1A1A" } };
+            ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
+            ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
             todos.sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach(e => {
               ws.addRow({
                 nome: e.nome || "",
