@@ -35,6 +35,8 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 const iniciarNotificacoes = async (userId = null) => {
   try {
+    // WebViews (Instagram/WhatsApp) não suportam notificações push
+    if (!messaging || !('Notification' in window) || !('serviceWorker' in navigator)) return null;
     let permission = Notification.permission;
     if (permission === "default") {
       permission = await Notification.requestPermission();
