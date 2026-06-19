@@ -3706,19 +3706,19 @@ export default function App() {
     if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
 
     const MAPA_SERVO = {
-      "mins": ["📅", "smins", "Agenda"],
-      "avisos": ["📢", "savs", "Avisos"],
-      "uniforme": ["👕", "suni", "Uniforme"],
-      "info": ["⚠️", "sinfo", "Ocorrências"],
-      "rest": ["⛔", "srest", "Restrições"],
-      "img": ["📷", "simg", "Uso de Imagem"],
-      "saude": ["💊", "ssaude", "Saúde"],
-      "quartos": ["🛏", "squartos", "Quartos"],
-      "checkin": ["✓", "scheckin", "Check-in"],
-      "onibus": ["🚌", "sonibus", "Ônibus"],
-      "termo": ["✎", "stermo", "Termo"],
-      "ach": ["🔎", "sach", "Achados & Perdidos"],
-      "crac": ["🪪", "scrac", "Crachás"], 
+      "mins": [Calendar, "smins", "Agenda"],
+      "avisos": [Megaphone, "savs", "Avisos"],
+      "uniforme": [Shirt, "suni", "Uniforme"],
+      "info": [AlertTriangle, "sinfo", "Ocorrências"],
+      "rest": [ShieldOff, "srest", "Restrições"],
+      "img": [Image, "simg", "Uso de Imagem"],
+      "saude": [PillIcon, "ssaude", "Saúde"],
+      "quartos": [BedDouble, "squartos", "Quartos"],
+      "checkin": [CheckSquare, "scheckin", "Check-in"],
+      "onibus": [Bus, "sonibus", "Ônibus"],
+      "termo": [FileText, "stermo", "Termo"],
+      "ach": [Search, "sach", "Achados & Perdidos"],
+      "crac": [CreditCard, "scrac", "Crachás"], 
     };
 
     const SERVO_MENU = Object.entries(MAPA_SERVO)
@@ -3816,7 +3816,7 @@ export default function App() {
                     textAlign: "left",
                   }}
                 >
-                  <span style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}>{ic}</span>
+                  {(() => { const Icon = ic; return <Icon size={16} style={{ flexShrink: 0, width: 18 }} />; })()}
                   {lb}
                 </button>
               ))}
@@ -3843,9 +3843,7 @@ export default function App() {
                   marginTop: 8,
                 }}
               >
-                <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
-                  ↪
-                </span>
+                <LogOut size={16} style={{ width: 18 }} />
                 Sair
               </button>
             </div>
