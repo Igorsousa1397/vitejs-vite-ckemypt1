@@ -3462,6 +3462,8 @@ export default function App() {
   const role = user?.perfil || "servo";
   const isAdm = role === "admin" || role === "lider_geral";
   const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
+  const [ckSub, setCkSub] = useState("pend");
+  const [ckGen, setCkGen] = useState("M");
 
   const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
@@ -4000,7 +4002,7 @@ export default function App() {
             temPermissao("checkin") 
               ? <CkV ck={ck} setCk={setCk} on={on} edit={
                   Object.values(user?.escala || {}).flat().includes("Check-in")
-                } t={showT} /> 
+                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} /> 
               : <TelaRestrita />
           )}
           {pg === "stermo" && (
@@ -4201,7 +4203,7 @@ export default function App() {
           />
         )}
         {pg === "checkin" && (
-          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} />
+          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} />
         )}
         {pg === "mins" && (
           <MinsV
@@ -5393,9 +5395,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 }
 
   // ── CHECK-IN ─────────────────────────────────────────────────────────────────
-  function CkV({ ck, setCk, on, edit, t }) {
-    const [sub, setSub] = useState("pend");
-    const [gen, setGen] = useState("M");
+  function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen }) {
     const [s, setS] = useState("");
     const [sh, setSh] = useState(false);
     const [shQr, setShQr] = useState(false);
@@ -5655,7 +5655,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 onClick={() => {
                   vibrar(30);
                   const novoOk = !c.ok;
-                  console.log("CLICK checkin", c.id, "novoOk=", novoOk);
                   setCk(prev => prev.map(x => x.id === c.id ? { ...x, ok: novoOk } : x));
                   setDoc(
                     doc(db, "encontristas", c.id),
@@ -5664,7 +5663,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   );
                   setHighlightId(novoOk ? c.id : null);
                   setSub(novoOk ? "conf" : "pend");
-                  console.log("setSub called with", novoOk ? "conf" : "pend");
+                  if (novoOk) {
+                    setTimeout(
+                      () =>
+                        highlightRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        }),
+                      300,
+                    );
+                  }
                 }}
                 style={{
                   width: 30,
