@@ -2071,39 +2071,30 @@ function Termo({ cpf, onVoltar }) {
   useEffect(() => {
     const buscar = async () => {
       const cpfLimpo = cpf.replace(/\D/g, "");
-      const t0 = Date.now();
       try {
         // Query direta por cpf — muito mais rápida que baixar toda a coleção
         const q = query(collection(db, "encontristas"), where("cpf", "==", cpfLimpo), limit(1));
         const snap = await getDocs(q);
-        console.log(`[TERMO] query where levou ${Date.now() - t0}ms, docs=${snap.docs.length}`);
         let found = snap.docs[0];
 
         // Fallback: se não achou (ex: cpf salvo com formatação diferente), tenta busca completa
         if (!found) {
-          const t1 = Date.now();
           const snapAll = await getDocs(collection(db, "encontristas"));
-          console.log(`[TERMO] fallback completo levou ${Date.now() - t1}ms, total docs=${snapAll.docs.length}`);
           found = snapAll.docs.find((d) => d.data().cpf === cpfLimpo);
         }
 
-        console.log("[TERMO] found existe?", !!found);
         if (found) {
           const data = found.data();
-          console.log("[TERMO] data extraída", JSON.stringify(data).slice(0, 200));
           setEnc({ id: found.id, ...data });
           if (data.termoAssinado) setAssinado(true);
           if (data.rg) setRg(data.rg);
           if (data.endereco) setEnd(data.endereco);
-          console.log("[TERMO] setEnc chamado com sucesso");
-        } else {
-          console.log("[TERMO] nenhum documento encontrado para cpf", cpfLimpo);
         }
       } catch (err) {
-        console.error("[TERMO] ERRO CATCH:", err?.code, err?.message, err);
+        console.error("Erro ao buscar:", err);
       } finally {
-        console.log("[TERMO] finally — setLoading(false)");
         setLoading(false);
+        setLoadingTimeout(false); // garante que o sucesso sempre sobrescreve um timeout anterior
       }
     };
     buscar();
