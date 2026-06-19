@@ -2770,9 +2770,9 @@ const exportarPDF = async (termo) => {
     pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
   };
 
-function TermoAdminV({ encH, encM, t }) {
+function TermoAdminV({ encH, encM, t, buscaInicial }) {
   const [aba, setAba] = useState("enviar");
-  const [s, setS] = useState("");
+  const [s, setS] = useState(buscaInicial || "");
   const [termos, setTermos] = useState([]);
 
   useEffect(() => {
@@ -3464,6 +3464,7 @@ export default function App() {
   const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
   const [ckSub, setCkSub] = useState("pend");
   const [ckGen, setCkGen] = useState("M");
+  const [termoBusca, setTermoBusca] = useState("");
 
   const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
@@ -4002,11 +4003,11 @@ export default function App() {
             temPermissao("checkin") 
               ? <CkV ck={ck} setCk={setCk} on={on} edit={
                   Object.values(user?.escala || {}).flat().includes("Check-in")
-                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} /> 
+                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} /> 
               : <TelaRestrita />
           )}
           {pg === "stermo" && (
-            temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} /> : <TelaRestrita />
+            temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} /> : <TelaRestrita />
           )}
           {pg === "sach" && (
             temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
@@ -4203,7 +4204,7 @@ export default function App() {
           />
         )}
         {pg === "checkin" && (
-          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} />
+          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} />
         )}
         {pg === "mins" && (
           <MinsV
@@ -4287,7 +4288,7 @@ export default function App() {
         {pg === "crac" && (
           <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={canG(role)} t={showT} ph="Nome do encontrista..." />
         )}
-        {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} />}
+        {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} />}
         {pg === "saude" && (
           <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
         )}
@@ -5395,7 +5396,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 }
 
   // ── CHECK-IN ─────────────────────────────────────────────────────────────────
-  function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen }) {
+  function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen, setPg, setTermoBusca }) {
     const [s, setS] = useState("");
     const [sh, setSh] = useState(false);
     const [shQr, setShQr] = useState(false);
@@ -5712,11 +5713,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   ref={c.id === highlightId ? onibusSelectRef : null}
                   value={c.on || ""}
                   onChange={async (e) => {
+                    const valor = e.target.value;
                     await setDoc(
                       doc(db, "encontristas", c.id),
-                      { onibus: e.target.value || null },
+                      { onibus: valor || null },
                       { merge: true },
                     );
+                    if (valor && setPg && setTermoBusca) {
+                      setTermoBusca(c.nome);
+                      setPg("stermo");
+                    }
                   }}
                   style={{
                     ...I,
