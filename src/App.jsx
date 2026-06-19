@@ -5578,8 +5578,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
         <Seg
           opts={[
-            ["M", "♀ Mulheres"],
-            ["H", "♂ Homens"],
+            ["M", "Mulheres"],
+            ["H", "Homens"],
           ]}
           val={gen}
           set={setGen}
