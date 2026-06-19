@@ -5655,6 +5655,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 onClick={() => {
                   vibrar(30);
                   const novoOk = !c.ok;
+                  // update otimista local — evita esperar o Firestore confirmar
+                  setCk(prev => prev.map(x => x.id === c.id ? { ...x, ok: novoOk } : x));
                   setDoc(
                     doc(db, "encontristas", c.id),
                     { chegou: novoOk },
