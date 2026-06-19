@@ -15,6 +15,9 @@ import {
   deleteDoc,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  query,
+  where,
+  limit,
 } from "./firebase";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
@@ -2026,7 +2029,7 @@ function Termo({ cpf, onVoltar }) {
     const timer = setTimeout(() => {
       setLoadingTimeout(true);
       setLoading(false);
-    }, 8000);
+    }, 15000);
     return () => clearTimeout(timer);
   }, []);
   const [rg, setRg] = useState("");
@@ -2067,11 +2070,19 @@ function Termo({ cpf, onVoltar }) {
 
   useEffect(() => {
     const buscar = async () => {
+      const cpfLimpo = cpf.replace(/\D/g, "");
       try {
-        const snap = await getDocs(collection(db, "encontristas"));
-        const found = snap.docs.find(
-          (d) => d.data().cpf === cpf.replace(/\D/g, ""),
-        );
+        // Query direta por cpf — muito mais rápida que baixar toda a coleção
+        const q = query(collection(db, "encontristas"), where("cpf", "==", cpfLimpo), limit(1));
+        const snap = await getDocs(q);
+        let found = snap.docs[0];
+
+        // Fallback: se não achou (ex: cpf salvo com formatação diferente), tenta busca completa
+        if (!found) {
+          const snapAll = await getDocs(collection(db, "encontristas"));
+          found = snapAll.docs.find((d) => d.data().cpf === cpfLimpo);
+        }
+
         if (found) {
           const data = found.data();
           setEnc({ id: found.id, ...data });
