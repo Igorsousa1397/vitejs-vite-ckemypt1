@@ -2091,7 +2091,7 @@ function Termo({ cpf, onVoltar }) {
           if (data.endereco) setEnd(data.endereco);
         }
       } catch (err) {
-        console.error("Erro ao buscar:", err);
+        console.error("ERRO TERMO BUSCAR:", err.code, err.message, err);
       } finally {
         setLoading(false);
       }
