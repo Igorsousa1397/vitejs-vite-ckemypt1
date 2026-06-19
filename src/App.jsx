@@ -5652,17 +5652,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           >
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
               <button
-                onClick={async () => {
+                onClick={() => {
                   vibrar(30);
                   const novoOk = !c.ok;
-                  await setDoc(
+                  setDoc(
                     doc(db, "encontristas", c.id),
                     { chegou: novoOk },
                     { merge: true },
                   );
                   if (novoOk) {
-                    setSub("conf");
                     setHighlightId(c.id);
+                    setSub("conf");
                     setTimeout(
                       () =>
                         highlightRef.current?.scrollIntoView({
