@@ -6109,10 +6109,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     );
   }
 
-  function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAutocomplete, open, onToggle }) {
-    const [numEdit, setNumEdit] = useState(m.num);
-    const [limEdit, setLimEdit] = useState(m.lim);
-
+  function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAutocomplete, open, onToggle, EditQuarto, upd, t }) {
     return (
       <Acc
         title="Quarto Mães"
@@ -6141,66 +6138,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           />
         </div>
 
-        {edit && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  marginBottom: 4,
-                }}
-              >
-                Número
-              </div>
-              <input
-                type="number"
-                value={numEdit}
-                onChange={(e) => setNumEdit(e.target.value)}
-                onBlur={() =>
-                  setQm(
-                    qm.map((q) =>
-                      q.maes ? { ...q, num: parseInt(numEdit) || m.num } : q,
-                    ),
-                  )
-                }
-                style={{ ...I, fontSize: 13, padding: "8px 12px" }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  marginBottom: 4,
-                }}
-              >
-                Limite
-              </div>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={limEdit}
-                onChange={(e) => setLimEdit(e.target.value)}
-                onBlur={() =>
-                  setQm(
-                    qm.map((q) =>
-                      q.maes ? { ...q, lim: parseInt(limEdit) || m.lim } : q,
-                    ),
-                  )
-                }
-                style={{ ...I, fontSize: 13, padding: "8px 12px" }}
-              />
-            </div>
-          </div>
-        )}
+        {edit && <EditQuarto q={m} upd={upd} t={t} />}
 
         <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
         <Tags
@@ -6650,6 +6588,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 AddEncAutocomplete={AddEncAutocomplete}
                 open={!!abertos['maes']}
                 onToggle={() => toggleAcc('maes')}
+                EditQuarto={EditQuarto}
+                upd={upd}
+                t={t}
               />
             );
           })()}
