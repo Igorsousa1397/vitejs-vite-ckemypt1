@@ -2803,7 +2803,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
       t("WhatsApp não cadastrado");
       return;
     }
-    const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
+    const link = `https://encontrocomdeus-fonte.vercel.app?termo=true&cpf=${enc.cpf}`;
     const msg = encodeURIComponent(
       `Olá ${enc.nome.split(" ")[0]}! Assine o termo do evento Encontro com Deus: ${link}`,
     );
@@ -5458,7 +5458,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             // WhatsApp com link do termo
             if (enc.whatsapp) {
               const tel = enc.whatsapp.replace(/\D/g, "");
-              const link = `https://servos-peniel.vercel.app?termo=true&cpf=${enc.cpf}`;
+              const link = `https://encontrocomdeus-fonte.vercel.app?termo=true&cpf=${enc.cpf}`;
               const msg = encodeURIComponent(
                 `Olá ${enc.nome.split(" ")[0]}! Seu check-in foi confirmado 🎉\nAssine o termo do evento: ${link}`,
               );
