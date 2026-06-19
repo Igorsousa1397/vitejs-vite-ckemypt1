@@ -2087,16 +2087,22 @@ function Termo({ cpf, onVoltar }) {
           found = snapAll.docs.find((d) => d.data().cpf === cpfLimpo);
         }
 
+        console.log("[TERMO] found existe?", !!found);
         if (found) {
           const data = found.data();
+          console.log("[TERMO] data extraída", JSON.stringify(data).slice(0, 200));
           setEnc({ id: found.id, ...data });
           if (data.termoAssinado) setAssinado(true);
           if (data.rg) setRg(data.rg);
           if (data.endereco) setEnd(data.endereco);
+          console.log("[TERMO] setEnc chamado com sucesso");
+        } else {
+          console.log("[TERMO] nenhum documento encontrado para cpf", cpfLimpo);
         }
       } catch (err) {
-        console.error("ERRO TERMO BUSCAR:", err.code, err.message, err);
+        console.error("[TERMO] ERRO CATCH:", err?.code, err?.message, err);
       } finally {
+        console.log("[TERMO] finally — setLoading(false)");
         setLoading(false);
       }
     };
