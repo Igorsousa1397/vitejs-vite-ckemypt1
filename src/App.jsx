@@ -2029,7 +2029,7 @@ function Termo({ cpf, onVoltar }) {
     const timer = setTimeout(() => {
       setLoadingTimeout(true);
       setLoading(false);
-    }, 15000);
+    }, 25000);
     return () => clearTimeout(timer);
   }, []);
   const [rg, setRg] = useState("");
@@ -2071,15 +2071,19 @@ function Termo({ cpf, onVoltar }) {
   useEffect(() => {
     const buscar = async () => {
       const cpfLimpo = cpf.replace(/\D/g, "");
+      const t0 = Date.now();
       try {
         // Query direta por cpf — muito mais rápida que baixar toda a coleção
         const q = query(collection(db, "encontristas"), where("cpf", "==", cpfLimpo), limit(1));
         const snap = await getDocs(q);
+        console.log(`[TERMO] query where levou ${Date.now() - t0}ms, docs=${snap.docs.length}`);
         let found = snap.docs[0];
 
         // Fallback: se não achou (ex: cpf salvo com formatação diferente), tenta busca completa
         if (!found) {
+          const t1 = Date.now();
           const snapAll = await getDocs(collection(db, "encontristas"));
+          console.log(`[TERMO] fallback completo levou ${Date.now() - t1}ms, total docs=${snapAll.docs.length}`);
           found = snapAll.docs.find((d) => d.data().cpf === cpfLimpo);
         }
 
