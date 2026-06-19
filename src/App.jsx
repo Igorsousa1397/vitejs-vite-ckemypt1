@@ -5404,6 +5404,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const scannerRef = useRef(null);
     const [highlightId, setHighlightId] = useState(null);
     const highlightRef = useRef(null);
+    const onibusSelectRef = useRef(null);
 
     useEffect(() => {
       if (!shQr) {
@@ -5664,14 +5665,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   setHighlightId(novoOk ? c.id : null);
                   setSub(novoOk ? "conf" : "pend");
                   if (novoOk) {
-                    setTimeout(
-                      () =>
-                        highlightRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        }),
-                      300,
-                    );
+                    setTimeout(() => {
+                      highlightRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                      onibusSelectRef.current?.focus();
+                      if (onibusSelectRef.current?.showPicker) {
+                        try { onibusSelectRef.current.showPicker(); } catch {}
+                      }
+                    }, 350);
                   }
                 }}
                 style={{
@@ -5703,8 +5706,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               </div>
               {c.ok && (
                 <select
+                  ref={c.id === highlightId ? onibusSelectRef : null}
                   value={c.on || ""}
-                  autoFocus={c.id === highlightId}
                   onChange={async (e) => {
                     await setDoc(
                       doc(db, "encontristas", c.id),
