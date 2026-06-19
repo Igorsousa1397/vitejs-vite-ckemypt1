@@ -4204,7 +4204,7 @@ export default function App() {
           />
         )}
         {pg === "checkin" && (
-          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} />
+          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} telaTermo="termo" />
         )}
         {pg === "mins" && (
           <MinsV
@@ -5396,7 +5396,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 }
 
   // ── CHECK-IN ─────────────────────────────────────────────────────────────────
-  function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen, setPg, setTermoBusca }) {
+  function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen, setPg, setTermoBusca, telaTermo }) {
     const [s, setS] = useState("");
     const [sh, setSh] = useState(false);
     const [shQr, setShQr] = useState(false);
@@ -5721,7 +5721,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     );
                     if (valor && setPg && setTermoBusca) {
                       setTermoBusca(c.nome);
-                      setPg("stermo");
+                      setPg(telaTermo || "stermo");
                     }
                   }}
                   style={{
