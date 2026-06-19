@@ -5046,7 +5046,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const ch = ck.filter((c) => c.ok).length, tot = ck.length;
   const oc = ocorr.filter((o) => !o.res).length;
-  const tEnc = [...qh, ...qm.filter(q => !q.maes)].length;
+  const tEnc = [...qh, ...qm].length;
   const tPass = on.reduce((a, o) => {
     const passCheckin = [...(encH || []), ...(encM || [])].filter(e => e.onibus === String(o.num) || e.onibus === o.num).length;
     return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
@@ -6115,7 +6115,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
     return (
       <Acc
-        title="🤱 Quarto Mães"
+        title="Quarto Mães"
         ax="#ff9f0a"
         right={
           <Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
@@ -6275,7 +6275,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         onClick={() => setAberto(true)}
         style={{ ...BK({ padding: "7px 12px", borderRadius: 10, fontSize: 12, marginBottom: 8 }), borderColor: "rgba(255,159,10,.3)", color: "#ff9f0a" }}
       >
-        ✏️ Editar quarto
+        Editar quarto
       </button>
     );
 
@@ -6539,8 +6539,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         )}
         <Seg
           opts={[
-            ["M", "♀ Mulheres"],
-            ["H", "♂ Homens"],
+            ["M", "Mulheres"],
+            ["H", "Homens"],
           ]}
           val={tab}
           set={setTab}
@@ -6566,7 +6566,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     })
               }
             >
-              {shN ? "✕ Cancelar" : "＋ Novo Quarto"}
+              {shN ? "Cancelar" : "+ Novo Quarto"}
             </button>
             {shN && (
               <div
