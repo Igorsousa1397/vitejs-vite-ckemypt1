@@ -5655,27 +5655,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 onClick={() => {
                   vibrar(30);
                   const novoOk = !c.ok;
-                  // update otimista local — evita esperar o Firestore confirmar
+                  console.log("CLICK checkin", c.id, "novoOk=", novoOk);
                   setCk(prev => prev.map(x => x.id === c.id ? { ...x, ok: novoOk } : x));
                   setDoc(
                     doc(db, "encontristas", c.id),
                     { chegou: novoOk },
                     { merge: true },
                   );
-                  if (novoOk) {
-                    setHighlightId(c.id);
-                    setSub("conf");
-                    setTimeout(
-                      () =>
-                        highlightRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        }),
-                      300,
-                    );
-                  } else {
-                    setHighlightId(null);
-                  }
+                  setHighlightId(novoOk ? c.id : null);
+                  setSub(novoOk ? "conf" : "pend");
+                  console.log("setSub called with", novoOk ? "conf" : "pend");
                 }}
                 style={{
                   width: 30,
