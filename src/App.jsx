@@ -5665,16 +5665,19 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   setHighlightId(novoOk ? c.id : null);
                   setSub(novoOk ? "conf" : "pend");
                   if (novoOk) {
-                    setTimeout(() => {
-                      highlightRef.current?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                      onibusSelectRef.current?.focus();
-                      if (onibusSelectRef.current?.showPicker) {
-                        try { onibusSelectRef.current.showPicker(); } catch {}
+                    const tentarAbrir = (tentativas) => {
+                      if (tentativas <= 0) return;
+                      if (onibusSelectRef.current) {
+                        highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        onibusSelectRef.current.focus();
+                        if (onibusSelectRef.current.showPicker) {
+                          try { onibusSelectRef.current.showPicker(); } catch {}
+                        }
+                      } else {
+                        setTimeout(() => tentarAbrir(tentativas - 1), 150);
                       }
-                    }, 350);
+                    };
+                    setTimeout(() => tentarAbrir(8), 150);
                   }
                 }}
                 style={{
