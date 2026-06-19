@@ -2026,11 +2026,28 @@ function Termo({ cpf, onVoltar }) {
 
   // Timeout de segurança — se demorar mais de 8s em loading, mostrar erro
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let timer = setTimeout(() => {
       setLoadingTimeout(true);
       setLoading(false);
     }, 25000);
-    return () => clearTimeout(timer);
+
+    // Se a aba ficar em background e voltar, reseta o timer — evita falso timeout
+    // causado pelo browser pausando JS enquanto a aba estava oculta.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          setLoadingTimeout(true);
+          setLoading(false);
+        }, 25000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
   const [rg, setRg] = useState("");
   const [cep, setCep] = useState("");
@@ -2156,7 +2173,7 @@ function Termo({ cpf, onVoltar }) {
     setSaving(false);
   };
 
-  if (loadingTimeout)
+  if (loadingTimeout && !enc)
     return (
       <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 32, textAlign: "center", fontFamily: "sans-serif" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 160, mixBlendMode: "screen", opacity: 0.85 }} />
