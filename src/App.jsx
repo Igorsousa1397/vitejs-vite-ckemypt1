@@ -3198,6 +3198,22 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Timeout de segurança: se o Firebase Auth não responder em 6s
+    // (comum em WebViews do Instagram/WhatsApp no iOS que bloqueiam indexedDB),
+    // libera a splash e manda para a tela de boas-vindas em vez de travar para sempre.
+    const spTimeout = setTimeout(() => {
+      setSp((cur) => {
+        if (cur) {
+          console.warn("Firebase Auth não respondeu a tempo — liberando splash.");
+          setScr((s) => (s === "welcome" ? "welcome" : s));
+        }
+        return false;
+      });
+    }, 6000);
+    return () => clearTimeout(spTimeout);
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     console.log("URL params:", window.location.search);
     // Termo digital
