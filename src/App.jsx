@@ -5705,6 +5705,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               {c.ok && (
                 <select
                   value={c.on || ""}
+                  autoFocus={c.id === highlightId}
                   onChange={async (e) => {
                     await setDoc(
                       doc(db, "encontristas", c.id),
@@ -5722,7 +5723,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 >
                   <option value="">Ônibus?</option>
                   {on
-                    .filter((o) => o.tipo !== "Servos")
+                    .filter((o) => o.tipo !== "Servos" && o.tipo === (c.gen === "M" ? "Feminino" : "Masculino"))
                     .map((o) => (
                       <option key={o.num} value={o.num}>
                         Ônibus {o.num} — {o.tipo}
