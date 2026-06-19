@@ -5488,7 +5488,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             c.gen === gen &&
             (sub === "pend" ? !c.ok : c.ok) &&
             c.nome.toLowerCase().includes(s.toLowerCase()),
-        ),
+        ).sort((a, b) => (a.nome || "").localeCompare(b.nome || "")),
       [ck, gen, sub, s],
     );
     const cnt = (g, ok) =>
@@ -5521,7 +5521,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "1fr 1fr 1fr",
             gap: 8,
             marginBottom: 14,
           }}
@@ -5573,7 +5573,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             gap: 8,
           })}
         >
-          📷 Escanear QR Code
+          Escanear QR Code
         </button>
 
         <Seg
