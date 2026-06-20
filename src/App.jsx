@@ -8317,7 +8317,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             gap: 10,
           }}
         >
-          <span>💊</span>
+          <PillIcon size={16} color="#ff6b6b" style={{ flexShrink: 0 }} />
           <div style={{ color: G.td, fontSize: 12, lineHeight: 1.6 }}>
             Condições de saúde e necessidades especiais. Visível para servos
             responsáveis.
@@ -8342,7 +8342,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   })
             }
           >
-            {sh ? "✕ Cancelar" : "＋ Adicionar Registro"}
+            {sh ? "Cancelar" : "+ Adicionar Registro"}
           </button>
         )}
         {sh && (
@@ -8429,12 +8429,14 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>
-                  💊 {s.nome}
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <PillIcon size={14} color={G.t} style={{ flexShrink: 0 }} />
+                  {s.nome}
                 </div>
                 {s.quarto && (
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                    🛏️ Quarto {s.quarto}
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                    <BedDouble size={12} color={G.tm} style={{ flexShrink: 0 }} />
+                    Quarto {s.quarto}
                   </div>
                 )}
                 <div
