@@ -11787,7 +11787,8 @@ function CozinhaV({ edit, t, users }) {
                   (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
                   u.perfil !== "admin" &&
                   u.nome &&
-                  u.ativo !== false
+                  u.ativo !== false &&
+                  u.primeiro !== true
                 )
                 .sort((a, b) => {
                   const ORDEM = (p) => {
