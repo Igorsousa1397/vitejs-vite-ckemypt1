@@ -5262,8 +5262,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </div>
                 <div style={{ height: 1, background: G.cb, margin: '2px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção total</span>
+                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção de hoje</span>
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>
+                    R$ {(encArrecadado + encAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ color: G.tm, fontSize: 10, marginTop: -2 }}>* {todosEnc.length} cadastrados (arrecadado + a receber)</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Previsão total (meta)</span>
+                  <span style={{ color: '#0a84ff', fontWeight: 800, fontSize: 16 }}>
                     R$ {(META_ENC * VALOR_ENC).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
