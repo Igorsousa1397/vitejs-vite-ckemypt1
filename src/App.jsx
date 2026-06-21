@@ -360,11 +360,13 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
                 onDel();
               }}
               style={{
-                color: "rgba(255,60,60,.4)",
-                fontSize: 13,
+                color: "rgba(255,60,60,.7)",
+                fontSize: 16,
                 cursor: "pointer",
+                padding: "2px 4px",
               }}
             >
+              🗑
             </span>
           )}
           <span
