@@ -4917,9 +4917,10 @@ export default function App() {
                                 "Som": ["lider_som"],
                                 "Itens Teatro/Dança": ["lider_danca"],
                               };
+                              const fnBase = fn.replace(/ - (Almoço|Jantar)$/, "");
                               const perfisLider = user.perfil === "lider_staff"
                                 ? ["lider_staff"]
-                                : (LIDER_MAP[fn] || ["lider_staff"]);
+                                : (LIDER_MAP[fnBase] || ["lider_staff"]);
 
                               const lideres = (users || []).filter(u => perfisLider.includes(u.perfil));
 
@@ -12071,10 +12072,12 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
   const [busca, setBusca] = useState('');
   const [aberto, setAberto] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const [pendente, setPendente] = useState(null); // função aguardando seleção de período
   const inputRef = useRef(null);
   const skipBlur = useRef(false);
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
   const cor = dC[dia];
+  const FUNCOES_COM_PERIODO = ["Panelas", "Louça"];
 
   const filtrados = fns.filter(f =>
     f.toLowerCase().includes(busca.toLowerCase()) && busca.length > 0
@@ -12089,9 +12092,20 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
   };
 
   const confirmar = (fn) => {
+    if (FUNCOES_COM_PERIODO.includes(fn)) {
+      setPendente(fn);
+      setBusca('');
+      setAberto(false);
+      return;
+    }
     onAdd(fn);
     setBusca('');
     setAberto(false);
+  };
+
+  const confirmarPeriodo = (periodo) => {
+    onAdd(`${pendente} - ${periodo}`);
+    setPendente(null);
   };
 
   const dropdown = aberto && filtrados.length > 0
@@ -12112,6 +12126,19 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
         document.body
       )
     : null;
+
+  if (pendente) {
+    return (
+      <div style={{ background: '#1a1a1a', borderRadius: 10, padding: 10, border: `1px solid ${cor}44` }}>
+        <div style={{ color: G.td, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>{pendente} — qual período?</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => confirmarPeriodo('Almoço')} style={{ ...BG({ flex: 1, padding: '8px 10px', borderRadius: 9, fontSize: 12 }), background: cor }}>Almoço</button>
+          <button onClick={() => confirmarPeriodo('Jantar')} style={{ ...BG({ flex: 1, padding: '8px 10px', borderRadius: 9, fontSize: 12 }), background: cor }}>Jantar</button>
+          <button onClick={() => setPendente(null)} style={BK({ padding: '8px 10px', borderRadius: 9, fontSize: 12 })}>✕</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'relative' }}>
