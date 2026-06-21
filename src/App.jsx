@@ -12079,7 +12079,7 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
   const skipBlur = useRef(false);
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
   const cor = dC[dia];
-  const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças"];
+  const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças", "Servir comida"];
 
   const filtrados = fns.filter(f =>
     f.toLowerCase().includes(busca.toLowerCase()) && busca.length > 0
