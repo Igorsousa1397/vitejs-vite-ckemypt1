@@ -7289,7 +7289,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         templo: [],
         servos: [],
         passManual: [],
-        malas: [],
+        malaTipo: "",
       };
       await salvarOnibus(novo);
       setOn([...on, novo].sort((a, b) => a.num - b.num));
@@ -7317,41 +7317,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
 
     // Componente de mala com dropdown
-    const AddMala = ({ num }) => {
-      const [tipoMala, setTipoMala] = useState("Feminino");
-      if (!edit) return null;
-      return (
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <select
-            value={tipoMala}
-            onChange={(e) => setTipoMala(e.target.value)}
-            style={{
-              ...I,
-              fontSize: 12,
-              padding: "9px 10px",
-              borderRadius: 10,
-            }}
-          >
-            <option value="Feminino">♀ Feminino</option>
-            <option value="Masculino">♂ Masculino</option>
-            <option value="Servos">👤 Servos</option>
-          </select>
-          <button
-            onClick={() => {
-              upd(num, (x) => ({
-                ...x,
-                malas: [...(x.malas || []), tipoMala],
-              }));
-              t("✓");
-            }}
-            style={BG({ padding: "9px 14px", borderRadius: 10, fontSize: 13 })}
-          >
-            +
-          </button>
-        </div>
-      );
-    };
-
     return (
       <div>
         {/* MODAL CONFIRMAR DELETE */}
@@ -7737,22 +7702,23 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               )}
 
               <SL c="Malas" />
-              {malas.length > 0 ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                  {malas.map((tipo, i) => (
-                    <Tag
-                      key={i}
-                      c={`${tipo === "Feminino" ? "♀" : tipo === "Masculino" ? "♂" : "👤"} ${tipo}`}
-                      ax={tipoColor[tipo]}
-                      onX={edit ? () => upd(o.num, (x) => ({ ...x, malas: x.malas.filter((_, j) => j !== i) })) : undefined}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", margin: "4px 0 8px" }}>
-                </div>
-              )}
-              <AddMala num={o.num} />
+              <select
+                value={o.malaTipo || ""}
+                disabled={!edit}
+                onChange={(e) => upd(o.num, (x) => ({ ...x, malaTipo: e.target.value, malas: undefined }))}
+                style={{
+                  ...I,
+                  fontSize: 13,
+                  padding: "10px 12px",
+                  marginBottom: 8,
+                  opacity: edit ? 1 : 0.6,
+                }}
+              >
+                <option value="">Selecione o tipo de mala...</option>
+                <option value="Feminino">♀ Feminino</option>
+                <option value="Masculino">♂ Masculino</option>
+                <option value="Servos">👤 Servos</option>
+              </select>
             </Acc>
           );
         })}
