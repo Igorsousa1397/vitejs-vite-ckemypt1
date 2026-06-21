@@ -8554,8 +8554,10 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 function CozinhaV({ edit, t, users }) {
   const [tab, setTab] = useState('estoque'); // 'estoque' | 'cardapio'
   const [tarefas, setTarefas] = useState([]);
+  const [itens, setItens] = useState([]);
   const [sh, setSh] = useState(null); // categoria/subcategoria aberta para criar tarefa
   const [f, setF] = useState({ r: '' });
+  const [novoItem, setNovoItem] = useState({}); // { [categoria]: { nome, qtd } }
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'cozinha'), (snap) => {
@@ -8564,10 +8566,54 @@ function CozinhaV({ edit, t, users }) {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'cozinha_estoque'), async (snap) => {
+      if (snap.empty) {
+        // Pré-popula itens básicos de mercado na primeira vez
+        const ITENS_PADRAO = [
+          { nome: 'Arroz', categoria: 'Geral' },
+          { nome: 'Feijão', categoria: 'Geral' },
+          { nome: 'Açúcar', categoria: 'Geral' },
+          { nome: 'Café', categoria: 'Geral' },
+          { nome: 'Sal', categoria: 'Geral' },
+        ];
+        for (const item of ITENS_PADRAO) {
+          await addDoc(collection(db, 'cozinha_estoque'), { ...item, qtd: '', comprado: false, criadoEm: Date.now() });
+        }
+        return;
+      }
+      setItens(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm - b.criadoEm));
+    });
+    return () => unsub();
+  }, []);
+
   const ESTOQUE_CATS = ['Geral', 'Açougue', 'Frutas e Verduras'];
   const CARDAPIO_DIAS = ['Sexta', 'Sábado', 'Domingo'];
   const CARDAPIO_PERIODOS = ['Café', 'Almoço', 'Jantar'];
   const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
+
+  const adicionarItem = async (categoria) => {
+    const dados = novoItem[categoria] || {};
+    if (!dados.nome?.trim()) return;
+    await addDoc(collection(db, 'cozinha_estoque'), {
+      nome: dados.nome.trim(),
+      qtd: dados.qtd?.trim() || '',
+      categoria,
+      comprado: false,
+      criadoEm: Date.now(),
+    });
+    setNovoItem(prev => ({ ...prev, [categoria]: { nome: '', qtd: '' } }));
+    t('Item adicionado!');
+  };
+
+  const toggleComprado = async (id, atual) => {
+    await updateDoc(doc(db, 'cozinha_estoque', id), { comprado: !atual });
+  };
+
+  const removerItem = async (id) => {
+    await deleteDoc(doc(db, 'cozinha_estoque', id));
+    t('Removido.');
+  };
 
   const criarTarefa = async (categoria, subcategoria) => {
     if (!f.r.trim()) return;
@@ -8660,20 +8706,75 @@ function CozinhaV({ edit, t, users }) {
 
       <div style={{ marginTop: 14 }}>
         {tab === 'estoque' && ESTOQUE_CATS.map(cat => {
-          const itens = tarefas.filter(tarefa => tarefa.tipo === 'estoque' && tarefa.categoria === cat);
+          const itensCat = itens.filter(item => item.categoria === cat);
+          const comprados = itensCat.filter(item => item.comprado).length;
           return (
             <Acc
               key={cat}
               title={cat}
-              right={<Pill c={`${itens.length} ${itens.length === 1 ? 'item' : 'itens'}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+              right={<Pill c={`${comprados}/${itensCat.length}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
             >
-              {itens.length === 0 && (
+              {itensCat.length === 0 && (
                 <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
-                  Nenhuma tarefa cadastrada.
+                  Nenhum item cadastrado.
                 </div>
               )}
-              {itens.map(l => <TarefaItem key={l.id} l={l} />)}
-              {edit && <NovaTarefaForm categoria={cat} cor="#0a84ff" />}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                {itensCat.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      background: '#111', borderRadius: 10, padding: '10px 12px',
+                    }}
+                  >
+                    <div
+                      onClick={() => edit && toggleComprado(item.id, item.comprado)}
+                      style={{
+                        width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                        border: `2px solid ${item.comprado ? G.green : '#444'}`,
+                        background: item.comprado ? 'rgba(0,200,81,.15)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: edit ? 'pointer' : 'default',
+                      }}
+                    >
+                      {item.comprado && <span style={{ color: G.green, fontSize: 12, fontWeight: 800 }}>✓</span>}
+                    </div>
+                    <span style={{
+                      flex: 1, fontSize: 14,
+                      color: item.comprado ? G.tm : G.t,
+                      textDecoration: item.comprado ? 'line-through' : 'none',
+                    }}>
+                      {item.nome}{item.qtd ? ` — ${item.qtd}` : ''}
+                    </span>
+                    {edit && (
+                      <button
+                        onClick={() => removerItem(item.id)}
+                        style={{ background: 'transparent', border: 'none', color: '#ff3b30', fontSize: 16, cursor: 'pointer', padding: 4 }}
+                      >✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {edit && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    placeholder="Item..."
+                    value={novoItem[cat]?.nome || ''}
+                    onChange={e => setNovoItem(prev => ({ ...prev, [cat]: { ...prev[cat], nome: e.target.value } }))}
+                    onKeyDown={e => e.key === 'Enter' && adicionarItem(cat)}
+                    style={{ ...I, flex: 2, marginBottom: 0, fontSize: 13 }}
+                  />
+                  <input
+                    placeholder="Qtd"
+                    value={novoItem[cat]?.qtd || ''}
+                    onChange={e => setNovoItem(prev => ({ ...prev, [cat]: { ...prev[cat], qtd: e.target.value } }))}
+                    onKeyDown={e => e.key === 'Enter' && adicionarItem(cat)}
+                    style={{ ...I, flex: 1, marginBottom: 0, fontSize: 13 }}
+                  />
+                  <button onClick={() => adicionarItem(cat)} style={BG({ padding: '10px 16px', borderRadius: 10, fontSize: 13 })}>+</button>
+                </div>
+              )}
             </Acc>
           );
         })}
