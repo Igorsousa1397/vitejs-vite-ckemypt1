@@ -5082,7 +5082,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const todosEnc = [...encH, ...encM];
   const VALOR_ENC = 360;
   const VALOR_ENC_ITAJAI = 200;
-  const getValorEnc = (e) => e.igreja === 'Fonte Itajaí' ? VALOR_ENC_ITAJAI : VALOR_ENC;
+  const getValorEnc = (e) => (e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina') ? VALOR_ENC_ITAJAI : VALOR_ENC;
   const encPagosLista = todosEnc.filter(e => e.pago);
   const encPendentesLista = todosEnc.filter(e => !e.pago);
   const encPagos = encPagosLista.length;
@@ -5269,7 +5269,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </div>
                 <div style={{ color: G.tm, fontSize: 10, marginTop: -2 }}>* {todosEnc.length} cadastrados (arrecadado + a receber)</div>
                 {(() => {
-                  const qtdItajai = todosEnc.filter(e => e.igreja === 'Fonte Itajaí').length;
+                  const qtdItajai = todosEnc.filter(e => e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina').length;
                   const qtdPadrao = Math.max(META_ENC - qtdItajai, 0);
                   const previsaoTotal = qtdPadrao * VALOR_ENC + qtdItajai * VALOR_ENC_ITAJAI;
                   return (
