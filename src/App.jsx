@@ -6829,6 +6829,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               { header: "Igreja", key: "igreja", width: 25 },
               { header: "Célula", key: "celula", width: 25 },
               { header: "Camiseta", key: "camiseta", width: 14 },
+              { header: "Pago", key: "pago", width: 12 },
             ];
             ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
             ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
@@ -6839,6 +6840,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 igreja: e.igreja === "Outra" ? (e.igrejaCustom || "Outra") : (e.igreja || ""),
                 celula: e.celula || "",
                 camiseta: e.camiseta || "",
+                pago: e.pago ? "Pago" : "Pendente",
               });
             });
             const buf = await wb.xlsx.writeBuffer();
