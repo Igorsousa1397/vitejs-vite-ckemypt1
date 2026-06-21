@@ -8552,8 +8552,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 
   // ── LOUÇA ────────────────────────────────────────────────────────────────────
 function CozinhaV({ edit, t, users }) {
+  const [tab, setTab] = useState('estoque'); // 'estoque' | 'cardapio'
   const [tarefas, setTarefas] = useState([]);
-  const [sh, setSh] = useState(false);
+  const [sh, setSh] = useState(null); // categoria/subcategoria aberta para criar tarefa
   const [f, setF] = useState({ r: '' });
 
   useEffect(() => {
@@ -8563,13 +8564,23 @@ function CozinhaV({ edit, t, users }) {
     return () => unsub();
   }, []);
 
-  const servos = (users || []).filter(u => u.ativo !== false && u.perfil === 'servo');
+  const ESTOQUE_CATS = ['Geral', 'Açougue', 'Frutas e Verduras'];
+  const CARDAPIO_DIAS = ['Sexta', 'Sábado', 'Domingo'];
+  const CARDAPIO_PERIODOS = ['Café', 'Almoço', 'Jantar'];
+  const dC = { Sexta: '#bf5af2', Sábado: G.green, Domingo: '#ff9f0a' };
 
-  const criarTarefa = async () => {
+  const criarTarefa = async (categoria, subcategoria) => {
     if (!f.r.trim()) return;
-    await addDoc(collection(db, 'cozinha'), { r: f.r.trim(), s: [], criadoEm: Date.now() });
+    await addDoc(collection(db, 'cozinha'), {
+      r: f.r.trim(),
+      s: [],
+      tipo: tab,
+      categoria,
+      subcategoria: subcategoria || null,
+      criadoEm: Date.now(),
+    });
     setF({ r: '' });
-    setSh(false);
+    setSh(null);
     t('Tarefa criada!');
   };
 
@@ -8594,52 +8605,108 @@ function CozinhaV({ edit, t, users }) {
     t('Removido.');
   };
 
+  const TarefaItem = ({ l }) => (
+    <Acc
+      key={l.id}
+      title={l.r}
+      right={<Pill c={l.s?.length || 0} bg="#1e1e1e" tc={G.td} />}
+      onDel={edit ? () => deletarTarefa(l.id) : undefined}
+    >
+      <Tags
+        items={l.s || []}
+        onX={edit ? (i) => removeServo(l.id, i) : undefined}
+      />
+      {edit && (
+        <AddServoCozinha tarefaId={l.id} servosJa={l.s || []} users={users} onAdd={addServо} />
+      )}
+    </Acc>
+  );
+
+  const NovaTarefaForm = ({ categoria, subcategoria, cor }) => {
+    const chave = `${categoria}|${subcategoria || ''}`;
+    const aberto = sh === chave;
+    return (
+      <div style={{ marginBottom: 10 }}>
+        {!aberto ? (
+          <button
+            onClick={() => { setSh(chave); setF({ r: '' }); }}
+            style={{ ...BK({ width: '100%', padding: 10, borderRadius: 10, fontSize: 12 }), borderColor: `${cor}44`, color: cor }}
+          >
+            + Nova Tarefa
+          </button>
+        ) : (
+          <div style={{ background: '#111', border: `1px solid ${cor}44`, borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input
+              autoFocus
+              style={{ ...I, marginBottom: 0, fontSize: 13 }}
+              placeholder="Nome da tarefa..."
+              value={f.r}
+              onChange={e => setF({ r: e.target.value })}
+              onKeyDown={e => e.key === 'Enter' && criarTarefa(categoria, subcategoria)}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => criarTarefa(categoria, subcategoria)} style={{ ...BG({ flex: 1, padding: 9, borderRadius: 9, fontSize: 12 }), background: cor }}>Criar</button>
+              <button onClick={() => setSh(null)} style={BK({ padding: '9px 14px', borderRadius: 9, fontSize: 12 })}>✕</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
-      {edit && (
-        <>
-          <button
-            onClick={() => setSh(!sh)}
-            style={sh ? BK({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 }) : BG({ width: '100%', padding: 12, marginBottom: 10, borderRadius: 13 })}
-          >
-            {sh ? '✕ Cancelar' : '＋ Nova Tarefa de Cozinha'}
-          </button>
-          {sh && (
-            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input
-                style={I}
-                placeholder="Ex: Sexta noite — Pratos *"
-                value={f.r}
-                onChange={e => setF({ r: e.target.value })}
-              />
-              <button onClick={criarTarefa} style={BG({ padding: 12, borderRadius: 12 })}>Criar</button>
-            </div>
-          )}
-        </>
-      )}
+      <Seg opts={[['estoque', 'Estoque'], ['cardapio', 'Cardápio']]} val={tab} set={setTab} />
 
-      {tarefas.length === 0 && (
-        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
-          Nenhuma tarefa cadastrada.
-        </div>
-      )}
+      <div style={{ marginTop: 14 }}>
+        {tab === 'estoque' && ESTOQUE_CATS.map(cat => {
+          const itens = tarefas.filter(tarefa => tarefa.tipo === 'estoque' && tarefa.categoria === cat);
+          return (
+            <Acc
+              key={cat}
+              title={cat}
+              right={<Pill c={`${itens.length} ${itens.length === 1 ? 'item' : 'itens'}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+            >
+              {itens.length === 0 && (
+                <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
+                  Nenhuma tarefa cadastrada.
+                </div>
+              )}
+              {itens.map(l => <TarefaItem key={l.id} l={l} />)}
+              {edit && <NovaTarefaForm categoria={cat} cor="#0a84ff" />}
+            </Acc>
+          );
+        })}
 
-      {tarefas.map(l => (
-        <Acc
-          key={l.id}
-          title={`🍽️ ${l.r}`}
-          right={<Pill c={l.s?.length || 0} bg="#1e1e1e" tc={G.td} />}
-          onDel={edit ? () => deletarTarefa(l.id) : undefined}
-        >
-          <Tags
-            items={l.s || []}
-            onX={edit ? (i) => removeServo(l.id, i) : undefined}
-          />
-          {edit && (
-            <AddServoCozinha tarefaId={l.id} servosJa={l.s || []} users={users} onAdd={addServо} />
-          )}
-        </Acc>
-      ))}
+        {tab === 'cardapio' && CARDAPIO_DIAS.map(dia => {
+          const itensDia = tarefas.filter(tarefa => tarefa.tipo === 'cardapio' && tarefa.categoria === dia);
+          return (
+            <Acc
+              key={dia}
+              title={dia}
+              right={<Pill c={`${itensDia.length} ${itensDia.length === 1 ? 'item' : 'itens'}`} bg={`${dC[dia]}18`} tc={dC[dia]} />}
+            >
+              {CARDAPIO_PERIODOS.map(periodo => {
+                const itens = itensDia.filter(tarefa => tarefa.subcategoria === periodo);
+                return (
+                  <div key={periodo} style={{ marginBottom: 14 }}>
+                    <div style={{ color: dC[dia], fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+                      {periodo}
+                    </div>
+                    {itens.length === 0 && (
+                      <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
+                        Nenhuma tarefa cadastrada.
+                      </div>
+                    )}
+                    {itens.map(l => <TarefaItem key={l.id} l={l} />)}
+                    {edit && <NovaTarefaForm categoria={dia} subcategoria={periodo} cor={dC[dia]} />}
+                  </div>
+                );
+              })}
+            </Acc>
+          );
+        })}
+      </div>
     </div>
   );
 }
