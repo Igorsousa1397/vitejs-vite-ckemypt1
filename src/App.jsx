@@ -447,7 +447,7 @@ const FUNCOES_INIT = [
   "Servir comida", "Limpeza refeitório", "Quartos", "Organizar itens STAFF",
   "Cartas", "Preparação da Uva", "Decoração", "Recepção Presentes/cartas",
   "Correrias", "Transitar com carro no sítio", "Montagem da cruz",
-  "Servo de Quarto",
+  "Servo de Quarto", "Louças",
 ];
 
 const QH_INIT = [];
@@ -4886,6 +4886,7 @@ export default function App() {
                                 "Refeitório": ["lider_geral"],
                                 "Cantina": ["lider_geral"],
                                 "Louça": ["lider_geral"],
+                                "Louças": ["lider_geral"],
                                 "Panelas": ["lider_geral"],
                                 "Kit Sobrevivência": ["lider_geral"],
                                 "Etiquetar Sacolas": ["lider_geral"],
@@ -12077,7 +12078,7 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
   const skipBlur = useRef(false);
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
   const cor = dC[dia];
-  const FUNCOES_COM_PERIODO = ["Panelas", "Louça"];
+  const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças"];
 
   const filtrados = fns.filter(f =>
     f.toLowerCase().includes(busca.toLowerCase()) && busca.length > 0
