@@ -3721,6 +3721,7 @@ export default function App() {
     ...(temPermissao("saude") ? [[PillIcon, "saude"]] : []),
     ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
     ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
+    ...(temPermissao("equipes") ? [[List, "equipes"]] : []),
     ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
     ...(isAdm ? [[Settings, "back"]] : []),
   ];
@@ -11673,6 +11674,7 @@ function CozinhaV({ edit, t, users }) {
                         ["enc", "Encontristas"],
                         ["onibus", "Ônibus"],
                         ["cozinha", "Cozinha"],
+                        ["equipes", "Equipes"],
                         ["servos", "Servos"],
                         ["ach", "Achados & Perdidos"],
                         ["crac", "Crachás"],
@@ -11879,6 +11881,7 @@ function CozinhaV({ edit, t, users }) {
                               ["enc", "Encontristas"],
                               ["onibus", "Ônibus"],
                               ["cozinha", "Cozinha"],
+                              ["equipes", "Equipes"],
                               ["servos", "Servos"],
                               ["ach", "Achados & Perdidos"],
                               ["crac", "Crachás"],
