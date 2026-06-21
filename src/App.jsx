@@ -11594,6 +11594,7 @@ function CozinhaV({ edit, t, users }) {
   function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos }) {
     // const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
+    const [buscaFn, setBuscaFn] = useState("");
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
 
@@ -11649,7 +11650,7 @@ function CozinhaV({ edit, t, users }) {
 
     return (
       <div>
-        <Seg opts={[["grupos", "Grupos"], ["usuarios", "Funções"]]} val={tab} set={setTab} />
+        <Seg opts={[["grupos", "Grupos"], ["usuarios", "Funções"], ["geral", "Geral"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
           {tab === "grupos" && (
             <>
@@ -11976,6 +11977,75 @@ function CozinhaV({ edit, t, users }) {
                     </div>
                   );
                 })}
+            </>
+          )}
+
+          {tab === "geral" && (
+            <>
+              <input
+                value={buscaFn}
+                onChange={(e) => setBuscaFn(e.target.value)}
+                placeholder="🔍 Buscar função..."
+                style={{ ...I, marginBottom: 12 }}
+              />
+              {(() => {
+                const DIAS_ORD = ["Quinta", "Sexta", "Sábado", "Domingo"];
+                const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+
+                // Monta mapa: função -> [{ user, dia }]
+                const porFuncao = {};
+                (users || []).forEach(u => {
+                  if (u.perfil === "admin" || !u.nome) return;
+                  const escala = u.escala || {};
+                  DIAS_ORD.forEach(dia => {
+                    (escala[dia] || []).forEach(fn => {
+                      if (!porFuncao[fn]) porFuncao[fn] = [];
+                      porFuncao[fn].push({ nome: u.nome, dia });
+                    });
+                  });
+                });
+
+                const funcoesOrdenadas = Object.keys(porFuncao)
+                  .filter(fn => fn.toLowerCase().includes(buscaFn.toLowerCase()))
+                  .sort((a, b) => a.localeCompare(b));
+
+                if (funcoesOrdenadas.length === 0) {
+                  return (
+                    <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+                      Nenhuma função encontrada.
+                    </div>
+                  );
+                }
+
+                return funcoesOrdenadas.map((fn) => {
+                  const pessoas = porFuncao[fn];
+                  return (
+                    <Acc
+                      key={fn}
+                      title={fn}
+                      right={<Pill c={`${pessoas.length} ${pessoas.length === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+                    >
+                      {DIAS_ORD.map(dia => {
+                        const doDia = pessoas.filter(p => p.dia === dia);
+                        if (doDia.length === 0) return null;
+                        return (
+                          <div key={dia} style={{ marginBottom: 10 }}>
+                            <div style={{ color: dC[dia], fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                              {dia} · {doDia.length}
+                            </div>
+                            {doDia.map((p, i) => (
+                              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                                <div style={{ width: 5, height: 5, borderRadius: "50%", background: dC[dia] }} />
+                                <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </Acc>
+                  );
+                });
+              })()}
             </>
           )}
         </div>
