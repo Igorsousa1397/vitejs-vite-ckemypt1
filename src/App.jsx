@@ -446,6 +446,7 @@ const FUNCOES_INIT = [
   "Kit Cartas+Pecado", "Organizar itens do Templo", "Itens Teatro/Dança",
   "Servir comida", "Limpeza refeitório", "Quartos", "Organizar itens STAFF",
   "Cartas", "Preparação da Uva", "Decoração", "Recepção Presentes/cartas",
+  "Correrias", "Transitar com carro no sítio", "Montagem da cruz",
 ];
 
 const QH_INIT = [];
@@ -4897,6 +4898,9 @@ export default function App() {
                                 "Preparação da Uva": ["lider_geral", "lider_cartas"],
                                 "Decoração": ["lider_geral", "lider_cartas"],
                                 "Recepção Presentes/cartas": ["lider_geral", "lider_cartas"],
+                                "Correrias": ["lider_geral"],
+                                "Transitar com carro no sítio": ["lider_geral"],
+                                "Montagem da cruz": ["lider_geral", "lider_templo"],
                                 // Líder Geral + específico
                                 "Templo": ["lider_geral", "lider_templo"],
                                 "Mídia": ["lider_midia"],
