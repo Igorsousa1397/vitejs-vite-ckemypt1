@@ -3215,6 +3215,7 @@ export default function App() {
   const unsubEscRef = useRef(null);
   const unsubSauRef = useRef(null);
   const enviando = useRef(false);
+  const enviandoAviso = useRef(false);
   const [quartoTab, setQuartoTab] = useState("M");
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
@@ -5454,7 +5455,19 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </select>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input value={av} onChange={(e) => setAv(e.target.value)} placeholder="Escrever aviso..." style={{ ...I, flex: 1 }} />
-                  <button onClick={() => { if (av.trim()) { vibrar(100); addAv(av.trim()); setAv(""); } }} style={BG({ padding: "13px 15px", borderRadius: 12 })}>+</button>
+                  <button
+                    onClick={() => {
+                      if (enviandoAviso.current) return;
+                      if (!av.trim()) return;
+                      enviandoAviso.current = true;
+                      vibrar(100);
+                      const txt = av.trim();
+                      setAv("");
+                      addAv(txt);
+                      setTimeout(() => { enviandoAviso.current = false; }, 1500);
+                    }}
+                    style={BG({ padding: "13px 15px", borderRadius: 12 })}
+                  >+</button>
                 </div>
               </div>
             )}
