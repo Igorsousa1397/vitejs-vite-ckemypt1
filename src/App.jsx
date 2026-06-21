@@ -7733,7 +7733,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       {pass.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: '1px solid #1e1e1e' }}>
                           <span style={{ color: G.tm, fontSize: 11, minWidth: 18 }}>{i + 1}.</span>
-                          <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                          <span style={{ color: G.t, fontSize: 13, fontWeight: 600 }}>{p.nome}</span>
                         </div>
                       ))}
                     </div>
