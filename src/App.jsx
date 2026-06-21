@@ -8625,21 +8625,7 @@ function CozinhaV({ edit, t, users }) {
   }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'cozinha_estoque'), async (snap) => {
-      if (snap.empty) {
-        // Pré-popula itens básicos de mercado na primeira vez
-        const ITENS_PADRAO = [
-          { nome: 'Arroz', categoria: 'Geral' },
-          { nome: 'Feijão', categoria: 'Geral' },
-          { nome: 'Açúcar', categoria: 'Geral' },
-          { nome: 'Café', categoria: 'Geral' },
-          { nome: 'Sal', categoria: 'Geral' },
-        ];
-        for (const item of ITENS_PADRAO) {
-          await addDoc(collection(db, 'cozinha_estoque'), { ...item, qtd: '', comprado: false, criadoEm: Date.now() });
-        }
-        return;
-      }
+    const unsub = onSnapshot(collection(db, 'cozinha_estoque'), (snap) => {
       setItens(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.criadoEm - b.criadoEm));
     });
     return () => unsub();
@@ -8656,11 +8642,12 @@ function CozinhaV({ edit, t, users }) {
     await addDoc(collection(db, 'cozinha_estoque'), {
       nome: dados.nome.trim(),
       qtd: dados.qtd?.trim() || '',
+      unidade: dados.unidade || 'unid',
       categoria,
       comprado: false,
       criadoEm: Date.now(),
     });
-    setNovoItem(prev => ({ ...prev, [categoria]: { nome: '', qtd: '' } }));
+    setNovoItem(prev => ({ ...prev, [categoria]: { nome: '', qtd: '', unidade: 'unid' } }));
     t('Item adicionado!');
   };
 
@@ -8803,7 +8790,7 @@ function CozinhaV({ edit, t, users }) {
                       color: item.comprado ? G.tm : G.t,
                       textDecoration: item.comprado ? 'line-through' : 'none',
                     }}>
-                      {item.nome}{item.qtd ? ` — ${item.qtd}` : ''}
+                      {item.nome}{item.qtd ? ` — ${item.qtd} ${item.unidade || 'unid'}` : ''}
                     </span>
                     {edit && (
                       <button
@@ -8830,6 +8817,15 @@ function CozinhaV({ edit, t, users }) {
                     onKeyDown={e => e.key === 'Enter' && adicionarItem(cat)}
                     style={{ ...I, flex: 1, marginBottom: 0, fontSize: 13 }}
                   />
+                  <select
+                    value={novoItem[cat]?.unidade || 'unid'}
+                    onChange={e => setNovoItem(prev => ({ ...prev, [cat]: { ...prev[cat], unidade: e.target.value } }))}
+                    style={{ ...I, flex: 1, marginBottom: 0, fontSize: 13, padding: '10px 8px' }}
+                  >
+                    <option value="unid">unid</option>
+                    <option value="kg">kg</option>
+                    <option value="L">litros</option>
+                  </select>
                   <button onClick={() => adicionarItem(cat)} style={BG({ padding: '10px 16px', borderRadius: 10, fontSize: 13 })}>+</button>
                 </div>
               )}
