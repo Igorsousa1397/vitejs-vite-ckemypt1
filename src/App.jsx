@@ -4922,7 +4922,6 @@ export default function App() {
                               const lideres = (users || []).filter(u => perfisLider.includes(u.perfil));
 
                               const colegas = (users || []).filter(u =>
-                                u.id !== user.id &&
                                 u.ativo !== false &&
                                 (u.escala?.[dia] || []).includes(fn)
                               );
@@ -4953,7 +4952,9 @@ export default function App() {
                                       {colegas.map((c, j) => (
                                         <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                                           <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
-                                          <span style={{ color: G.td, fontSize: 13 }}>{c.nome}</span>
+                                          <span style={{ color: G.td, fontSize: 13, fontWeight: c.id === user.id ? 700 : 400 }}>
+                                            {c.nome}{c.id === user.id ? " (você)" : ""}
+                                          </span>
                                         </div>
                                       ))}
                                     </>
