@@ -447,6 +447,7 @@ const FUNCOES_INIT = [
   "Servir comida", "Limpeza refeitório", "Quartos", "Organizar itens STAFF",
   "Cartas", "Preparação da Uva", "Decoração", "Recepção Presentes/cartas",
   "Correrias", "Transitar com carro no sítio", "Montagem da cruz",
+  "Servo de Quarto",
 ];
 
 const QH_INIT = [];
@@ -4901,6 +4902,7 @@ export default function App() {
                                 "Correrias": ["lider_geral"],
                                 "Transitar com carro no sítio": ["lider_geral"],
                                 "Montagem da cruz": ["lider_geral", "lider_templo"],
+                                "Servo de Quarto": ["lider_geral", "lider_quartos"],
                                 // Líder Geral + específico
                                 "Templo": ["lider_geral", "lider_templo"],
                                 "Mídia": ["lider_midia"],
