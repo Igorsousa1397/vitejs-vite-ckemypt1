@@ -8600,6 +8600,7 @@ function CozinhaV({ edit, t, users }) {
   const [itens, setItens] = useState([]);
   const [sh, setSh] = useState(null); // categoria/subcategoria aberta para criar tarefa
   const [f, setF] = useState({ r: '' });
+  const [novoItem, setNovoItem] = useState({}); // { [categoria]: { nome, qtd } }
   const [cardapioTexto, setCardapioTexto] = useState({}); // { "Sexta|Café": "texto" }
 
   useEffect(() => {
