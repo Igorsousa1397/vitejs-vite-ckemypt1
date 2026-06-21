@@ -8551,13 +8551,70 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 }
 
   // ── LOUÇA ────────────────────────────────────────────────────────────────────
+function CardapioTextarea({ valorInicial, cor, edit, onSalvar }) {
+  const [texto, setTexto] = useState(valorInicial);
+  const [salvando, setSalvando] = useState(false);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => { setTexto(valorInicial); }, [valorInicial]);
+
+  const onChange = (e) => {
+    const val = e.target.value;
+    setTexto(val);
+    setSalvando(true);
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(async () => {
+      await onSalvar(val);
+      setSalvando(false);
+    }, 600);
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <textarea
+        value={texto}
+        onChange={onChange}
+        disabled={!edit}
+        placeholder="O que será servido neste período..."
+        rows={2}
+        style={{
+          ...I,
+          marginBottom: 0,
+          fontSize: 13,
+          resize: 'vertical',
+          minHeight: 50,
+          borderColor: `${cor}44`,
+          opacity: edit ? 1 : 0.7,
+        }}
+      />
+      {salvando && (
+        <span style={{ position: 'absolute', top: 6, right: 8, color: G.tm, fontSize: 10 }}>salvando...</span>
+      )}
+    </div>
+  );
+}
+
 function CozinhaV({ edit, t, users }) {
   const [tab, setTab] = useState('estoque'); // 'estoque' | 'cardapio'
   const [tarefas, setTarefas] = useState([]);
   const [itens, setItens] = useState([]);
   const [sh, setSh] = useState(null); // categoria/subcategoria aberta para criar tarefa
   const [f, setF] = useState({ r: '' });
-  const [novoItem, setNovoItem] = useState({}); // { [categoria]: { nome, qtd } }
+  const [cardapioTexto, setCardapioTexto] = useState({}); // { "Sexta|Café": "texto" }
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'cozinha_cardapio'), (snap) => {
+      const mapa = {};
+      snap.docs.forEach(d => { mapa[d.id] = d.data().texto || ''; });
+      setCardapioTexto(mapa);
+    });
+    return () => unsub();
+  }, []);
+
+  const salvarCardapioTexto = async (dia, periodo, texto) => {
+    const chave = `${dia}|${periodo}`;
+    await setDoc(doc(db, 'cozinha_cardapio', chave), { texto, dia, periodo }, { merge: true });
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'cozinha'), (snap) => {
@@ -8789,10 +8846,20 @@ function CozinhaV({ edit, t, users }) {
             >
               {CARDAPIO_PERIODOS.map(periodo => {
                 const itens = itensDia.filter(tarefa => tarefa.subcategoria === periodo);
+                const chave = `${dia}|${periodo}`;
                 return (
                   <div key={periodo} style={{ marginBottom: 14 }}>
                     <div style={{ color: dC[dia], fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
                       {periodo}
+                    </div>
+                    <CardapioTextarea
+                      valorInicial={cardapioTexto[chave] || ''}
+                      cor={dC[dia]}
+                      edit={edit}
+                      onSalvar={(texto) => salvarCardapioTexto(dia, periodo, texto)}
+                    />
+                    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', margin: '10px 0 6px' }}>
+                      Tarefas
                     </div>
                     {itens.length === 0 && (
                       <div style={{ color: G.tm, fontSize: 12, fontStyle: 'italic', margin: '4px 0 8px' }}>
