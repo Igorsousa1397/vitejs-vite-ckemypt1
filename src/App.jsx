@@ -5268,13 +5268,24 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   </span>
                 </div>
                 <div style={{ color: G.tm, fontSize: 10, marginTop: -2 }}>* {todosEnc.length} cadastrados (arrecadado + a receber)</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Previsão total (meta)</span>
-                  <span style={{ color: '#0a84ff', fontWeight: 800, fontSize: 16 }}>
-                    R$ {(META_ENC * VALOR_ENC).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>* {META_ENC} encontristas × R$ {VALOR_ENC}</div>
+                {(() => {
+                  const qtdItajai = todosEnc.filter(e => e.igreja === 'Fonte Itajaí').length;
+                  const qtdPadrao = Math.max(META_ENC - qtdItajai, 0);
+                  const previsaoTotal = qtdPadrao * VALOR_ENC + qtdItajai * VALOR_ENC_ITAJAI;
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                        <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Previsão total (meta)</span>
+                        <span style={{ color: '#0a84ff', fontWeight: 800, fontSize: 16 }}>
+                          R$ {previsaoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
+                        * {qtdPadrao} × R$ {VALOR_ENC} + {qtdItajai} (Itajaí) × R$ {VALOR_ENC_ITAJAI}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
