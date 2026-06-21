@@ -3161,6 +3161,23 @@ export default function App() {
   const [users, setUsers] = useState([]);
   const [faqOpen, setFaqOpen] = useState(false);
   const [fns, setFns] = useState(FUNCOES_INIT);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "funcoes_extra"));
+        if (snap.exists()) {
+          const extras = snap.data().lista || [];
+          if (extras.length > 0) {
+            setFns(prev => Array.from(new Set([...prev, ...extras])).sort((a, b) => a.localeCompare(b)));
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar funções extras:", err);
+      }
+    })();
+  }, []);
+
   const [esc, setEsc] = useState([]);
   const [qh, setQh] = useState(QH_INIT);
   const [qm, setQm] = useState(QM_INIT);
@@ -11987,6 +12004,7 @@ function CozinhaV({ edit, t, users }) {
 
           {tab === "geral" && (
             <>
+              <NovaFuncaoForm fns={fns} setFns={setFns} t={t} />
               <input
                 value={buscaFn}
                 onChange={(e) => setBuscaFn(e.target.value)}
@@ -12069,6 +12087,56 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
+
+function NovaFuncaoForm({ fns, setFns, t }) {
+  const [sh, setSh] = useState(false);
+  const [nome, setNome] = useState("");
+
+  const criar = async () => {
+    const limpo = nome.trim();
+    if (!limpo) return;
+    if (fns.some(f => f.toLowerCase() === limpo.toLowerCase())) {
+      t("Essa função já existe.", "w");
+      return;
+    }
+    const novasFns = [...fns, limpo].sort((a, b) => a.localeCompare(b));
+    setFns(novasFns);
+    setNome("");
+    setSh(false);
+    try {
+      // Salva só as funções que não estão no FUNCOES_INIT original (extras criadas pelo admin)
+      const extras = novasFns.filter(f => !FUNCOES_INIT.includes(f));
+      await setDoc(doc(db, "config", "funcoes_extra"), { lista: extras }, { merge: true });
+      t("Função criada!");
+    } catch (err) {
+      console.error("Erro ao salvar função:", err);
+      t("Função criada localmente, mas houve erro ao salvar.", "w");
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      {!sh ? (
+        <button onClick={() => setSh(true)} style={BG({ width: "100%", padding: 12, borderRadius: 12 })}>
+          + Nova Função
+        </button>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            autoFocus
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && criar()}
+            placeholder="Nome da nova função..."
+            style={{ ...I, flex: 1, marginBottom: 0 }}
+          />
+          <button onClick={criar} style={BG({ padding: "10px 16px", borderRadius: 12 })}>Criar</button>
+          <button onClick={() => { setSh(false); setNome(""); }} style={BK({ padding: "10px 16px", borderRadius: 12 })}>✕</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AddFuncaoDia({ dia, fns, onAdd }) {
   const [busca, setBusca] = useState('');
