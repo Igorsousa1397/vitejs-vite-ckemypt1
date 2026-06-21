@@ -11994,8 +11994,9 @@ function CozinhaV({ edit, t, users }) {
                 const DIAS_ORD = ["Quinta", "Sexta", "Sábado", "Domingo"];
                 const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
 
-                // Monta mapa: função -> [{ user, dia }]
+                // Monta mapa: função -> [{ user, dia }] — inicia com todas as funções cadastradas
                 const porFuncao = {};
+                (fns || []).forEach(fn => { porFuncao[fn] = []; });
                 (users || []).forEach(u => {
                   if (u.perfil === "admin" || !u.nome) return;
                   const escala = u.escala || {};
@@ -12025,25 +12026,35 @@ function CozinhaV({ edit, t, users }) {
                     <Acc
                       key={fn}
                       title={fn}
-                      right={<Pill c={`${pessoas.length} ${pessoas.length === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+                      right={
+                        pessoas.length > 0
+                          ? <Pill c={`${pessoas.length} ${pessoas.length === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
+                          : <Pill c="Sem ninguém" bg="rgba(99,99,102,.15)" tc="#888" />
+                      }
                     >
-                      {DIAS_ORD.map(dia => {
-                        const doDia = pessoas.filter(p => p.dia === dia);
-                        if (doDia.length === 0) return null;
-                        return (
-                          <div key={dia} style={{ marginBottom: 10 }}>
-                            <div style={{ color: dC[dia], fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                              {dia} · {doDia.length}
-                            </div>
-                            {doDia.map((p, i) => (
-                              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                                <div style={{ width: 5, height: 5, borderRadius: "50%", background: dC[dia] }} />
-                                <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                      {pessoas.length === 0 ? (
+                        <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", padding: "4px 0" }}>
+                          Nenhum servo escalado nesta função ainda.
+                        </div>
+                      ) : (
+                        DIAS_ORD.map(dia => {
+                          const doDia = pessoas.filter(p => p.dia === dia);
+                          if (doDia.length === 0) return null;
+                          return (
+                            <div key={dia} style={{ marginBottom: 10 }}>
+                              <div style={{ color: dC[dia], fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                                {dia} · {doDia.length}
                               </div>
-                            ))}
-                          </div>
-                        );
-                      })}
+                              {doDia.map((p, i) => (
+                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: dC[dia] }} />
+                                  <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })
+                      )}
                     </Acc>
                   );
                 });
