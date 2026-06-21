@@ -12022,13 +12022,14 @@ function CozinhaV({ edit, t, users }) {
 
                 return funcoesOrdenadas.map((fn) => {
                   const pessoas = porFuncao[fn];
+                  const pessoasUnicas = new Set(pessoas.map(p => p.nome)).size;
                   return (
                     <Acc
                       key={fn}
                       title={fn}
                       right={
-                        pessoas.length > 0
-                          ? <Pill c={`${pessoas.length} ${pessoas.length === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
+                        pessoasUnicas > 0
+                          ? <Pill c={`${pessoasUnicas} ${pessoasUnicas === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
                           : <Pill c="Sem ninguém" bg="rgba(99,99,102,.15)" tc="#888" />
                       }
                     >
