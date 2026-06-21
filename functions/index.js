@@ -259,7 +259,17 @@ exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIE
 exports.notificarNovaInscricao = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const { nome } = req.body;
+  const { nome, encontristaId } = req.body;
+
+  // Idempotência: se já notificamos esse encontrista, não envia de novo
+  if (encontristaId) {
+    const dedupeRef = admin.firestore().collection('_notif_dedupe').doc(encontristaId);
+    const dedupeSnap = await dedupeRef.get();
+    if (dedupeSnap.exists) {
+      return res.json({ enviadas: 0, dedupe: true });
+    }
+    await dedupeRef.set({ ts: Date.now(), nome });
+  }
 
   const usersSnap = await admin.firestore().collection('users').get();
   const adminPastorIds = new Set(

@@ -1564,44 +1564,49 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   const [done, setDone] = useState(false);
   const [encId, setEncId] = useState(null);
   const [msgPagamento, setMsgPagamento] = useState("");
+  const enviandoRef = useRef(false);
 
   const salvar = async () => {
+    // Proteção síncrona contra clique duplo — saving (estado) é assíncrono e pode não bloquear a tempo
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
+
     // Campos obrigatórios básicos
-    if (!form.igreja) { alert("Selecione sua igreja."); return; }
-    if (form.igreja === 'Outra' && !form.igrejaCustom?.trim()) { alert("Informe o nome da sua igreja."); return; }
-    if (!form.nome.trim()) { alert("Informe seu nome completo."); return; }
-    if (!form.cpf.trim()) { alert("Informe seu CPF."); return; }
-    if (!form.nascimento || form.nascimento.includes('--') || form.nascimento.split('-').some(p => !p)) { alert("Informe sua data de nascimento."); return; }
-    if (!form.sexo) { alert("Selecione seu sexo."); return; }
-    if (!form.whatsapp.trim()) { alert("Informe seu WhatsApp."); return; }
-    if (!form.celula) { alert("Selecione sua célula."); return; }
-    if (!form.camiseta) { alert("Selecione o tamanho da camiseta."); return; }
-    if (!form.autorizaImagem) { alert("Responda sobre o uso de imagem."); return; }
-    if (!form.emergenciaNome?.trim()) { alert("Informe o nome do contato de emergência."); return; }
-    if (!form.emergenciaTel?.trim()) { alert("Informe o telefone do contato de emergência."); return; }
-    if (!form.temMedicamento) { alert("Responda sobre medicamentos."); return; }
-    if (form.temMedicamento === 'Sim' && !form.medicamento?.trim()) { alert("Informe qual medicamento você toma."); return; }
-    if (!form.temDoenca) { alert("Responda sobre doenças crônicas."); return; }
-    if (form.temDoenca === 'Sim' && !form.doenca?.trim()) { alert("Informe qual doença crônica você tem."); return; }
+    if (!form.igreja) { alert("Selecione sua igreja."); enviandoRef.current = false; return; }
+    if (form.igreja === 'Outra' && !form.igrejaCustom?.trim()) { alert("Informe o nome da sua igreja."); enviandoRef.current = false; return; }
+    if (!form.nome.trim()) { alert("Informe seu nome completo."); enviandoRef.current = false; return; }
+    if (!form.cpf.trim()) { alert("Informe seu CPF."); enviandoRef.current = false; return; }
+    if (!form.nascimento || form.nascimento.includes('--') || form.nascimento.split('-').some(p => !p)) { alert("Informe sua data de nascimento."); enviandoRef.current = false; return; }
+    if (!form.sexo) { alert("Selecione seu sexo."); enviandoRef.current = false; return; }
+    if (!form.whatsapp.trim()) { alert("Informe seu WhatsApp."); enviandoRef.current = false; return; }
+    if (!form.celula) { alert("Selecione sua célula."); enviandoRef.current = false; return; }
+    if (!form.camiseta) { alert("Selecione o tamanho da camiseta."); enviandoRef.current = false; return; }
+    if (!form.autorizaImagem) { alert("Responda sobre o uso de imagem."); enviandoRef.current = false; return; }
+    if (!form.emergenciaNome?.trim()) { alert("Informe o nome do contato de emergência."); enviandoRef.current = false; return; }
+    if (!form.emergenciaTel?.trim()) { alert("Informe o telefone do contato de emergência."); enviandoRef.current = false; return; }
+    if (!form.temMedicamento) { alert("Responda sobre medicamentos."); enviandoRef.current = false; return; }
+    if (form.temMedicamento === 'Sim' && !form.medicamento?.trim()) { alert("Informe qual medicamento você toma."); enviandoRef.current = false; return; }
+    if (!form.temDoenca) { alert("Responda sobre doenças crônicas."); enviandoRef.current = false; return; }
+    if (form.temDoenca === 'Sim' && !form.doenca?.trim()) { alert("Informe qual doença crônica você tem."); enviandoRef.current = false; return; }
 
     const cpfLimpo = form.cpf.replace(/[\.\-]/g, "").trim();
-    if (cpfLimpo.length !== 11) { alert("CPF inválido. Deve ter 11 dígitos."); return; }
+    if (cpfLimpo.length !== 11) { alert("CPF inválido. Deve ter 11 dígitos."); enviandoRef.current = false; return; }
 
     const nascimento = new Date(form.nascimento);
     const hoje = new Date();
     const idade = hoje.getFullYear() - nascimento.getFullYear() -
       (hoje < new Date(hoje.getFullYear(), nascimento.getMonth(), nascimento.getDate()) ? 1 : 0);
-    if (idade < 14) { alert("É necessário ter pelo menos 14 anos para se inscrever."); return; }
+    if (idade < 14) { alert("É necessário ter pelo menos 14 anos para se inscrever."); enviandoRef.current = false; return; }
 
     setSaving(true);
     try {
       const snap = await getDocs(collection(db, "encontristas"));
       const cpfExiste = snap.docs.some((d) => d.data().cpf === cpfLimpo);
-      if (cpfExiste) { alert("Este CPF já está cadastrado!"); setSaving(false); return; }
+      if (cpfExiste) { alert("Este CPF já está cadastrado!"); setSaving(false); enviandoRef.current = false; return; }
 
       const waLimpo = form.whatsapp.replace(/\D/g, "");
       const waExiste = snap.docs.some((d) => d.data().whatsapp?.replace(/\D/g, "") === waLimpo);
-      if (waExiste) { alert("Este WhatsApp já está cadastrado!"); setSaving(false); return; }
+      if (waExiste) { alert("Este WhatsApp já está cadastrado!"); setSaving(false); enviandoRef.current = false; return; }
 
       const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
       const docRef = await addDoc(collection(db, "encontristas"), {
@@ -1630,7 +1635,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarNovaInscricao', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome: form.nome }),
+          body: JSON.stringify({ nome: form.nome, encontristaId: docRef.id }),
         });
       } catch {}
 
@@ -1641,6 +1646,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       alert("Erro: " + err.message);
     }
     setSaving(false);
+    enviandoRef.current = false;
   };
 
   if (done)
