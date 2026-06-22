@@ -9619,12 +9619,15 @@ function CozinhaV({ edit, t, users }) {
 
         {/* BUSCA + FUNIL */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="🔍 Buscar..."
-            style={{ ...I, marginBottom: 0, flex: 1 }}
-          />
+          <div style={{ position: "relative", flex: 1 }}>
+            <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar..."
+              style={{ ...I, marginBottom: 0, paddingLeft: 34 }}
+            />
+          </div>
           <button
             onClick={() => setShFiltro(true)}
             style={{
@@ -9633,11 +9636,13 @@ function CozinhaV({ edit, t, users }) {
               borderColor: filtrosAtivos > 0 ? "rgba(10,132,255,.5)" : undefined,
               color: filtrosAtivos > 0 ? "#0a84ff" : G.td,
               background: filtrosAtivos > 0 ? "rgba(10,132,255,.08)" : undefined,
-              fontSize: 18,
               height: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            ⚙️
+            <Settings size={18} />
             {filtrosAtivos > 0 && (
               <span style={{
                 position: "absolute", top: 4, right: 4,
