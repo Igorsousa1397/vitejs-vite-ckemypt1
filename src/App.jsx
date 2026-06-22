@@ -11943,7 +11943,7 @@ function CozinhaV({ edit, t, users }) {
 
     return (
       <div>
-        <Seg opts={[["grupos", "Grupos"], ["usuarios", "Atribuições"], ["geral", "Funções"]]} val={tab} set={setTab} />
+        <Seg opts={[["grupos", "Grupos"], ["usuarios", "Escalas"], ["geral", "Funções"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
           {tab === "grupos" && (
             <>
