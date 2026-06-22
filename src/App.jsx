@@ -3580,7 +3580,7 @@ export default function App() {
   const temPermissao = (tela) => {
     if (role === "admin") return true;
     if (role === "lider_geral") return true;
-    const telasFixas = ["mins", "avisos", "uniforme", "info"];
+    const telasFixas = ["mins", "avisos", "uniforme", "info", "cartas"];
     if (telasFixas.includes(tela)) return true;
     // Telas extras atribuídas individualmente ao usuário
     if ((user?.telasExtra || []).includes(tela)) return true;
@@ -3898,6 +3898,7 @@ export default function App() {
       "termo": [FileText, "stermo", "Termo"],
       "ach": [Search, "sach", "Achados & Perdidos"],
       "crac": [CreditCard, "scrac", "Crachás"], 
+      "cartas": [FileText, "scartas", "Cartas"],
     };
 
     const SERVO_MENU = Object.entries(MAPA_SERVO)
@@ -4068,6 +4069,7 @@ export default function App() {
                 : pg === "stermo" ? "Termo"
                 : pg === "sach" ? "Achados & Perdidos"
                 : pg === "scrac" ? "Crachás"
+                : pg === "scartas" ? "Cartas"
                 : ""}
               </span>
             )}
@@ -4190,6 +4192,9 @@ export default function App() {
           )}
           {pg === "scrac" && (
             temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={isAdm || canExtra("crac")} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
+          )}
+          {pg === "scartas" && (
+            <CartasV users={users} user={user} role={role} t={showT} />
           )}
           {pg === "sonibus" && (
             temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
@@ -4726,6 +4731,14 @@ export default function App() {
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
   function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users, qh, qm, on }) {
+    const [cartasGlobais, setCartasGlobais] = useState([]);
+    useEffect(() => {
+      const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
+        setCartasGlobais(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      return () => unsub();
+    }, []);
+
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
     const [diasAbertos, setDiasAbertos] = useState({});
@@ -4793,21 +4806,16 @@ export default function App() {
           {(() => {
             const temQuartos = (user?.telasExtra || []).includes("quartos") || role === "lider_quartos";
             const temOnibus = (user?.telasExtra || []).includes("onibus");
-            const cards = [
-              [avsNaoVistos > 0 ? avsNaoVistos : "📢", "Avisos", "savs"],
-              ["👕", "Uniforme", "suni"],
-              [ocorr?.length || 0, "Ocorrências", "sinfo"],
-              ...(temQuartos ? [[uni?.filter ? "" : "", "Quartos", "squartos"]] : []),
-              ...(temOnibus ? [["", "Ônibus", "sonibus"]] : []),
-            ];
+            const minhasCartasQtd = (cartasGlobais || []).filter(c => c.servoId === user.id).reduce((acc, c) => acc + (c.qtd || 1), 0);
             // Com dados reais para quartos e onibus
             const quartosTot = (qh?.length || 0) + (qm?.length || 0);
             const onibusTot = on?.reduce((a, o) => a + (o.poltronas || 40), 0) || 0;
-            const CARD_ICONS = { savs: Megaphone, suni: Shirt, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus };
+            const CARD_ICONS = { savs: Megaphone, suni: Shirt, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus, scartas: FileText };
             const cardsComValor = [
               [avsNaoVistos > 0 ? avsNaoVistos : null, "Avisos", "savs"],
               [null, "Uniforme", "suni"],
               [ocorr?.length || 0, "Ocorrências", "sinfo"],
+              [minhasCartasQtd > 0 ? minhasCartasQtd : null, "Cartas", "scartas"],
               ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
               ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
             ];
@@ -8262,6 +8270,182 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   }
 
   // ── ACHADOS ──────────────────────────────────────────────────────────────────
+  function CartasV({ users, user, role, t }) {
+    const [cartas, setCartas] = useState([]);
+    const [busca, setBusca] = useState("");
+    const [aberto, setAberto] = useState(false);
+    const [servoSel, setServoSel] = useState(null);
+    const [qtd, setQtd] = useState(1);
+    const inputRef = useRef(null);
+    const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+
+    useEffect(() => {
+      const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
+        setCartas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      return () => unsub();
+    }, []);
+
+    const isLiderCartas = role === "lider_cartas" || role === "admin" || role === "lider_geral";
+
+    // ---- Visão do servo: ver minhas cartas ----
+    if (!isLiderCartas) {
+      const minhasCartas = cartas.filter(c => c.servoId === user.id);
+      const totalCartas = minhasCartas.reduce((acc, c) => acc + (c.qtd || 1), 0);
+
+      if (totalCartas === 0) {
+        return (
+          <div style={{ textAlign: "center", padding: "40px 20px" }}>
+            <FileText size={40} color={G.tm} style={{ marginBottom: 12 }} />
+            <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Sem cartas</div>
+            <div style={{ color: G.tm, fontSize: 13 }}>Você não tem nenhuma carta para retirar.</div>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div style={{ background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.25)", borderRadius: 14, padding: 16, marginBottom: 14, textAlign: "center" }}>
+            <FileText size={28} color={G.green} style={{ marginBottom: 8 }} />
+            <div style={{ color: G.green, fontWeight: 800, fontSize: 22 }}>{totalCartas}</div>
+            <div style={{ color: G.t, fontSize: 13, fontWeight: 600 }}>
+              {totalCartas === 1 ? "carta para retirar" : "cartas para retirar"}
+            </div>
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 6 }}>Procure o líder de Cartas para buscar.</div>
+          </div>
+        </div>
+      );
+    }
+
+    // ---- Visão do líder de Cartas: registrar/gerenciar ----
+    const servosFiltrados = busca.trim()
+      ? (users || []).filter(u => u.ativo !== false && u.nome && u.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 8)
+      : [];
+
+    const abrirDropdown = () => {
+      if (inputRef.current) {
+        const rect = inputRef.current.getBoundingClientRect();
+        setPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+      }
+      setAberto(true);
+    };
+
+    const registrar = async () => {
+      if (!servoSel || !qtd || qtd < 1) return;
+      await addDoc(collection(db, "cartas"), {
+        servoId: servoSel.id,
+        servoNome: servoSel.nome,
+        qtd: parseInt(qtd),
+        criadoEm: Date.now(),
+      });
+      t("Carta registrada!");
+      setServoSel(null);
+      setBusca("");
+      setQtd(1);
+    };
+
+    const removerRegistro = async (id) => {
+      await deleteDoc(doc(db, "cartas", id));
+      t("Removido.");
+    };
+
+    // Agrupa cartas por servo para exibição
+    const porServo = {};
+    cartas.forEach(c => {
+      if (!porServo[c.servoId]) porServo[c.servoId] = { nome: c.servoNome, total: 0, registros: [] };
+      porServo[c.servoId].total += c.qtd || 1;
+      porServo[c.servoId].registros.push(c);
+    });
+    const listaServos = Object.entries(porServo).sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+
+    return (
+      <div>
+        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+            Registrar carta recebida
+          </div>
+          <div style={{ position: "relative", marginBottom: 10 }}>
+            <input
+              ref={inputRef}
+              value={servoSel ? servoSel.nome : busca}
+              onChange={(e) => {
+                setServoSel(null);
+                setBusca(e.target.value);
+                abrirDropdown();
+              }}
+              onFocus={abrirDropdown}
+              onBlur={() => setTimeout(() => setAberto(false), 150)}
+              placeholder="Buscar servo..."
+              style={{ ...I, marginBottom: 0 }}
+            />
+            {aberto && servosFiltrados.length > 0 && !servoSel && (
+              <div
+                style={{
+                  position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 50,
+                  background: "#1e1e1e", border: "1px solid #2a2a2a", borderRadius: 10, maxHeight: 200, overflowY: "auto",
+                }}
+              >
+                {servosFiltrados.map((s) => (
+                  <div
+                    key={s.id}
+                    onMouseDown={() => { setServoSel(s); setBusca(""); setAberto(false); }}
+                    style={{ padding: "10px 12px", color: G.td, fontSize: 13, cursor: "pointer", borderBottom: "1px solid #2a2a2a" }}
+                  >
+                    {s.nome}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type="number"
+              min="1"
+              value={qtd}
+              onChange={(e) => setQtd(e.target.value)}
+              placeholder="Qtd"
+              style={{ ...I, marginBottom: 0, flex: 1 }}
+            />
+            <button
+              onClick={registrar}
+              disabled={!servoSel}
+              style={{ ...BG({ padding: "10px 20px", borderRadius: 10, fontSize: 13 }), opacity: servoSel ? 1 : 0.5 }}
+            >
+              Registrar
+            </button>
+          </div>
+        </div>
+
+        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+          Cartas pendentes ({listaServos.length})
+        </div>
+        {listaServos.length === 0 && (
+          <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+            Nenhuma carta registrada ainda.
+          </div>
+        )}
+        {listaServos.map(([servoId, info]) => (
+          <Acc
+            key={servoId}
+            title={info.nome}
+            right={<Pill c={`${info.total} ${info.total === 1 ? "carta" : "cartas"}`} bg="rgba(0,200,81,.12)" tc={G.green} />}
+          >
+            {info.registros.map((reg) => (
+              <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #1e1e1e" }}>
+                <span style={{ color: G.td, fontSize: 13 }}>
+                  {reg.qtd} {reg.qtd === 1 ? "carta" : "cartas"} — {new Date(reg.criadoEm).toLocaleDateString("pt-BR")}
+                </span>
+                <span onClick={() => removerRegistro(reg.id)} style={{ color: "rgba(255,60,60,.7)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  <Trash2 size={14} />
+                </span>
+              </div>
+            ))}
+          </Acc>
+        ))}
+      </div>
+    );
+  }
+
   function AchV({ ach, setAch, t }) {
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({ item: "", local: "", dono: "" });
