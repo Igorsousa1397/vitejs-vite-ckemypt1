@@ -357,7 +357,9 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
             <span
               onClick={(e) => {
                 e.stopPropagation();
-                onDel();
+                if (window.confirm(`Deseja realmente excluir "${title}"?`)) {
+                  onDel();
+                }
               }}
               style={{
                 color: "rgba(255,60,60,.7)",
