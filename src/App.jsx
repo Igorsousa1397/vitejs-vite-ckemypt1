@@ -6981,12 +6981,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         >
           Exportar Excel
         </button>
-        <input
-          value={busca}
-          onChange={e => { setBusca(e.target.value); setExpandido({}); }}
-          placeholder="🔍 Buscar por nome..."
-          style={{ ...I, marginTop: 10, marginBottom: 0 }}
-        />
+        <div style={{ position: "relative", marginTop: 10 }}>
+          <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+          <input
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setExpandido({}); }}
+            placeholder="Buscar por nome..."
+            style={{ ...I, marginTop: 0, marginBottom: 0, paddingLeft: 34 }}
+          />
+        </div>
         <div style={{ marginTop: 10 }}>
           {lista.length === 0 && (
             <div
