@@ -28,7 +28,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -2318,7 +2318,7 @@ function Termo({ cpf, onVoltar }) {
         <style>{css}</style>
         <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
           <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
-          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <CheckCircle2 size={48} color={G.green} style={{ marginBottom: 12 }} />
           <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Termo assinado!</div>
           <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
             Seu termo foi registrado com sucesso.
@@ -2330,9 +2330,10 @@ function Termo({ cpf, onVoltar }) {
               if (!termoDoc) { alert("Termo não encontrado."); return; }
               await exportarPDF({ id: termoDoc.id, ...termoDoc.data() });
             }}
-            style={BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 12 })}
+            style={{ ...BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 12 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
-            📄 Baixar meu termo
+            <Download size={18} />
+            Baixar meu termo
           </button>
         </div>
       </div>
@@ -2823,7 +2824,7 @@ const exportarPDF = async (termo) => {
       let dataUrl = null;
       try {
         dataUrl = await new Promise((resolve, reject) => {
-          const img = new Image();
+          const img = document.createElement("img");
           img.crossOrigin = 'anonymous';
           img.onload = () => {
             const canvas = document.createElement('canvas');
