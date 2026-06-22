@@ -5896,6 +5896,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       // Conta quantos já estão nesse ônibus (via check-in confirmado)
                       const ocupados = ck.filter((x) => x.ok && (x.on === String(o.num) || x.on === o.num)).length;
                       const poltronas = o.poltronas || 40;
+                      console.log(`[ONIBUS DEBUG] Ônibus ${o.num}: ocupados=${ocupados}, poltronas=${poltronas}, c.on=${JSON.stringify(c.on)}`);
                       // Sempre mostra o ônibus já selecionado para esse encontrista, mesmo se lotado
                       return ocupados < poltronas || c.on === String(o.num) || c.on === o.num;
                     })
