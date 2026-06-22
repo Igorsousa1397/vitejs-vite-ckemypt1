@@ -9633,9 +9633,9 @@ function CozinhaV({ edit, t, users }) {
             style={{
               ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
               position: "relative",
-              borderColor: filtrosAtivos > 0 ? "rgba(10,132,255,.5)" : undefined,
-              color: filtrosAtivos > 0 ? "#0a84ff" : G.td,
-              background: filtrosAtivos > 0 ? "rgba(10,132,255,.08)" : undefined,
+              borderColor: filtrosAtivos > 0 ? "rgba(10,132,255,.5)" : G.cb,
+              color: filtrosAtivos > 0 ? "#0a84ff" : G.t,
+              background: filtrosAtivos > 0 ? "rgba(10,132,255,.08)" : G.card,
               height: 44,
               display: "flex",
               alignItems: "center",
