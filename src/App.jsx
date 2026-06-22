@@ -2074,9 +2074,52 @@ function Termo({ cpf, onVoltar }) {
   const [previewRosto, setPreviewRosto] = useState(null);
 
   const uploadFoto = async (file, caminho) => {
+    const arquivo = await comprimirImagemSeNecessario(file);
     const storageRef = ref(storage, caminho);
-    await uploadBytes(storageRef, file);
+    await uploadBytes(storageRef, arquivo);
     return await getDownloadURL(storageRef);
+  };
+
+  const comprimirImagemSeNecessario = (file) => {
+    return new Promise((resolve) => {
+      // PDFs e arquivos já pequenos (<1.5MB) não precisam de compressão
+      if (!file.type.startsWith("image/") || file.size < 1.5 * 1024 * 1024) {
+        resolve(file);
+        return;
+      }
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX_DIM = 1600;
+        let { width, height } = img;
+        if (width > height && width > MAX_DIM) {
+          height = Math.round((height * MAX_DIM) / width);
+          width = MAX_DIM;
+        } else if (height > MAX_DIM) {
+          width = Math.round((width * MAX_DIM) / height);
+          height = MAX_DIM;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            } else {
+              resolve(file); // fallback se a compressão falhar
+            }
+          },
+          "image/jpeg",
+          0.75
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
   };
 
   const buscarCep = async (valor) => {
@@ -2155,7 +2198,23 @@ function Termo({ cpf, onVoltar }) {
 
     try {
       urlDoc = await uploadFoto(fotoDoc, `termos/${enc.id}/documento`);
+    } catch (err) {
+      console.error("Erro ao enviar foto do documento:", err);
+      setSaving(false);
+      alert("Erro ao enviar a foto do documento: " + (err.message || "tente novamente.") + "\n\nVerifique sua conexão e tente outra vez.");
+      return;
+    }
+
+    try {
       urlRosto = await uploadFoto(fotoRosto, `termos/${enc.id}/selfie`);
+    } catch (err) {
+      console.error("Erro ao enviar selfie:", err);
+      setSaving(false);
+      alert("Erro ao enviar a selfie: " + (err.message || "tente novamente.") + "\n\nVerifique sua conexão e tente outra vez.");
+      return;
+    }
+
+    try {
       await setDoc(doc(db, "encontristas", enc.id), {
         rg, endereco: endCompleto, termoAssinado: true, termoAssinadoEm: agora,
         fotoDocumento: urlDoc, fotoRosto: urlRosto,
@@ -2163,7 +2222,7 @@ function Termo({ cpf, onVoltar }) {
     } catch (err) {
       console.error("Erro ao salvar encontrista:", err);
       setSaving(false);
-      alert("Erro ao salvar. Tente novamente.");
+      alert("Erro ao salvar seus dados: " + (err.message || "tente novamente.") + "\n\nVerifique sua conexão e tente outra vez.");
       return;
     }
 
