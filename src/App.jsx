@@ -7843,9 +7843,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 }}
               >
                 <option value="">Selecione o tipo de mala...</option>
-                <option value="Feminino">♀ Feminino</option>
-                <option value="Masculino">♂ Masculino</option>
-                <option value="Servos">👤 Servos</option>
+                <option value="Feminino">Feminino</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Servos">Servos</option>
               </select>
             </Acc>
           );
