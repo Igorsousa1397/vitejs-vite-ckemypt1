@@ -3786,9 +3786,9 @@ export default function App() {
             if (token) { setNotif(true); showT("Notificações ativas!", "n"); }
             else showT("Permissão negada", "w");
           }}
-          style={BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td })}
+          style={{ ...BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td }), display: "flex", alignItems: "center" }}
         >
-          🔔
+          <Bell size={16} />
         </button>
       </div>
     </div>
@@ -4026,8 +4026,8 @@ export default function App() {
                 if (token) { setNotif(true); showT("Notificações ativas!", "n"); }
                 else showT("Permissão negada", "w");
               }}
-              style={BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td })}>
-              🔔
+              style={{ ...BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td }), display: "flex", alignItems: "center" }}>
+              <Bell size={16} />
             </button>
           </div>
         </div>
