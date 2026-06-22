@@ -6268,7 +6268,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
         {edit && <EditQuarto q={m} upd={upd} t={t} />}
 
-        <SL c={`Servos (${m.servos.length}/2)`} mt={0} />
+        <SL c={`Servos (${m.servos.length}/${m.limServos || 2})`} mt={0} />
         <Tags
           items={m.servos}
           ax={G.green}
@@ -6327,7 +6327,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [shN, setShN] = useState(false);
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
-    const [f, setF] = useState({ num: "", lim: 9 });
+    const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
     const isH = tab === "H";
     const colecao = isH ? "quartos_h" : "quartos_m";
     
@@ -6335,6 +6335,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [aberto, setAberto] = useState(false);
     const [num, setNum] = useState(q.num);
     const [lim, setLim] = useState(q.lim);
+    const [limServos, setLimServos] = useState(q.limServos || 2);
 
     if (!aberto) return (
       <button
@@ -6357,10 +6358,14 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             <input type="number" min="1" max="30" value={lim} onChange={(e) => setLim(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
           </div>
         </div>
+        <div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Servos por quarto</div>
+          <input type="number" min="0" max="10" value={limServos} onChange={(e) => setLimServos(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={async () => {
-              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim }));
+              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2 }));
               setAberto(false);
               t("Quarto atualizado!");
             }}
@@ -6416,7 +6421,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const AddServoSearch = ({ quarto, updFn }) => {
       const [busca, setBusca] = useState("");
       const [aberto, setAberto] = useState(false);
-      if (!edit || quarto.servos.length >= 2) return null;
+      if (!edit || quarto.servos.length >= (quarto.limServos || 2)) return null;
       const filtrados = servosDisponiveis.filter((u) =>
         (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
       );
@@ -6671,19 +6676,37 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     }
                   />
                 </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span
+                    style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
+                  >
+                    Servos por quarto
+                  </span>
+                  <input
+                    style={{ ...I, flex: 1 }}
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={f.limServos ?? 2}
+                    onChange={(e) =>
+                      setF({ ...f, limServos: parseInt(e.target.value) ?? 2 })
+                    }
+                  />
+                </div>
                 <button
                   onClick={async () => {
                     if (!f.num) return;
                     const nv = {
                       num: parseInt(f.num),
                       lim: f.lim,
+                      limServos: f.limServos ?? 2,
                       servos: [],
                       enc: [],
                     };
                     await salvarQuarto(colecao, nv);
                     if (isH) setQh([...qh, nv]);
                     else setQm([...qm, nv]);
-                    setF({ num: "", lim: 9 });
+                    setF({ num: "", lim: 9, limServos: 2 });
                     setShN(false);
                     t("Quarto criado!");
                   }}
@@ -6762,7 +6785,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
               {edit && <EditQuarto q={q} upd={upd} t={t} />}
 
-              <SL c={`Servos (${q.servos.length}/2)`} mt={0} />
+              <SL c={`Servos (${q.servos.length}/${q.limServos || 2})`} mt={0} />
               <Tags
                 items={q.servos}
                 ax={G.green}
@@ -6776,7 +6799,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     : undefined
                 }
               />
-              {edit && q.servos.length >= 2 && (
+              {edit && q.servos.length >= (q.limServos || 2) && (
                 <div
                   style={{
                     color: G.tm,
@@ -6785,7 +6808,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     fontStyle: "italic",
                   }}
                 >
-                  Limite de 2 servos atingido.
+                  Limite de {q.limServos || 2} servos atingido.
                 </div>
               )}
               <AddServoSearch quarto={q} updFn={upd} />
