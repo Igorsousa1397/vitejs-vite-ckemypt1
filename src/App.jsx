@@ -2087,7 +2087,7 @@ function Termo({ cpf, onVoltar }) {
         resolve(file);
         return;
       }
-      const img = new window.Image();
+      const img = document.createElement("img");
       const url = URL.createObjectURL(file);
       img.onload = () => {
         const MAX_DIM = 1600;
