@@ -730,6 +730,7 @@ const LABELS = {
   uniformes: "Uniformes",
   termo: "Termo",
   test: "Testemunhos",
+  cartas: "Cartas",
 };
 
 // ── SPLASH ───────────────────────────────────────────────────────────────────
@@ -3867,6 +3868,7 @@ export default function App() {
     ...(temPermissao("ach") ? [[Search, "ach"]] : []),
     ...(temPermissao("crac") ? [[CreditCard, "crac"]] : []),
     ...(temPermissao("saude") ? [[PillIcon, "saude"]] : []),
+    ...((role === "lider_cartas" || isAdm) ? [[FileText, "cartas"]] : []),
     ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
     ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
     ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
@@ -4476,6 +4478,9 @@ export default function App() {
         {pg === "cozinha" && (
           <CozinhaV edit={canC(role)} t={showT} users={users} />
         )}
+        {pg === "cartas" && (
+          <CartasV users={users} user={user} role={role} t={showT} />
+        )}
         {pg === "uniformes" && (
           <UniV
             uni={uni}
@@ -4806,16 +4811,14 @@ export default function App() {
           {(() => {
             const temQuartos = (user?.telasExtra || []).includes("quartos") || role === "lider_quartos";
             const temOnibus = (user?.telasExtra || []).includes("onibus");
-            const minhasCartasQtd = (cartasGlobais || []).filter(c => c.servoId === user.id).reduce((acc, c) => acc + (c.qtd || 1), 0);
             // Com dados reais para quartos e onibus
             const quartosTot = (qh?.length || 0) + (qm?.length || 0);
             const onibusTot = on?.reduce((a, o) => a + (o.poltronas || 40), 0) || 0;
-            const CARD_ICONS = { savs: Megaphone, suni: Shirt, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus, scartas: FileText };
+            const CARD_ICONS = { savs: Megaphone, suni: Shirt, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus };
             const cardsComValor = [
               [avsNaoVistos > 0 ? avsNaoVistos : null, "Avisos", "savs"],
               [null, "Uniforme", "suni"],
               [ocorr?.length || 0, "Ocorrências", "sinfo"],
-              [minhasCartasQtd > 0 ? minhasCartasQtd : null, "Cartas", "scartas"],
               ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
               ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
             ];
