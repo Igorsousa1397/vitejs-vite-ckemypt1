@@ -4716,7 +4716,7 @@ export default function App() {
             );
           })()}
 
-          <Seg opts={[["mins", "Agenda"], ["atr", "Atribuições"], ["minfo", "Ministrações"]]} val={tab} set={setTab} />
+          <Seg opts={[["mins", "Agenda"], ["atr", "Escalas"], ["minfo", "Ministrações"]]} val={tab} set={setTab} />
 
           <div style={{ marginTop: 12 }}>
             {tab === "mins" && (
