@@ -361,12 +361,13 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
               }}
               style={{
                 color: "rgba(255,60,60,.7)",
-                fontSize: 16,
                 cursor: "pointer",
                 padding: "2px 4px",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              🗑
+              <Trash2 size={15} />
             </span>
           )}
           <span
@@ -7468,7 +7469,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 textAlign: "center",
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🗑</div>
+              <Trash2 size={32} color="#ff3b30" style={{ marginBottom: 12 }} />
               <div
                 style={{
                   color: G.t,
