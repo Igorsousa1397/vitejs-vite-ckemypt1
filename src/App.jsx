@@ -121,6 +121,48 @@ const BK = (x = {}) => ({
   ...x,
 });
 
+const LIDER_MAP_DEFAULT = {
+  // Líder Geral (só)
+  "Intercessão": ["lider_geral"],
+  "Malas": ["lider_geral"],
+  "Crachá": ["lider_geral"],
+  "Refeitório": ["lider_geral"],
+  "Cantina": ["lider_geral"],
+  "Louça": ["lider_geral"],
+  "Louças": ["lider_geral"],
+  "Servir Ceia": ["lider_geral"],
+  "Panelas": ["lider_geral"],
+  "Kit Sobrevivência": ["lider_geral"],
+  "Etiquetar Sacolas": ["lider_geral"],
+  "Dobrar Sacolas": ["lider_geral"],
+  "Organizar itens do Templo": ["lider_geral"],
+  "Cozinha": ["lider_geral"],
+  "Check-in": ["lider_geral"],
+  "Quartos": ["lider_geral", "lider_quartos"],
+  "Organizar itens STAFF": ["lider_staff", "lider_geral"],
+  "Cartas": ["lider_geral", "lider_cartas"],
+  "Preparação da Uva": ["lider_geral", "lider_cartas"],
+  "Decoração": ["lider_geral", "lider_cartas"],
+  "Recepção Presentes/cartas": ["lider_geral", "lider_cartas"],
+  "Correrias": ["lider_geral"],
+  "Transitar com carro no sítio": ["lider_geral"],
+  "Montagem da cruz": ["lider_geral", "lider_templo"],
+  "Servo de Quarto": ["lider_geral", "lider_quartos"],
+  // Líder Geral + específico
+  "Templo": ["lider_geral", "lider_templo"],
+  "Mídia": ["lider_midia"],
+  "Presentes/Cartas": ["lider_geral", "lider_cartas"],
+  // Líder Staff + Geral
+  "Banheiro": ["lider_staff", "lider_geral"],
+  "Camisetas": ["lider_staff", "lider_geral"],
+  "Servir comida": ["lider_staff", "lider_geral"],
+  "Limpeza refeitório": ["lider_staff", "lider_geral"],
+  "Kit Cartas+Pecado": ["lider_staff", "lider_geral"],
+  // Outros
+  "Som": ["lider_som"],
+  "Itens Teatro/Dança": ["lider_danca"],
+};
+
 const PERFIS = {
   admin: { l: "Admin", c: "#00c851" },
   lider_cartas: { l: "Líder Cartas", c: "#ff2d55" },
@@ -3581,6 +3623,21 @@ export default function App() {
 
   const role = user?.perfil || "servo";
   const isAdm = role === "admin" || role === "lider_geral";
+  const [liderMapOverrides, setLiderMapOverrides] = useState({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "lider_map"));
+        if (snap.exists()) {
+          setLiderMapOverrides(snap.data() || {});
+        }
+      } catch (err) {
+        console.error("Erro ao carregar lider_map:", err);
+      }
+    })();
+  }, []);
+
   const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
   const [ckSub, setCkSub] = useState("pend");
   const [ckGen, setCkGen] = useState("M");
@@ -4463,6 +4520,8 @@ export default function App() {
             setTab={setBackTab}
             gruposAbertos={backGruposAbertos}
             setGruposAbertos={setBackGruposAbertos}
+            liderMapOverrides={liderMapOverrides}
+            setLiderMapOverrides={setLiderMapOverrides}
           />
         )}
       </div>
@@ -4967,51 +5026,10 @@ export default function App() {
                         {aberto && (
                           <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                             {fns.map((fn, i) => {
-                              const LIDER_MAP = {
-                                // Líder Geral (só)
-                                "Intercessão": ["lider_geral"],
-                                "Malas": ["lider_geral"],
-                                "Crachá": ["lider_geral"],
-                                "Refeitório": ["lider_geral"],
-                                "Cantina": ["lider_geral"],
-                                "Louça": ["lider_geral"],
-                                "Louças": ["lider_geral"],
-                                "Servir Ceia": ["lider_geral"],
-                                "Panelas": ["lider_geral"],
-                                "Kit Sobrevivência": ["lider_geral"],
-                                "Etiquetar Sacolas": ["lider_geral"],
-                                "Dobrar Sacolas": ["lider_geral"],
-                                "Organizar itens do Templo": ["lider_geral"],
-                                "Cozinha": ["lider_geral"],
-                                "Check-in": ["lider_geral"],
-                                "Quartos": ["lider_geral", "lider_quartos"],
-                                "Organizar itens STAFF": ["lider_staff", "lider_geral"],
-                                "Cartas": ["lider_geral", "lider_cartas"],
-                                "Preparação da Uva": ["lider_geral", "lider_cartas"],
-                                "Decoração": ["lider_geral", "lider_cartas"],
-                                "Recepção Presentes/cartas": ["lider_geral", "lider_cartas"],
-                                "Correrias": ["lider_geral"],
-                                "Transitar com carro no sítio": ["lider_geral"],
-                                "Montagem da cruz": ["lider_geral", "lider_templo"],
-                                "Servo de Quarto": ["lider_geral", "lider_quartos"],
-                                // Líder Geral + específico
-                                "Templo": ["lider_geral", "lider_templo"],
-                                "Mídia": ["lider_midia"],
-                                "Presentes/Cartas": ["lider_geral", "lider_cartas"],
-                                // Líder Staff + Geral
-                                "Banheiro": ["lider_staff", "lider_geral"],
-                                "Camisetas": ["lider_staff", "lider_geral"],
-                                "Servir comida": ["lider_staff", "lider_geral"],
-                                "Limpeza refeitório": ["lider_staff", "lider_geral"],
-                                "Kit Cartas+Pecado": ["lider_staff", "lider_geral"],
-                                // Outros
-                                "Som": ["lider_som"],
-                                "Itens Teatro/Dança": ["lider_danca"],
-                              };
                               const fnBase = fn.replace(/ - (Almoço|Jantar)$/, "");
                               const perfisLider = user.perfil === "lider_staff"
                                 ? ["lider_staff"]
-                                : (LIDER_MAP[fnBase] || ["lider_staff"]);
+                                : (liderMapOverrides[fnBase] || LIDER_MAP_DEFAULT[fnBase] || ["lider_staff"]);
 
                               const lideres = (users || []).filter(u => perfisLider.includes(u.perfil));
 
@@ -11985,7 +12003,7 @@ function CozinhaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos }) {
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides }) {
     // const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [buscaFn, setBuscaFn] = useState("");
@@ -12426,6 +12444,11 @@ function CozinhaV({ edit, t, users }) {
                           : <Pill c="Sem ninguém" bg="rgba(99,99,102,.15)" tc="#888" />
                       }
                     >
+                      <LideresEditor fn={fn} liderMapOverrides={liderMapOverrides} setLiderMapOverrides={setLiderMapOverrides} t={t} />
+
+                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", margin: "12px 0 6px" }}>
+                        Escala
+                      </div>
                       {pessoas.length === 0 ? (
                         <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", padding: "4px 0" }}>
                           Nenhum servo escalado nesta função ainda.
@@ -12459,6 +12482,64 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
+
+function LideresEditor({ fn, liderMapOverrides, setLiderMapOverrides, t }) {
+  const [sh, setSh] = useState(false);
+
+  const PERFIS_LIDER = [
+    "lider_geral", "lider_staff", "lider_quartos", "lider_templo",
+    "lider_midia", "lider_cartas", "lider_som", "lider_danca", "lider_celula",
+  ];
+
+  const atual = liderMapOverrides[fn] || LIDER_MAP_DEFAULT[fn] || ["lider_staff"];
+
+  const toggle = async (perfil) => {
+    const novo = atual.includes(perfil)
+      ? atual.filter(p => p !== perfil)
+      : [...atual, perfil];
+    const final = novo.length > 0 ? novo : ["lider_staff"];
+    const novosOverrides = { ...liderMapOverrides, [fn]: final };
+    setLiderMapOverrides(novosOverrides);
+    try {
+      await setDoc(doc(db, "config", "lider_map"), { [fn]: final }, { merge: true });
+      t("Liderança atualizada!");
+    } catch (err) {
+      console.error("Erro ao salvar lider_map:", err);
+      t("Erro ao salvar.", "w");
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setSh(!sh)}
+        style={{ ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12 }), display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: "rgba(10,132,255,.3)", color: "#0a84ff" }}
+      >
+        <span>Líder(es) responsável(eis) ({atual.length})</span>
+        <span style={{ fontSize: 10 }}>{sh ? "▲" : "▼"}</span>
+      </button>
+      {sh && (
+        <div style={{ marginTop: 6, background: "#111", borderRadius: 10, border: "1px solid #1e1e1e", overflow: "hidden" }}>
+          {PERFIS_LIDER.map((perfil, idx) => {
+            const ativo = atual.includes(perfil);
+            return (
+              <div
+                key={perfil}
+                onClick={() => toggle(perfil)}
+                style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 14px", background: ativo ? "rgba(10,132,255,.08)" : "transparent", borderTop: idx > 0 ? "1px solid #1e1e1e" : "none" }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? "#0a84ff" : "#444"}`, background: ativo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {ativo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                </div>
+                <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{PERFIS[perfil]?.l || perfil}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function NovaFuncaoForm({ fns, setFns, t }) {
   const [sh, setSh] = useState(false);
