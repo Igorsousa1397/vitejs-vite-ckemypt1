@@ -8284,6 +8284,8 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     const [responsavel, setResponsavel] = useState("");
     const [editandoResp, setEditandoResp] = useState(false);
     const [respTemp, setRespTemp] = useState("");
+    const [respAberto, setRespAberto] = useState(false);
+    const respInputRef = useRef(null);
 
     useEffect(() => {
       const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
@@ -8344,6 +8346,10 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       ? (users || []).filter(u => u.ativo !== false && u.nome && u.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 8)
       : [];
 
+    const respServosFiltrados = respTemp.trim()
+      ? (users || []).filter(u => u.ativo !== false && u.nome && u.nome.toLowerCase().includes(respTemp.toLowerCase())).slice(0, 8)
+      : [];
+
     const abrirDropdown = () => {
       if (inputRef.current) {
         const rect = inputRef.current.getBoundingClientRect();
@@ -8400,14 +8406,37 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8 }}>
-              <input
-                autoFocus
-                value={respTemp}
-                onChange={(e) => setRespTemp(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && salvarResponsavel()}
-                placeholder="Ex: Jessiany na recepção"
-                style={{ ...I, flex: 1, marginBottom: 0 }}
-              />
+              <div style={{ position: "relative", flex: 1 }}>
+                <input
+                  ref={respInputRef}
+                  autoFocus
+                  value={respTemp}
+                  onChange={(e) => { setRespTemp(e.target.value); setRespAberto(true); }}
+                  onFocus={() => setRespAberto(true)}
+                  onBlur={() => setTimeout(() => setRespAberto(false), 150)}
+                  onKeyDown={(e) => e.key === "Enter" && salvarResponsavel()}
+                  placeholder="Ex: Jessiany na recepção"
+                  style={{ ...I, marginBottom: 0 }}
+                />
+                {respAberto && respServosFiltrados.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 50,
+                      background: "#1e1e1e", border: "1px solid #2a2a2a", borderRadius: 10, maxHeight: 200, overflowY: "auto",
+                    }}
+                  >
+                    {respServosFiltrados.map((s) => (
+                      <div
+                        key={s.id}
+                        onMouseDown={() => { setRespTemp(s.nome); setRespAberto(false); }}
+                        style={{ padding: "10px 12px", color: G.td, fontSize: 13, cursor: "pointer", borderBottom: "1px solid #2a2a2a" }}
+                      >
+                        {s.nome}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button onClick={salvarResponsavel} style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}>Salvar</button>
               <button onClick={() => setEditandoResp(false)} style={BK({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}>✕</button>
             </div>
