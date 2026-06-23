@@ -4745,6 +4745,18 @@ export default function App() {
       return () => unsub();
     }, []);
 
+    const [respCartas, setRespCartas] = useState("");
+    useEffect(() => {
+      const unsub = onSnapshot(doc(db, "config", "cartas"), (snap) => {
+        if (snap.exists()) setRespCartas(snap.data().responsavel || "");
+      });
+      return () => unsub();
+    }, []);
+
+    const minhasCartasTotal = cartasGlobais
+      .filter(c => c.servoId === user.id)
+      .reduce((acc, c) => acc + (c.qtd || 1), 0);
+
     const [tab, setTab] = useState("mins");
     const [slide, setSlide] = useState(0);
     const [diasAbertos, setDiasAbertos] = useState({});
@@ -4779,6 +4791,7 @@ export default function App() {
     if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && prazoUniOk) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
     if (hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
+    if (minhasCartasTotal > 0) slides.push({ tipo: "cartas" });
 
     useEffect(() => {
       if (slides.length <= 1) return;
@@ -4815,14 +4828,15 @@ export default function App() {
             // Com dados reais para quartos e onibus
             const quartosTot = (qh?.length || 0) + (qm?.length || 0);
             const onibusTot = on?.reduce((a, o) => a + (o.poltronas || 40), 0) || 0;
-            const CARD_ICONS = { savs: Megaphone, suni: Shirt, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus };
+            const CARD_ICONS = { savs: Megaphone, scartas: FileText, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus };
             const cardsComValor = [
               [avsNaoVistos > 0 ? avsNaoVistos : null, "Avisos", "savs"],
-              [null, "Uniforme", "suni"],
+              [minhasCartasTotal > 0 ? minhasCartasTotal : null, "Cartas", "scartas"],
               [ocorr?.length || 0, "Ocorrências", "sinfo"],
               ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
               ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
             ];
+            const SEM_BADGE = ["squartos"];
             const cols = cardsComValor.length > 3 ? "1fr 1fr" : "1fr 1fr 1fr";
             return (
               <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: 16 }}>
@@ -4837,7 +4851,7 @@ export default function App() {
                         localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
                       }
                     }} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "16px 14px", cursor: "pointer", position: "relative" }}>
-                      {n !== null && n > 0 && (
+                      {n !== null && n > 0 && !SEM_BADGE.includes(p) && (
                         <div style={{ position: "absolute", top: 8, right: 8, background: "#ff3b30", borderRadius: 50, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", padding: "0 4px" }}>{n}</div>
                       )}
                       <Icon size={22} color={G.tm} style={{ marginBottom: 8 }} />
@@ -4993,6 +5007,28 @@ export default function App() {
                         <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.6 }}>
                           • Retire ao menos <strong style={{ color: "#fff" }}>1 refeição</strong> por dia<br/>
                           • Mínimo de <strong style={{ color: "#fff" }}>6h de jejum</strong>
+                        </div>
+                      </div>
+                    )}
+                    {slideAtual?.tipo === "cartas" && (
+                      <div
+                        onClick={() => setPg("scartas")}
+                        style={{
+                          background: "rgba(0,200,81,.08)",
+                          border: "1px solid rgba(0,200,81,.25)",
+                          borderRadius: 14,
+                          padding: "13px 14px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ color: G.green, fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+                          ✉️ Cartas
+                        </div>
+                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+                          {minhasCartasTotal === 1 ? "Você tem 1 carta para retirar" : `Você tem ${minhasCartasTotal} cartas para retirar`}
+                        </div>
+                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>
+                          {respCartas.trim() ? `Procure ${respCartas} para retirar.` : "Procure o líder de Cartas para retirar."} · Toque para ver
                         </div>
                       </div>
                     )}
