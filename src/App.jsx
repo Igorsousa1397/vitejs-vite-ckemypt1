@@ -4199,7 +4199,7 @@ export default function App() {
             <CartasV users={users} user={user} role={role} t={showT} />
           )}
           {pg === "sonibus" && (
-            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} /> : <TelaRestrita />
+            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
           )}
           {pg === "senc" && (
             temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} /> : <TelaRestrita />
@@ -4445,6 +4445,7 @@ export default function App() {
             t={showT}
             salvarOnibus={salvarOnibus}
             deletarOnibus={deletarOnibus}
+            users={users}
           />
         )}
         {pg === "rest" && (
@@ -7350,7 +7351,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   function EditOnibus({ o, onSave }) {
     const [aberto, setAberto] = useState(false);
-    const [f, setF] = useState({ tipo: o.tipo, poltronas: o.poltronas || 40 });
+    const [f, setF] = useState({
+      tipo: o.tipo,
+      poltronas: o.poltronas || 40,
+      limResp: o.limResp ?? 2,
+      limTemplo: o.limTemplo ?? 2,
+    });
 
     if (!aberto)
       return (
@@ -7421,10 +7427,44 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           />
         </div>
 
+        {f.tipo !== "Servos" && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Limite de responsáveis</div>
+              <input
+                type="number"
+                min="0"
+                max="10"
+                value={f.limResp}
+                onChange={e => setF({ ...f, limResp: parseInt(e.target.value) ?? 2 })}
+                style={{ ...I, marginBottom: 0 }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: G.tm, fontSize: 11, marginBottom: 6 }}>Limite de servos do templo</div>
+              <input
+                type="number"
+                min="0"
+                max="10"
+                value={f.limTemplo}
+                onChange={e => setF({ ...f, limTemplo: parseInt(e.target.value) ?? 2 })}
+                style={{ ...I, marginBottom: 0 }}
+              />
+            </div>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={async () => {
-              await onSave({ ...o, num: f.num ?? o.num, tipo: f.tipo, poltronas: f.poltronas });
+              await onSave({
+                ...o,
+                num: f.num ?? o.num,
+                tipo: f.tipo,
+                poltronas: f.poltronas,
+                limResp: f.limResp ?? 2,
+                limTemplo: f.limTemplo ?? 2,
+              });
               setAberto(false);
             }}
             style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
@@ -7450,6 +7490,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     t,
     salvarOnibus,
     deletarOnibus,
+    users,
   }) {
     const [confirmDel, setConfirmDel] = useState(null);
     const [shN, setShN] = useState(false);
@@ -7459,6 +7500,82 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       const lista =
         tipo === "Feminino" ? encM : tipo === "Masculino" ? encH : [];
       return lista.filter((e) => e.onibus === String(num) || e.onibus === num);
+    };
+
+    const AddServoBusca = ({ ph, atual, lim, onPick }) => {
+      const [busca, setBusca] = useState("");
+      const [aberto, setAberto] = useState(false);
+      if (!edit) return null;
+      if (lim != null && atual.length >= lim) {
+        return (
+          <div style={{ color: G.tm, fontSize: 11, marginTop: 6, fontStyle: "italic" }}>
+            Limite de {lim} atingido.
+          </div>
+        );
+      }
+      const filtrados = busca.trim()
+        ? (users || []).filter(
+            (u) =>
+              u.ativo !== false &&
+              u.nome &&
+              u.nome.toLowerCase().includes(busca.toLowerCase()) &&
+              !(atual || []).includes(u.nome),
+          ).slice(0, 8)
+        : [];
+      return (
+        <div style={{ position: "relative", marginTop: 8 }}>
+          <input
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
+              setAberto(true);
+            }}
+            onFocus={() => setAberto(true)}
+            onBlur={() => setTimeout(() => setAberto(false), 150)}
+            placeholder={ph}
+            style={{ ...I, fontSize: 12, padding: "9px 12px", marginBottom: 0 }}
+          />
+          {aberto && busca.length > 0 && filtrados.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                zIndex: 999,
+                background: "#1e1e1e",
+                border: "1px solid #2a2a2a",
+                borderRadius: 10,
+                marginTop: 4,
+                maxHeight: 180,
+                overflowY: "auto",
+              }}
+            >
+              {filtrados.map((u) => (
+                <div
+                  key={u.id}
+                  onMouseDown={() => {
+                    onPick(u.nome);
+                    setBusca("");
+                    setAberto(false);
+                  }}
+                  style={{
+                    padding: "10px 14px",
+                    color: G.td,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    borderBottom: "1px solid #2a2a2a",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2a2a")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  {u.nome}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
     };
 
     const criarOnibus = async () => {
@@ -7821,7 +7938,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </>
               ) : (
                 <>
-                  <SL c="Responsáveis" mt={0} />
+                  <SL c={`Responsáveis (${(o.resp || []).length}/${o.limResp ?? 2})`} mt={0} />
                   <Tags
                     items={o.resp || []}
                     ax={G.green}
@@ -7835,19 +7952,18 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         : undefined
                     }
                   />
-                  {edit && (
-                    <AddIn
-                      ph="Adicionar responsável..."
-                      onAdd={(n) =>
-                        upd(o.num, (x) => ({
-                          ...x,
-                          resp: [...(x.resp || []), n],
-                        }))
-                      }
-                      mt={8}
-                    />
-                  )}
-                  <SL c="Servos do Templo" />
+                  <AddServoBusca
+                    ph="Adicionar responsável..."
+                    atual={o.resp || []}
+                    lim={o.limResp ?? 2}
+                    onPick={(n) =>
+                      upd(o.num, (x) => ({
+                        ...x,
+                        resp: [...(x.resp || []), n],
+                      }))
+                    }
+                  />
+                  <SL c={`Servos do Templo (${(o.templo || []).length}/${o.limTemplo ?? 2})`} />
                   <Tags
                     items={o.templo || []}
                     ax="#0a84ff"
@@ -7861,18 +7977,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         : undefined
                     }
                   />
-                  {edit && (
-                    <AddIn
-                      ph="Servo do templo..."
-                      onAdd={(n) =>
-                        upd(o.num, (x) => ({
-                          ...x,
-                          templo: [...(x.templo || []), n],
-                        }))
-                      }
-                      mt={8}
-                    />
-                  )}
+                  <AddServoBusca
+                    ph="Servo do templo..."
+                    atual={o.templo || []}
+                    lim={o.limTemplo ?? 2}
+                    onPick={(n) =>
+                      upd(o.num, (x) => ({
+                        ...x,
+                        templo: [...(x.templo || []), n],
+                      }))
+                    }
+                  />
                   <SL c={`Passageiros via Check-in (${pass.length})`} />
                   {pass.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
