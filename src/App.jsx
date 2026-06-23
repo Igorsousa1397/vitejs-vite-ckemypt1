@@ -3275,6 +3275,18 @@ export default function App() {
   const [users, setUsers] = useState([]);
   const [faqOpen, setFaqOpen] = useState(false);
   const [fns, setFns] = useState(FUNCOES_INIT);
+  const [perfisExtra, setPerfisExtra] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "perfis_extra"), (snap) => {
+      const lista = snap.exists() ? (snap.data().lista || []) : [];
+      lista.forEach((p) => {
+        if (p?.key) PERFIS[p.key] = { l: p.label, c: p.color || "#0a84ff" };
+      });
+      setPerfisExtra(lista);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -4533,6 +4545,7 @@ export default function App() {
             setGruposAbertos={setBackGruposAbertos}
             liderMapOverrides={liderMapOverrides}
             setLiderMapOverrides={setLiderMapOverrides}
+            perfisExtra={perfisExtra}
           />
         )}
       </div>
@@ -12421,7 +12434,7 @@ function CozinhaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides }) {
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra }) {
     // const [tab, setTab] = useState("usuarios");
     const [buscaUser, setBuscaUser] = useState("");
     const [buscaFn, setBuscaFn] = useState("");
@@ -12480,10 +12493,11 @@ function CozinhaV({ edit, t, users }) {
 
     return (
       <div>
-        <Seg opts={[["grupos", "Telas"], ["usuarios", "Escalas"], ["geral", "Funções"]]} val={tab} set={setTab} />
+        <Seg opts={[["grupos", "Perfis"], ["usuarios", "Escalas"], ["geral", "Funções"]]} val={tab} set={setTab} />
         <div style={{ marginTop: 14 }}>
           {tab === "grupos" && (
             <>
+              <NovoPerfilForm perfisExtra={perfisExtra} t={t} />
               {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => {
                 const telasAtivas = permissoes[k]?.telas || [];
                 return (
@@ -12953,6 +12967,77 @@ function LideresEditor({ fn, liderMapOverrides, setLiderMapOverrides, t }) {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NovoPerfilForm({ perfisExtra, t }) {
+  const [sh, setSh] = useState(false);
+  const [label, setLabel] = useState("");
+  const [cor, setCor] = useState("#0a84ff");
+
+  const slugify = (s) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+  const criar = async () => {
+    const limpo = label.trim();
+    if (!limpo) return;
+    const key = slugify(limpo);
+    if (!key) {
+      t("Nome inválido.", "w");
+      return;
+    }
+    if (PERFIS[key]) {
+      t("Já existe um perfil com esse nome.", "w");
+      return;
+    }
+    const novo = { key, label: limpo, color: cor };
+    const novaLista = [...(perfisExtra || []), novo];
+    PERFIS[key] = { l: limpo, c: cor };
+    try {
+      await setDoc(doc(db, "config", "perfis_extra"), { lista: novaLista }, { merge: true });
+      t("Perfil criado!");
+      setLabel("");
+      setCor("#0a84ff");
+      setSh(false);
+    } catch (err) {
+      console.error("Erro ao salvar perfil:", err);
+      t("Erro ao salvar perfil.", "w");
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      {!sh ? (
+        <button onClick={() => setSh(true)} style={BG({ width: "100%", padding: 12, borderRadius: 12 })}>
+          + Novo Perfil
+        </button>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            autoFocus
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && criar()}
+            placeholder="Nome do novo perfil... (ex: Líder Decoração)"
+            style={{ ...I, flex: 1, marginBottom: 0 }}
+          />
+          <input
+            type="color"
+            value={cor}
+            onChange={(e) => setCor(e.target.value)}
+            style={{ width: 40, height: 40, borderRadius: 10, border: "1px solid #2a2a2a", background: "transparent", cursor: "pointer", padding: 0 }}
+          />
+          <button onClick={criar} style={BG({ padding: "10px 16px", borderRadius: 12 })}>Criar</button>
+          <button onClick={() => { setSh(false); setLabel(""); }} style={BK({ padding: "10px 16px", borderRadius: 12 })}>✕</button>
         </div>
       )}
     </div>
