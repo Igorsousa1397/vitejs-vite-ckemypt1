@@ -8281,6 +8281,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     const [qtd, setQtd] = useState(1);
     const inputRef = useRef(null);
     const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+    const [responsavel, setResponsavel] = useState("");
+    const [editandoResp, setEditandoResp] = useState(false);
+    const [respTemp, setRespTemp] = useState("");
 
     useEffect(() => {
       const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
@@ -8289,12 +8292,28 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       return () => unsub();
     }, []);
 
+    useEffect(() => {
+      const unsub = onSnapshot(doc(db, "config", "cartas"), (snap) => {
+        if (snap.exists()) setResponsavel(snap.data().responsavel || "");
+      });
+      return () => unsub();
+    }, []);
+
+    const salvarResponsavel = async () => {
+      await setDoc(doc(db, "config", "cartas"), { responsavel: respTemp.trim() }, { merge: true });
+      setEditandoResp(false);
+      t("Responsável atualizado!");
+    };
+
     const isLiderCartas = role === "lider_cartas" || role === "admin" || role === "lider_geral";
 
     // ---- Visão do servo: ver minhas cartas ----
     if (!isLiderCartas) {
       const minhasCartas = cartas.filter(c => c.servoId === user.id);
       const totalCartas = minhasCartas.reduce((acc, c) => acc + (c.qtd || 1), 0);
+      const mensagemBusca = responsavel.trim()
+        ? `Procure ${responsavel} para retirar.`
+        : "Procure o líder de Cartas para retirar.";
 
       if (totalCartas === 0) {
         return (
@@ -8314,7 +8333,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             <div style={{ color: G.t, fontSize: 13, fontWeight: 600 }}>
               {totalCartas === 1 ? "carta para retirar" : "cartas para retirar"}
             </div>
-            <div style={{ color: G.tm, fontSize: 12, marginTop: 6 }}>Procure o líder de Cartas para buscar.</div>
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 6 }}>{mensagemBusca}</div>
           </div>
         </div>
       );
@@ -8363,6 +8382,38 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 
     return (
       <div>
+        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+            Quem o servo deve procurar
+          </div>
+          {!editandoResp ? (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: G.t, fontSize: 14 }}>
+                {responsavel.trim() || <span style={{ color: G.tm, fontStyle: "italic" }}>Não definido (padrão: "líder de Cartas")</span>}
+              </span>
+              <button
+                onClick={() => { setRespTemp(responsavel); setEditandoResp(true); }}
+                style={BK({ padding: "6px 12px", borderRadius: 8, fontSize: 12 })}
+              >
+                Editar
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                autoFocus
+                value={respTemp}
+                onChange={(e) => setRespTemp(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && salvarResponsavel()}
+                placeholder="Ex: Jessiany na recepção"
+                style={{ ...I, flex: 1, marginBottom: 0 }}
+              />
+              <button onClick={salvarResponsavel} style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}>Salvar</button>
+              <button onClick={() => setEditandoResp(false)} style={BK({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}>✕</button>
+            </div>
+          )}
+        </div>
+
         <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
           <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
             Registrar carta recebida
