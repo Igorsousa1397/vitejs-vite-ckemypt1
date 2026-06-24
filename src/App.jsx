@@ -7387,19 +7387,27 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           const emEdicao = editandoAcordo[e.id] || !e.acordo;
                           return (
                             <div style={{ display: "flex", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                autoFocus={!e.acordo}
-                                readOnly={!emEdicao}
-                                value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
-                                onChange={(ev) =>
-                                  setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
-                                }
-                                placeholder="Valor acordado (R$)"
-                                style={{ ...I, flex: 1, marginBottom: 0, opacity: emEdicao ? 1 : 0.7 }}
-                              />
+                              <div style={{ position: "relative", flex: 1 }}>
+                                <span style={{
+                                  position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                                  color: G.tm, fontSize: 14, fontWeight: 600, pointerEvents: "none",
+                                }}>
+                                  R$
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  autoFocus={!e.acordo}
+                                  readOnly={!emEdicao}
+                                  value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
+                                  onChange={(ev) =>
+                                    setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
+                                  }
+                                  placeholder="0,00"
+                                  style={{ ...I, marginBottom: 0, opacity: emEdicao ? 1 : 0.7, paddingLeft: 36 }}
+                                />
+                              </div>
                               <button
                                 onClick={() =>
                                   emEdicao
