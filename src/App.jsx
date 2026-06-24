@@ -6992,6 +6992,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       setExpandido((prev) => ({ ...prev, [id]: !prev[id] }));
 
     const [valorTemp, setValorTemp] = useState({});
+    const [acordoForm, setAcordoForm] = useState({});
 
     const salvarAcordo = async (enc, ativo, valor) => {
       const valorAcordado = ativo && valor !== "" && valor != null ? parseFloat(valor) : null;
@@ -7338,9 +7339,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
                     {/* Acordo - valor diferente combinado com o encontrista */}
                     <div
-                      onClick={() =>
-                        salvarAcordo(e, !e.acordo, e.acordo ? null : valorTemp[e.id] ?? "")
-                      }
+                      onClick={() => {
+                        if (e.acordo) {
+                          salvarAcordo(e, false, null);
+                        } else if (acordoForm[e.id]) {
+                          setAcordoForm((prev) => ({ ...prev, [e.id]: false }));
+                        } else {
+                          setAcordoForm((prev) => ({ ...prev, [e.id]: true }));
+                        }
+                      }}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -7348,8 +7355,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         cursor: "pointer",
                         padding: "8px 10px",
                         borderRadius: 10,
-                        background: e.acordo ? "rgba(10,132,255,.08)" : "#111",
-                        border: `1px solid ${e.acordo ? "rgba(10,132,255,.3)" : "#1e1e1e"}`,
+                        background: e.acordo || acordoForm[e.id] ? "rgba(10,132,255,.08)" : "#111",
+                        border: `1px solid ${e.acordo || acordoForm[e.id] ? "rgba(10,132,255,.3)" : "#1e1e1e"}`,
                       }}
                     >
                       <div
@@ -7357,26 +7364,27 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           width: 18,
                           height: 18,
                           borderRadius: 5,
-                          border: `2px solid ${e.acordo ? "#0a84ff" : "#444"}`,
-                          background: e.acordo ? "rgba(10,132,255,.15)" : "transparent",
+                          border: `2px solid ${e.acordo || acordoForm[e.id] ? "#0a84ff" : "#444"}`,
+                          background: e.acordo || acordoForm[e.id] ? "rgba(10,132,255,.15)" : "transparent",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
                         }}
                       >
-                        {e.acordo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                        {(e.acordo || acordoForm[e.id]) && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
                       </div>
-                      <span style={{ color: e.acordo ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
-                        Acordo (valor diferente combinado)
+                      <span style={{ color: e.acordo || acordoForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
+                        Acordo
                       </span>
                     </div>
-                    {e.acordo && (
+                    {(e.acordo || acordoForm[e.id]) && (
                       <div style={{ display: "flex", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
+                          autoFocus={!e.acordo}
                           value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
                           onChange={(ev) =>
                             setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
