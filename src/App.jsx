@@ -5233,7 +5233,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const todosEnc = [...encH, ...encM];
   const VALOR_ENC = 360;
   const VALOR_ENC_ITAJAI = 200;
-  const getValorEnc = (e) => (e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina') ? VALOR_ENC_ITAJAI : VALOR_ENC;
+  const getValorEnc = (e) => {
+    if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);
+    return (e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina') ? VALOR_ENC_ITAJAI : VALOR_ENC;
+  };
   const encPagosLista = todosEnc.filter(e => e.pago);
   const encPendentesLista = todosEnc.filter(e => !e.pago);
   const encPagos = encPagosLista.length;
@@ -6988,6 +6991,27 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const toggle = (id) =>
       setExpandido((prev) => ({ ...prev, [id]: !prev[id] }));
 
+    const [valorTemp, setValorTemp] = useState({});
+
+    const salvarAcordo = async (enc, ativo, valor) => {
+      const valorAcordado = ativo && valor !== "" && valor != null ? parseFloat(valor) : null;
+      if (ativo && (valorAcordado == null || isNaN(valorAcordado) || valorAcordado < 0)) {
+        t("Informe um valor válido.", "w");
+        return;
+      }
+      const upd = { acordo: ativo, valorAcordado: ativo ? valorAcordado : null };
+      try {
+        await setDoc(doc(db, "encontristas", enc.id), upd, { merge: true });
+        const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
+        setEncH((prev) => apply(prev));
+        setEncM((prev) => apply(prev));
+        t(ativo ? "Acordo salvo!" : "Acordo removido.");
+      } catch (err) {
+        console.error("Erro ao salvar acordo:", err);
+        t("Erro ao salvar acordo.", "w");
+      }
+    };
+
     const msgPendente = (nome) =>
       `Olá, ${nome.split(" ")[0]}! 🙏\n\nVi que você se inscreveu no *Encontro com Deus* mas ainda não confirmou sua vaga.\n\nEsse fim de semana pode mudar sua vida de uma forma que você nunca imaginou. Um encontro real com Deus transforma, liberta e renova — e você merece viver isso! 💫\n\nPodemos te ajudar? Ficou com alguma dúvida sobre o pagamento ou sobre o evento? É só falar, estamos aqui! ❤️`;
 
@@ -7312,7 +7336,62 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       )}
                     </div>
 
-                    {/* Reenviar QR Code */}
+                    {/* Acordo - valor diferente combinado com o encontrista */}
+                    <div
+                      onClick={() =>
+                        salvarAcordo(e, !e.acordo, e.acordo ? null : valorTemp[e.id] ?? "")
+                      }
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        cursor: "pointer",
+                        padding: "8px 10px",
+                        borderRadius: 10,
+                        background: e.acordo ? "rgba(10,132,255,.08)" : "#111",
+                        border: `1px solid ${e.acordo ? "rgba(10,132,255,.3)" : "#1e1e1e"}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 5,
+                          border: `2px solid ${e.acordo ? "#0a84ff" : "#444"}`,
+                          background: e.acordo ? "rgba(10,132,255,.15)" : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {e.acordo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                      </div>
+                      <span style={{ color: e.acordo ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
+                        Acordo (valor diferente combinado)
+                      </span>
+                    </div>
+                    {e.acordo && (
+                      <div style={{ display: "flex", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
+                          onChange={(ev) =>
+                            setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
+                          }
+                          placeholder="Valor acordado (R$)"
+                          style={{ ...I, flex: 1, marginBottom: 0 }}
+                        />
+                        <button
+                          onClick={() => salvarAcordo(e, true, valorTemp[e.id] ?? e.valorAcordado ?? "")}
+                          style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    )}
                     {e.pago && waNumero && (
                       <a
                         href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
