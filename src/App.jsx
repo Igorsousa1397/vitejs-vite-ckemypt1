@@ -1566,6 +1566,7 @@ const CELULAS = [
   "A Forja",
   "Atos 29",
   "Baluarte",
+  "Barueri",
   "Beraká",
   "Betel",
   "Betesda",
