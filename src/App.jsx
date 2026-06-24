@@ -7339,77 +7339,81 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       )}
                     </div>
 
-                    {/* Acordo - valor diferente combinado com o encontrista */}
-                    <div
-                      onClick={() => {
-                        if (e.acordo) {
-                          salvarAcordo(e, false, null);
-                        } else if (acordoForm[e.id]) {
-                          setAcordoForm((prev) => ({ ...prev, [e.id]: false }));
-                        } else {
-                          setAcordoForm((prev) => ({ ...prev, [e.id]: true }));
-                        }
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        cursor: "pointer",
-                        padding: "8px 10px",
-                        borderRadius: 10,
-                        background: e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.08)" : "#111",
-                        border: `1px solid ${e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.3)" : "#1e1e1e"}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 5,
-                          border: `2px solid ${e.acordo || acordoForm[e.id] ? "#ff9f0a" : "#444"}`,
-                          background: e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.15)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {(e.acordo || acordoForm[e.id]) && <span style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 800 }}>✓</span>}
-                      </div>
-                      <span style={{ color: e.acordo || acordoForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
-                        Acordo
-                      </span>
-                    </div>
-                    {(e.acordo || acordoForm[e.id]) && (() => {
-                      const emEdicao = editandoAcordo[e.id] || !e.acordo;
-                      return (
-                        <div style={{ display: "flex", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            autoFocus={!e.acordo}
-                            readOnly={!emEdicao}
-                            value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
-                            onChange={(ev) =>
-                              setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
+                    {/* Acordo - valor diferente combinado com o encontrista (só pendentes ou pagos fora do app) */}
+                    {(!e.pago || !e.pagamentoId) && (
+                      <>
+                        <div
+                          onClick={() => {
+                            if (e.acordo) {
+                              salvarAcordo(e, false, null);
+                            } else if (acordoForm[e.id]) {
+                              setAcordoForm((prev) => ({ ...prev, [e.id]: false }));
+                            } else {
+                              setAcordoForm((prev) => ({ ...prev, [e.id]: true }));
                             }
-                            placeholder="Valor acordado (R$)"
-                            style={{ ...I, flex: 1, marginBottom: 0, opacity: emEdicao ? 1 : 0.7 }}
-                          />
-                          <button
-                            onClick={() =>
-                              emEdicao
-                                ? salvarAcordo(e, true, valorTemp[e.id] ?? e.valorAcordado ?? "")
-                                : setEditandoAcordo((prev) => ({ ...prev, [e.id]: true }))
-                            }
-                            style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            cursor: "pointer",
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            background: e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.08)" : "#111",
+                            border: `1px solid ${e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.3)" : "#1e1e1e"}`,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 5,
+                              border: `2px solid ${e.acordo || acordoForm[e.id] ? "#ff9f0a" : "#444"}`,
+                              background: e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.15)" : "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
                           >
-                            {emEdicao ? "Salvar" : "Editar"}
-                          </button>
+                            {(e.acordo || acordoForm[e.id]) && <span style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                          </div>
+                          <span style={{ color: e.acordo || acordoForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
+                            Acordo
+                          </span>
                         </div>
-                      );
-                    })()}
+                        {(e.acordo || acordoForm[e.id]) && (() => {
+                          const emEdicao = editandoAcordo[e.id] || !e.acordo;
+                          return (
+                            <div style={{ display: "flex", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                autoFocus={!e.acordo}
+                                readOnly={!emEdicao}
+                                value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
+                                onChange={(ev) =>
+                                  setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
+                                }
+                                placeholder="Valor acordado (R$)"
+                                style={{ ...I, flex: 1, marginBottom: 0, opacity: emEdicao ? 1 : 0.7 }}
+                              />
+                              <button
+                                onClick={() =>
+                                  emEdicao
+                                    ? salvarAcordo(e, true, valorTemp[e.id] ?? e.valorAcordado ?? "")
+                                    : setEditandoAcordo((prev) => ({ ...prev, [e.id]: true }))
+                                }
+                                style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}
+                              >
+                                {emEdicao ? "Salvar" : "Editar"}
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    )}
                     {e.pago && waNumero && (
                       <a
                         href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
