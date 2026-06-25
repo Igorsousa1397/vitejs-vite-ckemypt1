@@ -5262,13 +5262,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const celulasOrdenadas = Object.entries(celulasPorQtd).sort((a, b) => b[1] - a[1]);
   const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
 
+  const PERFIS_ABONADOS_DASH = ['pastor', 'pastor_auxiliar', 'lider_geral'];
+  const isAbonadoPorPerfilDash = (u) => PERFIS_ABONADOS_DASH.includes(u.perfil);
   const servos = (users || []).filter(u =>
     u.nome &&
     u.ativo !== false &&
-    u.perfil !== 'admin' &&
-    u.perfil !== 'pastor' &&
-    u.perfil !== 'pastor_auxiliar' &&
-    u.perfil !== 'lider_geral'
+    u.perfil !== 'admin'
   );
 
   // Data de corte para valor do servo (meia-noite Brasília = 03:00 UTC)
@@ -5287,10 +5286,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     return antesDoCorte ? 200 : 220;
   };
 
-  const servosPagos     = servos.filter(u => u.pago === true);
-  const servosAbonados  = servos.filter(u => u.pago === 'abonado');
-  const servosPendentes = servos.filter(u => !u.pago && u.ativo !== false && u.pago !== 'pagar_depois');
-  const servosPagarDepois = servos.filter(u => u.pago === 'pagar_depois' && u.ativo !== false);
+  const servosPagos     = servos.filter(u => !isAbonadoPorPerfilDash(u) && u.pago === true);
+  const servosAbonados  = servos.filter(u => isAbonadoPorPerfilDash(u) || u.pago === 'abonado');
+  const servosPagarDepois = servos.filter(u => !isAbonadoPorPerfilDash(u) && u.pago === 'pagar_depois');
+  const servosPendentes = servos.filter(u => !isAbonadoPorPerfilDash(u) && !u.pago && u.pago !== 'pagar_depois');
 
   const totalArrecadado = servosPagos.reduce((acc, u) => acc + getValorServo(u), 0);
   const totalAReceber   = servosPendentes.reduce((acc, u) => acc + getValorServo(u), 0);
@@ -10086,21 +10085,17 @@ function CozinhaV({ edit, t, users }) {
     return a.nome.localeCompare(b.nome, "pt-BR");
   });
 
-  // Base padronizada: mesma regra de perfil usada no dashboard financeiro (Home).
-  // Inativos entram no total, mas como categoria própria (não contam em pago/pendente/etc).
-  const statsBaseTodos = users.filter(
-    (u) =>
-      u.nome &&
-      u.perfil !== "admin" &&
-      u.perfil !== "pastor" &&
-      u.perfil !== "pastor_auxiliar" &&
-      u.perfil !== "lider_geral",
-  );
+  // Base padronizada: mesma regra de perfil usada no dashboard financeiro (Home),
+  // exceto que Pastor/Pastor Auxiliar/Líder Geral entram no total e contam como
+  // Abonados (não pagam inscrição, mas aparecem na contagem geral de servos).
+  const PERFIS_ABONADOS = ["pastor", "pastor_auxiliar", "lider_geral"];
+  const isAbonadoPorPerfil = (u) => PERFIS_ABONADOS.includes(u.perfil);
+  const statsBaseTodos = users.filter((u) => u.nome && u.perfil !== "admin");
   const statsInativos = statsBaseTodos.filter((u) => u.ativo === false).length;
   const statsBase = statsBaseTodos.filter((u) => u.ativo !== false);
-  const statsPagos = statsBase.filter((u) => u.pago === true).length;
-  const statsAbonados = statsBase.filter((u) => u.pago === "abonado").length;
-  const statsPagarDepois = statsBase.filter((u) => u.pago === "pagar_depois").length;
+  const statsPagos = statsBase.filter((u) => !isAbonadoPorPerfil(u) && u.pago === true).length;
+  const statsAbonados = statsBase.filter((u) => isAbonadoPorPerfil(u) || u.pago === "abonado").length;
+  const statsPagarDepois = statsBase.filter((u) => !isAbonadoPorPerfil(u) && u.pago === "pagar_depois").length;
   const statsPendentes = statsBase.length - statsPagos - statsAbonados - statsPagarDepois;
   const statsTotal = statsBaseTodos.length;
 
