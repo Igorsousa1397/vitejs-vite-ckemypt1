@@ -13138,6 +13138,7 @@ function PerfilV({ user, setUser, t }) {
   const [cpf, setCpf] = useState(user.cpf || "");
   const [nascimento, setNascimento] = useState(user.nascimento || "");
   const [salvando, setSalvando] = useState(false);
+  const bloqueado = !!(user.cpf && user.nascimento);
 
   const formatCpf = (v) =>
     v
@@ -13149,8 +13150,12 @@ function PerfilV({ user, setUser, t }) {
 
   const salvar = async () => {
     const cpfLimpo = cpf.replace(/\D/g, "");
-    if (cpfLimpo && cpfLimpo.length !== 11) {
-      t("CPF inválido.", "w");
+    if (!cpfLimpo || cpfLimpo.length !== 11) {
+      t("Informe um CPF válido.", "w");
+      return;
+    }
+    if (!nascimento) {
+      t("Informe a data de nascimento.", "w");
       return;
     }
     setSalvando(true);
@@ -13182,28 +13187,46 @@ function PerfilV({ user, setUser, t }) {
         <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
           CPF
         </div>
-        <input
-          value={cpf}
-          onChange={(e) => setCpf(formatCpf(e.target.value))}
-          placeholder="000.000.000-00"
-          style={{ ...I, marginBottom: 14 }}
-        />
+        {bloqueado ? (
+          <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{formatCpf(user.cpf)}</div>
+        ) : (
+          <input
+            value={cpf}
+            onChange={(e) => setCpf(formatCpf(e.target.value))}
+            placeholder="000.000.000-00"
+            style={{ ...I, marginBottom: 14 }}
+          />
+        )}
         <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
           Data de Nascimento
         </div>
-        <input
-          type="date"
-          value={nascimento}
-          onChange={(e) => setNascimento(e.target.value)}
-          style={{ ...I, marginBottom: 14 }}
-        />
-        <button
-          onClick={salvar}
-          disabled={salvando}
-          style={BG({ width: "100%", padding: 13, borderRadius: 12, opacity: salvando ? 0.7 : 1 })}
-        >
-          {salvando ? "Salvando..." : "Salvar"}
-        </button>
+        {bloqueado ? (
+          <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>
+            {user.nascimento.includes("-") && user.nascimento.length === 10
+              ? user.nascimento.split("-").reverse().join("/")
+              : user.nascimento}
+          </div>
+        ) : (
+          <input
+            type="date"
+            value={nascimento}
+            onChange={(e) => setNascimento(e.target.value)}
+            style={{ ...I, marginBottom: 14 }}
+          />
+        )}
+        {bloqueado ? (
+          <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", textAlign: "center" }}>
+            Dados salvos. Para corrigir algo, procure a liderança.
+          </div>
+        ) : (
+          <button
+            onClick={salvar}
+            disabled={salvando}
+            style={BG({ width: "100%", padding: 13, borderRadius: 12, opacity: salvando ? 0.7 : 1 })}
+          >
+            {salvando ? "Salvando..." : "Salvar"}
+          </button>
+        )}
       </div>
     </div>
   );
