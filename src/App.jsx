@@ -7191,7 +7191,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 style={{
                   background: G.card,
                   border: `1px solid ${e.pago ? "rgba(0,200,81,.25)" : "rgba(255,59,48,.2)"}`,
-                  borderLeft: `3px solid ${e.pago ? G.green : e.pagarDepois ? "#0a84ff" : "#ff3b30"}`,
+                  borderLeft: `3px solid ${e.pago ? G.green : e.pagarDepois ? "#ff9f0a" : "#ff3b30"}`,
                   borderRadius: 13,
                   marginBottom: 7,
                   overflow: "hidden",
@@ -7229,7 +7229,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         </span>
                       </div>
                     ) : e.pagarDepois ? (
-                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#0a84ff", fontSize: 11, fontWeight: 700 }}>
+                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 700 }}>
                         Pagar depois
                       </span>
                     ) : (
@@ -7490,8 +7490,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           cursor: "pointer",
                           padding: "8px 10px",
                           borderRadius: 10,
-                          background: e.pagarDepois || pdForm[e.id] ? "rgba(10,132,255,.08)" : "#111",
-                          border: `1px solid ${e.pagarDepois || pdForm[e.id] ? "rgba(10,132,255,.3)" : "#1e1e1e"}`,
+                          background: e.pagarDepois || pdForm[e.id] ? "rgba(255,159,10,.08)" : "#111",
+                          border: `1px solid ${e.pagarDepois || pdForm[e.id] ? "rgba(255,159,10,.3)" : "#1e1e1e"}`,
                         }}
                       >
                         <div
@@ -7499,15 +7499,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             width: 18,
                             height: 18,
                             borderRadius: 5,
-                            border: `2px solid ${e.pagarDepois || pdForm[e.id] ? "#0a84ff" : "#444"}`,
-                            background: e.pagarDepois || pdForm[e.id] ? "rgba(10,132,255,.15)" : "transparent",
+                            border: `2px solid ${e.pagarDepois || pdForm[e.id] ? "#ff9f0a" : "#444"}`,
+                            background: e.pagarDepois || pdForm[e.id] ? "rgba(255,159,10,.15)" : "transparent",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             flexShrink: 0,
                           }}
                         >
-                          {(e.pagarDepois || pdForm[e.id]) && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                          {(e.pagarDepois || pdForm[e.id]) && <span style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 800 }}>✓</span>}
                         </div>
                         <span style={{ color: e.pagarDepois || pdForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
                           Pagar depois
