@@ -6972,7 +6972,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const celulasUnicas = ["todas", ...Array.from(new Set(baseList.map(e => e.celula).filter(Boolean))).sort()];
     const lista = baseList.filter(e =>
       e.nome.toLowerCase().includes(busca.toLowerCase()) &&
-      (filtroStatus === "todos" ? true : filtroStatus === "pago" ? e.pago : !e.pago) &&
+      (filtroStatus === "todos" ? true
+        : filtroStatus === "pago" ? e.pago
+        : filtroStatus === "pagardepois" ? (!e.pago && e.pagarDepois)
+        : (!e.pago && !e.pagarDepois)) &&
       (filtroCelula === "todas" ? true : e.celula === filtroCelula)
     ).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
@@ -7057,7 +7060,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: "1fr 1fr",
             gap: 8,
             marginBottom: 14,
           }}
@@ -7065,7 +7068,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           {[
             [encM.length + encH.length, "Total Geral", "#636366"],
             [lista.filter((e) => e.pago).length, "Pagos", G.green],
-            [lista.filter((e) => !e.pago).length, "Pendentes", "#ff3b30"],
+            [lista.filter((e) => !e.pago && !e.pagarDepois).length, "Pendentes", "#ff3b30"],
+            [lista.filter((e) => !e.pago && e.pagarDepois).length, "Pagar dep.", "#ff9f0a"],
           ].map(([n, l, c]) => (
             <div
               key={l}
@@ -7102,7 +7106,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         />
         <div style={{ marginTop: 8 }}>
           <Seg
-            opts={[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"]]}
+            opts={[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"], ["pagardepois", "Pagar dep."]]}
             val={filtroStatus}
             set={setFiltroStatus}
           />
