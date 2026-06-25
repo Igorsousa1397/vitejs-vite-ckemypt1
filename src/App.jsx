@@ -491,7 +491,7 @@ const FUNCOES_INIT = [
   "Refeitório", "Cantina", "Panelas", "Mídia", "Kit Sobrevivência",
   "Etiquetar Sacolas", "Dobrar Sacolas", "Presentes/Cartas", "Camisetas",
   "Kit Cartas+Pecado", "Organizar itens do Templo", "Itens Teatro/Dança",
-  "Servir comida", "Limpeza refeitório", "Quartos", "Organizar itens STAFF",
+  "Servir comida", "Servir Comida Pastores", "Limpeza refeitório", "Quartos", "Organizar itens STAFF",
   "Cartas", "Preparação da Uva", "Decoração", "Recepção Presentes/cartas",
   "Correrias", "Transitar com carro no sítio", "Montagem da cruz",
   "Servo de Quarto", "Louças", "Servir Ceia",
@@ -13558,7 +13558,7 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
   const skipBlur = useRef(false);
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
   const cor = dC[dia];
-  const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças", "Servir comida"];
+  const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças", "Servir comida", "Limpeza refeitório", "Servir Comida Pastores"];
 
   const filtrados = fns.filter(f =>
     f.toLowerCase().includes(busca.toLowerCase()) && busca.length > 0
