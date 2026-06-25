@@ -5244,8 +5244,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   };
   const encPagosLista = todosEnc.filter(e => e.pago);
   const encPendentesLista = todosEnc.filter(e => !e.pago);
+  const encPagarDepoisLista = todosEnc.filter(e => !e.pago && e.pagarDepois);
   const encPagos = encPagosLista.length;
   const encPendentes = encPendentesLista.length;
+  const encPagarDepois = encPagarDepoisLista.length;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
   const encArrecadado = encPagosLista.reduce((acc, e) => acc + getValorEnc(e), 0);
   const encAReceber = encPendentesLista.reduce((acc, e) => acc + getValorEnc(e), 0);
@@ -5393,6 +5395,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
                   <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
                 </div>
+                {encPagarDepois > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: '#ff9f0a', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pagar dep.</span>
+                    <BarPct val={encPagarDepois} max={META_ENC} color="#ff9f0a" />
+                    <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPagarDepois}</span>
+                  </div>
+                )}
               </div>
 
               {/* Divisor */}
