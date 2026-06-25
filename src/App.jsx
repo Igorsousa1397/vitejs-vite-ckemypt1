@@ -13136,7 +13136,9 @@ function LideresEditor({ fn, liderMapOverrides, setLiderMapOverrides, t }) {
 
 function PerfilV({ user, setUser, t }) {
   const [cpf, setCpf] = useState(user.cpf || "");
-  const [nascimento, setNascimento] = useState(user.nascimento || "");
+  const isoParaBr = (v) =>
+    v && v.includes("-") && v.length === 10 ? v.split("-").reverse().join("/") : v || "";
+  const [nascimentoBr, setNascimentoBr] = useState(isoParaBr(user.nascimento));
   const [salvando, setSalvando] = useState(false);
   const bloqueado = !!(user.cpf && user.nascimento);
 
@@ -13148,20 +13150,37 @@ function PerfilV({ user, setUser, t }) {
       .replace(/(\d{3})(\d)/, "$1.$2")
       .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 
+  const formatDataBr = (v) =>
+    v
+      .replace(/\D/g, "")
+      .slice(0, 8)
+      .replace(/(\d{2})(\d)/, "$1/$2")
+      .replace(/(\d{2})(\d)/, "$1/$2");
+
+  const brParaIso = (v) => {
+    const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return null;
+    const [, d, mo, y] = m;
+    const dia = parseInt(d, 10), mes = parseInt(mo, 10), ano = parseInt(y, 10);
+    if (dia < 1 || dia > 31 || mes < 1 || mes > 12 || ano < 1900 || ano > new Date().getFullYear()) return null;
+    return `${y}-${mo}-${d}`;
+  };
+
   const salvar = async () => {
     const cpfLimpo = cpf.replace(/\D/g, "");
     if (!cpfLimpo || cpfLimpo.length !== 11) {
       t("Informe um CPF válido.", "w");
       return;
     }
-    if (!nascimento) {
-      t("Informe a data de nascimento.", "w");
+    const nascimentoIso = brParaIso(nascimentoBr);
+    if (!nascimentoIso) {
+      t("Informe a data de nascimento no formato DD/MM/AAAA.", "w");
       return;
     }
     setSalvando(true);
     try {
-      await setDoc(doc(db, "users", user.id), { cpf: cpfLimpo, nascimento }, { merge: true });
-      setUser((prev) => ({ ...prev, cpf: cpfLimpo, nascimento }));
+      await setDoc(doc(db, "users", user.id), { cpf: cpfLimpo, nascimento: nascimentoIso }, { merge: true });
+      setUser((prev) => ({ ...prev, cpf: cpfLimpo, nascimento: nascimentoIso }));
       t("Perfil atualizado!");
     } catch (err) {
       console.error("Erro ao salvar perfil:", err);
@@ -13202,15 +13221,16 @@ function PerfilV({ user, setUser, t }) {
         </div>
         {bloqueado ? (
           <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>
-            {user.nascimento.includes("-") && user.nascimento.length === 10
-              ? user.nascimento.split("-").reverse().join("/")
-              : user.nascimento}
+            {isoParaBr(user.nascimento)}
           </div>
         ) : (
           <input
-            type="date"
-            value={nascimento}
-            onChange={(e) => setNascimento(e.target.value)}
+            type="text"
+            inputMode="numeric"
+            value={nascimentoBr}
+            onChange={(e) => setNascimentoBr(formatDataBr(e.target.value))}
+            placeholder="DD/MM/AAAA"
+            maxLength={10}
             style={{ ...I, marginBottom: 14 }}
           />
         )}
