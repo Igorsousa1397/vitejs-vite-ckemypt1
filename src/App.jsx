@@ -5246,8 +5246,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const encPendentesLista = todosEnc.filter(e => !e.pago);
   const encPagarDepoisLista = todosEnc.filter(e => !e.pago && e.pagarDepois);
   const encPagos = encPagosLista.length;
-  const encPendentes = encPendentesLista.length;
   const encPagarDepois = encPagarDepoisLista.length;
+  const encPendentes = encPendentesLista.length - encPagarDepois;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
   const encArrecadado = encPagosLista.reduce((acc, e) => acc + getValorEnc(e), 0);
   const encAReceber = encPendentesLista.reduce((acc, e) => acc + getValorEnc(e), 0);
