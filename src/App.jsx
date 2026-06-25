@@ -6999,6 +6999,26 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [valorTemp, setValorTemp] = useState({});
     const [acordoForm, setAcordoForm] = useState({});
     const [editandoAcordo, setEditandoAcordo] = useState({});
+    const [pdForm, setPdForm] = useState({});
+    const [pdDataTemp, setPdDataTemp] = useState({});
+    const [pdObsTemp, setPdObsTemp] = useState({});
+
+    const salvarPagarDepois = async (enc, ativo, dataPrev, obs) => {
+      const upd = ativo
+        ? { pagarDepois: true, pagarDepoisData: dataPrev || null, pagarDepoisObs: obs || null }
+        : { pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null };
+      try {
+        await setDoc(doc(db, "encontristas", enc.id), upd, { merge: true });
+        const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
+        setEncH((prev) => apply(prev));
+        setEncM((prev) => apply(prev));
+        setPdForm((prev) => ({ ...prev, [enc.id]: false }));
+        t(ativo ? "Pagar depois salvo!" : "Status removido.");
+      } catch (err) {
+        console.error("Erro ao salvar pagar depois:", err);
+        t("Erro ao salvar.", "w");
+      }
+    };
 
     const salvarAcordo = async (enc, ativo, valor) => {
       const valorAcordado = ativo && valor !== "" && valor != null ? parseFloat(valor) : null;
@@ -7162,7 +7182,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 style={{
                   background: G.card,
                   border: `1px solid ${e.pago ? "rgba(0,200,81,.25)" : "rgba(255,59,48,.2)"}`,
-                  borderLeft: `3px solid ${e.pago ? G.green : "#ff3b30"}`,
+                  borderLeft: `3px solid ${e.pago ? G.green : e.pagarDepois ? "#0a84ff" : "#ff3b30"}`,
                   borderRadius: 13,
                   marginBottom: 7,
                   overflow: "hidden",
@@ -7199,6 +7219,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           {e.pagamentoId ? "Pago" : "Pago fora do app"}
                         </span>
                       </div>
+                    ) : e.pagarDepois ? (
+                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#0a84ff", fontSize: 11, fontWeight: 700 }}>
+                        Pagar depois
+                      </span>
                     ) : (
                       <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}>
                         Pendente
@@ -7435,6 +7459,93 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         })()}
                       </>
                     )}
+
+                    {/* Pagar depois - só para status Pendente */}
+                    {!e.pago && (
+                      <div
+                        onClick={() => {
+                          if (e.pagarDepois) {
+                            salvarPagarDepois(e, false, null, null);
+                          } else if (pdForm[e.id]) {
+                            setPdForm((prev) => ({ ...prev, [e.id]: false }));
+                          } else {
+                            setPdDataTemp((prev) => ({ ...prev, [e.id]: e.pagarDepoisData || "" }));
+                            setPdObsTemp((prev) => ({ ...prev, [e.id]: e.pagarDepoisObs || "" }));
+                            setPdForm((prev) => ({ ...prev, [e.id]: true }));
+                          }
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          cursor: "pointer",
+                          padding: "8px 10px",
+                          borderRadius: 10,
+                          background: e.pagarDepois || pdForm[e.id] ? "rgba(10,132,255,.08)" : "#111",
+                          border: `1px solid ${e.pagarDepois || pdForm[e.id] ? "rgba(10,132,255,.3)" : "#1e1e1e"}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 5,
+                            border: `2px solid ${e.pagarDepois || pdForm[e.id] ? "#0a84ff" : "#444"}`,
+                            background: e.pagarDepois || pdForm[e.id] ? "rgba(10,132,255,.15)" : "transparent",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {(e.pagarDepois || pdForm[e.id]) && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                        </div>
+                        <span style={{ color: e.pagarDepois || pdForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
+                          Pagar depois
+                        </span>
+                      </div>
+                    )}
+                    {!e.pago && (e.pagarDepois || pdForm[e.id]) && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
+                        <div>
+                          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                            Data prevista
+                          </div>
+                          <input
+                            type="date"
+                            value={pdDataTemp[e.id] ?? e.pagarDepoisData ?? ""}
+                            onChange={(ev) => setPdDataTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                            style={{ ...I, fontSize: 13, marginBottom: 0 }}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                            Observações
+                          </div>
+                          <input
+                            type="text"
+                            value={pdObsTemp[e.id] ?? e.pagarDepoisObs ?? ""}
+                            onChange={(ev) => setPdObsTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                            placeholder="Ex: vai pagar na sexta..."
+                            style={{ ...I, fontSize: 13, marginBottom: 0 }}
+                          />
+                        </div>
+                        <button
+                          onClick={() =>
+                            salvarPagarDepois(
+                              e,
+                              true,
+                              pdDataTemp[e.id] ?? e.pagarDepoisData ?? "",
+                              pdObsTemp[e.id] ?? e.pagarDepoisObs ?? "",
+                            )
+                          }
+                          style={BG({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 })}
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    )}
+
                     {e.pago && waNumero && (
                       <a
                         href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
