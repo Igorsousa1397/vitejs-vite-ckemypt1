@@ -5264,6 +5264,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const servos = (users || []).filter(u =>
     u.nome &&
+    u.ativo !== false &&
     u.perfil !== 'admin' &&
     u.perfil !== 'pastor' &&
     u.perfil !== 'pastor_auxiliar' &&
