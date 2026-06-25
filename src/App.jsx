@@ -2929,7 +2929,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
   }, []);
 
   const todos = [...encH, ...encM].filter(
-    (e) => e.pago && e.chegou && e.onibus,
+    (e) => (e.pago || e.pagarDepois) && e.chegou && e.onibus,
   );
 
   const lista = useMemo(() => {
@@ -3497,7 +3497,7 @@ export default function App() {
               setEncH(lista.filter((e) => e.sexo === "Masculino"));
               setCk(
                 lista
-                  .filter((e) => e.pago)
+                  .filter((e) => e.pago || e.pagarDepois)
                   .map((e) => ({
                     id: e.id,
                     nome: e.nome,
@@ -7555,7 +7555,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       </div>
                     )}
 
-                    {e.pago && waNumero && (
+                    {(e.pago || e.pagarDepois) && waNumero && (
                       <a
                         href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
                         target="_blank"
@@ -7583,7 +7583,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     {waNumero && (
                       <button
                         onClick={async () => {
-                          if (!e.pago) {
+                          if (!e.pago && !e.pagarDepois) {
                             try {
                               const res = await fetch(
                                 "https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento",
