@@ -13632,7 +13632,7 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
           onBlur={() => { if (!skipBlur.current) setAberto(false); skipBlur.current = false; }}
           onKeyDown={e => e.key === 'Enter' && busca.trim() && confirmar(busca.trim())}
           placeholder={`+ Função na ${dia}...`}
-          style={{ ...I, flex: 1, fontSize: 11, padding: '7px 10px', borderColor: `${cor}44` }}
+          style={{ ...I, flex: 1, fontSize: 16, padding: '7px 10px', borderColor: `${cor}44` }}
         />
         <button
           onMouseDown={() => busca.trim() && confirmar(busca.trim())}
