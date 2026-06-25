@@ -4059,7 +4059,7 @@ export default function App() {
         }}>
           {/* Esquerda */}
           <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
-            {pg === "smins" ? (
+            {(pg === "smins" || pg === "home") ? (
               <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
             ) : (
               <button onClick={() => setPg("smins")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
@@ -4068,7 +4068,7 @@ export default function App() {
 
           {/* Centro */}
           <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-            {pg === "smins" ? (
+            {(pg === "smins" || pg === "home") ? (
               <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
             ) : (
               <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
@@ -4095,8 +4095,8 @@ export default function App() {
 
           {/* Direita */}
           <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-            {pg === "smins" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
-            {pg === "smins" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
+            {(pg === "smins" || pg === "home") && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            {(pg === "smins" || pg === "home") && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
             <button
               onClick={async () => {
                 const token = await iniciarNotificacoes(user?.id);
