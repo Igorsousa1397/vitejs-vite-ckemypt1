@@ -7091,6 +7091,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             ws.columns = [
               { header: "Nome", key: "nome", width: 40 },
               { header: "Sexo", key: "sexo", width: 12 },
+              { header: "CPF", key: "cpf", width: 18 },
+              { header: "Nascimento", key: "nascimento", width: 14 },
               { header: "Igreja", key: "igreja", width: 25 },
               { header: "Célula", key: "celula", width: 25 },
               { header: "Camiseta", key: "camiseta", width: 14 },
@@ -7102,6 +7104,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               ws.addRow({
                 nome: e.nome || "",
                 sexo: e.sexo || "",
+                cpf: e.cpf || "",
+                nascimento: e.nascimento
+                  ? (e.nascimento.includes('-') && e.nascimento.length === 10
+                      ? e.nascimento.split('-').reverse().join('/')
+                      : e.nascimento)
+                  : "",
                 igreja: e.igreja === "Outra" ? (e.igrejaCustom || "Outra") : (e.igreja || ""),
                 celula: e.celula || "",
                 camiseta: e.camiseta || "",
