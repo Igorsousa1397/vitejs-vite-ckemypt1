@@ -10086,6 +10086,23 @@ function CozinhaV({ edit, t, users }) {
     return a.nome.localeCompare(b.nome, "pt-BR");
   });
 
+  // Base padronizada: mesma regra usada no dashboard financeiro (Home),
+  // assim os números batem em todas as telas.
+  const statsBase = users.filter(
+    (u) =>
+      u.nome &&
+      u.ativo !== false &&
+      u.perfil !== "admin" &&
+      u.perfil !== "pastor" &&
+      u.perfil !== "pastor_auxiliar" &&
+      u.perfil !== "lider_geral",
+  );
+  const statsTotal = statsBase.length;
+  const statsPagos = statsBase.filter((u) => u.pago === true).length;
+  const statsAbonados = statsBase.filter((u) => u.pago === "abonado").length;
+  const statsPagarDepois = statsBase.filter((u) => u.pago === "pagar_depois").length;
+  const statsPendentes = statsTotal - statsPagos - statsAbonados - statsPagarDepois;
+
     return (
       <div>
         {edit && (
@@ -10380,6 +10397,21 @@ function CozinhaV({ edit, t, users }) {
 
         <div
           style={{
+            background: "#111",
+            borderRadius: 12,
+            padding: "12px 8px",
+            textAlign: "center",
+            borderTop: "2px solid #636366",
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{statsTotal}</div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+            Total de Servos
+          </div>
+        </div>
+        <div
+          style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: 8,
@@ -10387,10 +10419,10 @@ function CozinhaV({ edit, t, users }) {
           }}
         >
           {[
-            [lista.length, "Total", "#636366"],
-            [lista.filter((u) => u.pago === true && u.ativo !== false && u.perfil !== "pastor_auxiliar" && u.perfil !== "pastor").length, "Pagos", G.green],
-            [lista.filter((u) => u.pago === 'abonado').length, "Abonados", "#636366"],
-            [lista.filter((u) => u.pago === 'pagar_depois').length, "Pagar dep.", "#0a84ff"],
+            [statsPagos, "Pagos", G.green],
+            [statsPendentes, "Pendentes", "#ff3b30"],
+            [statsAbonados, "Abonados", "#636366"],
+            [statsPagarDepois, "Pagar dep.", "#0a84ff"],
           ].map(([n, l, c]) => (
             <div
               key={l}
