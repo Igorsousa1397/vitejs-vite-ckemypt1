@@ -3346,6 +3346,7 @@ export default function App() {
   const [permissoes, setPermissoes] = useState({});
   const [backTab, setBackTab] = useState("grupos");
   const [backGruposAbertos, setBackGruposAbertos] = useState({});
+  const [backBuscaUser, setBackBuscaUser] = useState("");
   const unsubPermRef = useRef(null);
 
   // Inicializa quarto mães se não existir
@@ -4551,6 +4552,8 @@ export default function App() {
             liderMapOverrides={liderMapOverrides}
             setLiderMapOverrides={setLiderMapOverrides}
             perfisExtra={perfisExtra}
+            buscaUser={backBuscaUser}
+            setBuscaUser={setBackBuscaUser}
           />
         )}
       </div>
@@ -12763,9 +12766,8 @@ function CozinhaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra }) {
+  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra, buscaUser, setBuscaUser }) {
     // const [tab, setTab] = useState("usuarios");
-    const [buscaUser, setBuscaUser] = useState("");
     const [buscaFn, setBuscaFn] = useState("");
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
