@@ -10086,22 +10086,23 @@ function CozinhaV({ edit, t, users }) {
     return a.nome.localeCompare(b.nome, "pt-BR");
   });
 
-  // Base padronizada: mesma regra usada no dashboard financeiro (Home),
-  // assim os números batem em todas as telas.
-  const statsBase = users.filter(
+  // Base padronizada: mesma regra de perfil usada no dashboard financeiro (Home).
+  // Inativos entram no total, mas como categoria própria (não contam em pago/pendente/etc).
+  const statsBaseTodos = users.filter(
     (u) =>
       u.nome &&
-      u.ativo !== false &&
       u.perfil !== "admin" &&
       u.perfil !== "pastor" &&
       u.perfil !== "pastor_auxiliar" &&
       u.perfil !== "lider_geral",
   );
-  const statsTotal = statsBase.length;
+  const statsInativos = statsBaseTodos.filter((u) => u.ativo === false).length;
+  const statsBase = statsBaseTodos.filter((u) => u.ativo !== false);
   const statsPagos = statsBase.filter((u) => u.pago === true).length;
   const statsAbonados = statsBase.filter((u) => u.pago === "abonado").length;
   const statsPagarDepois = statsBase.filter((u) => u.pago === "pagar_depois").length;
-  const statsPendentes = statsTotal - statsPagos - statsAbonados - statsPagarDepois;
+  const statsPendentes = statsBase.length - statsPagos - statsAbonados - statsPagarDepois;
+  const statsTotal = statsBaseTodos.length;
 
     return (
       <div>
@@ -10415,7 +10416,7 @@ function CozinhaV({ edit, t, users }) {
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: 8,
-            marginBottom: 14,
+            marginBottom: 8,
           }}
         >
           {[
@@ -10451,6 +10452,21 @@ function CozinhaV({ edit, t, users }) {
               </div>
             </div>
           ))}
+        </div>
+        <div
+          style={{
+            background: "#111",
+            borderRadius: 12,
+            padding: "10px 8px",
+            textAlign: "center",
+            borderTop: "2px solid #8e8e93",
+            marginBottom: 14,
+          }}
+        >
+          <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>{statsInativos}</div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+            Inativos
+          </div>
         </div>
 
         {lista.map((u, i) => (
