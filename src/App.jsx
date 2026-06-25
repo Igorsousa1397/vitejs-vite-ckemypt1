@@ -12765,7 +12765,9 @@ function CozinhaV({ edit, t, users }) {
   }
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
-  function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra, buscaUserRef }) {
+}
+
+function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra, buscaUserRef }) {
     const [buscaUser, setBuscaUserState] = useState(buscaUserRef?.current || "");
     const setBuscaUser = (v) => {
       setBuscaUserState(v);
@@ -13103,7 +13105,7 @@ function CozinhaV({ edit, t, users }) {
                                               : [...telasExtra, id];
                                             await setDoc(doc(db, "users", u.id), { telasExtra: novas }, { merge: true });
                                             setUsers(prev => prev.map(x => x.id === u.id ? { ...x, telasExtra: novas } : x));
-                                            showT(ativo ? `${label} removida.` : `${label} habilitada.`);
+                                            t(ativo ? `${label} removida.` : `${label} habilitada.`);
                                           }}
                                           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 14px", background: ativo ? "rgba(10,132,255,.08)" : "transparent", borderTop: idx > 0 ? "1px solid #1e1e1e" : "none" }}
                                         >
@@ -13640,5 +13642,4 @@ function AddFuncaoDia({ dia, fns, onAdd }) {
       {dropdown}
     </div>
   );
-}
 }
