@@ -28,7 +28,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -3900,6 +3900,7 @@ export default function App() {
     if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
 
     const MAPA_SERVO = {
+      "perfil": [User, "sperfil", "Perfil"],
       "mins": [Calendar, "smins", "Agenda"],
       "avisos": [Megaphone, "savs", "Avisos"],
       "uniforme": [Shirt, "suni", "Uniforme"],
@@ -3918,6 +3919,7 @@ export default function App() {
 
     const SERVO_MENU = Object.entries(MAPA_SERVO)
       .filter(([tela]) => {
+        if (tela === "perfil") return true;
         if (tela === "rest") return role === "lider_celula" || user?.liderCelula === true;
         if (tela === "img") return role === "lider_midia" || Object.values(user?.escala || {}).flat().includes("Mídia");
         return temPermissao(tela);
@@ -4070,7 +4072,8 @@ export default function App() {
               <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
             ) : (
               <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-                {pg === "savs" ? "Avisos"
+                {pg === "sperfil" ? "Perfil"
+                : pg === "savs" ? "Avisos"
                 : pg === "suni" ? "Uniforme"
                 : pg === "sinfo" ? "Ocorrências"
                 : pg === "srest" ? "Restrições"
@@ -4128,6 +4131,7 @@ export default function App() {
         <div
           style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}
         >
+          {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} />}
           {pg === "savs" && (
             <div>
               {avs.length === 0 && (
@@ -10257,7 +10261,46 @@ function CozinhaV({ edit, t, users }) {
           </button>
         </div>
 
-        {/* MODAL DE FILTROS */}
+        {edit && (
+          <button
+            onClick={async () => {
+              const wb = new ExcelJS.Workbook();
+              const ws = wb.addWorksheet("Servos");
+              ws.columns = [
+                { header: "Nome", key: "nome", width: 35 },
+                { header: "Email", key: "email", width: 30 },
+                { header: "CPF", key: "cpf", width: 18 },
+                { header: "Nascimento", key: "nascimento", width: 14 },
+                { header: "Perfil", key: "perfil", width: 22 },
+                { header: "Pago", key: "pago", width: 10 },
+              ];
+              ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
+              ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+              [...users].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach((u) => {
+                ws.addRow({
+                  nome: u.nome || "",
+                  email: u.email || "",
+                  cpf: u.cpf || "",
+                  nascimento: u.nascimento
+                    ? (u.nascimento.includes("-") && u.nascimento.length === 10
+                        ? u.nascimento.split("-").reverse().join("/")
+                        : u.nascimento)
+                    : "",
+                  perfil: PERFIS[u.perfil]?.l || u.perfil || "",
+                  pago: u.pago ? "Pago" : "Pendente",
+                });
+              });
+              const buf = await wb.xlsx.writeBuffer();
+              const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = "servos.xlsx"; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 14 })}
+          >
+            Exportar Excel
+          </button>
+        )}
         <Sheet open={shFiltro} onClose={() => setShFiltro(false)} title="Filtros">
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
@@ -13087,6 +13130,81 @@ function LideresEditor({ fn, liderMapOverrides, setLiderMapOverrides, t }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function PerfilV({ user, setUser, t }) {
+  const [cpf, setCpf] = useState(user.cpf || "");
+  const [nascimento, setNascimento] = useState(user.nascimento || "");
+  const [salvando, setSalvando] = useState(false);
+
+  const formatCpf = (v) =>
+    v
+      .replace(/\D/g, "")
+      .slice(0, 11)
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+  const salvar = async () => {
+    const cpfLimpo = cpf.replace(/\D/g, "");
+    if (cpfLimpo && cpfLimpo.length !== 11) {
+      t("CPF inválido.", "w");
+      return;
+    }
+    setSalvando(true);
+    try {
+      await setDoc(doc(db, "users", user.id), { cpf: cpfLimpo, nascimento }, { merge: true });
+      setUser((prev) => ({ ...prev, cpf: cpfLimpo, nascimento }));
+      t("Perfil atualizado!");
+    } catch (err) {
+      console.error("Erro ao salvar perfil:", err);
+      t("Erro ao salvar.", "w");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+          Nome
+        </div>
+        <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{user.nome}</div>
+        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+          Email
+        </div>
+        <div style={{ color: G.t, fontSize: 15, fontWeight: 600 }}>{user.email}</div>
+      </div>
+      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16 }}>
+        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+          CPF
+        </div>
+        <input
+          value={cpf}
+          onChange={(e) => setCpf(formatCpf(e.target.value))}
+          placeholder="000.000.000-00"
+          style={{ ...I, marginBottom: 14 }}
+        />
+        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+          Data de Nascimento
+        </div>
+        <input
+          type="date"
+          value={nascimento}
+          onChange={(e) => setNascimento(e.target.value)}
+          style={{ ...I, marginBottom: 14 }}
+        />
+        <button
+          onClick={salvar}
+          disabled={salvando}
+          style={BG({ width: "100%", padding: 13, borderRadius: 12, opacity: salvando ? 0.7 : 1 })}
+        >
+          {salvando ? "Salvando..." : "Salvar"}
+        </button>
+      </div>
     </div>
   );
 }
