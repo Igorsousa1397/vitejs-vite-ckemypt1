@@ -6985,6 +6985,38 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           />
         )}
 
+        {(() => {
+          const todosQuartos = isH ? qh : qm;
+          const totalVagas = todosQuartos.reduce((acc, q) => acc + (q.lim || 0), 0);
+          const totalPreenchido = todosQuartos.reduce((acc, q) => acc + (q.servos?.length || 0) + (q.enc?.length || 0), 0);
+          const pct = totalVagas > 0 ? Math.min(100, Math.round((totalPreenchido / totalVagas) * 100)) : 0;
+          const bc = pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
+          return (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+                marginTop: 10,
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: "2px solid #636366" }}>
+                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalVagas}</div>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+                  Total de Vagas
+                </div>
+              </div>
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: `2px solid ${bc}` }}>
+                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalPreenchido}</div>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+                  Preenchido ({pct}%)
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {edit && (
           <>
             <button
