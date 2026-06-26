@@ -3348,6 +3348,32 @@ export default function App() {
   const [qm, setQm] = useState(QM_INIT);
   const [on, setOn] = useState(ON_INIT);
   const [mins, setMins] = useState(MINS_INIT);
+  const minsLoadedRef = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "agenda"));
+        if (snap.exists() && Array.isArray(snap.data().lista)) {
+          setMins(snap.data().lista);
+        } else {
+          await setDoc(doc(db, "config", "agenda"), { lista: MINS_INIT });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar agenda:", err);
+      } finally {
+        minsLoadedRef.current = true;
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!minsLoadedRef.current) return;
+    setDoc(doc(db, "config", "agenda"), { lista: mins }).catch((err) =>
+      console.error("Erro ao salvar agenda:", err),
+    );
+  }, [mins]);
+
   const [rest, setRest] = useState(REST_INIT);
   const [ck, setCk] = useState(CK_INIT);
   const [img, setImg] = useState([]);
