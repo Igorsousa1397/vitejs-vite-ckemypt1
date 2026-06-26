@@ -4352,7 +4352,7 @@ export default function App() {
           )}
           {pg === "squartos" && (
             temPermissao("quartos")
-              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role) || canExtra("quartos")} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} />
+              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role) || canExtra("quartos")} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} user={user} />
               : <TelaRestrita />
           )}
           {pg === "scheckin" && (
@@ -4597,6 +4597,7 @@ export default function App() {
             setTab={setQuartoTab}
             abertos={quartosAbertos}
             setAbertos={setQuartosAbertos}
+            user={user}
           />
         )}
         {pg === "enc" && (
@@ -6679,13 +6680,21 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     setTab,
     abertos,
     setAbertos,
+    user,
   }) {
     // const [tab, setTab] = useState("M");
     const [shN, setShN] = useState(false);
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
     const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
-    const isH = tab === "H";
+
+    // Servos sem permissão de gestão só podem ver os quartos do próprio gênero
+    const tabRestrita = user?.sexo === "Masculino" ? "H" : "M";
+    useEffect(() => {
+      if (!edit && tab !== tabRestrita) setTab(tabRestrita);
+    }, [edit, tab, tabRestrita]);
+    const tabEfetiva = edit ? tab : tabRestrita;
+    const isH = tabEfetiva === "H";
     const colecao = isH ? "quartos_h" : "quartos_m";
     
     const EditQuarto = ({ q, upd, t }) => {
@@ -6965,14 +6974,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             👀 Somente visualização
           </div>
         )}
-        <Seg
-          opts={[
-            ["M", "Mulheres"],
-            ["H", "Homens"],
-          ]}
-          val={tab}
-          set={setTab}
-        />
+        {edit && (
+          <Seg
+            opts={[
+              ["M", "Mulheres"],
+              ["H", "Homens"],
+            ]}
+            val={tab}
+            set={setTab}
+          />
+        )}
 
         {edit && (
           <>
