@@ -13198,6 +13198,17 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
     };
     // const [tab, setTab] = useState("usuarios");
     const [buscaFn, setBuscaFn] = useState("");
+    const [filtroPerfilBack, setFiltroPerfilBack] = useState("todos");
+    const [shFiltroBack, setShFiltroBack] = useState(false);
+    const filtroPerfilBackFn = (u) => {
+      if (filtroPerfilBack === "todos") return true;
+      if (filtroPerfilBack === "servo") return u.perfil === "servo";
+      if (filtroPerfilBack === "cozinha") return u.perfil === "cozinha";
+      if (filtroPerfilBack === "staff") return u.perfil === "staff";
+      if (filtroPerfilBack === "lider") return u.perfil?.startsWith("lider_");
+      if (filtroPerfilBack === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
+      return true;
+    };
     const [shGrp, setShGrp] = useState(false);
     const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
 
@@ -13357,14 +13368,71 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
               >
                 Exportar Escalas (XLSX)
               </button>
-              <input value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} placeholder="🔍 Buscar usuário..." style={{ ...I, marginBottom: 12 }} />
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <input value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} placeholder="🔍 Buscar usuário..." style={{ ...I, marginBottom: 0, flex: 1 }} />
+                <button
+                  onClick={() => setShFiltroBack(true)}
+                  style={{
+                    ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
+                    position: "relative",
+                    borderColor: filtroPerfilBack !== "todos" ? "rgba(10,132,255,.5)" : G.cb,
+                    color: filtroPerfilBack !== "todos" ? "#0a84ff" : G.t,
+                    background: filtroPerfilBack !== "todos" ? "rgba(10,132,255,.08)" : G.card,
+                    height: 44,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <SlidersHorizontal size={18} />
+                  {filtroPerfilBack !== "todos" && (
+                    <span style={{
+                      position: "absolute", top: 4, right: 4,
+                      background: "#0a84ff", color: "#fff",
+                      fontSize: 10, fontWeight: 800,
+                      borderRadius: "50%", width: 16, height: 16,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      1
+                    </span>
+                  )}
+                </button>
+              </div>
+              <Sheet open={shFiltroBack} onClose={() => setShFiltroBack(false)} title="Filtrar por perfil">
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {[
+                    ["todos", "Todos"],
+                    ["pastor", "Pastores"],
+                    ["lider", "Líderes"],
+                    ["servo", "Servos"],
+                    ["cozinha", "Cozinha"],
+                    ["staff", "Staff"],
+                  ].map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => { setFiltroPerfilBack(val); setShFiltroBack(false); }}
+                      style={{
+                        ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
+                        borderColor: filtroPerfilBack === val ? "rgba(10,132,255,.5)" : "#2a2a2a",
+                        color: filtroPerfilBack === val ? "#0a84ff" : G.td,
+                        background: filtroPerfilBack === val ? "rgba(10,132,255,.08)" : "transparent",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                      }}
+                    >
+                      {label}
+                      {filtroPerfilBack === val && <span style={{ fontSize: 16 }}>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </Sheet>
               {users
                .filter(u =>
                   (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
                   u.perfil !== "admin" &&
                   u.nome &&
                   u.ativo !== false &&
-                  u.primeiro !== true
+                  u.primeiro !== true &&
+                  filtroPerfilBackFn(u)
                 )
                 .sort((a, b) => {
                   const ORDEM = (p) => {
