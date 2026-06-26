@@ -11105,7 +11105,7 @@ function CozinhaV({ edit, t, users }) {
           if (filtroSexo !== "todos") partes.push(filtroSexo);
           if (busca.trim()) partes.push(`"${busca.trim()}"`);
           return (
-            <div style={{ color: G.tm, fontSize: 12, textAlign: "center", marginBottom: 14 }}>
+            <div style={{ color: G.tm, fontSize: 12, textAlign: "left", marginBottom: 14 }}>
               Exibindo <strong style={{ color: G.t }}>{lista.length}</strong>
               {partes.length > 0 ? ` de ${partes.join(" · ")}` : ""}
             </div>
