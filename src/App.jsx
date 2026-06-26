@@ -1438,7 +1438,7 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
 }
 
 // ── WELCOME ──────────────────────────────────────────────────────────────────
-function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
+function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
   return (
     <div
       style={{
@@ -1502,15 +1502,19 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito }) {
           }}
         >
           <button
-            onClick={onEncontrista}
-            style={BG({
-              width: "100%",
-              padding: 16,
-              borderRadius: 16,
-              fontSize: 16,
-            })}
+            onClick={bloqueadas ? undefined : onEncontrista}
+            disabled={bloqueadas}
+            style={{
+              ...BG({
+                width: "100%",
+                padding: 16,
+                borderRadius: 16,
+                fontSize: 16,
+              }),
+              ...(bloqueadas ? { background: "#3a3a3a", color: "#888", cursor: "not-allowed" } : {}),
+            }}
           >
-            Inscrições
+            {bloqueadas ? "Inscrições encerradas" : "Inscrições"}
           </button>
           <button
             onClick={onJaInscrito}
@@ -3290,6 +3294,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "inscricoes"), (snap) => {
+      setInscricoesBloqueadas(snap.exists() ? !!snap.data().bloqueadas : false);
+    });
+    return () => unsub();
+  }, []);
+
+  const salvarInscricoesBloqueadas = async (valor) => {
+    try {
+      await setDoc(doc(db, "config", "inscricoes"), { bloqueadas: valor }, { merge: true });
+      setInscricoesBloqueadas(valor);
+      showT(valor ? "Inscrições bloqueadas." : "Inscrições reabertas!");
+    } catch (err) {
+      console.error("Erro ao salvar status das inscrições:", err);
+      showT("Erro ao salvar.", "w");
+    }
+  };
+
+  useEffect(() => {
     (async () => {
       try {
         const snap = await getDoc(doc(db, "config", "funcoes_extra"));
@@ -3340,6 +3362,7 @@ export default function App() {
   const [quartoTab, setQuartoTab] = useState("M");
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
+  const [inscricoesBloqueadas, setInscricoesBloqueadas] = useState(false);
   const [dataLimitePedido, setDataLimitePedido] = useState("");
   const [dataLimiteRestante, setDataLimiteRestante] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
@@ -3783,8 +3806,21 @@ export default function App() {
       onEncontrista={() => setScr("inscricao")}
       onFaq={() => setFaqOpen(true)}
       onJaInscrito={() => setScr('ja_inscrito')}
+      bloqueadas={inscricoesBloqueadas}
     />
   );
+
+  if (scr === "inscricao" && inscricoesBloqueadas) {
+    return (
+      <Welcome
+        onServos={() => setScr("login")}
+        onEncontrista={() => {}}
+        onFaq={() => setFaqOpen(true)}
+        onJaInscrito={() => setScr('ja_inscrito')}
+        bloqueadas={inscricoesBloqueadas}
+      />
+    );
+  }
 
   if (scr === "inscricao")
     return (
@@ -4220,7 +4256,7 @@ export default function App() {
             temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
           )}
           {pg === "senc" && (
-            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} /> : <TelaRestrita />
+            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} inscricoesBloqueadas={inscricoesBloqueadas} salvarInscricoesBloqueadas={salvarInscricoesBloqueadas} /> : <TelaRestrita />
           )}
           {pg === "scozinha" && (
             temPermissao("cozinha") ? <CozinhaV edit={isAdm || canExtra("cozinha")} t={showT} users={users} /> : <TelaRestrita />
@@ -4450,6 +4486,8 @@ export default function App() {
             setQm={setQm}
             edit={canG(role)}
             t={showT}
+            inscricoesBloqueadas={inscricoesBloqueadas}
+            salvarInscricoesBloqueadas={salvarInscricoesBloqueadas}
           />
         )}
         {pg === "onibus" && (
@@ -6964,6 +7002,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     setQm,
     edit,
     t,
+    inscricoesBloqueadas,
+    salvarInscricoesBloqueadas,
   }) {
     const [g, setG] = useState("T");
     const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -7165,6 +7205,56 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         >
           Exportar Excel
         </button>
+        {edit && (
+          <div
+            onClick={() => salvarInscricoesBloqueadas(!inscricoesBloqueadas)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              cursor: "pointer",
+              padding: "12px 14px",
+              borderRadius: 12,
+              marginTop: 10,
+              background: inscricoesBloqueadas ? "rgba(255,59,48,.08)" : "#111",
+              border: `1px solid ${inscricoesBloqueadas ? "rgba(255,59,48,.3)" : "#1e1e1e"}`,
+            }}
+          >
+            <div>
+              <div style={{ color: G.t, fontSize: 13, fontWeight: 700 }}>
+                {inscricoesBloqueadas ? "Inscrições encerradas" : "Inscrições abertas"}
+              </div>
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
+                {inscricoesBloqueadas ? "Ninguém consegue se inscrever agora" : "Toque para encerrar novas inscrições"}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 44,
+                height: 26,
+                borderRadius: 14,
+                background: inscricoesBloqueadas ? "#ff3b30" : "#333",
+                position: "relative",
+                flexShrink: 0,
+                transition: "background .15s",
+              }}
+            >
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  position: "absolute",
+                  top: 3,
+                  left: inscricoesBloqueadas ? 21 : 3,
+                  transition: "left .15s",
+                }}
+              />
+            </div>
+          </div>
+        )}
         <div style={{ position: "relative", marginTop: 10 }}>
           <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
           <input
