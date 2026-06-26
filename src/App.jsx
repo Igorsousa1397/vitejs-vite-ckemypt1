@@ -3371,6 +3371,9 @@ export default function App() {
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
   const [inscricoesBloqueadas, setInscricoesBloqueadas] = useState(false);
+  const [avTextoServo, setAvTextoServo] = useState("");
+  const [avPublicoServo, setAvPublicoServo] = useState("todos");
+  const enviandoAvisoServoRef = useRef(false);
   const [dataLimitePedido, setDataLimitePedido] = useState("");
   const [dataLimiteRestante, setDataLimiteRestante] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
@@ -4179,6 +4182,72 @@ export default function App() {
           {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} />}
           {pg === "savs" && (
             <div>
+              {canAvisos(role) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                  <select
+                    onChange={(e) => { if (e.target.value) setAvTextoServo(e.target.value); }}
+                    style={{ ...I, fontSize: 12 }}
+                    defaultValue=""
+                  >
+                    <option value="">Usar template de aviso...</option>
+                    {AVISOS_TEMPLATES.map((a, i) => (
+                      <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
+                    ))}
+                  </select>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[["todos", "Todos"], ["homens", "Homens"], ["mulheres", "Mulheres"]].map(([k, l]) => (
+                      <button
+                        key={k}
+                        onClick={() => setAvPublicoServo(k)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 6px",
+                          borderRadius: 9,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          border: `1px solid ${avPublicoServo === k ? "#0a84ff" : "#2a2a2a"}`,
+                          background: avPublicoServo === k ? "rgba(10,132,255,.12)" : "#1a1a1a",
+                          color: avPublicoServo === k ? "#0a84ff" : G.td,
+                        }}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={avTextoServo}
+                      onChange={(e) => setAvTextoServo(e.target.value)}
+                      placeholder="Escrever aviso..."
+                      style={{ ...I, flex: 1 }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (enviandoAvisoServoRef.current) return;
+                        if (!avTextoServo.trim()) return;
+                        enviandoAvisoServoRef.current = true;
+                        vibrar(100);
+                        const txt = avTextoServo.trim();
+                        const publico = avPublicoServo;
+                        setAvTextoServo("");
+                        const aviso = {
+                          txt,
+                          autor: user.nome,
+                          publico,
+                          hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                          createdAt: Date.now(),
+                        };
+                        await addDoc(collection(db, "avisos"), aviso);
+                        notifyAll(`Aviso: ${txt}`, publico);
+                        showT("Aviso publicado!");
+                        setTimeout(() => { enviandoAvisoServoRef.current = false; }, 1500);
+                      }}
+                      style={BG({ padding: "13px 15px", borderRadius: 12 })}
+                    >+</button>
+                  </div>
+                </div>
+              )}
               {avs.length === 0 && (
                 <div
                   style={{
@@ -4207,9 +4276,19 @@ export default function App() {
                   <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>
                     {a.txt}
                   </div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4 }}>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
                     {a.autor} · {a.hr}
+                    {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+                    {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
                   </div>
+                  {canAvisos(role) && (
+                    <span
+                      onClick={async () => { await deleteDoc(doc(db, "avisos", a.id)); }}
+                      style={{ color: "rgba(255,59,48,.6)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "inline-block", marginTop: 6 }}
+                    >
+                      Excluir
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
