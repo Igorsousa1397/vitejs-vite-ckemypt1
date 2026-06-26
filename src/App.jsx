@@ -10484,6 +10484,7 @@ function CozinhaV({ edit, t, users }) {
   function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
+    const [filtroSexo, setFiltroSexo] = useState("todos");
     const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({
@@ -10615,7 +10616,12 @@ function CozinhaV({ edit, t, users }) {
     return true;
   };
 
-  const filtrosAtivos = (filtroPerfil !== "todos" ? 1 : 0) + (filtroStatus !== "todos" ? 1 : 0);
+  const filtroSexoFn = (u) => {
+    if (filtroSexo === "todos") return true;
+    return u.sexo === filtroSexo;
+  };
+
+  const filtrosAtivos = (filtroPerfil !== "todos" ? 1 : 0) + (filtroStatus !== "todos" ? 1 : 0) + (filtroSexo !== "todos" ? 1 : 0);
 
   const lista = users.filter(
     (u) =>
@@ -10623,6 +10629,7 @@ function CozinhaV({ edit, t, users }) {
       u.nome &&
       filtroPerfilFn(u) &&
       filtroStatusFn(u) &&
+      filtroSexoFn(u) &&
       (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
   ).sort((a, b) => {
     const ordemA = ORDEM_PERFIL(a.perfil);
@@ -10925,10 +10932,37 @@ function CozinhaV({ edit, t, users }) {
               </div>
             </div>
 
+            {/* Sexo */}
+            <div>
+              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Sexo</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  ["todos", "Todos"],
+                  ["Masculino", "Masculino"],
+                  ["Feminino", "Feminino"],
+                ].map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setFiltroSexo(val)}
+                    style={{
+                      ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
+                      borderColor: filtroSexo === val ? "rgba(255,45,146,.5)" : "#2a2a2a",
+                      color: filtroSexo === val ? "#ff2d92" : G.td,
+                      background: filtroSexo === val ? "rgba(255,45,146,.08)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}
+                  >
+                    {label}
+                    {filtroSexo === val && <span style={{ fontSize: 16 }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Limpar */}
             {filtrosAtivos > 0 && (
               <button
-                onClick={() => { setFiltroPerfil("todos"); setFiltroStatus("todos"); }}
+                onClick={() => { setFiltroPerfil("todos"); setFiltroStatus("todos"); setFiltroSexo("todos"); }}
                 style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}
               >
                 Limpar filtros
