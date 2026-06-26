@@ -6774,6 +6774,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         u.perfil !== "admin" &&
         u.ativo !== false &&
         !todosServosAlocados.has(u.nome) &&
+        u.sexo === (isH ? "Masculino" : "Feminino") &&
         DIAS_QV.some((d) => (u.escala?.[d] || []).includes("Servo de Quarto")),
     );
 
