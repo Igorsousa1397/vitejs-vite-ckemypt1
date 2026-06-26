@@ -6005,6 +6005,53 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           Escanear QR Code
         </button>
 
+        {/* Botão exportar - somente confirmados (chegaram), todos os gêneros */}
+        <button
+          onClick={async () => {
+            const confirmados = ck.filter((c) => c.ok);
+            if (!confirmados.length) {
+              t("Nenhum check-in confirmado ainda.", "w");
+              return;
+            }
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet("Check-in");
+            ws.columns = [
+              { header: "Nome", key: "nome", width: 35 },
+              { header: "Sexo", key: "sexo", width: 12 },
+              { header: "CPF", key: "cpf", width: 18 },
+              { header: "WhatsApp", key: "whatsapp", width: 18 },
+              { header: "Ônibus", key: "onibus", width: 10 },
+            ];
+            ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
+            ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+            confirmados
+              .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""))
+              .forEach((c) => {
+                ws.addRow({
+                  nome: c.nome || "",
+                  sexo: c.gen === "M" ? "Feminino" : "Masculino",
+                  cpf: c.cpf || "",
+                  whatsapp: c.whatsapp || "",
+                  onibus: c.on || "",
+                });
+              });
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = "checkin_confirmados.xlsx"; a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={BK({
+            width: "100%",
+            padding: 13,
+            marginBottom: 10,
+            borderRadius: 14,
+            fontSize: 14,
+          })}
+        >
+          Exportar Excel (confirmados)
+        </button>
+
         <Seg
           opts={[
             ["M", "Mulheres"],
