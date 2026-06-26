@@ -5381,10 +5381,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     return (e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina') ? VALOR_ENC_ITAJAI : VALOR_ENC;
   };
   const encPagosLista = todosEnc.filter(e => e.pago);
-  const encPendentesLista = todosEnc.filter(e => !e.pago);
-  const encPagarDepoisLista = todosEnc.filter(e => !e.pago && e.pagarDepois);
+  const encPendentesLista = todosEnc.filter(e => !e.pago && !e.desistiu);
+  const encPagarDepoisLista = todosEnc.filter(e => !e.pago && !e.desistiu && e.pagarDepois);
+  const encDesistenciaLista = todosEnc.filter(e => !e.pago && e.desistiu);
   const encPagos = encPagosLista.length;
   const encPagarDepois = encPagarDepoisLista.length;
+  const encDesistencia = encDesistenciaLista.length;
   const encPendentes = encPendentesLista.length - encPagarDepois;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
   const encArrecadado = encPagosLista.reduce((acc, e) => acc + getValorEnc(e), 0);
@@ -5538,6 +5540,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     <span style={{ color: '#ff9f0a', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pagar dep.</span>
                     <BarPct val={encPagarDepois} max={META_ENC} color="#ff9f0a" />
                     <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPagarDepois}</span>
+                  </div>
+                )}
+                {encDesistencia > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: '#636366', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Desistência</span>
+                    <BarPct val={encDesistencia} max={META_ENC} color="#636366" />
+                    <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encDesistencia}</span>
                   </div>
                 )}
               </div>
@@ -7139,8 +7148,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       e.nome.toLowerCase().includes(busca.toLowerCase()) &&
       (filtroStatus === "todos" ? true
         : filtroStatus === "pago" ? e.pago
-        : filtroStatus === "pagardepois" ? (!e.pago && e.pagarDepois)
-        : (!e.pago && !e.pagarDepois)) &&
+        : filtroStatus === "pagardepois" ? (!e.pago && e.pagarDepois && !e.desistiu)
+        : filtroStatus === "desistencia" ? (!e.pago && e.desistiu)
+        : (!e.pago && !e.pagarDepois && !e.desistiu)) &&
       (filtroCelula === "todas" ? true : e.celula === filtroCelula)
     ).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
@@ -7179,6 +7189,20 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [pdForm, setPdForm] = useState({});
     const [pdDataTemp, setPdDataTemp] = useState({});
     const [pdObsTemp, setPdObsTemp] = useState({});
+
+    const salvarDesistiu = async (enc, ativo) => {
+      const upd = { desistiu: ativo };
+      try {
+        await setDoc(doc(db, "encontristas", enc.id), upd, { merge: true });
+        const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
+        setEncH((prev) => apply(prev));
+        setEncM((prev) => apply(prev));
+        t(ativo ? "Marcado como desistência." : "Desistência removida.");
+      } catch (err) {
+        console.error("Erro ao salvar desistência:", err);
+        t("Erro ao salvar.", "w");
+      }
+    };
 
     const salvarPagarDepois = async (enc, ativo, dataPrev, obs) => {
       const upd = ativo
@@ -7225,7 +7249,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "1fr 1fr 1fr",
             gap: 8,
             marginBottom: 14,
           }}
@@ -7233,8 +7257,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           {[
             [encM.length + encH.length, "Total Geral", "#636366"],
             [lista.filter((e) => e.pago).length, "Pagos", G.green],
-            [lista.filter((e) => !e.pago && !e.pagarDepois).length, "Pendentes", "#ff3b30"],
-            [lista.filter((e) => !e.pago && e.pagarDepois).length, "Pagar dep.", "#ff9f0a"],
+            [lista.filter((e) => !e.pago && !e.pagarDepois && !e.desistiu).length, "Pendentes", "#ff3b30"],
+            [lista.filter((e) => !e.pago && e.pagarDepois && !e.desistiu).length, "Pagar dep.", "#ff9f0a"],
+            [lista.filter((e) => !e.pago && e.desistiu).length, "Desistência", "#636366"],
           ].map(([n, l, c]) => (
             <div
               key={l}
@@ -7271,7 +7296,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         />
         <div style={{ marginTop: 8 }}>
           <Seg
-            opts={[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"], ["pagardepois", "Pagar dep."]]}
+            opts={[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"], ["pagardepois", "Pagar dep."], ["desistencia", "Desistência"]]}
             val={filtroStatus}
             set={setFiltroStatus}
           />
@@ -7410,7 +7435,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 style={{
                   background: G.card,
                   border: `1px solid ${e.pago ? "rgba(0,200,81,.25)" : "rgba(255,59,48,.2)"}`,
-                  borderLeft: `3px solid ${e.pago ? G.green : e.pagarDepois ? "#ff9f0a" : "#ff3b30"}`,
+                  borderLeft: `3px solid ${e.pago ? G.green : e.desistiu ? "#636366" : e.pagarDepois ? "#ff9f0a" : "#ff3b30"}`,
                   borderRadius: 13,
                   marginBottom: 7,
                   overflow: "hidden",
@@ -7447,6 +7472,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           {e.pagamentoId ? "Pago" : "Pago fora do app"}
                         </span>
                       </div>
+                    ) : e.desistiu ? (
+                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#8e8e93", fontSize: 11, fontWeight: 700 }}>
+                        Desistiu
+                      </span>
                     ) : e.pagarDepois ? (
                       <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 700 }}>
                         Pagar depois
@@ -7771,6 +7800,42 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         >
                           Salvar
                         </button>
+                      </div>
+                    )}
+
+                    {/* Desistiu - só para status Pendente */}
+                    {!e.pago && (
+                      <div
+                        onClick={() => salvarDesistiu(e, !e.desistiu)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          cursor: "pointer",
+                          padding: "8px 10px",
+                          borderRadius: 10,
+                          background: e.desistiu ? "rgba(255,59,48,.08)" : "#111",
+                          border: `1px solid ${e.desistiu ? "rgba(255,59,48,.3)" : "#1e1e1e"}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 5,
+                            border: `2px solid ${e.desistiu ? "#ff3b30" : "#444"}`,
+                            background: e.desistiu ? "rgba(255,59,48,.15)" : "transparent",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {e.desistiu && <span style={{ color: "#ff3b30", fontSize: 11, fontWeight: 800 }}>✓</span>}
+                        </div>
+                        <span style={{ color: e.desistiu ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
+                          Desistiu
+                        </span>
                       </div>
                     )}
 
