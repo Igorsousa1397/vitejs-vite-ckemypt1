@@ -3697,7 +3697,7 @@ export default function App() {
     broadcast(`${nm} — ${hr}`);
     showT(`${nm} — ${hr}`, "n");
   };
-  const notifyAll = async (msg) => {
+  const notifyAll = async (msg, publico = "todos") => {
     if (enviando.current) return;
     enviando.current = true;
     showT(msg, "n");
@@ -3707,7 +3707,7 @@ export default function App() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ titulo: msg, horario: "" }),
+          body: JSON.stringify({ titulo: msg, horario: "", publico }),
         },
       );
     } catch (err) {
@@ -4420,10 +4420,11 @@ export default function App() {
             edit={canG(role)}
             encH={encH}
             encM={encM}
-            addAv={async (txt) => {
+            addAv={async (txt, publico = "todos") => {
               const aviso = {
                 txt,
                 autor: user.nome,
+                publico,
                 hr: new Date().toLocaleTimeString("pt-BR", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -4431,7 +4432,7 @@ export default function App() {
                 createdAt: Date.now(),
               };
               await addDoc(collection(db, "avisos"), aviso);
-              notifyAll(`Aviso: ${txt}`);
+              notifyAll(`Aviso: ${txt}`, publico);
               showT("Aviso publicado!");
             }}
             delAv={async (id) => {
@@ -5264,6 +5265,7 @@ export default function App() {
 function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users }) {
   const [tab, setTab] = useState("dash");
   const [av, setAv] = useState("");
+  const [publicoAviso, setPublicoAviso] = useState("todos");
   const [filtroDias, setFiltroDias] = useState(7);
 
   const ch = ck.filter((c) => c.ok).length, tot = ck.length;
@@ -5655,6 +5657,27 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   ))}
                 </select>
                 <div style={{ display: "flex", gap: 8 }}>
+                  {[["todos", "Todos"], ["homens", "Homens"], ["mulheres", "Mulheres"]].map(([k, l]) => (
+                    <button
+                      key={k}
+                      onClick={() => setPublicoAviso(k)}
+                      style={{
+                        flex: 1,
+                        padding: "8px 6px",
+                        borderRadius: 9,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: `1px solid ${publicoAviso === k ? "#0a84ff" : "#2a2a2a"}`,
+                        background: publicoAviso === k ? "rgba(10,132,255,.12)" : "#1a1a1a",
+                        color: publicoAviso === k ? "#0a84ff" : G.td,
+                      }}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
                   <input value={av} onChange={(e) => setAv(e.target.value)} placeholder="Escrever aviso..." style={{ ...I, flex: 1 }} />
                   <button
                     onClick={() => {
@@ -5664,7 +5687,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       vibrar(100);
                       const txt = av.trim();
                       setAv("");
-                      addAv(txt);
+                      addAv(txt, publicoAviso);
                       setTimeout(() => { enviandoAviso.current = false; }, 1500);
                     }}
                     style={BG({ padding: "13px 15px", borderRadius: 12 })}
@@ -5676,7 +5699,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               <div key={a.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 13, padding: "12px 14px", marginBottom: 7, display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>{a.txt}</div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4 }}>{a.autor} · {a.hr}</div>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                    {a.autor} · {a.hr}
+                    {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+                    {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
+                  </div>
                 </div>
                 {edit && <span onClick={() => delAv(a.id)} style={{ color: "rgba(255,59,48,.5)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>×</span>}
               </div>
@@ -10696,6 +10723,9 @@ function CozinhaV({ edit, t, users }) {
                 {u.primeiro && (
                   <Pill c="1º acesso" bg="rgba(255,159,10,.15)" tc="#ff9f0a" />
                 )}
+                {!u.sexo && (
+                  <Pill c="Sem sexo" bg="rgba(255,59,48,.12)" tc="#ff3b30" />
+                )}
                 {!u.ativo && (
                   <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
                 )}
@@ -10720,6 +10750,34 @@ function CozinhaV({ edit, t, users }) {
               {u.email && (
                 <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>
               )}
+
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Sexo</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["Masculino", "Feminino"].map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={async () => {
+                        await setDoc(doc(db, "users", u.id), { sexo: opt }, { merge: true });
+                        upd(u.id, (x) => ({ ...x, sexo: opt }));
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "9px 10px",
+                        borderRadius: 10,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: `1px solid ${u.sexo === opt ? G.green : "#2a2a2a"}`,
+                        background: u.sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a",
+                        color: u.sexo === opt ? G.green : G.td,
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {/* Ativo/Inativo */}
@@ -13405,8 +13463,9 @@ function PerfilV({ user, setUser, t }) {
   const isoParaBr = (v) =>
     v && v.includes("-") && v.length === 10 ? v.split("-").reverse().join("/") : v || "";
   const [nascimentoBr, setNascimentoBr] = useState(isoParaBr(user.nascimento));
+  const [sexo, setSexo] = useState(user.sexo || "");
   const [salvando, setSalvando] = useState(false);
-  const bloqueado = !!(user.cpf && user.nascimento);
+  const bloqueado = !!(user.cpf && user.nascimento && user.sexo);
 
   const formatCpf = (v) =>
     v
@@ -13443,10 +13502,14 @@ function PerfilV({ user, setUser, t }) {
       t("Informe a data de nascimento no formato DD/MM/AAAA.", "w");
       return;
     }
+    if (!sexo) {
+      t("Selecione o sexo.", "w");
+      return;
+    }
     setSalvando(true);
     try {
-      await setDoc(doc(db, "users", user.id), { cpf: cpfLimpo, nascimento: nascimentoIso }, { merge: true });
-      setUser((prev) => ({ ...prev, cpf: cpfLimpo, nascimento: nascimentoIso }));
+      await setDoc(doc(db, "users", user.id), { cpf: cpfLimpo, nascimento: nascimentoIso, sexo }, { merge: true });
+      setUser((prev) => ({ ...prev, cpf: cpfLimpo, nascimento: nascimentoIso, sexo }));
       t("Perfil atualizado!");
     } catch (err) {
       console.error("Erro ao salvar perfil:", err);
@@ -13499,6 +13562,34 @@ function PerfilV({ user, setUser, t }) {
             maxLength={10}
             style={{ ...I, marginBottom: 14 }}
           />
+        )}
+        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+          Sexo
+        </div>
+        {bloqueado ? (
+          <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{user.sexo}</div>
+        ) : (
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            {["Masculino", "Feminino"].map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setSexo(opt)}
+                style={{
+                  flex: 1,
+                  padding: "12px 10px",
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: `1px solid ${sexo === opt ? G.green : "#2a2a2a"}`,
+                  background: sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a",
+                  color: sexo === opt ? G.green : G.td,
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
         )}
         {bloqueado ? (
           <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", textAlign: "center" }}>

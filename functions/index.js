@@ -159,11 +159,23 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   try {
-    const { titulo, horario } = req.body;
+    const { titulo, horario, publico } = req.body; // publico: 'todos' | 'homens' | 'mulheres'
 
     const tokensSnap = await admin.firestore().collection('tokens').get();
     // 1 token por documento (ID do doc = userId), sem duplicatas
-    const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+    let pares = tokensSnap.docs
+      .map(d => ({ userId: d.id, token: d.data().token }))
+      .filter(p => p.token);
+
+    if (publico === 'homens' || publico === 'mulheres') {
+      const sexoAlvo = publico === 'homens' ? 'Masculino' : 'Feminino';
+      const usersSnap = await admin.firestore().collection('users').get();
+      const sexoPorId = {};
+      usersSnap.docs.forEach(d => { sexoPorId[d.id] = d.data().sexo; });
+      pares = pares.filter(p => sexoPorId[p.userId] === sexoAlvo);
+    }
+
+    const tokens = pares.map(p => p.token);
 
     if (!tokens.length) return res.json({ enviadas: 0 });
 
@@ -176,7 +188,7 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
     };
 
     const response = await admin.messaging().sendEachForMulticast(message);
-    console.log(`${response.successCount} notificações enviadas`);
+    console.log(`${response.successCount} notificações enviadas (público: ${publico || 'todos'})`);
     res.json({ enviadas: response.successCount });
   } catch (err) {
     console.error('Erro notificarMinisterio:', err.message);
