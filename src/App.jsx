@@ -3296,9 +3296,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "config", "inscricoes"), (snap) => {
-      setInscricoesBloqueadas(snap.exists() ? !!snap.data().bloqueadas : false);
-    });
+    const unsub = onSnapshot(
+      doc(db, "config", "inscricoes"),
+      (snap) => {
+        setInscricoesBloqueadas(snap.exists() ? !!snap.data().bloqueadas : false);
+      },
+      (err) => {
+        console.error("Erro ao ler status das inscrições (provável regra do Firestore bloqueando leitura pública):", err);
+      },
+    );
     return () => unsub();
   }, []);
 
