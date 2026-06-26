@@ -7141,6 +7141,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   }) {
     const [g, setG] = useState("T");
     const [filtroStatus, setFiltroStatus] = useState("todos");
+    const [shFiltroStatus, setShFiltroStatus] = useState(false);
     const [filtroCelula, setFiltroCelula] = useState("todas");
     const [expandido, setExpandido] = useState({});
     const [busca, setBusca] = useState('');
@@ -7250,14 +7251,28 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       <div>
         <div
           style={{
+            background: "#111",
+            borderRadius: 12,
+            padding: "12px 8px",
+            textAlign: "center",
+            borderTop: "2px solid #636366",
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{encM.length + encH.length}</div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+            Total Geral
+          </div>
+        </div>
+        <div
+          style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: "1fr 1fr",
             gap: 8,
             marginBottom: 14,
           }}
         >
           {[
-            [encM.length + encH.length, "Total Geral", "#636366"],
             [lista.filter((e) => e.pago).length, "Pagos", G.green],
             [lista.filter((e) => !e.pago && !e.pagarDepois && !e.desistiu).length, "Pendentes", "#ff3b30"],
             [lista.filter((e) => !e.pago && e.pagarDepois && !e.desistiu).length, "Pagar dep.", "#ff9f0a"],
@@ -7273,7 +7288,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 borderTop: `2px solid ${c}`,
               }}
             >
-              <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>
+              <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>
                 {n}
               </div>
               <div
@@ -7291,18 +7306,68 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             </div>
           ))}
         </div>
-        <Seg
-          opts={[["T", "Todos"], ["M", "Mulheres"], ["H", "Homens"]]}
-          val={g}
-          set={setG}
-        />
-        <div style={{ marginTop: 8 }}>
-          <Seg
-            opts={[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"], ["pagardepois", "Pagar dep."], ["desistencia", "Desistência"]]}
-            val={filtroStatus}
-            set={setFiltroStatus}
-          />
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ flex: 1 }}>
+            <Seg
+              opts={[["T", "Todos"], ["M", "Mulheres"], ["H", "Homens"]]}
+              val={g}
+              set={setG}
+            />
+          </div>
+          <button
+            onClick={() => setShFiltroStatus(true)}
+            style={{
+              ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
+              position: "relative",
+              borderColor: filtroStatus !== "todos" ? "rgba(10,132,255,.5)" : G.cb,
+              color: filtroStatus !== "todos" ? "#0a84ff" : G.t,
+              background: filtroStatus !== "todos" ? "rgba(10,132,255,.08)" : G.card,
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Settings size={18} />
+            {filtroStatus !== "todos" && (
+              <span style={{
+                position: "absolute", top: 4, right: 4,
+                background: "#0a84ff", color: "#fff",
+                fontSize: 10, fontWeight: 800,
+                borderRadius: "50%", width: 16, height: 16,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                1
+              </span>
+            )}
+          </button>
         </div>
+        <Sheet open={shFiltroStatus} onClose={() => setShFiltroStatus(false)} title="Filtrar por status">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"], ["pagardepois", "Pagar dep."], ["desistencia", "Desistência"]].map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => { setFiltroStatus(val); setShFiltroStatus(false); }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "13px 16px",
+                  borderRadius: 12,
+                  border: `1px solid ${filtroStatus === val ? "rgba(10,132,255,.5)" : "#2a2a2a"}`,
+                  background: filtroStatus === val ? "rgba(10,132,255,.08)" : "transparent",
+                  color: filtroStatus === val ? "#0a84ff" : G.td,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {label}
+                {filtroStatus === val && <span style={{ fontSize: 16 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        </Sheet>
         <select
           value={filtroCelula}
           onChange={e => setFiltroCelula(e.target.value)}
