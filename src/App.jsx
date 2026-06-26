@@ -6768,11 +6768,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       ...qm.flatMap((q) => q.servos),
     ]);
 
+    const DIAS_QV = ["Quinta", "Sexta", "Sábado", "Domingo"];
     const servosDisponiveis = (users || []).filter(
       (u) =>
         u.perfil !== "admin" &&
         u.ativo !== false &&
-        !todosServosAlocados.has(u.nome),
+        !todosServosAlocados.has(u.nome) &&
+        DIAS_QV.some((d) => (u.escala?.[d] || []).includes("Servo de Quarto")),
     );
 
     const list = isH ? qh : qm.filter((q) => !q.maes);
