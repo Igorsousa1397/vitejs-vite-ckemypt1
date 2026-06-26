@@ -13378,7 +13378,11 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
 
     const getEscala = (u) => u.escala || { Quinta: [], Sexta: [], Sábado: [], Domingo: [] };
 
-    const FUNCOES_CONFLITO_QUARTO = ["Templo", "Som", "Cozinha"];
+    const FUNCOES_CONFLITO_QUARTO_BASE = ["Templo", "Som", "Cozinha"];
+    const FUNCOES_GRUPO_COZINHA = ["Panelas", "Louças", "Louça", "Limpeza refeitório"];
+    const ehFuncaoConflitoQuarto = (f) =>
+      FUNCOES_CONFLITO_QUARTO_BASE.includes(f) ||
+      FUNCOES_GRUPO_COZINHA.some((g) => f === g || f.startsWith(`${g} - `));
 
     const addFuncaoDia = async (u, dia, fn) => {
       if (!fn.trim()) return;
@@ -13387,14 +13391,14 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
 
       if (fnLimpa === "Servo de Quarto") {
         const temConflito = DIAS.some((d) =>
-          (escala[d] || []).some((f) => FUNCOES_CONFLITO_QUARTO.includes(f)),
+          (escala[d] || []).some((f) => ehFuncaoConflitoQuarto(f)),
         );
         if (temConflito) {
-          t("Esse servo já tem Templo, Som ou Cozinha na escala — não pode ser Servo de Quarto.", "w");
+          t("Esse servo já tem Templo, Som ou Cozinha (Panelas/Louças/Limpeza) na escala — não pode ser Servo de Quarto.", "w");
           return;
         }
       }
-      if (FUNCOES_CONFLITO_QUARTO.includes(fnLimpa)) {
+      if (ehFuncaoConflitoQuarto(fnLimpa)) {
         const jaEhServoQuarto = DIAS.some((d) =>
           (escala[d] || []).includes("Servo de Quarto"),
         );
