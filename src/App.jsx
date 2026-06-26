@@ -5278,7 +5278,7 @@ export default function App() {
                                   <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: lideres.length > 0 || colegas.length > 0 ? 8 : 0 }}>
                                     {fn}
                                     {meuQuarto && (
-                                      <span style={{ color: "#a78bfa" }}> (Quarto {meuQuarto.num})</span>
+                                      <span style={{ color: dC[dia] }}> (Quarto {meuQuarto.num})</span>
                                     )}
                                   </div>
 
