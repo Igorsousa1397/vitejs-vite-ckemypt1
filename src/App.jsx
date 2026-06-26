@@ -1189,7 +1189,7 @@ function ConfirmadoV({ encId, onVoltar }) {
   );
 }
 
-function JaInscritoV({ onVoltar }) {
+function JaInscritoV({ onVoltar, bloqueadas }) {
   const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(false);
   const [encontrista, setEncontrista] = useState(null);
@@ -1233,6 +1233,10 @@ function JaInscritoV({ onVoltar }) {
         if (data.pago) {
           setEncId(found.id);
           setConfirmado(true);
+        } else if (bloqueadas) {
+          setEncId(found.id);
+          setEncontrista({ id: found.id, ...data });
+          // Inscrições encerradas: mostra status, mas não libera pagamento
         } else {
           setEncId(found.id);
           setEncontrista({ id: found.id, ...data });
@@ -1315,6 +1319,10 @@ return (
                 Apresente este QR Code no check-in
               </div>
             </>
+          ) : bloqueadas ? (
+            <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '14px 16px', color: '#ff6b6b', fontSize: 14, lineHeight: 1.7 }}>
+              As inscrições estão encerradas no momento. Não é possível gerar um novo pagamento agora. Entre em contato com a liderança para mais informações.
+            </div>
           ) : (
             <>
               <div style={{ background: 'rgba(255,159,10,.08)', border: '1px solid rgba(255,159,10,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 20, color: '#ff9f0a', fontSize: 13, lineHeight: 1.6 }}>
@@ -3849,7 +3857,7 @@ export default function App() {
     return <Termo cpf={termoCpf} onVoltar={() => setScr("welcome")} />;
 
   if (scr === 'ja_inscrito')
-    return <JaInscritoV onVoltar={() => setScr('welcome')} />;
+    return <JaInscritoV onVoltar={() => setScr('welcome')} bloqueadas={inscricoesBloqueadas} />;
 
   if (user?.primeiro) return (
     <PrimeiroAcessoV 
