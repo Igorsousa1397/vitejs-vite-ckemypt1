@@ -5299,7 +5299,7 @@ export default function App() {
                   {
                     titulo: "Ministração Peniel", dia: "Sábado · 08:30",
                     resumo: "Em breve...",
-                    ato: "Os encontristas vão ao microfone e dizem o nome espiritual que carregam até então. Ao terminar, os servos declaram no mundo espiritual que o nome é trocado e que ele se chamará Israel, príncipe de Deus. Os servos abraçam a pessoa e oram declarando que ela não carrega mais o nome antigo.",
+                    ato: "Os encontristas vão ao microfone e dizem o nome do pecado que rotulava a sua identidade quando chegaram. Os servos, ao abraçar e orar, anulam esses rótulos do pecado e declaram um novo nome: Israel, príncipe ou princesa de Deus. Quando eles saírem para fora, para receber a lembrancinha, os servos formam um corredor para comemorar o retorno deles ao templo com a identidade nova após o ato, celebrando a mudança deles.",
                   },
                   {
                     titulo: "Ministração Cura", dia: "Sábado · 10:30",
@@ -5334,7 +5334,7 @@ export default function App() {
                   {
                     titulo: "Batismo com Espírito Santo", dia: "Domingo · 10:30",
                     resumo: "Em breve...",
-                    ato: "É realizada a oração para batismo com Espírito Santo. Hora do servo entregar tudo e repartir toda unção que está sobre ele com o encontrista.",
+                    ato: "Oram com imposição de mãos, declarando o batismo com o Espírito Santo, batismo com fogo e ativação de dons. Se a pessoa aparentemente demonstrar não estar recebendo o batismo, conduzir ela a fazer uma oração de confissão, semelhante a: \"Espírito Santo, eu o reconheço como pessoa e confesso precisar de ti, te convido a habitar em mim e ativar todos os dons necessários para que eu cumpra o propósito de Deus na minha história\".",
                   },
                   {
                     titulo: "Oração Estilo de Vida", dia: "Domingo · 15:00",
