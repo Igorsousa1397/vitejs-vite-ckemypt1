@@ -4242,6 +4242,7 @@ export default function App() {
                         const aviso = {
                           txt,
                           autor: user.nome,
+                          autorPerfil: role,
                           publico,
                           hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
                           createdAt: Date.now(),
@@ -4285,7 +4286,7 @@ export default function App() {
                     {a.txt}
                   </div>
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    {a.autor} · {a.hr}
+                    {a.autor}{a.autorPerfil && PERFIS[a.autorPerfil] ? ` · ${PERFIS[a.autorPerfil].l}` : ""} · {a.hr}
                     {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
                     {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
                   </div>
@@ -4520,6 +4521,7 @@ export default function App() {
               const aviso = {
                 txt,
                 autor: user.nome,
+                autorPerfil: role,
                 publico,
                 hr: new Date().toLocaleTimeString("pt-BR", {
                   hour: "2-digit",
@@ -5805,7 +5807,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 <div style={{ flex: 1 }}>
                   <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>{a.txt}</div>
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    {a.autor} · {a.hr}
+                    {a.autor}{a.autorPerfil && PERFIS[a.autorPerfil] ? ` · ${PERFIS[a.autorPerfil].l}` : ""} · {a.hr}
                     {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
                     {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
                   </div>
