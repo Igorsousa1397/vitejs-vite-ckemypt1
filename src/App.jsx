@@ -13378,10 +13378,33 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
 
     const getEscala = (u) => u.escala || { Quinta: [], Sexta: [], Sábado: [], Domingo: [] };
 
+    const FUNCOES_CONFLITO_QUARTO = ["Templo", "Som", "Cozinha"];
+
     const addFuncaoDia = async (u, dia, fn) => {
       if (!fn.trim()) return;
+      const fnLimpa = fn.trim();
       const escala = getEscala(u);
-      const novas = [...(escala[dia] || []), fn.trim()];
+
+      if (fnLimpa === "Servo de Quarto") {
+        const temConflito = DIAS.some((d) =>
+          (escala[d] || []).some((f) => FUNCOES_CONFLITO_QUARTO.includes(f)),
+        );
+        if (temConflito) {
+          t("Esse servo já tem Templo, Som ou Cozinha na escala — não pode ser Servo de Quarto.", "w");
+          return;
+        }
+      }
+      if (FUNCOES_CONFLITO_QUARTO.includes(fnLimpa)) {
+        const jaEhServoQuarto = DIAS.some((d) =>
+          (escala[d] || []).includes("Servo de Quarto"),
+        );
+        if (jaEhServoQuarto) {
+          t("Esse servo já é Servo de Quarto — não pode ter Templo, Som ou Cozinha.", "w");
+          return;
+        }
+      }
+
+      const novas = [...(escala[dia] || []), fnLimpa];
       const novaEscala = { ...escala, [dia]: novas };
       await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
       setExpandidos(prev => ({ ...prev, [u.id]: true }))
