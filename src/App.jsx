@@ -28,7 +28,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -7375,7 +7375,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               justifyContent: "center",
             }}
           >
-            <Settings size={18} />
+            <SlidersHorizontal size={18} />
             {filtroStatus !== "todos" && (
               <span style={{
                 position: "absolute", top: 4, right: 4,
@@ -10778,7 +10778,7 @@ function CozinhaV({ edit, t, users }) {
               justifyContent: "center",
             }}
           >
-            <Settings size={18} />
+            <SlidersHorizontal size={18} />
             {filtrosAtivos > 0 && (
               <span style={{
                 position: "absolute", top: 4, right: 4,
