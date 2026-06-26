@@ -10493,6 +10493,9 @@ function CozinhaV({ edit, t, users }) {
       email: "",
       perfil: "servo",
       fn: "",
+      cpf: "",
+      nascimento: "",
+      sexo: "",
     });
     const [filtro, setFiltro] = useState("todos"); // mantido por compatibilidade
     const [loading, setLoading] = useState(false);
@@ -10529,6 +10532,26 @@ function CozinhaV({ edit, t, users }) {
       t("Data limite salva!");
     };
 
+    const formatCpfSvV = (v) =>
+      v.replace(/\D/g, "").slice(0, 11)
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+    const formatDataSvV = (v) =>
+      v.replace(/\D/g, "").slice(0, 8)
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .replace(/(\d{2})(\d)/, "$1/$2");
+
+    const brParaIsoSvV = (v) => {
+      const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (!m) return null;
+      const [, d, mo, y] = m;
+      const dia = parseInt(d, 10), mes = parseInt(mo, 10), ano = parseInt(y, 10);
+      if (dia < 1 || dia > 31 || mes < 1 || mes > 12 || ano < 1900 || ano > new Date().getFullYear()) return null;
+      return `${y}-${mo}-${d}`;
+    };
+
     const add = async () => {
       if (!f.nome.trim()) {
         t("Nome obrigatório", "w");
@@ -10536,6 +10559,20 @@ function CozinhaV({ edit, t, users }) {
       }
       if (!f.email.trim() || !f.email.includes("@")) {
         t("Email inválido", "w");
+        return;
+      }
+      const cpfLimpo = f.cpf.replace(/\D/g, "");
+      if (!cpfLimpo || cpfLimpo.length !== 11) {
+        t("CPF inválido", "w");
+        return;
+      }
+      const nascimentoIso = brParaIsoSvV(f.nascimento);
+      if (!nascimentoIso) {
+        t("Data de nascimento inválida (DD/MM/AAAA)", "w");
+        return;
+      }
+      if (!f.sexo) {
+        t("Selecione o sexo", "w");
         return;
       }
       setLoading(true);
@@ -10557,6 +10594,11 @@ function CozinhaV({ edit, t, users }) {
         );
         const data = await res.json();
         if (data.result?.uid) {
+          await setDoc(
+            doc(db, "users", data.result.uid),
+            { cpf: cpfLimpo, nascimento: nascimentoIso, sexo: f.sexo },
+            { merge: true },
+          );
           setUsers([
             ...users,
             {
@@ -10567,9 +10609,12 @@ function CozinhaV({ edit, t, users }) {
               funcoes: f.fn ? [f.fn] : [],
               ativo: true,
               pago: false,
+              cpf: cpfLimpo,
+              nascimento: nascimentoIso,
+              sexo: f.sexo,
             },
           ]);
-          setF({ nome: "", sob: "", email: "", perfil: "servo", fn: "" });
+          setF({ nome: "", sob: "", email: "", perfil: "servo", fn: "", cpf: "", nascimento: "", sexo: "" });
           setSh(false);
           t("Servo adicionado! Email de acesso enviado ✉️");
         } else {
@@ -11088,34 +11133,6 @@ function CozinhaV({ edit, t, users }) {
                 <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>
               )}
 
-              <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Sexo</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {["Masculino", "Feminino"].map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={async () => {
-                        await setDoc(doc(db, "users", u.id), { sexo: opt }, { merge: true });
-                        upd(u.id, (x) => ({ ...x, sexo: opt }));
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: "9px 10px",
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        border: `1px solid ${u.sexo === opt ? G.green : "#2a2a2a"}`,
-                        background: u.sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a",
-                        color: u.sexo === opt ? G.green : G.td,
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {/* Ativo/Inativo */}
               <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
@@ -11227,21 +11244,60 @@ function CozinhaV({ edit, t, users }) {
                     : "#2a2a2a",
               }}
             />
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[['servo', 'Servo'], ['staff', 'Staff']].map(([k, v]) => (
-                <button
-                  key={k}
-                  onClick={() => setF({ ...f, perfil: k })}
-                  style={{
-                    ...BK({ flex: 1, padding: "10px", borderRadius: 12, fontSize: 14 }),
-                    borderColor: f.perfil === k ? "rgba(0,200,81,.5)" : "#2a2a2a",
-                    color: f.perfil === k ? G.green : G.td,
-                    background: f.perfil === k ? "rgba(0,200,81,.08)" : "transparent",
-                  }}
-                >
-                  {v}
-                </button>
-              ))}
+            <input
+              placeholder="CPF *"
+              value={f.cpf}
+              onChange={(e) => setF({ ...f, cpf: formatCpfSvV(e.target.value) })}
+              style={I}
+            />
+            <input
+              placeholder="Data de nascimento * (DD/MM/AAAA)"
+              value={f.nascimento}
+              onChange={(e) => setF({ ...f, nascimento: formatDataSvV(e.target.value) })}
+              maxLength={10}
+              style={I}
+            />
+            <div>
+              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Sexo
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["Masculino", "Feminino"].map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setF({ ...f, sexo: opt })}
+                    style={{
+                      flex: 1,
+                      padding: "12px 10px",
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: `1px solid ${f.sexo === opt ? G.green : "#2a2a2a"}`,
+                      background: f.sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a",
+                      color: f.sexo === opt ? G.green : G.td,
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Perfil
+              </div>
+              <select
+                value={f.perfil}
+                onChange={(e) => setF({ ...f, perfil: e.target.value })}
+                style={{ ...I, marginBottom: 0 }}
+              >
+                <option value="pastor">Pastor</option>
+                <option value="pastor_auxiliar">Pastor Auxiliar</option>
+                <option value="cozinha">Cozinha</option>
+                <option value="staff">Staff</option>
+                <option value="servo">Servo</option>
+              </select>
             </div>
            <button
               onClick={add}
