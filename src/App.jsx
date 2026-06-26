@@ -5278,14 +5278,22 @@ export default function App() {
                                   {lideres.length > 0 && (
                                     <>
                                       <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Líder</div>
-                                      {lideres.map((l, j) => (
-                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: j === lideres.length - 1 && colegas.length > 0 ? 8 : 3 }}>
-                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
-                                          <span style={{ color: G.td, fontSize: 13, fontWeight: l.id === user.id ? 700 : 400 }}>
-                                            {l.nome}{l.id === user.id ? " (você)" : ""}
-                                          </span>
-                                        </div>
-                                      ))}
+                                      {lideres.map((l, j) => {
+                                        const quartoDoLider = fnBase === "Servo de Quarto"
+                                          ? [...(qh || []), ...(qm || [])].find((q) => (q.servos || []).includes(l.nome))
+                                          : null;
+                                        return (
+                                          <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: j === lideres.length - 1 && colegas.length > 0 ? 8 : 3 }}>
+                                            <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
+                                            <span style={{ color: G.td, fontSize: 13, fontWeight: l.id === user.id ? 700 : 400 }}>
+                                              {l.nome}{l.id === user.id ? " (você)" : ""}
+                                              {quartoDoLider && (
+                                                <span style={{ color: "#a78bfa", fontWeight: 700 }}> — Quarto {quartoDoLider.num}</span>
+                                              )}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
                                     </>
                                   )}
 
