@@ -13843,7 +13843,7 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                   DIAS_ORD.forEach(dia => {
                     (escala[dia] || []).forEach(fn => {
                       if (!porFuncao[fn]) porFuncao[fn] = [];
-                      porFuncao[fn].push({ nome: u.nome, dia });
+                      porFuncao[fn].push({ nome: u.nome, dia, sexo: u.sexo });
                     });
                   });
                 });
@@ -13910,15 +13910,29 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                         DIAS_ORD.map(dia => {
                           const doDia = pessoas.filter(p => p.dia === dia);
                           if (doDia.length === 0) return null;
+                          const mulheres = doDia.filter(p => p.sexo === "Feminino");
+                          const homens = doDia.filter(p => p.sexo === "Masculino");
+                          const semSexo = doDia.filter(p => p.sexo !== "Feminino" && p.sexo !== "Masculino");
                           return (
                             <div key={dia} style={{ marginBottom: 10 }}>
                               <div style={{ color: dC[dia], fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
                                 {dia} · {doDia.length}
                               </div>
-                              {doDia.map((p, i) => (
-                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: dC[dia] }} />
-                                  <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                              {[
+                                ["Mulheres", mulheres, "#ff2d92"],
+                                ["Homens", homens, "#0a84ff"],
+                                ["Sem sexo definido", semSexo, "#888"],
+                              ].map(([grupoLabel, grupo, cor]) => grupo.length === 0 ? null : (
+                                <div key={grupoLabel} style={{ marginBottom: 6, marginLeft: 4 }}>
+                                  <div style={{ color: cor, fontSize: 10, fontWeight: 700, marginBottom: 3 }}>
+                                    {grupoLabel} · {grupo.length}
+                                  </div>
+                                  {grupo.map((p, i) => (
+                                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, marginLeft: 8 }}>
+                                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: cor }} />
+                                      <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
+                                    </div>
+                                  ))}
                                 </div>
                               ))}
                             </div>
