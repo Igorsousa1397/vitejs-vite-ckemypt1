@@ -183,6 +183,8 @@ const PERFIS = {
 
 const canG = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff"].includes(p);
+const canAvisos = (p) =>
+  ["admin", "lider_geral", "pastor", "lider_staff", "lider_templo", "pastor_auxiliar"].includes(p);
 const canQ = (p) => ["admin", "lider_quartos"].includes(p);
 const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
@@ -4418,6 +4420,7 @@ export default function App() {
             on={on}
             nav={nav}
             edit={canG(role)}
+            canAvisos={canAvisos(role)}
             encH={encH}
             encM={encM}
             addAv={async (txt, publico = "todos") => {
@@ -5262,7 +5265,7 @@ export default function App() {
     );
   }
   // ── HOME ─────────────────────────────────────────────────────────────────────
-function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users }) {
+function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos }) {
   const [tab, setTab] = useState("dash");
   const [av, setAv] = useState("");
   const [publicoAviso, setPublicoAviso] = useState("todos");
@@ -5648,7 +5651,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
         {tab === "avs" && (
           <>
-            {edit && (
+            {canAvisos && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
                 <select onChange={(e) => { if (e.target.value) setAv(e.target.value); }} style={{ ...I, fontSize: 12 }} defaultValue="">
                   <option value="">Usar template de aviso...</option>
@@ -5705,7 +5708,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
                   </div>
                 </div>
-                {edit && <span onClick={() => delAv(a.id)} style={{ color: "rgba(255,59,48,.5)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>×</span>}
+                {canAvisos && <span onClick={() => delAv(a.id)} style={{ color: "rgba(255,59,48,.5)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>×</span>}
               </div>
             ))}
           </>
