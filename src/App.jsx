@@ -11096,6 +11096,22 @@ function CozinhaV({ edit, t, users }) {
           </div>
         </div>
 
+        {(() => {
+          const partes = [];
+          const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", staff: "Staff", lider: "Líderes", pastor: "Pastores" };
+          const labelsStatus = { pagos: "Pagos", pendentes: "Pendentes", abonados: "Abonados", ativos: "Ativos", inativos: "Inativos", primeiro_acesso: "1º Acesso" };
+          if (filtroPerfil !== "todos") partes.push(labelsPerfil[filtroPerfil] || filtroPerfil);
+          if (filtroStatus !== "todos") partes.push(labelsStatus[filtroStatus] || filtroStatus);
+          if (filtroSexo !== "todos") partes.push(filtroSexo);
+          if (busca.trim()) partes.push(`"${busca.trim()}"`);
+          return (
+            <div style={{ color: G.tm, fontSize: 12, textAlign: "center", marginBottom: 14 }}>
+              Exibindo <strong style={{ color: G.t }}>{lista.length}</strong>
+              {partes.length > 0 ? ` de ${partes.join(" · ")}` : ""}
+            </div>
+          );
+        })()}
+
         {lista.map((u, i) => (
           <Acc
             key={i}
