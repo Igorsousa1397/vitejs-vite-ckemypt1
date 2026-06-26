@@ -7002,9 +7002,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               }}
             >
               <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: "2px solid #636366" }}>
-                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalVagas}</div>
+                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalVagas - totalPreenchido}</div>
                 <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-                  Total de Vagas
+                  Vagas Livres
                 </div>
               </div>
               <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: `2px solid ${bc}` }}>
