@@ -6806,7 +6806,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             placeholder="Buscar servo..."
             style={{ ...I, fontSize: 12, padding: "9px 12px" }}
           />
-          {aberto && busca.length > 0 && filtrados.length > 0 && (
+          {aberto && filtrados.length > 0 && (
             <div
               style={{
                 position: "absolute",
