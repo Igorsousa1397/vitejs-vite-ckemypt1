@@ -13805,6 +13805,7 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
               {(() => {
                 const DIAS_ORD = ["Quinta", "Sexta", "Sábado", "Domingo"];
                 const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+                const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças", "Servir comida", "Limpeza refeitório", "Servir Comida Pastores"];
 
                 // Monta mapa: função -> [{ user, dia }] — inicia com todas as funções cadastradas
                 const porFuncao = {};
@@ -13820,7 +13821,22 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                   });
                 });
 
+                const excluirFuncao = async (fn) => {
+                  const novasFns = fns.filter(f => f !== fn);
+                  setFns(novasFns);
+                  try {
+                    const extras = novasFns.filter(f => !FUNCOES_INIT.includes(f));
+                    await setDoc(doc(db, "config", "funcoes_extra"), { lista: extras }, { merge: true });
+                    t("Função excluída!");
+                  } catch (err) {
+                    console.error("Erro ao excluir função:", err);
+                    t("Erro ao excluir função.", "w");
+                  }
+                };
+
                 const funcoesOrdenadas = Object.keys(porFuncao)
+                  // funções que sempre têm período (Almoço/Jantar) nunca aparecem "soltas" sem ninguém
+                  .filter(fn => !FUNCOES_COM_PERIODO.includes(fn))
                   .filter(fn => fn.toLowerCase().includes(buscaFn.toLowerCase()))
                   .sort((a, b) => a.localeCompare(b));
 
@@ -13846,6 +13862,15 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                       }
                     >
                       <LideresEditor fn={fn} liderMapOverrides={liderMapOverrides} setLiderMapOverrides={setLiderMapOverrides} t={t} />
+
+                      {pessoasUnicas === 0 && (
+                        <button
+                          onClick={() => excluirFuncao(fn)}
+                          style={{ ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, marginTop: 10 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}
+                        >
+                          Excluir função
+                        </button>
+                      )}
 
                       <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", margin: "12px 0 6px" }}>
                         Escala
