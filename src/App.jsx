@@ -10602,11 +10602,13 @@ function CozinhaV({ edit, t, users }) {
     return true;
   };
 
+  const isExentoPagamento = (u) => ["pastor", "pastor_auxiliar", "lider_geral"].includes(u.perfil);
+
   const filtroStatusFn = (u) => {
     if (filtroStatus === "todos") return true;
     if (filtroStatus === "pagos") return u.pago === true;
-    if (filtroStatus === "pendentes") return !u.pago;
-    if (filtroStatus === "abonados") return u.pago === "abonado";
+    if (filtroStatus === "pendentes") return !u.pago && !isExentoPagamento(u) && u.ativo !== false;
+    if (filtroStatus === "abonados") return u.pago === "abonado" || isExentoPagamento(u);
     if (filtroStatus === "ativos") return u.ativo !== false;
     if (filtroStatus === "inativos") return u.ativo === false;
     if (filtroStatus === "primeiro_acesso") return u.primeiro === true;
