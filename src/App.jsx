@@ -6625,71 +6625,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     );
   }
 
-  function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAutocomplete, open, onToggle, EditQuarto, upd, t }) {
-    return (
-      <Acc
-        title="Quarto Mães"
-        ax="#ff9f0a"
-        right={
-          <Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
-        }
-        open={open}
-        onToggle={onToggle}
-      >
-        <div
-          style={{
-            background: "#1e1e1e",
-            borderRadius: 5,
-            height: 5,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              background: "#ff9f0a",
-              borderRadius: 5,
-              height: 5,
-              width: `${pct}%`,
-            }}
-          />
-        </div>
-
-        {edit && <EditQuarto q={m} upd={upd} t={t} />}
-
-        <SL c={`Servos (${m.servos.length}/${m.limServos || 2})`} mt={0} />
-        <Tags
-          items={m.servos}
-          ax={G.green}
-          onX={
-            edit
-              ? (i) =>
-                  uQM(m.num, (q) => ({
-                    ...q,
-                    servos: q.servos.filter((_, j) => j !== i),
-                  }))
-              : undefined
-          }
-        />
-        <AddServoSearch quarto={m} updFn={uQM} />
-
-        <SL c="Mães" />
-        <Tags
-          items={m.enc}
-          ax="#ff9f0a"
-          onX={
-            edit
-              ? (i) =>
-                  uQM(m.num, (q) => ({
-                    ...q,
-                    enc: q.enc.filter((_, j) => j !== i),
-                  }))
-              : undefined
-          }
-        />
-        <AddEncAutocomplete quarto={m} updFn={uQM} />
-      </Acc>
-    );
-  }
 
   // ── ENCONTRISTAS ─────────────────────────────────────────────────────────────
   function EncV({
@@ -12823,6 +12758,72 @@ function CozinhaV({ edit, t, users }) {
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
 }
+
+  function QuartoMaes({ m, oc, pct, edit, uQM, setQm, qm, AddServoSearch, AddEncAutocomplete, open, onToggle, EditQuarto, upd, t }) {
+    return (
+      <Acc
+        title="Quarto Mães"
+        ax="#ff9f0a"
+        right={
+          <Pill c={`${oc}/${m.lim}`} bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
+        }
+        open={open}
+        onToggle={onToggle}
+      >
+        <div
+          style={{
+            background: "#1e1e1e",
+            borderRadius: 5,
+            height: 5,
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              background: "#ff9f0a",
+              borderRadius: 5,
+              height: 5,
+              width: `${pct}%`,
+            }}
+          />
+        </div>
+
+        {edit && <EditQuarto q={m} upd={upd} t={t} />}
+
+        <SL c={`Servos (${m.servos.length}/${m.limServos || 2})`} mt={0} />
+        <Tags
+          items={m.servos}
+          ax={G.green}
+          onX={
+            edit
+              ? (i) =>
+                  uQM(m.num, (q) => ({
+                    ...q,
+                    servos: q.servos.filter((_, j) => j !== i),
+                  }))
+              : undefined
+          }
+        />
+        <AddServoSearch quarto={m} updFn={uQM} />
+
+        <SL c="Mães" />
+        <Tags
+          items={m.enc}
+          ax="#ff9f0a"
+          onX={
+            edit
+              ? (i) =>
+                  uQM(m.num, (q) => ({
+                    ...q,
+                    enc: q.enc.filter((_, j) => j !== i),
+                  }))
+              : undefined
+          }
+        />
+        <AddEncAutocomplete quarto={m} updFn={uQM} />
+      </Acc>
+    );
+  }
 
   function QV({
     qh,
