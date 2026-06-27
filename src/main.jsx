@@ -49,6 +49,14 @@ class ErrorBoundary extends Component {
           <div style={{ color: '#888', fontSize: 14, maxWidth: 320 }}>
             Esse navegador embutido (WhatsApp/Instagram) pode ter limitações. Toque nos três pontinhos no topo e escolha "Abrir no navegador" (Safari/Chrome).
           </div>
+          <div style={{ color: '#ff6b6b', fontSize: 12, maxWidth: 340, textAlign: 'left', background: '#1a1a1a', padding: 12, borderRadius: 10, overflowWrap: 'break-word', fontFamily: 'monospace' }}>
+            {String(this.state.error?.message || this.state.error)}
+            {this.state.error?.stack && (
+              <div style={{ marginTop: 8, fontSize: 10, color: '#666', whiteSpace: 'pre-wrap' }}>
+                {String(this.state.error.stack).slice(0, 500)}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => window.location.reload()}
             style={{ marginTop: 8, background: '#30d158', color: '#000', border: 'none', borderRadius: 12, padding: '12px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
