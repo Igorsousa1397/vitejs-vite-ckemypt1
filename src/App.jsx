@@ -3288,16 +3288,23 @@ export default function App() {
   const menuRef = useRef(false);
 
   useEffect(() => {
-    history.pushState({ marker: "buffer" }, "");
+    const safePush = () => {
+      try {
+        history.pushState({ marker: "buffer" }, "");
+      } catch (err) {
+        console.warn("history.pushState indisponível neste navegador:", err);
+      }
+    };
+    safePush();
     const onPopState = () => {
       if (menuRef.current) {
         setMenu(false);
-        history.pushState({ marker: "buffer" }, "");
+        safePush();
         return;
       }
       if (pgRef.current !== "home" && pgRef.current !== "smins") {
         setPg("home");
-        history.pushState({ marker: "buffer" }, "");
+        safePush();
       }
       // se já está na home, deixa o botão voltar seguir o comportamento padrão
     };
@@ -12851,6 +12858,12 @@ function CozinhaV({ edit, t, users }) {
     const tabEfetiva = edit ? tab : tabRestrita;
     const isH = tabEfetiva === "H";
     const colecao = isH ? "quartos_h" : "quartos_m";
+
+    // Normaliza quartos para garantir que servos/enc sempre existam como array,
+    // evitando crash caso algum quarto antigo tenha vindo sem esses campos.
+    const normQuarto = (q) => ({ ...q, servos: q.servos || [], enc: q.enc || [] });
+    qh = (qh || []).map(normQuarto);
+    qm = (qm || []).map(normQuarto);
     
     const EditQuarto = ({ q, upd, t }) => {
     const [aberto, setAberto] = useState(false);
