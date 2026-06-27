@@ -5016,7 +5016,7 @@ export default function App() {
             const cardsComValor = [
               [avsNaoVistos > 0 ? avsNaoVistos : null, "Avisos", "savs"],
               [minhasCartasTotal > 0 ? minhasCartasTotal : null, "Cartas", "scartas"],
-              [ocorr?.length || 0, "Ocorrências", "sinfo"],
+              [(ocorr || []).filter(o => !o.res).length, "Ocorrências", "sinfo"],
               ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
               ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
             ];
@@ -6658,595 +6658,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         />
         <AddEncAutocomplete quarto={m} updFn={uQM} />
       </Acc>
-    );
-  }
-
-  // ── QUARTOS ──────────────────────────────────────────────────────────────────
-  function QV({
-    qh,
-    qm,
-    uQH,
-    uQM,
-    setQh,
-    setQm,
-    edit,
-    t,
-    encH,
-    encM,
-    users,
-    salvarQuarto,
-    deletarQuarto,
-    tab,
-    setTab,
-    abertos,
-    setAbertos,
-    user,
-  }) {
-    // const [tab, setTab] = useState("M");
-    const [shN, setShN] = useState(false);
-    // const [abertos, setAbertos] = useState({});
-    const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
-    const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
-
-    // Servos sem permissão de gestão só podem ver os quartos do próprio gênero
-    const tabRestrita = user?.sexo === "Masculino" ? "H" : "M";
-    useEffect(() => {
-      if (!edit && tab !== tabRestrita) setTab(tabRestrita);
-    }, [edit, tab, tabRestrita]);
-    const tabEfetiva = edit ? tab : tabRestrita;
-    const isH = tabEfetiva === "H";
-    const colecao = isH ? "quartos_h" : "quartos_m";
-    
-    const EditQuarto = ({ q, upd, t }) => {
-    const [aberto, setAberto] = useState(false);
-    const [num, setNum] = useState(q.num);
-    const [lim, setLim] = useState(q.lim);
-    const [limServos, setLimServos] = useState(q.limServos || 2);
-
-    if (!aberto) return (
-      <button
-        onClick={() => setAberto(true)}
-        style={{ ...BK({ padding: "7px 12px", borderRadius: 10, fontSize: 12, marginBottom: 8 }), borderColor: "rgba(255,159,10,.3)", color: "#ff9f0a" }}
-      >
-        Editar quarto
-      </button>
-    );
-
-    return (
-      <div style={{ background: "#1a1a1a", borderRadius: 12, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Número</div>
-            <input type="number" value={num} onChange={(e) => setNum(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Limite</div>
-            <input type="number" min="1" max="30" value={lim} onChange={(e) => setLim(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
-          </div>
-        </div>
-        <div>
-          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Servos por quarto</div>
-          <input type="number" min="0" max="10" value={limServos} onChange={(e) => setLimServos(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={async () => {
-              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2 }));
-              setAberto(false);
-              t("Quarto atualizado!");
-            }}
-            style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
-          >
-            Salvar
-          </button>
-          <button onClick={() => setAberto(false)} style={BK({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
-            Cancelar
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-    const upd = async (num, fn) => {
-      const lista = isH ? qh : qm;
-      const quarto = lista.find((q) => q.num === num);
-      if (!quarto) return;
-      const atualizado = fn(quarto);
-      if (isH) uQH(num, () => atualizado);
-      else uQM(num, () => atualizado);
-      // Se número mudou, deletar doc antigo antes de criar novo
-      if (atualizado.num !== num) {
-        await deletarQuarto(colecao, num);
-      }
-      await salvarQuarto(colecao, atualizado);
-    };
-
-    const encConfirmados = (isH ? encH : encM).filter((e) => e.chegou);
-
-    const todosServosAlocados = new Set([
-      ...qh.flatMap((q) => q.servos),
-      ...qm.flatMap((q) => q.servos),
-    ]);
-
-    const DIAS_QV = ["Quinta", "Sexta", "Sábado", "Domingo"];
-    const servosDisponiveis = (users || []).filter(
-      (u) =>
-        u.perfil !== "admin" &&
-        u.ativo !== false &&
-        !todosServosAlocados.has(u.nome) &&
-        u.sexo === (isH ? "Masculino" : "Feminino") &&
-        DIAS_QV.some((d) => (u.escala?.[d] || []).includes("Servo de Quarto")),
-    );
-
-    const list = isH ? qh : qm.filter((q) => !q.maes);
-
-    const delQuarto = async (num) => {
-      await deletarQuarto(colecao, num);
-      if (isH) setQh(qh.filter((q) => q.num !== num));
-      else setQm(qm.filter((q) => q.num !== num));
-      t("Quarto removido.");
-    };
-
-    const AddServoSearch = ({ quarto, updFn }) => {
-      const [busca, setBusca] = useState("");
-      const [aberto, setAberto] = useState(false);
-      if (!edit || quarto.servos.length >= (quarto.limServos || 2)) return null;
-      const filtrados = servosDisponiveis.filter((u) =>
-        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
-      );
-      return (
-        <div style={{ position: "relative", marginTop: 8 }}>
-          <input
-            value={busca}
-            onChange={(e) => {
-              setBusca(e.target.value);
-              setAberto(true);
-            }}
-            onFocus={() => setAberto(true)}
-            onBlur={() => setTimeout(() => setAberto(false), 150)}
-            placeholder="Buscar servo..."
-            style={{ ...I, fontSize: 12, padding: "9px 12px" }}
-          />
-          {aberto && filtrados.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 999,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                marginTop: 4,
-                maxHeight: 180,
-                overflowY: "auto",
-              }}
-            >
-              {filtrados.map((u) => (
-                <div
-                  key={u.id}
-                  onMouseDown={() => {
-                    updFn(quarto.num, (x) => ({
-                      ...x,
-                      servos: [...x.servos, u.nome],
-                    }));
-                    setBusca("");
-                    setAberto(false);
-                    t("✓");
-                  }}
-                  style={{
-                    padding: "10px 14px",
-                    color: G.td,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    borderBottom: "1px solid #2a2a2a",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#2a2a2a")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
-                >
-                  {u.nome}
-                </div>
-              ))}
-            </div>
-          )}
-          {aberto && busca.length > 0 && filtrados.length === 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 999,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                marginTop: 4,
-                padding: "10px 14px",
-                color: G.tm,
-                fontSize: 12,
-              }}
-            >
-              Nenhum servo disponível
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    const AddEncAutocomplete = ({ quarto, updFn }) => {
-      const [busca, setBusca] = useState("");
-      const [aberto, setAberto] = useState(false);
-      const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
-      if (!edit || lv <= 0) return null;
-      const fn = updFn || upd;
-      const sugestoes = encConfirmados.filter(
-        (e) =>
-          (e.nome || "").toLowerCase().includes(busca.toLowerCase()) &&
-          !quarto.enc.includes(e.nome) &&
-          busca.length > 0,
-      );
-      const confirmar = (nome) => {
-        if (!nome.trim()) return;
-        fn(quarto.num, (x) => ({ ...x, enc: [...x.enc, nome.trim()] }));
-        setBusca("");
-        setAberto(false);
-        t("✓");
-      };
-      return (
-        <div style={{ position: "relative", marginTop: 8 }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={busca}
-              onChange={(e) => {
-                setBusca(e.target.value);
-                setAberto(true);
-              }}
-              onFocus={() => setAberto(true)}
-              onBlur={() => setTimeout(() => setAberto(false), 150)}
-              onKeyDown={(e) => e.key === "Enter" && confirmar(busca)}
-              placeholder="Encontrista..."
-              style={{ ...I, flex: 1, fontSize: 12, padding: "9px 12px" }}
-            />
-            <button
-              onMouseDown={() => confirmar(busca)}
-              style={BG({
-                padding: "9px 14px",
-                borderRadius: 10,
-                fontSize: 13,
-              })}
-            >
-              +
-            </button>
-          </div>
-          {aberto && sugestoes.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 999,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                marginTop: 4,
-                maxHeight: 180,
-                overflowY: "auto",
-              }}
-            >
-              {sugestoes.map((e) => (
-                <div
-                  onMouseDown={() => confirmar(e.nome)}
-                  style={{
-                    padding: "12px 14px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
-                  {e.nome}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    return (
-      <div>
-        {!edit && (
-          <div
-            style={{
-              background: "rgba(255,159,10,.1)",
-              border: "1px solid rgba(255,159,10,.2)",
-              borderRadius: 12,
-              padding: "10px 14px",
-              marginBottom: 12,
-              color: "#ff9f0a",
-              fontSize: 12,
-            }}
-          >
-            👀 Somente visualização
-          </div>
-        )}
-        {edit && (
-          <Seg
-            opts={[
-              ["M", "Mulheres"],
-              ["H", "Homens"],
-            ]}
-            val={tab}
-            set={setTab}
-          />
-        )}
-
-        {(() => {
-          const todosQuartos = isH ? qh : qm;
-          const totalVagas = todosQuartos.reduce((acc, q) => acc + (q.lim || 0), 0);
-          const totalPreenchido = todosQuartos.reduce((acc, q) => acc + (q.servos?.length || 0) + (q.enc?.length || 0), 0);
-          const pct = totalVagas > 0 ? Math.min(100, Math.round((totalPreenchido / totalVagas) * 100)) : 0;
-          const bc = pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
-          return (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 8,
-                marginTop: 10,
-                marginBottom: 10,
-              }}
-            >
-              <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: "2px solid #636366" }}>
-                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalVagas - totalPreenchido}</div>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-                  Vagas Livres
-                </div>
-              </div>
-              <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: `2px solid ${bc}` }}>
-                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalPreenchido}</div>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-                  Preenchido ({pct}%)
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {edit && (
-          <>
-            <button
-              onClick={() => setShN(!shN)}
-              style={
-                shN
-                  ? BK({
-                      width: "100%",
-                      padding: 12,
-                      marginBottom: 10,
-                      borderRadius: 13,
-                    })
-                  : BG({
-                      width: "100%",
-                      padding: 12,
-                      marginBottom: 10,
-                      borderRadius: 13,
-                    })
-              }
-            >
-              {shN ? "Cancelar" : "+ Novo Quarto"}
-            </button>
-            {shN && (
-              <div
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                <input
-                  style={I}
-                  placeholder="Número *"
-                  type="number"
-                  value={f.num}
-                  onChange={(e) => setF({ ...f, num: e.target.value })}
-                />
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span
-                    style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
-                  >
-                    Limite de camas
-                  </span>
-                  <input
-                    style={{ ...I, flex: 1 }}
-                    type="number"
-                    min="2"
-                    max="20"
-                    value={f.lim}
-                    onChange={(e) =>
-                      setF({ ...f, lim: parseInt(e.target.value) || 9 })
-                    }
-                  />
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span
-                    style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
-                  >
-                    Servos por quarto
-                  </span>
-                  <input
-                    style={{ ...I, flex: 1 }}
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={f.limServos ?? 2}
-                    onChange={(e) =>
-                      setF({ ...f, limServos: parseInt(e.target.value) ?? 2 })
-                    }
-                  />
-                </div>
-                <button
-                  onClick={async () => {
-                    if (!f.num) return;
-                    const nv = {
-                      num: parseInt(f.num),
-                      lim: f.lim,
-                      limServos: f.limServos ?? 2,
-                      servos: [],
-                      enc: [],
-                    };
-                    await salvarQuarto(colecao, nv);
-                    if (isH) setQh([...qh, nv]);
-                    else setQm([...qm, nv]);
-                    setF({ num: "", lim: 9, limServos: 2 });
-                    setShN(false);
-                    t("Quarto criado!");
-                  }}
-                  style={BG({ padding: 12, borderRadius: 12 })}
-                >
-                  Criar Quarto
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Quarto Mães */}
-        {!isH &&
-          (() => {
-            const m = qm.find((q) => q.maes);
-            if (!m) return null;
-            const oc = m.servos.length + m.enc.length;
-            const pct = Math.min(100, Math.round((oc / m.lim) * 100));
-            return (
-              <QuartoMaes
-                m={m}
-                oc={oc}
-                pct={pct}
-                edit={edit}
-                uQM={upd}
-                setQm={setQm}
-                qm={qm}
-                AddServoSearch={AddServoSearch}
-                AddEncAutocomplete={AddEncAutocomplete}
-                open={!!abertos['maes']}
-                onToggle={() => toggleAcc('maes')}
-                EditQuarto={EditQuarto}
-                upd={upd}
-                t={t}
-              />
-            );
-          })()}
-
-        {/* Lista de quartos */}
-        {list.map((q) => {
-          const oc = q.servos.length + q.enc.length;
-          const pct = Math.min(100, Math.round((oc / q.lim) * 100));
-          const lv = q.lim - oc;
-          const bc = pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
-          return (
-            <Acc
-              key={q.num}
-              title={`Quarto ${q.num}`}
-              right={<Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />}
-              onDel={edit ? () => delQuarto(q.num) : undefined}
-              open={!!abertos[q.num]}
-              onToggle={() => toggleAcc(q.num)}
-            >
-              <div
-                style={{
-                  background: "#1e1e1e",
-                  borderRadius: 5,
-                  height: 5,
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    background: bc,
-                    borderRadius: 5,
-                    height: 5,
-                    width: `${pct}%`,
-                    transition: "width .3s",
-                  }}
-                />
-              </div>
-              <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
-                {lv >= 0 ? `${lv} vagas` : "Lotado"}
-              </div>
-
-              {edit && <EditQuarto q={q} upd={upd} t={t} />}
-
-              <SL c={`Servos (${q.servos.length}/${q.limServos || 2})`} mt={0} />
-              <Tags
-                items={q.servos}
-                ax={G.green}
-                onX={
-                  edit
-                    ? (i) =>
-                        upd(q.num, (x) => ({
-                          ...x,
-                          servos: x.servos.filter((_, j) => j !== i),
-                        }))
-                    : undefined
-                }
-              />
-              {edit && q.servos.length >= (q.limServos || 2) && (
-                <div
-                  style={{
-                    color: G.tm,
-                    fontSize: 11,
-                    marginTop: 6,
-                    fontStyle: "italic",
-                  }}
-                >
-                  Limite de {q.limServos || 2} servos atingido.
-                </div>
-              )}
-              <AddServoSearch quarto={q} updFn={upd} />
-
-              <SL c="Encontristas" />
-              {q.enc.length > 0 ? (
-                <Tags
-                  items={q.enc}
-                  onX={
-                    edit
-                      ? (i) =>
-                          upd(q.num, (x) => ({
-                            ...x,
-                            enc: x.enc.filter((_, j) => j !== i),
-                          }))
-                      : undefined
-                  }
-                />
-              ) : (
-                <div
-                  style={{
-                    color: G.tm,
-                    fontSize: 12,
-                    fontStyle: "italic",
-                    margin: "4px 0 8px",
-                  }}
-                >
-                  Nenhum ainda
-                </div>
-              )}
-              <AddEncAutocomplete quarto={q} />
-            </Acc>
-          );
-        })}
-      </div>
     );
   }
 
@@ -8998,6 +8409,12 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
         >
           {sh ? "✕ Cancelar" : "＋ Registrar Ocorrência"}
         </button>
+
+        {ocorr.length > 0 && (
+          <div style={{ color: G.tm, fontSize: 12, marginBottom: 12 }}>
+            <strong style={{ color: G.t }}>{ocorr.filter(o => !o.res).length}</strong> não resolvida{ocorr.filter(o => !o.res).length === 1 ? "" : "s"} de <strong style={{ color: G.t }}>{ocorr.length}</strong> no total
+          </div>
+        )}
         {sh && (
           <div
             style={{
@@ -13376,6 +12793,595 @@ function CozinhaV({ edit, t, users }) {
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
 }
+
+  function QV({
+    qh,
+    qm,
+    uQH,
+    uQM,
+    setQh,
+    setQm,
+    edit,
+    t,
+    encH,
+    encM,
+    users,
+    salvarQuarto,
+    deletarQuarto,
+    tab,
+    setTab,
+    abertos,
+    setAbertos,
+    user,
+  }) {
+    // const [tab, setTab] = useState("M");
+    const [shN, setShN] = useState(false);
+    // const [abertos, setAbertos] = useState({});
+    const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
+    const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
+
+    // Servos sem permissão de gestão só podem ver os quartos do próprio gênero
+    const tabRestrita = user?.sexo === "Masculino" ? "H" : "M";
+    useEffect(() => {
+      if (!edit && tab !== tabRestrita) setTab(tabRestrita);
+    }, [edit, tab, tabRestrita]);
+    const tabEfetiva = edit ? tab : tabRestrita;
+    const isH = tabEfetiva === "H";
+    const colecao = isH ? "quartos_h" : "quartos_m";
+    
+    const EditQuarto = ({ q, upd, t }) => {
+    const [aberto, setAberto] = useState(false);
+    const [num, setNum] = useState(q.num);
+    const [lim, setLim] = useState(q.lim);
+    const [limServos, setLimServos] = useState(q.limServos || 2);
+
+    if (!aberto) return (
+      <button
+        onClick={() => setAberto(true)}
+        style={{ ...BK({ padding: "7px 12px", borderRadius: 10, fontSize: 12, marginBottom: 8 }), borderColor: "rgba(255,159,10,.3)", color: "#ff9f0a" }}
+      >
+        Editar quarto
+      </button>
+    );
+
+    return (
+      <div style={{ background: "#1a1a1a", borderRadius: 12, padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Número</div>
+            <input type="number" value={num} onChange={(e) => setNum(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Limite</div>
+            <input type="number" min="1" max="30" value={lim} onChange={(e) => setLim(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+          </div>
+        </div>
+        <div>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Servos por quarto</div>
+          <input type="number" min="0" max="10" value={limServos} onChange={(e) => setLimServos(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={async () => {
+              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2 }));
+              setAberto(false);
+              t("Quarto atualizado!");
+            }}
+            style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
+          >
+            Salvar
+          </button>
+          <button onClick={() => setAberto(false)} style={BK({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+    const upd = async (num, fn) => {
+      const lista = isH ? qh : qm;
+      const quarto = lista.find((q) => q.num === num);
+      if (!quarto) return;
+      const atualizado = fn(quarto);
+      if (isH) uQH(num, () => atualizado);
+      else uQM(num, () => atualizado);
+      // Se número mudou, deletar doc antigo antes de criar novo
+      if (atualizado.num !== num) {
+        await deletarQuarto(colecao, num);
+      }
+      await salvarQuarto(colecao, atualizado);
+    };
+
+    const encConfirmados = (isH ? encH : encM).filter((e) => e.chegou);
+
+    const todosServosAlocados = new Set([
+      ...qh.flatMap((q) => q.servos),
+      ...qm.flatMap((q) => q.servos),
+    ]);
+
+    const DIAS_QV = ["Quinta", "Sexta", "Sábado", "Domingo"];
+    const servosDisponiveis = (users || []).filter(
+      (u) =>
+        u.perfil !== "admin" &&
+        u.ativo !== false &&
+        !todosServosAlocados.has(u.nome) &&
+        u.sexo === (isH ? "Masculino" : "Feminino") &&
+        DIAS_QV.some((d) => (u.escala?.[d] || []).includes("Servo de Quarto")),
+    );
+
+    const list = isH ? qh : qm.filter((q) => !q.maes);
+
+    const delQuarto = async (num) => {
+      await deletarQuarto(colecao, num);
+      if (isH) setQh(qh.filter((q) => q.num !== num));
+      else setQm(qm.filter((q) => q.num !== num));
+      t("Quarto removido.");
+    };
+
+    const AddServoSearch = ({ quarto, updFn }) => {
+      const [busca, setBusca] = useState("");
+      const [aberto, setAberto] = useState(false);
+      if (!edit || quarto.servos.length >= (quarto.limServos || 2)) return null;
+      const filtrados = servosDisponiveis.filter((u) =>
+        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
+      );
+      return (
+        <div style={{ position: "relative", marginTop: 8 }}>
+          <input
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
+              setAberto(true);
+            }}
+            onFocus={() => setAberto(true)}
+            onBlur={() => setTimeout(() => setAberto(false), 150)}
+            placeholder="Buscar servo..."
+            style={{ ...I, fontSize: 12, padding: "9px 12px" }}
+          />
+          {aberto && filtrados.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                zIndex: 999,
+                background: "#1e1e1e",
+                border: "1px solid #2a2a2a",
+                borderRadius: 10,
+                marginTop: 4,
+                maxHeight: 180,
+                overflowY: "auto",
+              }}
+            >
+              {filtrados.map((u) => (
+                <div
+                  key={u.id}
+                  onMouseDown={() => {
+                    updFn(quarto.num, (x) => ({
+                      ...x,
+                      servos: [...x.servos, u.nome],
+                    }));
+                    setBusca("");
+                    setAberto(false);
+                    t("✓");
+                  }}
+                  style={{
+                    padding: "10px 14px",
+                    color: G.td,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    borderBottom: "1px solid #2a2a2a",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#2a2a2a")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  {u.nome}
+                </div>
+              ))}
+            </div>
+          )}
+          {aberto && busca.length > 0 && filtrados.length === 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                zIndex: 999,
+                background: "#1e1e1e",
+                border: "1px solid #2a2a2a",
+                borderRadius: 10,
+                marginTop: 4,
+                padding: "10px 14px",
+                color: G.tm,
+                fontSize: 12,
+              }}
+            >
+              Nenhum servo disponível
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const AddEncAutocomplete = ({ quarto, updFn }) => {
+      const [busca, setBusca] = useState("");
+      const [aberto, setAberto] = useState(false);
+      const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
+      if (!edit || lv <= 0) return null;
+      const fn = updFn || upd;
+      const sugestoes = encConfirmados.filter(
+        (e) =>
+          (e.nome || "").toLowerCase().includes(busca.toLowerCase()) &&
+          !quarto.enc.includes(e.nome) &&
+          busca.length > 0,
+      );
+      const confirmar = (nome) => {
+        if (!nome.trim()) return;
+        fn(quarto.num, (x) => ({ ...x, enc: [...x.enc, nome.trim()] }));
+        setBusca("");
+        setAberto(false);
+        t("✓");
+      };
+      return (
+        <div style={{ position: "relative", marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={busca}
+              onChange={(e) => {
+                setBusca(e.target.value);
+                setAberto(true);
+              }}
+              onFocus={() => setAberto(true)}
+              onBlur={() => setTimeout(() => setAberto(false), 150)}
+              onKeyDown={(e) => e.key === "Enter" && confirmar(busca)}
+              placeholder="Encontrista..."
+              style={{ ...I, flex: 1, fontSize: 12, padding: "9px 12px" }}
+            />
+            <button
+              onMouseDown={() => confirmar(busca)}
+              style={BG({
+                padding: "9px 14px",
+                borderRadius: 10,
+                fontSize: 13,
+              })}
+            >
+              +
+            </button>
+          </div>
+          {aberto && sugestoes.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                zIndex: 999,
+                background: "#1e1e1e",
+                border: "1px solid #2a2a2a",
+                borderRadius: 10,
+                marginTop: 4,
+                maxHeight: 180,
+                overflowY: "auto",
+              }}
+            >
+              {sugestoes.map((e) => (
+                <div
+                  onMouseDown={() => confirmar(e.nome)}
+                  style={{
+                    padding: "12px 14px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    userSelect: "none",
+                  }}
+                >
+                  {e.nome}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div>
+        {!edit && (
+          <div
+            style={{
+              background: "rgba(255,159,10,.1)",
+              border: "1px solid rgba(255,159,10,.2)",
+              borderRadius: 12,
+              padding: "10px 14px",
+              marginBottom: 12,
+              color: "#ff9f0a",
+              fontSize: 12,
+            }}
+          >
+            👀 Somente visualização
+          </div>
+        )}
+        {edit && (
+          <Seg
+            opts={[
+              ["M", "Mulheres"],
+              ["H", "Homens"],
+            ]}
+            val={tab}
+            set={setTab}
+          />
+        )}
+
+        {(() => {
+          const todosQuartos = isH ? qh : qm;
+          const totalVagas = todosQuartos.reduce((acc, q) => acc + (q.lim || 0), 0);
+          const totalPreenchido = todosQuartos.reduce((acc, q) => acc + (q.servos?.length || 0) + (q.enc?.length || 0), 0);
+          const pct = totalVagas > 0 ? Math.min(100, Math.round((totalPreenchido / totalVagas) * 100)) : 0;
+          const bc = pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
+          return (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+                marginTop: 10,
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: "2px solid #636366" }}>
+                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalVagas - totalPreenchido}</div>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+                  Vagas Livres
+                </div>
+              </div>
+              <div style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center", borderTop: `2px solid ${bc}` }}>
+                <div style={{ color: G.t, fontSize: 22, fontWeight: 800 }}>{totalPreenchido}</div>
+                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
+                  Preenchido ({pct}%)
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {edit && (
+          <>
+            <button
+              onClick={() => setShN(!shN)}
+              style={
+                shN
+                  ? BK({
+                      width: "100%",
+                      padding: 12,
+                      marginBottom: 10,
+                      borderRadius: 13,
+                    })
+                  : BG({
+                      width: "100%",
+                      padding: 12,
+                      marginBottom: 10,
+                      borderRadius: 13,
+                    })
+              }
+            >
+              {shN ? "Cancelar" : "+ Novo Quarto"}
+            </button>
+            {shN && (
+              <div
+                style={{
+                  background: G.card,
+                  border: `1px solid ${G.cb}`,
+                  borderRadius: 14,
+                  padding: 16,
+                  marginBottom: 10,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                <input
+                  style={I}
+                  placeholder="Número *"
+                  type="number"
+                  value={f.num}
+                  onChange={(e) => setF({ ...f, num: e.target.value })}
+                />
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span
+                    style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
+                  >
+                    Limite de camas
+                  </span>
+                  <input
+                    style={{ ...I, flex: 1 }}
+                    type="number"
+                    min="2"
+                    max="20"
+                    value={f.lim}
+                    onChange={(e) =>
+                      setF({ ...f, lim: parseInt(e.target.value) || 9 })
+                    }
+                  />
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span
+                    style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
+                  >
+                    Servos por quarto
+                  </span>
+                  <input
+                    style={{ ...I, flex: 1 }}
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={f.limServos ?? 2}
+                    onChange={(e) =>
+                      setF({ ...f, limServos: parseInt(e.target.value) ?? 2 })
+                    }
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!f.num) return;
+                    const nv = {
+                      num: parseInt(f.num),
+                      lim: f.lim,
+                      limServos: f.limServos ?? 2,
+                      servos: [],
+                      enc: [],
+                    };
+                    await salvarQuarto(colecao, nv);
+                    if (isH) setQh([...qh, nv]);
+                    else setQm([...qm, nv]);
+                    setF({ num: "", lim: 9, limServos: 2 });
+                    setShN(false);
+                    t("Quarto criado!");
+                  }}
+                  style={BG({ padding: 12, borderRadius: 12 })}
+                >
+                  Criar Quarto
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Quarto Mães */}
+        {!isH &&
+          (() => {
+            const m = qm.find((q) => q.maes);
+            if (!m) return null;
+            const oc = m.servos.length + m.enc.length;
+            const pct = Math.min(100, Math.round((oc / m.lim) * 100));
+            return (
+              <QuartoMaes
+                m={m}
+                oc={oc}
+                pct={pct}
+                edit={edit}
+                uQM={upd}
+                setQm={setQm}
+                qm={qm}
+                AddServoSearch={AddServoSearch}
+                AddEncAutocomplete={AddEncAutocomplete}
+                open={!!abertos['maes']}
+                onToggle={() => toggleAcc('maes')}
+                EditQuarto={EditQuarto}
+                upd={upd}
+                t={t}
+              />
+            );
+          })()}
+
+        {/* Lista de quartos */}
+        {list.map((q) => {
+          const oc = q.servos.length + q.enc.length;
+          const pct = Math.min(100, Math.round((oc / q.lim) * 100));
+          const lv = q.lim - oc;
+          const bc = pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
+          return (
+            <Acc
+              key={q.num}
+              title={`Quarto ${q.num}`}
+              right={<Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />}
+              onDel={edit ? () => delQuarto(q.num) : undefined}
+              open={!!abertos[q.num]}
+              onToggle={() => toggleAcc(q.num)}
+            >
+              <div
+                style={{
+                  background: "#1e1e1e",
+                  borderRadius: 5,
+                  height: 5,
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    background: bc,
+                    borderRadius: 5,
+                    height: 5,
+                    width: `${pct}%`,
+                    transition: "width .3s",
+                  }}
+                />
+              </div>
+              <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>
+                {lv >= 0 ? `${lv} vagas` : "Lotado"}
+              </div>
+
+              {edit && <EditQuarto q={q} upd={upd} t={t} />}
+
+              <SL c={`Servos (${q.servos.length}/${q.limServos || 2})`} mt={0} />
+              <Tags
+                items={q.servos}
+                ax={G.green}
+                onX={
+                  edit
+                    ? (i) =>
+                        upd(q.num, (x) => ({
+                          ...x,
+                          servos: x.servos.filter((_, j) => j !== i),
+                        }))
+                    : undefined
+                }
+              />
+              {edit && q.servos.length >= (q.limServos || 2) && (
+                <div
+                  style={{
+                    color: G.tm,
+                    fontSize: 11,
+                    marginTop: 6,
+                    fontStyle: "italic",
+                  }}
+                >
+                  Limite de {q.limServos || 2} servos atingido.
+                </div>
+              )}
+              <AddServoSearch quarto={q} updFn={upd} />
+
+              <SL c="Encontristas" />
+              {q.enc.length > 0 ? (
+                <Tags
+                  items={q.enc}
+                  onX={
+                    edit
+                      ? (i) =>
+                          upd(q.num, (x) => ({
+                            ...x,
+                            enc: x.enc.filter((_, j) => j !== i),
+                          }))
+                      : undefined
+                  }
+                />
+              ) : (
+                <div
+                  style={{
+                    color: G.tm,
+                    fontSize: 12,
+                    fontStyle: "italic",
+                    margin: "4px 0 8px",
+                  }}
+                >
+                  Nenhum ainda
+                </div>
+              )}
+              <AddEncAutocomplete quarto={q} />
+            </Acc>
+          );
+        })}
+      </div>
+    );
+  }
+
 
 function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra, buscaUserRef }) {
     const [buscaUser, setBuscaUserState] = useState(buscaUserRef?.current || "");
