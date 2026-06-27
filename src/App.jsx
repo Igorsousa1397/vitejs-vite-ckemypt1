@@ -3283,7 +3283,30 @@ export default function App() {
   const [scr, setScr] = useState("welcome");
   const [user, setUser] = useState(null);
   const [pg, setPg] = useState("home");
+  const pgRef = useRef(pg);
+  useEffect(() => { pgRef.current = pg; }, [pg]);
+  const menuRef = useRef(false);
+
+  useEffect(() => {
+    history.pushState({ marker: "buffer" }, "");
+    const onPopState = () => {
+      if (menuRef.current) {
+        setMenu(false);
+        history.pushState({ marker: "buffer" }, "");
+        return;
+      }
+      if (pgRef.current !== "home" && pgRef.current !== "smins") {
+        setPg("home");
+        history.pushState({ marker: "buffer" }, "");
+      }
+      // se já está na home, deixa o botão voltar seguir o comportamento padrão
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   const [menu, setMenu] = useState(false);
+  useEffect(() => { menuRef.current = menu; }, [menu]);
   const [pagamentoId, setPagamentoId] = useState(null);
   const [encId, setEncId] = useState(null);
   const [termoCpf, setTermoCpf] = useState(null);
