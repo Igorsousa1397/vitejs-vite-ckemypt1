@@ -13266,7 +13266,8 @@ function CozinhaV({ edit, t, users }) {
                     [...(q.enc || [])]
                       .sort((a, b) => a.localeCompare(b))
                       .forEach((nomeEnc) => {
-                        const encontrista = encontristas.find((e) => e.nome === nomeEnc);
+                        const normalizar = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+                        const encontrista = encontristas.find((e) => normalizar(e.nome) === normalizar(nomeEnc));
                         ws.addRow({
                           quarto: q.num,
                           nome: nomeEnc,
