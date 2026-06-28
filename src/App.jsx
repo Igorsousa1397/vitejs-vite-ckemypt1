@@ -5297,7 +5297,8 @@ export default function App() {
 
                               const colegas = (users || []).filter(u =>
                                 u.ativo !== false &&
-                                (u.escala?.[dia] || []).includes(fn)
+                                (u.escala?.[dia] || []).includes(fn) &&
+                                (fnBase !== "Servo de Quarto" || u.sexo === user.sexo)
                               );
 
                               const meuQuarto = fnBase === "Servo de Quarto"
