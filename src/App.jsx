@@ -8583,11 +8583,25 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
 
     // ---- Visão do servo: ver minhas cartas ----
     if (!isLiderCartas) {
-      const minhasCartas = cartas.filter(c => c.servoId === user.id);
+      const minhasCartas = cartas.filter(c => c.servoId === user.id && !c.retirada);
       const totalCartas = minhasCartas.reduce((acc, c) => acc + (c.qtd || 1), 0);
       const mensagemBusca = responsavel.trim()
         ? `Procure ${responsavel} para retirar.`
         : "Procure o líder de Cartas para retirar.";
+
+      const marcarRetirada = async () => {
+        try {
+          await Promise.all(
+            minhasCartas.map((c) =>
+              setDoc(doc(db, "cartas", c.id), { retirada: true, retiradaEm: Date.now() }, { merge: true }),
+            ),
+          );
+          t("Carta(s) marcada(s) como retirada(s)!");
+        } catch (err) {
+          console.error("Erro ao marcar retirada:", err);
+          t("Erro ao salvar.", "w");
+        }
+      };
 
       if (totalCartas === 0) {
         return (
@@ -8609,6 +8623,12 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
             </div>
             <div style={{ color: G.tm, fontSize: 12, marginTop: 6 }}>{mensagemBusca}</div>
           </div>
+          <button
+            onClick={marcarRetirada}
+            style={BG({ width: "100%", padding: 14, borderRadius: 14, fontSize: 14 })}
+          >
+            ✓ Já retirei
+          </button>
         </div>
       );
     }
@@ -8644,19 +8664,38 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       setQtd(1);
     };
 
+    const [filtroCartas, setFiltroCartas] = useState("pendentes");
+
     const removerRegistro = async (id) => {
       await deleteDoc(doc(db, "cartas", id));
       t("Removido.");
     };
 
-    // Agrupa cartas por servo para exibição
+    const marcarRetiradaServo = async (registros, ativo) => {
+      try {
+        await Promise.all(
+          registros.map((reg) =>
+            setDoc(doc(db, "cartas", reg.id), { retirada: ativo, retiradaEm: ativo ? Date.now() : null }, { merge: true }),
+          ),
+        );
+        t(ativo ? "Marcado como retirado!" : "Reaberto como pendente.");
+      } catch (err) {
+        console.error("Erro ao atualizar retirada:", err);
+        t("Erro ao salvar.", "w");
+      }
+    };
+
+    // Agrupa cartas por servo para exibição (filtrado por status)
+    const cartasFiltradas = cartas.filter(c => filtroCartas === "pendentes" ? !c.retirada : !!c.retirada);
     const porServo = {};
-    cartas.forEach(c => {
+    cartasFiltradas.forEach(c => {
       if (!porServo[c.servoId]) porServo[c.servoId] = { nome: c.servoNome, total: 0, registros: [] };
       porServo[c.servoId].total += c.qtd || 1;
       porServo[c.servoId].registros.push(c);
     });
     const listaServos = Object.entries(porServo).sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+    const totalPendentes = cartas.filter(c => !c.retirada).length;
+    const totalRetiradas = cartas.filter(c => !!c.retirada).length;
 
     return (
       <div>
@@ -8771,19 +8810,24 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
           </div>
         </div>
 
-        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-          Cartas pendentes ({listaServos.length})
+        <Seg
+          opts={[["pendentes", `Pendentes (${totalPendentes})`], ["retiradas", `Retiradas (${totalRetiradas})`]]}
+          val={filtroCartas}
+          set={setFiltroCartas}
+        />
+        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", margin: "12px 0 8px" }}>
+          {filtroCartas === "pendentes" ? "Cartas pendentes" : "Cartas retiradas"} ({listaServos.length})
         </div>
         {listaServos.length === 0 && (
           <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
-            Nenhuma carta registrada ainda.
+            {filtroCartas === "pendentes" ? "Nenhuma carta pendente." : "Nenhuma carta retirada ainda."}
           </div>
         )}
         {listaServos.map(([servoId, info]) => (
           <Acc
             key={servoId}
             title={info.nome}
-            right={<Pill c={`${info.total} ${info.total === 1 ? "carta" : "cartas"}`} bg="rgba(0,200,81,.12)" tc={G.green} />}
+            right={<Pill c={`${info.total} ${info.total === 1 ? "carta" : "cartas"}`} bg={filtroCartas === "pendentes" ? "rgba(0,200,81,.12)" : "rgba(99,99,102,.15)"} tc={filtroCartas === "pendentes" ? G.green : "#888"} />}
           >
             {info.registros.map((reg) => (
               <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #1e1e1e" }}>
@@ -8795,6 +8839,12 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 </span>
               </div>
             ))}
+            <button
+              onClick={() => marcarRetiradaServo(info.registros, filtroCartas === "pendentes")}
+              style={BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, marginTop: 10 })}
+            >
+              {filtroCartas === "pendentes" ? "Marcar como retirada" : "Reabrir como pendente"}
+            </button>
           </Acc>
         ))}
       </div>
