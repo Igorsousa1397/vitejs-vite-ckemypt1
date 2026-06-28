@@ -8509,11 +8509,17 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 10 }}>
                 <button
                   onClick={async () => {
-                    await setDoc(doc(db, "ocorrencias", String(o.id)), { 
-                      res: !o.res,
-                      resolvido_por: !o.res ? user.nome : null,
-                      resolvido_hr: !o.res ? new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null,
-                    }, { merge: true });
+                    try {
+                      await setDoc(doc(db, "ocorrencias", String(o.id)), {
+                        res: !o.res,
+                        resolvido_por: !o.res ? user.nome : null,
+                        resolvido_hr: !o.res ? new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null,
+                      }, { merge: true });
+                      t(!o.res ? "Marcado como resolvido!" : "Reaberto.");
+                    } catch (err) {
+                      console.error("Erro ao resolver ocorrência:", err);
+                      t("Erro ao salvar: " + err.message, "w");
+                    }
                   }}
                   style={{
                     background: o.res ? "rgba(0,200,81,.1)" : "rgba(255,159,10,.1)",
