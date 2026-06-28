@@ -13247,6 +13247,51 @@ function CozinhaV({ edit, t, users }) {
         })()}
 
         {edit && (
+          <button
+            onClick={async () => {
+              const wb = new ExcelJS.Workbook();
+
+              const montarAba = (nomeAba, quartos, encontristas) => {
+                const ws = wb.addWorksheet(nomeAba);
+                ws.columns = [
+                  { header: "Quarto", key: "quarto", width: 10 },
+                  { header: "Nome", key: "nome", width: 35 },
+                  { header: "Camiseta", key: "camiseta", width: 14 },
+                ];
+                ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
+                ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+                [...quartos]
+                  .sort((a, b) => a.num - b.num)
+                  .forEach((q) => {
+                    [...(q.enc || [])]
+                      .sort((a, b) => a.localeCompare(b))
+                      .forEach((nomeEnc) => {
+                        const encontrista = encontristas.find((e) => e.nome === nomeEnc);
+                        ws.addRow({
+                          quarto: q.num,
+                          nome: nomeEnc,
+                          camiseta: encontrista?.camiseta || "",
+                        });
+                      });
+                  });
+              };
+
+              montarAba("Homens", qh, encH || []);
+              montarAba("Mulheres", qm, encM || []);
+
+              const buf = await wb.xlsx.writeBuffer();
+              const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = "encontristas_por_quarto.xlsx"; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            style={BG({ width: "100%", padding: 12, borderRadius: 13, marginBottom: 10 })}
+          >
+            Exportar Excel (por quarto)
+          </button>
+        )}
+
+        {edit && (
           <>
             <button
               onClick={() => setShN(!shN)}
