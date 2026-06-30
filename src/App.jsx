@@ -2976,6 +2976,30 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
     window.location.href = `https://wa.me/55${tel}?text=${msg}`;
   };
 
+  const [exportandoTodos, setExportandoTodos] = useState(false);
+
+  const exportarTodos = async () => {
+    const assinados = todos.filter((e) => e.termoAssinado);
+    if (assinados.length === 0) { t("Nenhum termo assinado ainda."); return; }
+    setExportandoTodos(true);
+    let ok = 0, erro = 0;
+    for (const enc of assinados) {
+      const termo = termos.find((tr) => tr.encontristaId === enc.id);
+      if (!termo) { erro++; continue; }
+      try {
+        await exportarPDF(termo);
+        ok++;
+        // Pequena pausa entre downloads para não travar o navegador
+        await new Promise(r => setTimeout(r, 600));
+      } catch (e) {
+        console.error("Erro ao exportar PDF de", enc.nome, e);
+        erro++;
+      }
+    }
+    setExportandoTodos(false);
+    t(`${ok} PDFs baixados${erro > 0 ? ` | ${erro} com erro` : ""}!`);
+  };
+
   const cnt = (a) => {
     if (a === "enviar")
       return todos.filter((e) => !e.termoEnviado && !e.termoAssinado).length;
@@ -3018,6 +3042,20 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
         placeholder="Buscar por nome..."
         style={{ ...I, marginBottom: 10 }}
       />
+
+      {aba === "assinado" && lista.length > 0 && (
+        <button
+          onClick={exportarTodos}
+          disabled={exportandoTodos}
+          style={{
+            ...BK({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 12 }),
+            borderColor: "rgba(0,200,81,.4)",
+            color: exportandoTodos ? G.tm : G.green,
+          }}
+        >
+          {exportandoTodos ? "Baixando... aguarde" : `⬇ Baixar todos (${lista.length} PDFs)`}
+        </button>
+      )}
 
       {lista.length === 0 && (
         <div
