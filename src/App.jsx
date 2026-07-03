@@ -2176,17 +2176,14 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
     setLoadCep(false);
   };
 
+  const [modalVerso, setModalVerso] = useState(false);
+
   const handleFotoFrente = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setFotoFrente(file);
     setPreviewFrente(URL.createObjectURL(file));
-    // Perguntar se o documento já tem frente e verso na mesma foto
-    const temAmbos = window.confirm(
-      "A foto que você enviou já contém FRENTE e VERSO do documento?\n\n✅ OK = Sim, já está completo\n❌ Cancelar = Não, preciso enviar o verso separado"
-    );
-    setPerguntouVerso(true);
-    setPrecisaVerso(!temAmbos);
+    setModalVerso(true);
   };
 
   const handleFotoVerso = (e) => {
@@ -2250,6 +2247,35 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 60 }}>
       <style>{css}</style>
+
+      {/* Modal: a foto já tem frente e verso? */}
+      {modalVerso && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: "#1a1a1a", borderRadius: 18, padding: 24, maxWidth: 340, width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>📄</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Sua foto já tem frente e verso?</div>
+            <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+              Se o documento completo já aparece em uma só foto, toque em <strong style={{ color: "#fff" }}>OK</strong>.<br/>
+              Se precisar enviar o verso separado, toque em <strong style={{ color: "#fff" }}>Enviar 2ª foto</strong>.
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setPerguntouVerso(true); setPrecisaVerso(true); setModalVerso(false); }}
+                style={{ ...BK({ flex: 1, padding: 13, borderRadius: 12, fontSize: 14 }), borderColor: "rgba(10,132,255,.4)", color: "#0a84ff" }}
+              >
+                Enviar 2ª foto
+              </button>
+              <button
+                onClick={() => { setPerguntouVerso(true); setPrecisaVerso(false); setModalVerso(false); }}
+                style={BG({ flex: 1, padding: 13, borderRadius: 12, fontSize: 14 })}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ background: "#000", borderBottom: "1px solid #1a1a1a", padding: "14px 16px", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center" }}>Termo de Concordância</div>
       </div>
