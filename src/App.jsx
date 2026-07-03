@@ -2194,8 +2194,8 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
   };
 
   const assinar = async () => {
-    if (!end.trim() || !num.trim() || !comp.trim()) {
-      alert("Preencha o endereço completo (rua, número e complemento).");
+    if (!end.trim() || !num.trim()) {
+      alert("Preencha o endereço completo (rua e número).");
       return;
     }
     if (!aceite) { alert("Você precisa aceitar os termos para assinar."); return; }
@@ -2303,7 +2303,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         <input value={end} onChange={(e) => setEnd(e.target.value)} placeholder="Rua, bairro, cidade/UF" style={{ ...iI, marginBottom: 8 }} />
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <input value={num} onChange={(e) => setNum(e.target.value)} placeholder="Número" style={{ ...iI, width: 90 }} />
-          <input value={comp} onChange={(e) => setComp(e.target.value)} placeholder="Complemento (apto, bloco...)" style={{ ...iI, flex: 1 }} />
+          <input value={comp} onChange={(e) => setComp(e.target.value)} placeholder="Complemento (opcional)" style={{ ...iI, flex: 1 }} />
         </div>
 
         {/* Texto do termo */}
