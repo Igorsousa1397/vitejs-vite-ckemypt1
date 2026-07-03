@@ -1803,7 +1803,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           }}
          > 
           <div>
-            <strong style={{ color: G.green }}>Dias 26, 27 e 28 de Junho</strong>
+            <strong style={{ color: G.green }}>Dias 20, 21 e 22 de Novembro</strong>
             <br />
             
           <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
@@ -2248,7 +2248,7 @@ function Termo({ cpf, onVoltar }) {
     const endCompleto = `${end}, ${num}, ${comp}`;
     const termoTexto = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
 
-      A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 26, 27 e 28 de junho de 2026.
+      A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 20, 21 e 22 de novembro de 2026.
 
       Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.
 
@@ -2451,7 +2451,7 @@ function Termo({ cpf, onVoltar }) {
             marginBottom: 24,
           }}
         >
-          Encontro com Deus — 26, 27 e 28 de junho de 2026
+          Encontro com Deus — 20, 21 e 22 de novembro de 2026
         </div>
 
         <div
@@ -2626,7 +2626,7 @@ function Termo({ cpf, onVoltar }) {
             <p style={{ marginBottom: 12 }}>
               A autorização é referente a imagens e vídeos do evento{" "}
               <strong style={{ color: "#fff" }}>"Encontro com Deus"</strong>,
-              nos dias 26, 27 e 28 de junho de 2026.
+              nos dias 20, 21 e 22 de novembro de 2026.
             </p>
             <p style={{ marginBottom: 12 }}>
               Também concorda com as regras do evento, destacando que{" "}
