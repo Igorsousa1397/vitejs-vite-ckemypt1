@@ -1197,10 +1197,22 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
   const [msgPagamento, setMsgPagamento] = useState('');
   const [encId, setEncId] = useState(null);
   const [done, setDone] = useState(false);
-  const [confirmado, setConfirmado] = useState(false); // ← NOVO
+  const [confirmado, setConfirmado] = useState(false);
+  const [termoPendente, setTermoPendente] = useState(false);
 
   if (confirmado && encId)
     return <ConfirmadoV encId={encId} onVoltar={onVoltar} />;
+
+  // Termo pendente: assinar antes do pagamento
+  if (termoPendente && encontrista)
+    return (
+      <TermoInscricao
+        encId={encId}
+        form={{ nome: encontrista.nome, sexo: encontrista.sexo, igreja: encontrista.igreja, cpf: encontrista.cpf, autorizaImagem: encontrista.autorizaImagem }}
+        onAssinado={() => { setTermoPendente(false); setDone(true); }}
+        onVoltar={() => { setTermoPendente(false); setEncontrista(null); setBusca(''); }}
+      />
+    );
 
   if (done && encontrista)
     return (
@@ -1237,6 +1249,11 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
           setEncId(found.id);
           setEncontrista({ id: found.id, ...data });
           // Inscrições encerradas: mostra status, mas não libera pagamento
+        } else if (!data.termoAssinado) {
+          // Termo ainda não assinado: redireciona para assinar antes do pagamento
+          setEncId(found.id);
+          setEncontrista({ id: found.id, ...data });
+          setTermoPendente(true);
         } else {
           setEncId(found.id);
           setEncontrista({ id: found.id, ...data });
