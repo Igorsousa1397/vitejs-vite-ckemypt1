@@ -1625,6 +1625,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [termoAssinado, setTermoAssinado] = useState(false);
   const [encId, setEncId] = useState(null);
   const [msgPagamento, setMsgPagamento] = useState("");
   const enviandoRef = useRef(false);
@@ -1712,7 +1713,17 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     enviandoRef.current = false;
   };
 
-  if (done)
+  if (done && !termoAssinado)
+  return (
+    <TermoInscricao
+      encId={encId}
+      form={form}
+      onAssinado={() => setTermoAssinado(true)}
+      onVoltar={onVoltar}
+    />
+  );
+
+  if (done && termoAssinado)
   return (
     <PagamentoV
       encId={encId}
@@ -2086,6 +2097,229 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       <BotaoAjuda />
       <BotaoInsta />
       <BotaoFaq onFaq={onFaq} />
+    </div>
+  );
+}
+
+function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
+  const [cep, setCep] = useState("");
+  const [num, setNum] = useState("");
+  const [comp, setComp] = useState("");
+  const [end, setEnd] = useState("");
+  const [loadCep, setLoadCep] = useState(false);
+  const [aceite, setAceite] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Foto do documento: frente e opcionalmente verso
+  const [fotoFrente, setFotoFrente] = useState(null);
+  const [fotoVerso, setFotoVerso] = useState(null);
+  const [previewFrente, setPreviewFrente] = useState(null);
+  const [previewVerso, setPreviewVerso] = useState(null);
+  const [perguntouVerso, setPerguntouVerso] = useState(false);
+  const [precisaVerso, setPrecisaVerso] = useState(null); // true/false
+  const [fotoRosto, setFotoRosto] = useState(null);
+  const [previewRosto, setPreviewRosto] = useState(null);
+
+  const comprimirImagem = (file) =>
+    new Promise((resolve) => {
+      if (!file.type.startsWith("image/") || file.size < 1.5 * 1024 * 1024) { resolve(file); return; }
+      const img = document.createElement("img");
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX_DIM = 1600;
+        let { width, height } = img;
+        if (width > height && width > MAX_DIM) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM; }
+        else if (height > MAX_DIM) { width = Math.round(width * MAX_DIM / height); height = MAX_DIM; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        canvas.toBlob((blob) => resolve(blob ? new File([blob], file.name, { type: "image/jpeg" }) : file), "image/jpeg", 0.75);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+
+  const uploadFoto = async (file, caminho) => {
+    const arq = await comprimirImagem(file);
+    const r = ref(storage, caminho);
+    await uploadBytes(r, arq);
+    return await getDownloadURL(r);
+  };
+
+  const buscarCep = async (valor) => {
+    const limpo = valor.replace(/\D/g, "");
+    if (limpo.length !== 8) return;
+    setLoadCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) setEnd(`${data.logradouro}, ${data.bairro}, ${data.localidade}/${data.uf}`);
+    } catch {}
+    setLoadCep(false);
+  };
+
+  const handleFotoFrente = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFotoFrente(file);
+    setPreviewFrente(URL.createObjectURL(file));
+    // Perguntar se o documento já tem frente e verso na mesma foto
+    const temAmbos = window.confirm(
+      "A foto que você enviou já contém FRENTE e VERSO do documento?\n\n✅ OK = Sim, já está completo\n❌ Cancelar = Não, preciso enviar o verso separado"
+    );
+    setPerguntouVerso(true);
+    setPrecisaVerso(!temAmbos);
+  };
+
+  const handleFotoVerso = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFotoVerso(file);
+    setPreviewVerso(URL.createObjectURL(file));
+  };
+
+  const assinar = async () => {
+    if (!end.trim() || !num.trim() || !comp.trim()) {
+      alert("Preencha o endereço completo (rua, número e complemento).");
+      return;
+    }
+    if (!aceite) { alert("Você precisa aceitar os termos para assinar."); return; }
+    if (!fotoFrente) { alert("Envie uma foto do documento (frente)."); return; }
+    if (precisaVerso && !fotoVerso) { alert("Envie a foto do verso do documento."); return; }
+    if (!fotoRosto) { alert("Tire uma selfie para validar."); return; }
+
+    setSaving(true);
+    const agora = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
+    const endCompleto = `${end}, ${num}, ${comp}`;
+    const termoTexto = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.\n\nA autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 20, 21 e 22 de novembro de 2026.\n\nTambém concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.\n\nPor fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
+
+    let urlDoc = null, urlVerso = null, urlRosto = null;
+    try { urlDoc = await uploadFoto(fotoFrente, `termos/${encId}/documento_frente`); }
+    catch (err) { setSaving(false); alert("Erro ao enviar foto do documento: " + err.message); return; }
+
+    if (precisaVerso && fotoVerso) {
+      try { urlVerso = await uploadFoto(fotoVerso, `termos/${encId}/documento_verso`); }
+      catch (err) { setSaving(false); alert("Erro ao enviar verso do documento: " + err.message); return; }
+    }
+
+    try { urlRosto = await uploadFoto(fotoRosto, `termos/${encId}/selfie`); }
+    catch (err) { setSaving(false); alert("Erro ao enviar selfie: " + err.message); return; }
+
+    try {
+      await setDoc(doc(db, "encontristas", encId), {
+        endereco: endCompleto, termoAssinado: true, termoAssinadoEm: agora,
+        fotoDocumento: urlDoc, fotoDocumentoVerso: urlVerso || null, fotoRosto: urlRosto,
+      }, { merge: true });
+    } catch (err) { setSaving(false); alert("Erro ao salvar seus dados: " + err.message); return; }
+
+    try {
+      const nomeCompleto = form.nome?.trim() || "";
+      const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() : form.igreja;
+      await addDoc(collection(db, "termos"), {
+        encontristaId: encId, nome: nomeCompleto, cpf: form.cpf?.replace(/[\.\-]/g, ""),
+        endereco: endCompleto, sexo: form.sexo, igreja: igrejaFinal,
+        autorizaImagem: form.autorizaImagem, assinadoEm: agora, termoTexto,
+        fotoDocumento: urlDoc, fotoDocumentoVerso: urlVerso || null, fotoRosto: urlRosto,
+      });
+    } catch (err) { console.error("Erro ao salvar termo:", err); }
+
+    setSaving(false);
+    onAssinado();
+  };
+
+  const iI = { ...I, marginBottom: 0 };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 60 }}>
+      <style>{css}</style>
+      <div style={{ background: "#000", borderBottom: "1px solid #1a1a1a", padding: "14px 16px", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center" }}>Termo de Concordância</div>
+      </div>
+      <div style={{ padding: "24px 20px", maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: "center" }}>
+          Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
+        </div>
+        <div style={{ color: "rgba(255,255,255,.3)", fontSize: 11, textAlign: "center", marginBottom: 24 }}>
+          Encontro com Deus — 20, 21 e 22 de novembro de 2026
+        </div>
+
+        {/* Dados do encontrista (pré-preenchidos) */}
+        <div style={{ background: "#111", borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
+          <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Signatário</div>
+          <div style={{ color: "#fff", fontWeight: 700 }}>{form.nome}</div>
+          <div style={{ color: "rgba(255,255,255,.4)", fontSize: 12, marginTop: 4 }}>{form.sexo} · {form.igreja === "Outra" ? form.igrejaCustom : form.igreja}</div>
+        </div>
+
+        {/* Endereço */}
+        <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8, marginTop: 20 }}>Endereço *</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <input value={cep} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 8); setCep(v); buscarCep(v); }} placeholder="CEP" style={{ ...iI, width: 120 }} />
+          {loadCep && <span style={{ color: "rgba(255,255,255,.4)", fontSize: 12, alignSelf: "center" }}>Buscando...</span>}
+        </div>
+        <input value={end} onChange={(e) => setEnd(e.target.value)} placeholder="Rua, bairro, cidade/UF" style={{ ...iI, marginBottom: 8 }} />
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input value={num} onChange={(e) => setNum(e.target.value)} placeholder="Número" style={{ ...iI, width: 90 }} />
+          <input value={comp} onChange={(e) => setComp(e.target.value)} placeholder="Complemento (apto, bloco...)" style={{ ...iI, flex: 1 }} />
+        </div>
+
+        {/* Texto do termo */}
+        <div style={{ background: "#111", borderRadius: 14, padding: "14px 16px", marginBottom: 20, color: "rgba(255,255,255,.7)", fontSize: 13, lineHeight: 1.7 }}>
+          <p>O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da <strong style={{ color: "#fff" }}>Igreja Apostólica Fonte</strong> (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.</p>
+          <p>A autorização é referente a imagens e vídeos do evento <strong style={{ color: "#fff" }}>"Encontro com Deus"</strong>, nos dias 20, 21 e 22 de novembro de 2026.</p>
+          <p>Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.</p>
+          <p>Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.</p>
+        </div>
+
+        {/* Aceite */}
+        <div onClick={() => setAceite(!aceite)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: aceite ? "rgba(0,200,81,.08)" : "#111", border: `1px solid ${aceite ? "rgba(0,200,81,.4)" : "#2a2a2a"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
+          <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${aceite ? G.green : "#444"}`, background: aceite ? G.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {aceite && <span style={{ color: "#000", fontSize: 12, fontWeight: 900 }}>✓</span>}
+          </div>
+          <span style={{ color: aceite ? "#fff" : "rgba(255,255,255,.6)", fontSize: 13 }}>Li e concordo com os termos acima</span>
+        </div>
+
+        {/* Foto do documento */}
+        <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Documento (frente) *</div>
+        <label style={{ display: "block", background: "#111", border: "1px dashed #333", borderRadius: 14, padding: 16, textAlign: "center", cursor: "pointer", marginBottom: 8 }}>
+          <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={handleFotoFrente} />
+          {previewFrente
+            ? <img src={previewFrente} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="frente" />
+            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13 }}>📷 Toque para tirar foto ou selecionar arquivo</div>
+          }
+        </label>
+
+        {perguntouVerso && precisaVerso && (
+          <>
+            <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8, marginTop: 16 }}>Documento (verso) *</div>
+            <label style={{ display: "block", background: "#111", border: "1px dashed #333", borderRadius: 14, padding: 16, textAlign: "center", cursor: "pointer", marginBottom: 8 }}>
+              <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={handleFotoVerso} />
+              {previewVerso
+                ? <img src={previewVerso} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="verso" />
+                : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13 }}>📷 Foto do verso</div>
+              }
+            </label>
+          </>
+        )}
+
+        {/* Selfie */}
+        <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8, marginTop: 16 }}>Selfie de validação *</div>
+        <label style={{ display: "block", background: "#111", border: "1px dashed #333", borderRadius: 14, padding: 16, textAlign: "center", cursor: "pointer", marginBottom: 24 }}>
+          <input type="file" accept="image/*" capture="user" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; if (f) { setFotoRosto(f); setPreviewRosto(URL.createObjectURL(f)); } }} />
+          {previewRosto
+            ? <img src={previewRosto} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="selfie" />
+            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13 }}>🤳 Tire uma selfie segurando seu documento</div>
+          }
+        </label>
+
+        <button
+          onClick={assinar}
+          disabled={saving}
+          style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15 }), opacity: saving ? 0.6 : 1 }}
+        >
+          {saving ? "Enviando... aguarde" : "Assinar e ir para pagamento →"}
+        </button>
+      </div>
     </div>
   );
 }
