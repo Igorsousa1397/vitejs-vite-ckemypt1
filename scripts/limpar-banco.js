@@ -1,0 +1,132 @@
+/**
+ * Script de limpeza do banco para novo evento
+ * 
+ * O QUE FAZ:
+ * - Exclui TODOS os encontristas EXCETO "Shayene Beserra Bueno Munaro"
+ * - Exclui todos os documentos de: ocorrencias, avisos, termos, quartos_h, quartos_m
+ * - Limpa o campo "escala" de todos os servos (mantém o cadastro)
+ * - NÃO toca em: cartas, users, config, tokens, saude, etc.
+ * 
+ * COMO RODAR:
+ * 1. Baixe a chave de serviço do Firebase Console:
+ *    Firebase Console > Configurações do Projeto > Contas de serviço > Gerar nova chave privada
+ * 2. Salve como: scripts/serviceAccount.json
+ * 3. Execute: node scripts/limpar-banco.js
+ */
+
+const admin = require("../functions/node_modules/firebase-admin");
+const serviceAccount = require("./serviceAccount.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
+
+const ENCONTRISTA_MANTER = "Shayene Beserra Bueno Munaro";
+
+async function deletarColecao(colecao) {
+  const snap = await db.collection(colecao).get();
+  if (snap.empty) { console.log(`  [${colecao}] vazia, pulando.`); return 0; }
+  const batches = [];
+  let batch = db.batch();
+  let count = 0;
+  snap.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+    count++;
+    if (count % 400 === 0) {
+      batches.push(batch.commit());
+      batch = db.batch();
+    }
+  });
+  batches.push(batch.commit());
+  await Promise.all(batches);
+  console.log(`  [${colecao}] ${count} documentos excluídos.`);
+  return count;
+}
+
+async function limparEscalas() {
+  const snap = await db.collection("users").get();
+  if (snap.empty) { console.log("  [users] vazia, pulando."); return; }
+  let batch = db.batch();
+  let count = 0;
+  let batches = [];
+  snap.docs.forEach((doc) => {
+    const data = doc.data();
+    if (data.escala) {
+      batch.update(doc.ref, { escala: admin.firestore.FieldValue.delete() });
+      count++;
+      if (count % 400 === 0) {
+        batches.push(batch.commit());
+        batch = db.batch();
+      }
+    }
+  });
+  batches.push(batch.commit());
+  await Promise.all(batches);
+  console.log(`  [users] escala removida de ${count} servos.`);
+}
+
+async function limparEncontristas() {
+  const nomeLimpo = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const snap = await db.collection("encontristas").get();
+  if (snap.empty) { console.log("  [encontristas] vazia, pulando."); return; }
+
+  let manter = 0, excluir = 0;
+  let batch = db.batch();
+  let batches = [];
+  let total = 0;
+
+  snap.docs.forEach((doc) => {
+    const nome = doc.data().nome || "";
+    if (nomeLimpo(nome) === nomeLimpo(ENCONTRISTA_MANTER)) {
+      manter++;
+      console.log(`  Mantendo: ${nome} (id: ${doc.id})`);
+    } else {
+      batch.delete(doc.ref);
+      excluir++;
+      total++;
+      if (total % 400 === 0) {
+        batches.push(batch.commit());
+        batch = db.batch();
+      }
+    }
+  });
+  batches.push(batch.commit());
+  await Promise.all(batches);
+  console.log(`  [encontristas] ${excluir} excluídos, ${manter} mantidos.`);
+}
+
+async function main() {
+  console.log("\n=== LIMPEZA DO BANCO PARA NOVO EVENTO ===\n");
+
+  console.log("1. Limpando encontristas...");
+  await limparEncontristas();
+
+  console.log("\n2. Limpando ocorrências...");
+  await deletarColecao("ocorrencias");
+
+  console.log("\n3. Limpando avisos...");
+  await deletarColecao("avisos");
+
+  console.log("\n4. Limpando termos assinados...");
+  await deletarColecao("termos");
+
+  console.log("\n5. Limpando quartos (homens)...");
+  await deletarColecao("quartos_h");
+
+  console.log("\n6. Limpando quartos (mulheres)...");
+  await deletarColecao("quartos_m");
+
+  console.log("\n7. Limpando escalas dos servos...");
+  await limparEscalas();
+
+  console.log("\n=== CONCLUÍDO ===");
+  console.log("Não foram tocados: cartas, users (cadastros), config, tokens, saude");
+  process.exit(0);
+}
+
+main().catch((err) => {
+  console.error("\nERRO:", err);
+  process.exit(1);
+});
