@@ -22,7 +22,7 @@ import {
 import { useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
 import { QRCodeCanvas } from "qrcode.react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
 import { updatePassword } from 'firebase/auth';
 import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
@@ -6223,68 +6223,71 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         return;
       }
       setScanMsg("");
-      setTimeout(() => {
-        const scanner = new Html5QrcodeScanner(
-          "qr-reader",
-          { fps: 10, qrbox: 220 },
-          false,
-        );
-        scanner.render(
-          async (decodedText) => {
-            await scanner.clear();
-            scannerRef.current = null;
-            setShQr(false);
-            const enc = ck.find((c) => c.id === decodedText);
-            if (!enc) {
-              t("QR Code não reconhecido");
-              return;
-            }
-            if (enc.ok) {
-              t(`${enc.nome} já fez check-in ✓`);
-              return;
-            }
-            await setDoc(
-              doc(db, "encontristas", enc.id),
-              { chegou: true },
-              { merge: true },
-            );
-            vibrar(60);
-            t(`✅ Check-in: ${enc.nome}`);
-            const encGen = enc.gen === "M" ? "M" : "H";
-            setGen(encGen);
-            setSub("conf");
-            setHighlightId(enc.id);
-            setTimeout(
-              () =>
-                highlightRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "center",
-                }),
-              300,
-            );
-            // WhatsApp com link do termo
-            if (enc.whatsapp) {
-              const tel = enc.whatsapp.replace(/\D/g, "");
-              const link = `https://encontrocomdeus-fonte.vercel.app?termo=true&cpf=${enc.cpf}`;
-              const msg = encodeURIComponent(
-                `Olá ${enc.nome.split(" ")[0]}! Seu check-in foi confirmado 🎉\nAssine o termo do evento: ${link}`,
+      setTimeout(async () => {
+        try {
+          const scanner = new Html5Qrcode("qr-reader");
+          scannerRef.current = scanner;
+          await scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 220 },
+            async (decodedText) => {
+              await scanner.stop();
+              scannerRef.current = null;
+              setShQr(false);
+              const enc = ck.find((c) => c.id === decodedText);
+              if (!enc) {
+                t("QR Code não reconhecido");
+                return;
+              }
+              if (enc.ok) {
+                t(`${enc.nome} já fez check-in ✓`);
+                return;
+              }
+              await setDoc(
+                doc(db, "encontristas", enc.id),
+                { chegou: true },
+                { merge: true },
               );
-              const a = document.createElement("a");
-              a.href = `https://wa.me/55${tel}?text=${msg}`;
-              a.target = "_blank";
-              a.rel = "noopener noreferrer";
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-            }
-          },
-          (err) => {},
-        );
-        scannerRef.current = scanner;
+              vibrar(60);
+              t(`✅ Check-in: ${enc.nome}`);
+              const encGen = enc.gen === "M" ? "M" : "H";
+              setGen(encGen);
+              setSub("conf");
+              setHighlightId(enc.id);
+              setTimeout(
+                () =>
+                  highlightRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  }),
+                300,
+              );
+              // Mensagem de confirmação por WhatsApp (sem link de termo)
+              if (enc.whatsapp) {
+                const tel = enc.whatsapp.replace(/\D/g, "");
+                const msg = encodeURIComponent(
+                  `Olá ${enc.nome.split(" ")[0]}! Seu check-in foi confirmado 🎉 Bem-vindo(a) ao Encontro com Deus!`,
+                );
+                const a = document.createElement("a");
+                a.href = `https://wa.me/55${tel}?text=${msg}`;
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              }
+            },
+            () => {},
+          );
+        } catch (err) {
+          console.error("Erro ao iniciar câmera:", err);
+          t("Erro ao acessar câmera. Verifique as permissões.", "w");
+          setShQr(false);
+        }
       }, 300);
       return () => {
         if (scannerRef.current) {
-          scannerRef.current.clear().catch(() => {});
+          scannerRef.current.stop().catch(() => {});
           scannerRef.current = null;
         }
       };
