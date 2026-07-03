@@ -1348,7 +1348,7 @@ return (
               {(() => {
                 const isItajai = encontrista.igreja === 'Fonte Itajaí';
                 const valPix = isItajai ? 200 : 360;
-                const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 378;
+                const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 384;
                 return (<>
                   <button onClick={async () => {
                     vibrar(50);
@@ -1391,7 +1391,7 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
   const [msgPagamento, setMsgPagamento] = useState('');
   const isItajai = igreja === 'Fonte Itajaí';
   const valPix = isItajai ? 200 : 360;
-  const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 378;
+  const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 384;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -5077,7 +5077,7 @@ export default function App() {
         },
         {
           p: "Quanto custa e como pagar?",
-          r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 378,00 no cartão de crédito, o pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5% (R$ 378,00). O pagamento deve ser realizado pela plataforma Mercado Pago."
+          r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 384,00 no cartão de crédito, o pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5% (R$ 384,00). O pagamento deve ser realizado pela plataforma Mercado Pago."
         },
         {
           p: "O que devo levar para o evento?",
