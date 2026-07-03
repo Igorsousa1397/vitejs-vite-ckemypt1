@@ -7344,6 +7344,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     </div>
                     <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
                       {e.igreja || "—"} · {e.celula || "Sem célula"}
+                      {e.criadoEm && (
+                        <span style={{ color: "rgba(255,255,255,.3)", marginLeft: 6 }}>
+                          · {e.criadoEm.split(', ')[0]}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
