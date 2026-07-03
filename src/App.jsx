@@ -185,7 +185,7 @@ const canG = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff"].includes(p);
 const canAvisos = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff", "lider_templo", "pastor_auxiliar"].includes(p);
-const canQ = (p) => ["admin", "lider_quartos"].includes(p);
+const canQ = (p) => ["admin", "lider_geral", "lider_quartos"].includes(p);
 const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
 const canM = (p) => ["admin", "lider_geral", "lider_midia"].includes(p);
@@ -5041,7 +5041,7 @@ export default function App() {
           />
         )}
         {pg === "test" &&
-          ["admin", "lider_templo", "pastor"].includes(role) && (
+          ["admin", "lider_geral", "lider_templo", "pastor"].includes(role) && (
             <TestV encH={encH} encM={encM} t={showT} />
           )}
         {pg === "back" && isAdm && (
