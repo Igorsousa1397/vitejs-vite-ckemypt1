@@ -5283,7 +5283,7 @@ export default function App() {
     }, []);
 
     const minhasCartasTotal = cartasGlobais
-      .filter(c => c.servoId === user.id)
+      .filter(c => c.servoId === user.id && !c.retirada)
       .reduce((acc, c) => acc + (c.qtd || 1), 0);
 
     const [tab, setTab] = useState("mins");
@@ -5309,7 +5309,9 @@ export default function App() {
     const meuUniPagoIntegral = meuPedido?.pagoIntegral === true;
 
     const hoje2 = new Date();
-    const dataEvento = new Date("2026-06-26");
+    const dataEvento = new Date("2026-11-20");
+    const dataInicioJejum = new Date("2026-11-20");
+    dataInicioJejum.setDate(dataInicioJejum.getDate() - 40);
 
     const slides = [];
     const prazoUniOk = dataLimiteUni && new Date() <= new Date(dataLimiteUni + "T23:59:59");
@@ -5319,7 +5321,7 @@ export default function App() {
     if (!meuPedido && prazoUniOk) slides.push({ tipo: "uniforme_sem_pedido" });
     if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && prazoUniOk) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
-    if (hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
+    if (hoje2 >= dataInicioJejum && hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
     if (minhasCartasTotal > 0) slides.push({ tipo: "cartas" });
 
     useEffect(() => {
