@@ -10322,6 +10322,7 @@ function CozinhaV({ edit, t, users }) {
     const upd = (id, fn) =>
       setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento || "");
+    const [savingDataPag, setSavingDataPag] = useState(false);
     const [savingData, setSavingData] = useState(false);
 
     const salvarData = async () => {
