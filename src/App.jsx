@@ -28,7 +28,7 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal } from "lucide-react";
+import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -2252,7 +2252,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
       {modalVerso && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div style={{ background: "#1a1a1a", borderRadius: 18, padding: 24, maxWidth: 340, width: "100%", textAlign: "center" }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>📄</div>
+            <FileText size={32} color="#0a84ff" style={{ marginBottom: 12 }} />
             <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Sua foto já tem frente e verso?</div>
             <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
               Se o documento completo já aparece em uma só foto, toque em <strong style={{ color: "#fff" }}>OK</strong>.<br/>
@@ -2328,7 +2328,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={handleFotoFrente} />
           {previewFrente
             ? <img src={previewFrente} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="frente" />
-            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13 }}>📷 Toque para tirar foto ou selecionar arquivo</div>
+            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Camera size={18} /> Toque para tirar foto ou selecionar arquivo</div>
           }
         </label>
 
@@ -2339,7 +2339,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
               <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={handleFotoVerso} />
               {previewVerso
                 ? <img src={previewVerso} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="verso" />
-                : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13 }}>📷 Foto do verso</div>
+                : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Camera size={18} /> Foto do verso</div>
               }
             </label>
           </>
@@ -2351,7 +2351,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           <input type="file" accept="image/*" capture="user" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; if (f) { setFotoRosto(f); setPreviewRosto(URL.createObjectURL(f)); } }} />
           {previewRosto
             ? <img src={previewRosto} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="selfie" />
-            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13 }}>🤳 Tire uma selfie segurando seu documento</div>
+            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><UserSquare size={18} /> Tire uma selfie segurando seu documento</div>
           }
         </label>
 
