@@ -4374,7 +4374,7 @@ export default function App() {
                       letterSpacing: -1,
                     }}
                   >
-                    servos<span style={{ color: G.green }}>.</span>
+                    peniel<span style={{ color: G.green }}>.</span>
                   </div>
                   <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>
                     {user.nome} · {PERFIS[role]?.l}
@@ -4757,7 +4757,7 @@ export default function App() {
                     letterSpacing: -1,
                   }}
                 >
-                  servos<span style={{ color: G.green }}>.</span>
+                  peniel<span style={{ color: G.green }}>.</span>
                 </div>
                 <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>
                   {user.nome} · {PERFIS[role]?.l}
