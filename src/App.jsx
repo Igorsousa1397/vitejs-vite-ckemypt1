@@ -714,7 +714,7 @@ const CK_INIT = [
 ];
 const LABELS = {
   home: "Início",
-  servos: "Servos",
+  servos: "Peniel",
   checkin: "Check-in",
   mins: "Agenda",
   quartos: "Quartos",
@@ -1608,7 +1608,7 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
               color: "#fff",
             }}
           >
-            Peniel
+            Servo
           </button>
         </div>
         <img
