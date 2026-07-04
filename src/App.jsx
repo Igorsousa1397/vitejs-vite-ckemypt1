@@ -3208,7 +3208,7 @@ const exportarPDF = async (termo) => {
   };
 
 function TermoAdminV({ encH, encM, t, buscaInicial }) {
-  const [aba, setAba] = useState("enviar");
+  const [aba, setAba] = useState("aguardando");
   const [s, setS] = useState(buscaInicial || "");
   const [termos, setTermos] = useState([]);
 
@@ -3219,39 +3219,17 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
     return () => unsub();
   }, []);
 
-  const todos = [...encH, ...encM].filter(
-    (e) => (e.pago || e.pagarDepois) && e.chegou && e.onibus,
-  );
+  // Todos os encontristas inscritos (pagos, pagar depois ou pendentes com termo iniciado)
+  const todos = [...encH, ...encM];
 
   const lista = useMemo(() => {
     const filtrado = todos.filter((e) =>
       e.nome.toLowerCase().includes(s.toLowerCase()),
     );
-    if (aba === "enviar")
-      return filtrado.filter((e) => !e.termoEnviado && !e.termoAssinado);
     if (aba === "aguardando")
-      return filtrado.filter((e) => e.termoEnviado && !e.termoAssinado);
+      return filtrado.filter((e) => !e.termoAssinado);
     return filtrado.filter((e) => e.termoAssinado);
   }, [todos, aba, s]);
-
-  const enviar = async (enc) => {
-    const tel = enc.whatsapp?.replace(/\D/g, "");
-    if (!tel) {
-      t("WhatsApp não cadastrado");
-      return;
-    }
-    const link = `https://encontrocomdeus-fonte.vercel.app?termo=true&cpf=${enc.cpf}`;
-    const msg = encodeURIComponent(
-      `Olá ${enc.nome.split(" ")[0]}! Assine o termo do evento Encontro com Deus: ${link}`,
-    );
-    await setDoc(
-      doc(db, "encontristas", enc.id),
-      { termoEnviado: true },
-      { merge: true },
-    );
-    t("Termo enviado!");
-    window.location.href = `https://wa.me/55${tel}?text=${msg}`;
-  };
 
   const [exportandoTodos, setExportandoTodos] = useState(false);
 
@@ -3266,7 +3244,6 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
       try {
         await exportarPDF(termo);
         ok++;
-        // Pequena pausa entre downloads para não travar o navegador
         await new Promise(r => setTimeout(r, 600));
       } catch (e) {
         console.error("Erro ao exportar PDF de", enc.nome, e);
@@ -3277,38 +3254,32 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
     t(`${ok} PDFs baixados${erro > 0 ? ` | ${erro} com erro` : ""}!`);
   };
 
-  const cnt = (a) => {
-    if (a === "enviar")
-      return todos.filter((e) => !e.termoEnviado && !e.termoAssinado).length;
-    if (a === "aguardando")
-      return todos.filter((e) => e.termoEnviado && !e.termoAssinado).length;
-    return todos.filter((e) => e.termoAssinado).length;
-  };
+  const cntAguardando = todos.filter((e) => !e.termoAssinado).length;
+  const cntAssinados = todos.filter((e) => e.termoAssinado).length;
 
   return (
     <div>
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {[
-          ["enviar", "Enviar"],
-          ["aguardando", "Aguardando"],
-          ["assinado", "Assinados"],
-        ].map(([key, label]) => (
+          ["aguardando", `Aguardando (${cntAguardando})`, "#ff9f0a"],
+          ["assinado", `Assinados (${cntAssinados})`, G.green],
+        ].map(([key, label, cor]) => (
           <button
             key={key}
             onClick={() => setAba(key)}
             style={{
               flex: 1,
-              background: aba === key ? G.green : "#111",
+              background: aba === key ? cor : "#111",
               color: aba === key ? "#000" : G.td,
               border: "none",
               borderRadius: 10,
               padding: "9px",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
             }}
           >
-            {label} ({cnt(key)})
+            {label}
           </button>
         ))}
       </div>
@@ -3335,17 +3306,11 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
       )}
 
       {lista.length === 0 && (
-        <div
-          style={{
-            color: G.tm,
-            textAlign: "center",
-            padding: 28,
-            fontSize: 13,
-          }}
-        >
+        <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
           Nenhum encontrista aqui.
         </div>
       )}
+
       {lista.map((enc) => (
         <div
           key={enc.id}
@@ -3353,7 +3318,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
           style={{
             background: G.card,
             border: `1px solid ${G.cb}`,
-            borderLeft: `3px solid ${aba === "assinado" ? G.green : aba === "aguardando" ? "#ff9f0a" : "#2a2a2a"}`,
+            borderLeft: `3px solid ${aba === "assinado" ? G.green : "#ff9f0a"}`,
             borderRadius: 13,
             padding: "12px 14px",
             marginBottom: 7,
@@ -3372,45 +3337,20 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
             </div>
             {aba === "assinado" && enc.termoAssinadoEm && (
               <div style={{ color: G.green, fontSize: 11, marginTop: 2 }}>
-                Assinado em {enc.termoAssinadoEm}
+                ✓ Assinado em {enc.termoAssinadoEm}
+              </div>
+            )}
+            {aba === "aguardando" && (
+              <div style={{ color: "#ff9f0a", fontSize: 11, marginTop: 2 }}>
+                {enc.pago ? "Pago · aguardando assinatura" : "Inscrito · aguardando assinatura"}
               </div>
             )}
           </div>
-          {aba === "enviar" && (
-            <button
-              onClick={() => enviar(enc)}
-              style={BG({
-                padding: "8px 14px",
-                borderRadius: 10,
-                fontSize: 12,
-                whiteSpace: "nowrap",
-              })}
-            >
-              Enviar
-            </button>
-          )}
-          {aba === "aguardando" && (
-            <button
-              onClick={() => enviar(enc)}
-              style={{
-                ...BK({
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                }),
-                color: "#ff9f0a",
-                borderColor: "rgba(255,159,10,.3)",
-              }}
-            >
-              Reenviar
-            </button>
-          )}
           {aba === "assinado" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
                 onClick={async () => {
-                  const termo = termos.find((t) => t.encontristaId === enc.id);
+                  const termo = termos.find((tr) => tr.encontristaId === enc.id);
                   if (!termo) { alert("Dados do termo não encontrados."); return; }
                   await exportarPDF(termo);
                 }}
