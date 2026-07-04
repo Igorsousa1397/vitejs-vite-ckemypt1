@@ -175,7 +175,7 @@ const PERFIS = {
   pastor: { l: "Pastor", c: "#bf5af2" },
   pastor_auxiliar: { l: "Pastor Auxiliar", c: "#bf5af2" },
   cozinha: { l: "Cozinha", c: "#ff6b35" },
-  servo: { l: "Servo", c: "#636366" },
+  servo: { l: "Peniel", c: "#636366" },
   staff: { l: "Staff", c: "#ff9f0a" },
   lider_som: { l: "Líder Som", c: "#30d158" },
   lider_danca: { l: "Líder Dança", c: "#ff375f" },
@@ -1179,6 +1179,25 @@ function ConfirmadoV({ encId, onVoltar }) {
           </div>
         </div>
 
+        <a
+          href="https://chat.whatsapp.com/GxUlwcNxBmOCXRtvotRmZ7?mode=gi_t"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: "block", textDecoration: "none", marginBottom: 20 }}
+        >
+          <div style={{ background: "rgba(37,211,102,.1)", border: "1px solid rgba(37,211,102,.4)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ fontSize: 28, flexShrink: 0 }}>💬</div>
+            <div>
+              <div style={{ color: "#25d366", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>
+                Entre no grupo do Encontro com Deus
+              </div>
+              <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.5 }}>
+                Todas as informações, avisos e comunicados durante o evento serão enviados por este grupo. <strong style={{ color: "#fff" }}>É importante que você esteja nele!</strong>
+              </div>
+            </div>
+          </div>
+        </a>
+
         <button onClick={onVoltar} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>
           Voltar ao início
         </button>
@@ -1332,9 +1351,27 @@ return (
               <div style={{ background: '#fff', borderRadius: 20, padding: 20, display: 'inline-block', marginBottom: 16 }}>
                 <QRCodeCanvas value={encontrista.id} size={200} />
               </div>
-              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, marginBottom: 8 }}>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, marginBottom: 16 }}>
                 Apresente este QR Code no check-in
               </div>
+              <a
+                href="https://chat.whatsapp.com/GxUlwcNxBmOCXRtvotRmZ7?mode=gi_t"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "block", textDecoration: "none", marginBottom: 8 }}
+              >
+                <div style={{ background: "rgba(37,211,102,.1)", border: "1px solid rgba(37,211,102,.4)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                  <div style={{ fontSize: 24, flexShrink: 0 }}>💬</div>
+                  <div>
+                    <div style={{ color: "#25d366", fontWeight: 800, fontSize: 14, marginBottom: 3 }}>
+                      Entre no grupo do evento
+                    </div>
+                    <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.5 }}>
+                      Avisos e comunicados durante o encontro serão enviados por aqui. <strong style={{ color: "#fff" }}>É importante que você esteja nele!</strong>
+                    </div>
+                  </div>
+                </div>
+              </a>
             </>
           ) : bloqueadas ? (
             <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '14px 16px', color: '#ff6b6b', fontSize: 14, lineHeight: 1.7 }}>
@@ -1571,7 +1608,7 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
               color: "#fff",
             }}
           >
-            Servo
+            Peniel
           </button>
         </div>
         <img
@@ -5932,7 +5969,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             {(role === 'admin' || role === 'pastor' || role === 'pastor_auxiliar' || role === 'lider_geral') && (
             <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Servos</div>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Peniel</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: G.tm, fontSize: 11 }}>{servos.length} total</span>
                   <Pill c={`${pctServos}%`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
@@ -8432,7 +8469,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 <option value="">Selecione o tipo de mala...</option>
                 <option value="Feminino">Feminino</option>
                 <option value="Masculino">Masculino</option>
-                <option value="Servos">Servos</option>
+                <option value="Servos">Peniel</option>
               </select>
             </Acc>
           );
@@ -10680,7 +10717,7 @@ function CozinhaV({ edit, t, users }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {[
                   ["todos", "Todos os perfis"],
-                  ["servo", "Servo"],
+                  ["servo", "Peniel"],
                   ["cozinha", "Cozinha"],
                   ["staff", "Staff"],
                   ["lider", "Líderes"],
@@ -11070,7 +11107,7 @@ function CozinhaV({ edit, t, users }) {
                 <option value="pastor_auxiliar">Pastor Auxiliar</option>
                 <option value="cozinha">Cozinha</option>
                 <option value="staff">Staff</option>
-                <option value="servo">Servo</option>
+                <option value="servo">Peniel</option>
               </select>
             </div>
            <button
