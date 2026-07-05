@@ -2385,11 +2385,13 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 700,
+            flexShrink: 0,
           })}
         >
           ←
         </button>
         <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center", flex: 1 }}>Termo de Concordância</div>
+        <div style={{ width: 39, flexShrink: 0 }} aria-hidden="true" />
       </div>
       <div style={{ padding: "24px 20px", maxWidth: 480, margin: "0 auto" }}>
         <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: "center" }}>
