@@ -1180,19 +1180,18 @@ function ConfirmadoV({ encId, onVoltar }) {
         </div>
 
         <a
+        <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6, marginBottom: 12 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
+
+        <a
           href="https://chat.whatsapp.com/GxUlwcNxBmOCXRtvotRmZ7?mode=gi_t"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ display: "block", textDecoration: "none", marginBottom: 12 }}
+          style={{ display: "block", textDecoration: "none", marginBottom: 16 }}
         >
           <button style={{ ...BG({ width: "100%", padding: 14, borderRadius: 14, fontSize: 15 }), background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
             Entrar no Grupo
           </button>
         </a>
-
-        <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, textAlign: "center", marginBottom: 16, lineHeight: 1.5 }}>
-          <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
-        </div>
 
         <button onClick={onVoltar} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>
           Voltar ao início
@@ -1348,6 +1347,7 @@ return (
               <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, marginBottom: 16 }}>
                 Apresente este QR Code no check-in
               </div>
+              <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6, marginBottom: 10 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
               <a
                 href="https://chat.whatsapp.com/GxUlwcNxBmOCXRtvotRmZ7?mode=gi_t"
                 target="_blank"
@@ -1358,9 +1358,6 @@ return (
                   Entrar no Grupo
                 </button>
               </a>
-              <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, textAlign: "center", lineHeight: 1.5, marginBottom: 8 }}>
-                <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
-              </div>
             </>
           ) : bloqueadas ? (
             <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '14px 16px', color: '#ff6b6b', fontSize: 14, lineHeight: 1.7 }}>
