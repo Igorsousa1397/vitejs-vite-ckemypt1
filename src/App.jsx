@@ -1669,6 +1669,25 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   const [msgPagamento, setMsgPagamento] = useState("");
   const enviandoRef = useRef(false);
 
+  // --- CPF já cadastrado: redireciona para a etapa em que a inscrição parou ---
+  const [duplicado, setDuplicado] = useState(null); // { id, ...dados do encontrista já existente }
+  const [contagem, setContagem] = useState(10);
+  const [dupConfirmado, setDupConfirmado] = useState(false);
+  const [dupTermoPendente, setDupTermoPendente] = useState(false);
+  const [dupPagamento, setDupPagamento] = useState(false);
+
+  useEffect(() => {
+    if (!duplicado) return;
+    if (contagem <= 0) {
+      if (duplicado.pago) setDupConfirmado(true);
+      else if (!duplicado.termoAssinado) setDupTermoPendente(true);
+      else setDupPagamento(true);
+      return;
+    }
+    const t = setTimeout(() => setContagem((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [duplicado, contagem]);
+
   const salvar = async () => {
     // Proteção síncrona contra clique duplo — saving (estado) é assíncrono e pode não bloquear a tempo
     if (enviandoRef.current) return;
@@ -1704,8 +1723,14 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     setSaving(true);
     try {
       const snap = await getDocs(collection(db, "encontristas"));
-      const cpfExiste = snap.docs.some((d) => d.data().cpf === cpfLimpo);
-      if (cpfExiste) { alert("Este CPF já está cadastrado!"); setSaving(false); enviandoRef.current = false; return; }
+      const cpfDoc = snap.docs.find((d) => d.data().cpf === cpfLimpo);
+      if (cpfDoc) {
+        setDuplicado({ id: cpfDoc.id, ...cpfDoc.data() });
+        setContagem(10);
+        setSaving(false);
+        enviandoRef.current = false;
+        return;
+      }
 
       const waLimpo = form.whatsapp.replace(/\D/g, "");
       const waExiste = snap.docs.some((d) => d.data().whatsapp?.replace(/\D/g, "") === waLimpo);
@@ -1751,6 +1776,30 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     setSaving(false);
     enviandoRef.current = false;
   };
+
+  if (dupConfirmado && duplicado)
+  return <ConfirmadoV encId={duplicado.id} onVoltar={onVoltar} />;
+
+  if (dupTermoPendente && duplicado)
+  return (
+    <TermoInscricao
+      encId={duplicado.id}
+      form={{ nome: duplicado.nome, sexo: duplicado.sexo, igreja: duplicado.igreja, cpf: duplicado.cpf, autorizaImagem: duplicado.autorizaImagem }}
+      onAssinado={() => { setDupTermoPendente(false); setDupPagamento(true); }}
+      onVoltar={onVoltar}
+    />
+  );
+
+  if (dupPagamento && duplicado)
+  return (
+    <PagamentoV
+      encId={duplicado.id}
+      nome={duplicado.nome}
+      igreja={duplicado.igreja}
+      onVoltar={onVoltar}
+      onPago={() => setDupConfirmado(true)}
+    />
+  );
 
   if (done && !termoAssinado)
   return (
@@ -1811,6 +1860,26 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 40 }}>
       <style>{css}</style>
+
+      {duplicado && !dupConfirmado && !dupTermoPendente && !dupPagamento && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>
+          <div style={{ background: "#111", border: "1px solid #2a2a2a", borderRadius: 20, padding: "28px 24px", maxWidth: 340, width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+            <div style={{ color: "#fff", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Este CPF já está cadastrado!</div>
+            <div style={{ color: "rgba(255,255,255,.6)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+              Vamos te redirecionar para a etapa em que sua inscrição parou{duplicado.pago ? " (QR Code)" : !duplicado.termoAssinado ? " (assinatura do termo)" : " (pagamento)"}.
+            </div>
+            <div style={{ color: G.green, fontSize: 32, fontWeight: 800, marginBottom: 16 }}>{contagem}</div>
+            <button
+              onClick={() => setContagem(0)}
+              style={BG({ width: "100%", padding: 13, borderRadius: 14, fontSize: 14 })}
+            >
+              Ir agora
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           background: "#000",
