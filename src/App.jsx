@@ -1186,12 +1186,12 @@ function ConfirmadoV({ encId, onVoltar }) {
           style={{ display: "block", textDecoration: "none", marginBottom: 12 }}
         >
           <button style={{ ...BG({ width: "100%", padding: 14, borderRadius: 14, fontSize: 15 }), background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            💬 Entrar no grupo do evento
+            Entrar no Grupo
           </button>
         </a>
 
         <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, textAlign: "center", marginBottom: 16, lineHeight: 1.5 }}>
-          Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!
+          <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
         </div>
 
         <button onClick={onVoltar} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>
@@ -1355,11 +1355,11 @@ return (
                 style={{ display: "block", textDecoration: "none", marginBottom: 8 }}
               >
                 <button style={{ ...BG({ width: "100%", padding: 13, borderRadius: 14, fontSize: 14 }), background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                  💬 Entrar no grupo do evento
+                  Entrar no Grupo
                 </button>
               </a>
               <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, textAlign: "center", lineHeight: 1.5, marginBottom: 8 }}>
-                Avisos e comunicados serão enviados por este grupo. É importante que você esteja nele!
+                <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
               </div>
             </>
           ) : bloqueadas ? (
