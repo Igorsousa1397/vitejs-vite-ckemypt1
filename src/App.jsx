@@ -1693,45 +1693,55 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     if (enviandoRef.current) return;
     enviandoRef.current = true;
 
-    // Campos obrigatórios básicos
-    if (!form.igreja) { alert("Selecione sua igreja."); enviandoRef.current = false; return; }
-    if (form.igreja === 'Outra' && !form.igrejaCustom?.trim()) { alert("Informe o nome da sua igreja."); enviandoRef.current = false; return; }
-    if (!form.nome.trim()) { alert("Informe seu nome completo."); enviandoRef.current = false; return; }
+    // --- 1) CPF é validado PRIMEIRO: formato e depois duplicidade no banco ---
     if (!form.cpf.trim()) { alert("Informe seu CPF."); enviandoRef.current = false; return; }
-    if (!form.nascimento || form.nascimento.includes('--') || form.nascimento.split('-').some(p => !p)) { alert("Informe sua data de nascimento."); enviandoRef.current = false; return; }
-    if (!form.sexo) { alert("Selecione seu sexo."); enviandoRef.current = false; return; }
-    if (!form.whatsapp.trim()) { alert("Informe seu WhatsApp."); enviandoRef.current = false; return; }
-    if (!form.celula) { alert("Selecione sua célula."); enviandoRef.current = false; return; }
-    if (!form.camiseta) { alert("Selecione o tamanho da camiseta."); enviandoRef.current = false; return; }
-    if (!form.autorizaImagem) { alert("Responda sobre o uso de imagem."); enviandoRef.current = false; return; }
-    if (!form.emergenciaNome?.trim()) { alert("Informe o nome do contato de emergência."); enviandoRef.current = false; return; }
-    if (!form.emergenciaTel?.trim()) { alert("Informe o telefone do contato de emergência."); enviandoRef.current = false; return; }
-    if (!form.temMedicamento) { alert("Responda sobre medicamentos."); enviandoRef.current = false; return; }
-    if (form.temMedicamento === 'Sim' && !form.medicamento?.trim()) { alert("Informe qual medicamento você toma."); enviandoRef.current = false; return; }
-    if (!form.temDoenca) { alert("Responda sobre doenças crônicas."); enviandoRef.current = false; return; }
-    if (form.temDoenca === 'Sim' && !form.doenca?.trim()) { alert("Informe qual doença crônica você tem."); enviandoRef.current = false; return; }
-
     const cpfLimpo = form.cpf.replace(/[\.\-]/g, "").trim();
     if (cpfLimpo.length !== 11) { alert("CPF inválido. Deve ter 11 dígitos."); enviandoRef.current = false; return; }
+
+    setSaving(true);
+    let snap;
+    try {
+      snap = await getDocs(collection(db, "encontristas"));
+    } catch (err) {
+      console.error("Erro ao verificar CPF:", err);
+      alert("Erro ao verificar CPF: " + err.message);
+      setSaving(false);
+      enviandoRef.current = false;
+      return;
+    }
+    const cpfDoc = snap.docs.find((d) => d.data().cpf === cpfLimpo);
+    if (cpfDoc) {
+      setDuplicado({ id: cpfDoc.id, ...cpfDoc.data() });
+      setContagem(10);
+      setSaving(false);
+      enviandoRef.current = false;
+      return;
+    }
+
+    // --- 2) Demais campos obrigatórios ---
+    if (!form.igreja) { alert("Selecione sua igreja."); setSaving(false); enviandoRef.current = false; return; }
+    if (form.igreja === 'Outra' && !form.igrejaCustom?.trim()) { alert("Informe o nome da sua igreja."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.nome.trim()) { alert("Informe seu nome completo."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.nascimento || form.nascimento.includes('--') || form.nascimento.split('-').some(p => !p)) { alert("Informe sua data de nascimento."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.sexo) { alert("Selecione seu sexo."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.whatsapp.trim()) { alert("Informe seu WhatsApp."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.celula) { alert("Selecione sua célula."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.camiseta) { alert("Selecione o tamanho da camiseta."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.autorizaImagem) { alert("Responda sobre o uso de imagem."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.emergenciaNome?.trim()) { alert("Informe o nome do contato de emergência."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.emergenciaTel?.trim()) { alert("Informe o telefone do contato de emergência."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.temMedicamento) { alert("Responda sobre medicamentos."); setSaving(false); enviandoRef.current = false; return; }
+    if (form.temMedicamento === 'Sim' && !form.medicamento?.trim()) { alert("Informe qual medicamento você toma."); setSaving(false); enviandoRef.current = false; return; }
+    if (!form.temDoenca) { alert("Responda sobre doenças crônicas."); setSaving(false); enviandoRef.current = false; return; }
+    if (form.temDoenca === 'Sim' && !form.doenca?.trim()) { alert("Informe qual doença crônica você tem."); setSaving(false); enviandoRef.current = false; return; }
 
     const nascimento = new Date(form.nascimento);
     const hoje = new Date();
     const idade = hoje.getFullYear() - nascimento.getFullYear() -
       (hoje < new Date(hoje.getFullYear(), nascimento.getMonth(), nascimento.getDate()) ? 1 : 0);
-    if (idade < 14) { alert("É necessário ter pelo menos 14 anos para se inscrever."); enviandoRef.current = false; return; }
+    if (idade < 14) { alert("É necessário ter pelo menos 14 anos para se inscrever."); setSaving(false); enviandoRef.current = false; return; }
 
-    setSaving(true);
     try {
-      const snap = await getDocs(collection(db, "encontristas"));
-      const cpfDoc = snap.docs.find((d) => d.data().cpf === cpfLimpo);
-      if (cpfDoc) {
-        setDuplicado({ id: cpfDoc.id, ...cpfDoc.data() });
-        setContagem(10);
-        setSaving(false);
-        enviandoRef.current = false;
-        return;
-      }
-
       const waLimpo = form.whatsapp.replace(/\D/g, "");
       const waExiste = snap.docs.some((d) => d.data().whatsapp?.replace(/\D/g, "") === waLimpo);
       if (waExiste) { alert("Este WhatsApp já está cadastrado!"); setSaving(false); enviandoRef.current = false; return; }
@@ -2367,8 +2377,19 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         </div>
       )}
 
-      <div style={{ background: "#000", borderBottom: "1px solid #1a1a1a", padding: "14px 16px", position: "sticky", top: 0, zIndex: 50 }}>
-        <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center" }}>Termo de Concordância</div>
+      <div style={{ background: "#000", borderBottom: "1px solid #1a1a1a", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 50 }}>
+        <button
+          onClick={onVoltar}
+          style={BK({
+            padding: "8px 13px",
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 700,
+          })}
+        >
+          ←
+        </button>
+        <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center", flex: 1 }}>Termo de Concordância</div>
       </div>
       <div style={{ padding: "24px 20px", maxWidth: 480, margin: "0 auto" }}>
         <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: "center" }}>
