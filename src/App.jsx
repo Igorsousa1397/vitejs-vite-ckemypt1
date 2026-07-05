@@ -1671,7 +1671,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
 
   // --- CPF já cadastrado: redireciona para a etapa em que a inscrição parou ---
   const [duplicado, setDuplicado] = useState(null); // { id, ...dados do encontrista já existente }
-  const [contagem, setContagem] = useState(10);
+  const [contagem, setContagem] = useState(5);
   const [dupConfirmado, setDupConfirmado] = useState(false);
   const [dupTermoPendente, setDupTermoPendente] = useState(false);
   const [dupPagamento, setDupPagamento] = useState(false);
@@ -1712,7 +1712,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     const cpfDoc = snap.docs.find((d) => d.data().cpf === cpfLimpo);
     if (cpfDoc) {
       setDuplicado({ id: cpfDoc.id, ...cpfDoc.data() });
-      setContagem(10);
+      setContagem(5);
       setSaving(false);
       enviandoRef.current = false;
       return;
