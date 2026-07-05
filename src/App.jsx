@@ -1879,12 +1879,11 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             <div style={{ color: "rgba(255,255,255,.6)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
               Vamos te redirecionar para a etapa em que sua inscrição parou{duplicado.pago ? " (QR Code)" : !duplicado.termoAssinado ? " (assinatura do termo)" : " (pagamento)"}.
             </div>
-            <div style={{ color: G.green, fontSize: 32, fontWeight: 800, marginBottom: 16 }}>{contagem}</div>
             <button
               onClick={() => setContagem(0)}
-              style={BG({ width: "100%", padding: 13, borderRadius: 14, fontSize: 14 })}
+              style={BG({ width: "100%", padding: 13, borderRadius: 14, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 })}
             >
-              Ir agora
+              Ir agora {contagem > 0 && `(${contagem})`}
             </button>
           </div>
         </div>
