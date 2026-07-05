@@ -1179,7 +1179,6 @@ function ConfirmadoV({ encId, onVoltar }) {
           </div>
         </div>
 
-        <a
         <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6, marginBottom: 12 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
 
         <a
