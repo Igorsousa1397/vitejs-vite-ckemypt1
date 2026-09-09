@@ -333,6 +333,13 @@ if (typeof window !== "undefined") {
   } catch {}
 }
 
+// Mensagem padrão para exclusão que falha. Sem isso, uma rejeição do Firestore
+// (regra de segurança, rede) some sem aviso e o clique parece não ter feito nada.
+const msgErroExclusao = (err) =>
+  err?.code === "permission-denied"
+    ? "Sem permissão para excluir."
+    : `Erro ao excluir: ${err?.code || err?.message || "desconhecido"}`;
+
 // Confirmação em tela, no lugar de window.confirm().
 // O diálogo nativo é suprimido em vários contextos onde este app roda: WebView
 // do Instagram/WhatsApp, iframes sem allow-modals e no Chrome depois que o
@@ -6910,12 +6917,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       t("Ônibus excluído.");
                     } catch (err) {
                       console.error("Erro ao deletar ônibus:", err);
-                      t(
-                        err?.code === "permission-denied"
-                          ? "Sem permissão para excluir ônibus."
-                          : `Erro ao excluir: ${err?.code || err?.message || "desconhecido"}`,
-                        "w",
-                      );
+                      t(msgErroExclusao(err), "w");
                     }
                   }}
                   style={{
@@ -8499,8 +8501,13 @@ function CozinhaV({ edit, t, users }) {
   };
 
   const deletarTarefa = async (id) => {
-    await deleteDoc(doc(db, 'cozinha', id));
-    t('Removido.');
+    try {
+      await deleteDoc(doc(db, 'cozinha', id));
+      t('Removido.');
+    } catch (err) {
+      console.error('Erro ao remover tarefa da cozinha:', err);
+      t(msgErroExclusao(err), 'w');
+    }
   };
 
   const TarefaItem = ({ l }) => (
@@ -8777,8 +8784,13 @@ function CozinhaV({ edit, t, users }) {
             onDel={
               edit
                 ? async () => {
-                    await deleteDoc(doc(db, "equipes", eq.id));
-                    t("Removido.");
+                    try {
+                      await deleteDoc(doc(db, "equipes", eq.id));
+                      t("Removido.");
+                    } catch (err) {
+                      console.error("Erro ao remover equipe:", err);
+                      t(msgErroExclusao(err), "w");
+                    }
                   }
                 : undefined
             }
@@ -13563,10 +13575,15 @@ export default function App() {
     const list = isH ? qh : qm.filter((q) => !q.maes);
 
     const delQuarto = async (num) => {
-      await deletarQuarto(colecao, num);
-      if (isH) setQh(qh.filter((q) => q.num !== num));
-      else setQm(qm.filter((q) => q.num !== num));
-      t("Quarto removido.");
+      try {
+        await deletarQuarto(colecao, num);
+        if (isH) setQh(qh.filter((q) => q.num !== num));
+        else setQm(qm.filter((q) => q.num !== num));
+        t("Quarto removido.");
+      } catch (err) {
+        console.error("Erro ao remover quarto:", err);
+        t(msgErroExclusao(err), "w");
+      }
     };
 
     const AddServoSearch = ({ quarto, updFn }) => {
