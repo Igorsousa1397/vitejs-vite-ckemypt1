@@ -6840,9 +6840,23 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </button>
                 <button
                   onClick={async () => {
-                    await deletarOnibus(confirmDel);
-                    setOn(on.filter((o) => o.num !== confirmDel));
-                    setConfirmDel(null);
+                    // Sem o try/catch, uma rejeicao do Firestore (regra de
+                    // seguranca, rede) deixava o modal aberto e nao dizia nada:
+                    // o clique parecia simplesmente nao funcionar.
+                    try {
+                      await deletarOnibus(confirmDel);
+                      setOn(on.filter((o) => o.num !== confirmDel));
+                      setConfirmDel(null);
+                      t("Ônibus excluído.");
+                    } catch (err) {
+                      console.error("Erro ao deletar ônibus:", err);
+                      t(
+                        err?.code === "permission-denied"
+                          ? "Sem permissão para excluir ônibus."
+                          : `Erro ao excluir: ${err?.code || err?.message || "desconhecido"}`,
+                        "w",
+                      );
+                    }
                   }}
                   style={{
                     ...BK({
