@@ -333,6 +333,61 @@ if (typeof window !== "undefined") {
   } catch {}
 }
 
+// Confirmação em tela, no lugar de window.confirm().
+// O diálogo nativo é suprimido em vários contextos onde este app roda: WebView
+// do Instagram/WhatsApp, iframes sem allow-modals e no Chrome depois que o
+// usuário marca "impedir novos diálogos". Quando isso acontece, confirm()
+// devolve false na hora, sem mostrar nada — e a ação some sem qualquer aviso.
+function useConfirmacao() {
+  const [pedido, setPedido] = useState(null);
+  const pedir = (texto, rotulo = "Excluir") =>
+    new Promise((resolve) => setPedido({ texto, rotulo, resolver: resolve }));
+  const responder = (ok) => {
+    pedido?.resolver(ok);
+    setPedido(null);
+  };
+  const dialogo = pedido ? (
+    <div
+      className="scrim"
+      onClick={() => responder(false)}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#1c1c1e", borderRadius: 18, padding: 24,
+          maxWidth: 320, width: "100%", textAlign: "center",
+        }}
+      >
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
+          {pedido.texto}
+        </div>
+        <div style={{ color: G.tm, fontSize: 13, marginBottom: 20 }}>
+          Esta ação não pode ser desfeita.
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => responder(false)} style={BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 15 })}>
+            Cancelar
+          </button>
+          <button
+            onClick={() => responder(true)}
+            style={{
+              ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 15 }),
+              borderColor: "rgba(255,59,48,.4)", color: "#ff6b6b",
+            }}
+          >
+            {pedido.rotulo}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  return [pedir, dialogo];
+}
+
 // ── tiny components ──────────────────────────────────────────────────────────
 const Pill = ({ c, bg, tc }) => (
   <span
@@ -527,10 +582,11 @@ function AddIn({ onAdd, ph = "Adicionar...", mt = 12 }) {
   );
 }
 
-function Acc({ title, right, ax, children, onDel, def = false, open: openProp, onToggle }) {
+function Acc({ title, right, ax, children, onDel, def = false, open: openProp, onToggle, semConfirmacao = false }) {
   const [oInterno, setOInterno] = useState(def);
   const isOpen = openProp !== undefined ? openProp : oInterno;
   const toggle = onToggle || (() => setOInterno(!oInterno));
+  const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
   return (
     <div
       style={{
@@ -579,11 +635,11 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
           {right}
           {onDel && (
             <span
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
-                if (window.confirm(`Deseja realmente excluir "${title}"?`)) {
-                  onDel();
-                }
+                // semConfirmacao: o chamador ja abre a propria confirmacao
+                if (semConfirmacao) { onDel(); return; }
+                if (await pedirConfirmacao(`Excluir "${title}"?`)) onDel();
               }}
               style={{
                 color: "rgba(255,60,60,.7)",
@@ -617,6 +673,7 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
           <div className="rv" style={{ padding: "14px 16px" }}>{children}</div>
         </>
       )}
+      {dialogoConfirmacao}
     </div>
   );
 }
@@ -5885,6 +5942,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       t(`${lista.length} distribuídos!`);
     };
 
+    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+
     // rascunhos por card (acordo / pagar depois)
     const [acordoTemp, setAcordoTemp] = useState({});
     const [editandoAcordo, setEditandoAcordo] = useState({});
@@ -5961,12 +6020,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
 
     // só admin/edição. Confirma antes: mexe no valor arrecadado do painel.
-    const marcarPago = (enc) => {
-      if (!window.confirm(`Marcar ${enc.nome} como PAGO (fora do app)?`)) return;
+    const marcarPago = async (enc) => {
+      if (!(await pedirConfirmacao(`Marcar ${enc.nome} como PAGO?`, "Marcar pago"))) return;
       salvar(enc, { pago: true }, "Marcado como pago.");
     };
-    const reverterPago = (enc) => {
-      if (!window.confirm("Reverter este pagamento para PENDENTE?")) return;
+    const reverterPago = async (enc) => {
+      if (!(await pedirConfirmacao("Reverter este pagamento para PENDENTE?", "Reverter"))) return;
       // volta mesmo para pendente: quem era "pagar depois"/"desistiu" antes de pagar
       // manteria esses flags e reapareceria com o status antigo
       limparDraftPd(enc.id);
@@ -6050,6 +6109,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
     return (
       <div>
+        {dialogoConfirmacao}
         {/* total geral */}
         <div
           style={{
@@ -7057,6 +7117,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </div>
               }
               onDel={edit ? () => delOnibus(o.num) : undefined}
+              semConfirmacao
             >
               <div
                 style={{
