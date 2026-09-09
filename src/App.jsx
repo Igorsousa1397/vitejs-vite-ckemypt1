@@ -8921,15 +8921,6 @@ function CozinhaV({ edit, t, users }) {
       setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento || "");
     const [savingDataPag, setSavingDataPag] = useState(false);
-    const [savingData, setSavingData] = useState(false);
-
-    const salvarData = async () => {
-      if (!dataTemp) return;
-      setSavingData(true);
-      setDataLimite(dataTemp);
-      await setDoc(doc(db, "config", "uniformes"), { dataLimite: dataTemp }, { merge: true });
-      setSavingData(false);
-    };
 
     const salvarDataPag = async () => {
       if (!dataTempPag) {
