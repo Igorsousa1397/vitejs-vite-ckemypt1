@@ -22,10 +22,14 @@ import {
 import { useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
 import { QRCodeCanvas } from "qrcode.react";
-import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
+
 import { updatePassword } from 'firebase/auth';
-import jsPDF from "jspdf";
-import ExcelJS from "exceljs";
+// Bibliotecas pesadas carregadas só quando o recurso é usado, em vez de entrarem
+// no bundle inicial: exceljs ~1,3 MB, html5-qrcode ~857 KB, jspdf ~615 KB.
+// (Html5QrcodeScanner era importado e nunca usado — removido.)
+const carregarExcelJS = () => import("exceljs").then((m) => m.default ?? m);
+const carregarJsPDF = () => import("jspdf").then((m) => m.default ?? m);
+const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrcode);
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
 import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
@@ -76,10 +80,86 @@ input,select,button,textarea{font-family:'Inter',sans-serif;}
 input::placeholder,textarea::placeholder{color:rgba(255,255,255,.25);}
 input:focus,select:focus,textarea:focus{outline:none!important;border-color:rgba(0,200,81,.6)!important;}
 ::-webkit-scrollbar{width:0}
+
+/* ── MOTION ──────────────────────────────────────────────────────────────────
+   Só transform e opacity (o compositor resolve sem layout), curvas de
+   desaceleração sem overshoot. Entradas usam fill-mode "backwards": nenhum
+   transform sobra no repouso, senão o elemento viraria containing block dos
+   filhos position:fixed (Sheet, FAB, barra sticky). Saídas usam "both" porque
+   quem desmonta é um timer no JS. */
+:root{
+  --d-fast:.18s;      /* press, chevrons, cor */
+  --d-base:.24s;      /* entradas de conteúdo, título */
+  --d-slow:.32s;      /* drawer/sheet entrando */
+  --d-out:.22s;       /* saídas: sempre mais rápidas que a entrada */
+  --e-out:cubic-bezier(.22,.61,.36,1);      /* desacelera — entradas */
+  --e-in:cubic-bezier(.55,.06,.68,.19);     /* acelera — saídas */
+  --e-sheet:cubic-bezier(.32,.72,0,1);      /* iOS sheet/drawer */
+}
 @keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+@keyframes fo{from{opacity:1}to{opacity:0}}
 @keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
-@keyframes sp{0%{opacity:1}75%{opacity:1}100%{opacity:0}}
-.fu{animation:fu .35s ease both}.sheet{animation:su .3s ease both}.splash{animation:sp 2.2s ease forwards}`;
+@keyframes sd{from{transform:translateY(0)}to{transform:translateY(100%)}}
+@keyframes dr{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+@keyframes drx{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@keyframes tin{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tout{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-14px)}}
+@keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes tick{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* listas e cards */
+.fu{animation:fu .35s var(--e-out) backwards}
+/* teto de camadas simultâneas: listas longas (servos/encontristas) não animam além do 8º */
+.fu:nth-child(n+9){animation:none}
+
+/* conteúdo do accordion: seguro de novo — os componentes que usam Acc agora
+   estão no escopo do módulo, então isto não replaya a cada render do App */
+.rv{animation:fu var(--d-fast) var(--e-out) backwards}
+
+/* Containers de página e telas públicas: SÓ opacidade. Um translate aqui — mesmo
+   durante a animação — faz o container virar containing block dos filhos
+   position:fixed (Sheets, modais de confirmação, FABs), que saem de lugar por
+   ~240ms. Medido no navegador: o filho fixo virava 480x16 em y=780 em vez de
+   cobrir a viewport. */
+.pg{animation:fi var(--d-base) var(--e-out) backwards}
+.scr{animation:fi var(--d-base) var(--e-out) backwards}
+/* título da top bar troca com crossfade (keyed no pg) */
+.tt{animation:fi var(--d-base) var(--e-out) backwards}
+.pop{animation:pop var(--d-base) var(--e-out) backwards}
+.tick{animation:tick .3s var(--e-out) backwards}
+
+/* overlays */
+.scrim{animation:fi var(--d-slow) var(--e-out) backwards}
+.scrim.out{animation:fo var(--d-out) var(--e-in) both}
+.sheet{animation:su var(--d-slow) var(--e-sheet) backwards}
+.sheet.out{animation:sd var(--d-out) var(--e-in) both}
+.drawer{animation:dr var(--d-slow) var(--e-sheet) backwards}
+.drawer.out{animation:drx var(--d-out) var(--e-in) both}
+/* um overlay saindo nunca engole o toque seguinte */
+.out{pointer-events:none}
+.toast{animation:tin var(--d-base) var(--e-out) backwards;pointer-events:none}
+.toast.out{animation:tout var(--d-out) var(--e-in) both}
+/* splash: a saída é dirigida por estado (não por timer), então nunca sobra
+   uma camada invisível em zIndex 1000 comendo os toques */
+.splash{animation:fi .3s var(--e-out) backwards}
+.splash.out{animation:fo .28s var(--e-in) both;pointer-events:none}
+.splash-logo{animation:pop .5s var(--e-out) backwards}
+
+/* feedback de toque: escala em botões, opacidade em linhas inteiras */
+button,.press,.press-sc{-webkit-tap-highlight-color:transparent}
+button:not(:disabled):active,.press-sc:active{transform:scale(.97)}
+button,.press-sc{transition:transform var(--d-fast) var(--e-out)}
+.press:active,button.press:active{transform:none;opacity:.55}
+.press{transition:opacity var(--d-fast) var(--e-out)}
+
+@media (prefers-reduced-motion:reduce){
+  :root{--d-fast:.01s;--d-base:.01s;--d-slow:.01s;--d-out:.01s}
+  /* animation:none (e não .01s): com fill both o toast pararia em opacity 0 */
+  .fu,.pg,.scr,.tt,.rv,.pop,.tick,.toast,.scrim,.sheet,.drawer,.splash{animation:none}
+  .toast.out,.scrim.out,.sheet.out,.drawer.out{animation:none;opacity:0}
+  button:not(:disabled):active,.press-sc:active{transform:none}
+}`;
 
 const I = {
   background: "#1a1a1a",
@@ -190,6 +270,51 @@ const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
 const canM = (p) => ["admin", "lider_geral", "lider_midia"].includes(p);
 
+// ── motion helpers ───────────────────────────────────────────────────────────
+// Lido a cada chamada (e não uma vez no load) porque o usuário pode trocar a
+// preferência de movimento com o app aberto.
+const semMovimento = () => {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+};
+const durMs = (ms) => (semMovimento() ? 0 : ms);
+
+// Mantém o elemento montado durante a animação de saída.
+// Devolve { montado, saindo } — aplique a classe "out" quando saindo.
+function usePresenca(aberto, ms = 220) {
+  const [montado, setMontado] = useState(aberto);
+  const [saindo, setSaindo] = useState(false);
+  const jaAbriu = useRef(aberto);
+  useEffect(() => {
+    if (aberto) {
+      jaAbriu.current = true;
+      setSaindo(false);
+      setMontado(true);
+      return;
+    }
+    // não dispara saída no primeiro render (nunca esteve aberto)
+    if (!jaAbriu.current) return;
+    setSaindo(true);
+    const id = setTimeout(() => {
+      setMontado(false);
+      setSaindo(false);
+    }, durMs(ms));
+    return () => clearTimeout(id);
+  }, [aberto, ms]);
+  return { montado, saindo };
+}
+
+// WKWebView (Instagram/WhatsApp) só aplica :active de forma confiável em
+// elementos não-form se a página tiver algum listener de touch.
+if (typeof window !== "undefined") {
+  try {
+    window.addEventListener("touchstart", () => {}, { passive: true });
+  } catch {}
+}
+
 // ── tiny components ──────────────────────────────────────────────────────────
 const Pill = ({ c, bg, tc }) => (
   <span
@@ -261,57 +386,93 @@ const SL = ({ c, mt = 14 }) => (
     {c}
   </div>
 );
-const Seg = ({ opts, val, set }) => (
-  <div
-    style={{
-      display: "flex",
-      background: "#111",
-      borderRadius: 12,
-      padding: 3,
-      gap: 3,
-      border: "1px solid #1a1a1a",
-    }}
-  >
-    {opts.map(([k, v]) => (
-      <button
-        key={k}
-        onClick={() => set(k)}
+// O indicador ativo é um "thumb" branco absoluto que desliza por translateX
+// (compositor) em vez de cada botão trocar de background.
+const Seg = ({ opts, val, set }) => {
+  const i = Math.max(0, opts.findIndex(([k]) => k === val));
+  const n = opts.length;
+  return (
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        background: "#111",
+        borderRadius: 12,
+        padding: 3,
+        gap: 3,
+        border: "1px solid #1a1a1a",
+      }}
+    >
+      {/* thumb: largura = fatia do trilho descontando os gaps de 3px */}
+      <div
+        aria-hidden
         style={{
-          flex: 1,
-          background: val === k ? "#fff" : "transparent",
-          color: val === k ? "#000" : G.td,
-          border: "none",
+          position: "absolute",
+          top: 3,
+          left: 3,
+          bottom: 3,
+          width: `calc((100% - 6px - ${(n - 1) * 3}px) / ${n})`,
+          background: "#fff",
           borderRadius: 10,
-          padding: "9px 4px",
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: "pointer",
+          transform: `translateX(calc(${i} * (100% + 3px)))`,
+          transition: "transform var(--d-base) var(--e-sheet)",
+          pointerEvents: "none",
         }}
-      >
-        {v}
-      </button>
-    ))}
-  </div>
-);
-const Toast = ({ m, tp }) => (
+      />
+      {opts.map(([k, v]) => (
+        <button
+          key={k}
+          onClick={() => set(k)}
+          className="press"
+          style={{
+            position: "relative",
+            flex: 1,
+            minWidth: 0,
+            background: "transparent",
+            color: val === k ? "#000" : G.td,
+            transition: "color var(--d-fast) var(--e-out)",
+            border: "none",
+            borderRadius: 10,
+            padding: "9px 4px",
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          {v}
+        </button>
+      ))}
+    </div>
+  );
+};
+// O wrapper fixo centraliza; a animação vai no filho para o translateY do
+// keyframe não brigar com o translateX(-50%) da centralização.
+const Toast = ({ m, tp, saindo }) => (
   <div
     style={{
       position: "fixed",
       top: 20,
       left: "50%",
       transform: "translateX(-50%)",
-      background: tp === "w" ? "#ff3b30" : tp === "n" ? "#0a84ff" : G.green,
-      color: tp ? "#fff" : "#000",
-      borderRadius: 50,
-      padding: "10px 20px",
-      fontSize: 13,
-      fontWeight: 700,
       zIndex: 9999,
-      whiteSpace: "nowrap",
+      pointerEvents: "none",
     }}
   >
-    {tp === "n" ? "🔔 " : ""}
-    {m}
+    <div
+      className={`toast${saindo ? " out" : ""}`}
+      style={{
+        background: tp === "w" ? "#ff3b30" : tp === "n" ? "#0a84ff" : G.green,
+        color: tp ? "#fff" : "#000",
+        borderRadius: 50,
+        padding: "10px 20px",
+        fontSize: 13,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {tp === "n" ? "🔔 " : ""}
+      {m}
+    </div>
   </div>
 );
 
@@ -365,6 +526,7 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
     >
       <div
         onClick={() => toggle()}
+        className="press"
         style={{
           padding: "14px 16px",
           display: "flex",
@@ -420,7 +582,7 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
             style={{
               color: G.tm,
               fontSize: 12,
-              transition: "transform .2s",
+              transition: "transform var(--d-fast) var(--e-out)",
               display: "inline-block",
               transform: isOpen ? "rotate(180deg)" : "none",
             }}
@@ -429,10 +591,12 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
           </span>
         </div>
       </div>
+      {/* Colapso instantâneo (animar altura custa layout por frame em listas
+          longas sob header sticky); só o conteúdo entra com fade. */}
       {isOpen && (
         <>
           <div style={{ height: 1, background: "#1e1e1e" }} />
-          <div style={{ padding: "14px 16px" }}>{children}</div>
+          <div className="rv" style={{ padding: "14px 16px" }}>{children}</div>
         </>
       )}
     </div>
@@ -440,15 +604,17 @@ function Acc({ title, right, ax, children, onDel, def = false, open: openProp, o
 }
 
 function Sheet({ open, onClose, title, children }) {
-  if (!open) return null;
+  const { montado, saindo } = usePresenca(open, 220);
+  if (!montado) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 300 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 300 }} className={saindo ? "out" : undefined}>
       <div
         onClick={onClose}
+        className={`scrim${saindo ? " out" : ""}`}
         style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.7)" }}
       />
       <div
-        className="sheet"
+        className={`sheet${saindo ? " out" : ""}`}
         style={{
           position: "absolute",
           bottom: 0,
@@ -735,6 +901,40 @@ const LABELS = {
   cartas: "Cartas",
 };
 
+// ── STATUS DO ENCONTRISTA ────────────────────────────────────────────────────
+// Derivado dos flags pago/desistiu/pagarDepois (prioridade nessa ordem).
+// "pago" vem do webhook do Mercado Pago ou de "Marcar como pago" (admin).
+const ENC_STATUS = {
+  pago: { l: "Pago", c: G.green },
+  pendente: { l: "Pendente", c: "#ff3b30" },
+  pagar_depois: { l: "Pagar depois", c: "#ff9f0a" },
+  desistiu: { l: "Desistiu", c: "#8e8e93" },
+};
+// status que o admin pode setar à mão — "pago" não entra aqui
+const ENC_STATUS_MANUAL = ["pendente", "pagar_depois", "desistiu"];
+const encStatus = (e) =>
+  e.pago ? "pago" : e.desistiu ? "desistiu" : e.pagarDepois ? "pagar_depois" : "pendente";
+// aceita "YYYY-MM-DD" (input date) e devolve "DD/MM/YYYY"; outros formatos passam direto
+const fmtISO = (s) =>
+  s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.split("-").reverse().join("/") : s || "—";
+const fmtCPF = (c) =>
+  c ? String(c).replace(/\D/g, "").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "—";
+// monta o link do WhatsApp: limpa a máscara e prefixa 55 quando necessário
+const waLink = (raw) => {
+  const d = (raw || "").replace(/\D/g, "");
+  if (!d) return null;
+  const num = d.startsWith("55") && d.length >= 12 ? d : `55${d}`;
+  return `https://wa.me/${num}`;
+};
+const CampoInfo = ({ label, valor }) => (
+  <div style={{ minWidth: 0 }}>
+    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>
+      {label}
+    </div>
+    <div style={{ color: G.td, fontSize: 12, overflowWrap: "anywhere" }}>{valor}</div>
+  </div>
+);
+
 // ── SPLASH ───────────────────────────────────────────────────────────────────
 const BotaoAjuda = () => (
   <a
@@ -761,10 +961,13 @@ const BotaoInsta = () => (
     </svg>
   </a>
 );
-function Splash({ done }) {
+// A saída é dirigida pelo estado `sp` do App (via usePresenca), não por um
+// timer de 2,2s: antes o overlay continuava montado em zIndex 1000 depois de
+// ficar invisível e comia todos os toques até o Auth responder.
+function Splash({ saindo }) {
   return (
     <div
-      className="splash"
+      className={`splash${saindo ? " out" : ""}`}
       style={{
         position: "fixed",
         inset: 0,
@@ -778,6 +981,7 @@ function Splash({ done }) {
       <style>{css}</style>
       <div style={{ textAlign: "center" }}>
         <img
+          className="splash-logo"
           src="/IMG_2408.PNG"
           alt="Encontro com Deus"
           style={{
@@ -1147,7 +1351,7 @@ function ConfirmadoV({ encId, onVoltar }) {
   }, [encId]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+    <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <style>{css}</style>
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
@@ -1416,7 +1620,7 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
   const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 384;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+    <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <style>{css}</style>
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 180, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
@@ -1490,6 +1694,7 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
 function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
   return (
     <div
+      className="scr"
       style={{
         minHeight: "100vh",
         position: "relative",
@@ -1828,7 +2033,10 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       nome={form.nome}
       igreja={form.igreja === 'Outra' ? form.igrejaCustom : form.igreja}
       onVoltar={onVoltar}
-      onPago={() => setScr('pagamento_confirmado')}
+      // repassa para o onPago do App (que grava o encId e navega). Antes isto
+      // chamava setScr direto, que não existe aqui — dava ReferenceError e o
+      // encontrista travava na tela de pagamento depois de confirmar.
+      onPago={() => onPago(encId)}
     />
   );
 
@@ -1872,7 +2080,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       <style>{css}</style>
 
       {duplicado && !dupConfirmado && !dupTermoPendente && !dupPagamento && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>
+        <div className="scrim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>
           <div style={{ background: "#111", border: "1px solid #2a2a2a", borderRadius: 20, padding: "28px 24px", maxWidth: 340, width: "100%", textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
             <div style={{ color: "#fff", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Este CPF já está cadastrado!</div>
@@ -2430,7 +2638,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         {/* Aceite */}
         <div onClick={() => setAceite(!aceite)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: aceite ? "rgba(0,200,81,.08)" : "#111", border: `1px solid ${aceite ? "rgba(0,200,81,.4)" : "#2a2a2a"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
           <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${aceite ? G.green : "#444"}`, background: aceite ? G.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            {aceite && <span style={{ color: "#000", fontSize: 12, fontWeight: 900 }}>✓</span>}
+            {aceite && <span className="pop" style={{ color: "#000", fontSize: 12, fontWeight: 900, display: "inline-block" }}>✓</span>}
           </div>
           <span style={{ color: aceite ? "#fff" : "rgba(255,255,255,.6)", fontSize: 13 }}>Li e concordo com os termos acima</span>
         </div>
@@ -2765,7 +2973,7 @@ function Termo({ cpf, onVoltar }) {
 
     if (assinado)
     return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <style>{css}</style>
         <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
           <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
@@ -3162,6 +3370,7 @@ const exportarPDF = async (termo) => {
       return;
     }
 
+    const jsPDF = await carregarJsPDF();
     const pdf = new jsPDF();
     const margin = 20;
     const pageW = 210;
@@ -3646,661 +3855,14 @@ function ServoRestV({ user, encH, encM, t }) {
     </div>
   );
 }
-export default function App() {
-  const [sp, setSp] = useState(true);
-  const [scr, setScr] = useState("welcome");
-  const [user, setUser] = useState(null);
-  const [pg, setPg] = useState("home");
-  const pgRef = useRef(pg);
-  useEffect(() => { pgRef.current = pg; }, [pg]);
-  const menuRef = useRef(false);
+// ── TELAS ────────────────────────────────────────────────────────────────────
+// Estes componentes ficavam declarados dentro de App(). Como eram recriados a
+// cada render, o React via um `type` novo e desmontava/remontava a subárvore
+// inteira a cada toast ou snapshot do Firestore — perdendo estado interno
+// (busca, filtros, acordeão aberto) e impedindo animações de entrada.
 
-  useEffect(() => {
-    const safePush = () => {
-      try {
-        history.pushState({ marker: "buffer" }, "");
-      } catch (err) {
-        console.warn("history.pushState indisponível neste navegador:", err);
-      }
-    };
-    safePush();
-    const onPopState = () => {
-      if (menuRef.current) {
-        setMenu(false);
-        safePush();
-        return;
-      }
-      if (pgRef.current !== "home" && pgRef.current !== "smins") {
-        setPg("home");
-        safePush();
-      }
-      // se já está na home, deixa o botão voltar seguir o comportamento padrão
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  const [menu, setMenu] = useState(false);
-  useEffect(() => { menuRef.current = menu; }, [menu]);
-  const [pagamentoId, setPagamentoId] = useState(null);
-  const [encId, setEncId] = useState(null);
-  const [termoCpf, setTermoCpf] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [faqOpen, setFaqOpen] = useState(false);
-  const [fns, setFns] = useState(FUNCOES_INIT);
-  const [perfisExtra, setPerfisExtra] = useState([]);
-
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "config", "perfis_extra"), (snap) => {
-      const lista = snap.exists() ? (snap.data().lista || []) : [];
-      lista.forEach((p) => {
-        if (p?.key) PERFIS[p.key] = { l: p.label, c: p.color || "#0a84ff" };
-      });
-      setPerfisExtra(lista);
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const unsub = onSnapshot(
-      doc(db, "config", "inscricoes"),
-      (snap) => {
-        setInscricoesBloqueadas(snap.exists() ? !!snap.data().bloqueadas : false);
-      },
-      (err) => {
-        console.error("Erro ao ler status das inscrições (provável regra do Firestore bloqueando leitura pública):", err);
-      },
-    );
-    return () => unsub();
-  }, []);
-
-  const salvarInscricoesBloqueadas = async (valor) => {
-    try {
-      await setDoc(doc(db, "config", "inscricoes"), { bloqueadas: valor }, { merge: true });
-      setInscricoesBloqueadas(valor);
-      showT(valor ? "Inscrições bloqueadas." : "Inscrições reabertas!");
-    } catch (err) {
-      console.error("Erro ao salvar status das inscrições:", err);
-      showT("Erro ao salvar.", "w");
-    }
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "config", "funcoes_extra"));
-        if (snap.exists()) {
-          const extras = snap.data().lista || [];
-          if (extras.length > 0) {
-            setFns(prev => Array.from(new Set([...prev, ...extras])).sort((a, b) => a.localeCompare(b)));
-          }
-        }
-      } catch (err) {
-        console.error("Erro ao carregar funções extras:", err);
-      }
-    })();
-  }, []);
-
-  const [esc, setEsc] = useState([]);
-  const [qh, setQh] = useState(QH_INIT);
-  const [qm, setQm] = useState(QM_INIT);
-  const [on, setOn] = useState(ON_INIT);
-  const [mins, setMins] = useState(MINS_INIT);
-  const minsLoadedRef = useRef(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "config", "agenda"));
-        if (snap.exists() && Array.isArray(snap.data().lista)) {
-          setMins(snap.data().lista);
-        } else {
-          await setDoc(doc(db, "config", "agenda"), { lista: MINS_INIT });
-        }
-      } catch (err) {
-        console.error("Erro ao carregar agenda:", err);
-      } finally {
-        minsLoadedRef.current = true;
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!minsLoadedRef.current) return;
-    setDoc(doc(db, "config", "agenda"), { lista: mins }).catch((err) =>
-      console.error("Erro ao salvar agenda:", err),
-    );
-  }, [mins]);
-
-  const [rest, setRest] = useState(REST_INIT);
-  const [ck, setCk] = useState(CK_INIT);
-  const [img, setImg] = useState([]);
-  const unsubOcorrRef = useRef(null);
-  const [ach, setAch] = useState([]);
-  const [ocorr, setOcorr] = useState([]);
-  const [crac, setCrac] = useState([]);
-  const [sau, setSau] = useState([]);
-  const [avs, setAvs] = useState([]);
-  const [encH, setEncH] = useState([]);
-  const [encM, setEncM] = useState([]);
-  const [uni, setUni] = useState([]);
-  const [dataLimiteUni, setDataLimiteUni] = useState("");
-  const [toast, setToast] = useState(null);
-  const [notif, setNotif] = useState(false);
-  const unsubConfigRef = useRef(null);
-  const unsubUniRef = useRef(null);
-  const unsubAvsRef = useRef(null);
-  const unsubEncRef = useRef(null);
-  const unsubQHRef = useRef(null);
-  const unsubQMRef = useRef(null);
-  const unsubOnRef = useRef(null);
-  const unsubUsersRef = useRef(null);
-  const unsubEscRef = useRef(null);
-  const unsubSauRef = useRef(null);
-  const enviando = useRef(false);
-  const enviandoAviso = useRef(false);
-  const [quartoTab, setQuartoTab] = useState("M");
-  const [quartosAbertos, setQuartosAbertos] = useState({});
-  const [dataLimitePagamento, setDataLimitePagamento] = useState("");
-  const [inscricoesBloqueadas, setInscricoesBloqueadas] = useState(false);
-  const [avTextoServo, setAvTextoServo] = useState("");
-  const [avPublicoServo, setAvPublicoServo] = useState("todos");
-  const enviandoAvisoServoRef = useRef(false);
-  const [dataLimitePedido, setDataLimitePedido] = useState("");
-  const [dataLimiteRestante, setDataLimiteRestante] = useState("");
-  const [backExpandidos, setBackExpandidos] = useState({});
-  const [permissoes, setPermissoes] = useState({});
-  const [backTab, setBackTab] = useState("grupos");
-  const [backGruposAbertos, setBackGruposAbertos] = useState({});
-  const backBuscaUserRef = useRef("");
-  const unsubPermRef = useRef(null);
-
-  // Inicializa quarto mães se não existir
-  const inicializarQuartoMaes = async () => {
-    const ref = doc(db, "quartos_m", "12");
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, { num: 12, maes: true, lim: 9, servos: [], enc: [] });
-    }
-  };
-
-  const salvarQuarto = async (colecao, quarto) => {
-    await setDoc(doc(db, colecao, String(quarto.num)), quarto);
-  };
-
-  const deletarQuarto = async (colecao, num) => {
-    await deleteDoc(doc(db, colecao, String(num)));
-  };
-
-  const salvarOnibus = async (onibus) => {
-    await setDoc(doc(db, "onibus", String(onibus.num)), onibus);
-  };
-
-  const deletarOnibus = async (num) => {
-    await deleteDoc(doc(db, "onibus", String(num)));
-  };
-
-  useEffect(() => {
-    // Timeout de segurança: se o Firebase Auth não responder em 6s
-    // (comum em WebViews do Instagram/WhatsApp no iOS que bloqueiam indexedDB),
-    // libera a splash e manda para a tela de boas-vindas em vez de travar para sempre.
-    const spTimeout = setTimeout(() => {
-      setSp((cur) => {
-        if (cur) {
-          console.warn("Firebase Auth não respondeu a tempo — liberando splash.");
-          setScr((s) => (s === "welcome" ? "welcome" : s));
-        }
-        return false;
-      });
-    }, 6000);
-    return () => clearTimeout(spTimeout);
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    console.log("URL params:", window.location.search);
-    // Termo digital
-    const termo = params.get("termo");
-    const cpf = params.get("cpf");
-    if (termo === "true" && cpf) {
-      setTermoCpf(cpf);
-      setScr("termo");
-      setSp(false);
-      return;
-    }
-
-    const qr = params.get("qr");
-    const qrId = params.get("id");
-    if (qr === "true" && qrId) {
-      setEncId(qrId);
-      setScr("pagamento_confirmado");
-      setSp(false);
-      return;
-    }
-    const pago = params.get("pago");
-    const id = params.get("id");
-    const statusMP = params.get("status");
-    console.log('URL params:', window.location.search);
-    const externalRef = params.get("external_reference");
-
-    if (pago === "true" && id) {
-      setScr("pagamento_confirmado");
-      setEncId(id);  // ← troca setPagamentoId por setEncId
-      window.history.replaceState({}, "", "/");
-    } else if (pago === "pending" && id) {
-      setScr("pagamento_pendente");
-      setPagamentoId(id);
-      window.history.replaceState({}, "", "/");
-    } else if (statusMP === "pending" && externalRef) {
-      setScr("pagamento_pendente");
-      setPagamentoId(externalRef);
-      window.history.replaceState({}, "", "/");
-    } else if (statusMP === "approved" && externalRef) {
-      setScr("pagamento_confirmado");
-      setEncId(externalRef);
-      window.history.replaceState({}, "", "/");
-    }
-
-    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        inicializarQuartoMaes();
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (snap.exists()) {
-          const data = snap.data();
-
-          if (data.ativo === false) {
-            await signOut(auth);
-            setSp(false);
-            setScr("login");
-            return;
-          }
-
-          setUser({ id: firebaseUser.uid, ...data });
-          setScr("app");
-          if (data.perfil === "servo") setPg("smins");
-
-          unsubEscRef.current = onSnapshot(collection(db, "equipes"), (s) => {
-            setEsc(s.docs.map((d) => ({ id: d.id, ...d.data() })));
-          });
-
-          unsubConfigRef.current = onSnapshot(doc(db, "config", "uniformes"), (s) => {
-            if (s.exists()) {
-              if (s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
-              if (s.data().dataLimitePagamento) setDataLimitePagamento(s.data().dataLimitePagamento);
-              if (s.data().dataLimitePedido) setDataLimitePedido(s.data().dataLimitePedido);
-              if (s.data().dataLimiteRestante) setDataLimiteRestante(s.data().dataLimiteRestante);
-            }
-          });
-
-          unsubUsersRef.current = onSnapshot(collection(db, "users"), (s) => {
-            setUsers(s.docs.map((d) => {
-              const data = d.data();
-              const tipo = data.tipo || (
-                data.perfil === "staff" ? "staff" :
-                data.perfil?.startsWith("lider_") ? "lider" :
-                "servo"
-              );
-              return { id: d.id, ...data, tipo };
-            }));
-          });
-
-          unsubUniRef.current = onSnapshot(collection(db, "uniformes"), (s) => {
-            setUni(s.docs.map((d) => ({ userId: d.id, ...d.data() })));
-          });
-
-          unsubAvsRef.current = onSnapshot(collection(db, "avisos"), (s) => {
-            setAvs(
-              s.docs
-                .map((d) => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => b.createdAt - a.createdAt),
-            );
-          });
-
-          unsubEncRef.current = onSnapshot(
-            collection(db, "encontristas"),
-            (s) => {
-              const lista = s.docs.map((d) => ({ id: d.id, ...d.data() }));
-              setEncM(lista.filter((e) => e.sexo === "Feminino"));
-              setEncH(lista.filter((e) => e.sexo === "Masculino"));
-              setCk(
-                lista
-                  .filter((e) => e.pago || e.pagarDepois)
-                  .map((e) => ({
-                    id: e.id,
-                    nome: e.nome,
-                    gen: e.sexo === "Feminino" ? "M" : "H",
-                    ok: e.chegou || false,
-                    on: e.onibus || null,
-                    whatsapp: e.whatsapp || null,
-                    cpf: e.cpf || null,
-                  })),
-              );
-            },
-          );
-
-          unsubQHRef.current = onSnapshot(collection(db, "quartos_h"), (s) => {
-            if (!s.empty)
-              setQh(s.docs.map((d) => d.data()).sort((a, b) => a.num - b.num));
-          });
-
-          unsubQMRef.current = onSnapshot(collection(db, "quartos_m"), (s) => {
-            if (!s.empty)
-              setQm(s.docs.map((d) => d.data()).sort((a, b) => a.num - b.num));
-          });
-
-          unsubOnRef.current = onSnapshot(collection(db, "onibus"), (s) => {
-            setOn(
-              s.docs
-                .map((d) => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => a.num - b.num),
-            );
-          });
-          
-          unsubSauRef.current = onSnapshot(collection(db, 'saude'), (s) => {
-            setSau(s.docs.map((d) => ({ id: d.id, ...d.data() })));
-          });
-
-          unsubOcorrRef.current = onSnapshot(collection(db, "ocorrencias"), (s) => {
-            setOcorr(s.docs.map(d => d.data()).sort((a, b) => b.id - a.id));
-          });
-
-          unsubPermRef.current = onSnapshot(collection(db, "permissoes"), (s) => {
-            const p = {};
-            s.docs.forEach(d => { p[d.id] = d.data(); });
-            setPermissoes(p);
-          });
-
-          if (Notification.permission !== "denied") {
-            iniciarNotificacoes(firebaseUser.uid).then((token) => {
-              if (token) setNotif(true);
-            });
-          }
-        } else {
-          setScr("welcome");
-        }
-      } else {
-        unsubConfigRef.current?.();
-        unsubUniRef.current?.();
-        unsubAvsRef.current?.();
-        unsubEncRef.current?.();
-        unsubQHRef.current?.();
-        unsubQMRef.current?.();
-        unsubOnRef.current?.();
-        unsubUsersRef.current?.();
-        unsubEscRef.current?.();
-        unsubSauRef.current?.();
-        unsubPermRef.current?.();
-        setScr("welcome");
-      }
-      setSp(false);
-    });
-
-    return () => {
-      unsubAuth();
-      unsubConfigRef.current?.();
-      unsubUniRef.current?.();
-      unsubAvsRef.current?.();
-      unsubEncRef.current?.();
-      unsubQHRef.current?.();
-      unsubQMRef.current?.();
-      unsubOnRef.current?.();
-      unsubUsersRef.current?.();
-      unsubEscRef.current?.();
-    };
-  }, []);
-
-  const salvarDataLimite = async (data) => {
-    setDataLimiteUni(data);
-    await setDoc(
-      doc(db, "config", "uniformes"),
-      { dataLimite: data },
-      { merge: true },
-    );
-  };
-
-  const temPermissao = (tela) => {
-    if (role === "admin") return true;
-    if (role === "lider_geral") return true;
-    const telasFixas = ["mins", "avisos", "uniforme", "info", "cartas"];
-    if (telasFixas.includes(tela)) return true;
-    // Telas extras atribuídas individualmente ao usuário
-    if ((user?.telasExtra || []).includes(tela)) return true;
-    const p = permissoes[role];
-    if (!p) return false;
-    return (p.telas || []).includes(tela);
-  };
-
-  const showT = (m, tp = "s") => {
-    setToast({ m, tp });
-    setTimeout(() => setToast(null), 2500);
-  };
-  const nav = (p) => {
-    setPg(p);
-    setMenu(false);
-  };
-  const logout = async () => {
-    unsubConfigRef.current?.();
-    unsubUniRef.current?.();
-    unsubAvsRef.current?.();
-    unsubEncRef.current?.();
-    unsubQHRef.current?.();
-    unsubQMRef.current?.();
-    unsubOnRef.current?.();
-    unsubUsersRef.current?.();
-    unsubEscRef.current?.();
-    unsubOcorrRef.current?.();
-    await signOut(auth);
-    setUser(null);
-    setScr("welcome");
-    setPg("home");
-  };
-
-  const login = (f) => {
-    setUser(f);
-    setScr("app");
-    const admins = ["admin", "lider_geral", "pastor"];
-    if (!admins.includes(f.perfil)) setPg("smins");
-  };
-
-  const role = user?.perfil || "servo";
-  const isAdm = role === "admin" || role === "lider_geral";
-  const [liderMapOverrides, setLiderMapOverrides] = useState({});
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "config", "lider_map"));
-        if (snap.exists()) {
-          setLiderMapOverrides(snap.data() || {});
-        }
-      } catch (err) {
-        console.error("Erro ao carregar lider_map:", err);
-      }
-    })();
-  }, []);
-
-  const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
-  const [ckSub, setCkSub] = useState("pend");
-  const [ckGen, setCkGen] = useState("M");
-  const [termoBusca, setTermoBusca] = useState("");
-
-  const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
-  const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
-  const uOn = (n, fn) => setOn(on.map((o) => (o.num === n ? fn(o) : o)));
-  const uEs = (id, fn) => setEsc(esc.map((e) => (e.id === id ? fn(e) : e)));
-  const broadcast = (msg) => {
-    if (
-      notif &&
-      "Notification" in window &&
-      Notification.permission === "granted"
-    )
-      new Notification("🔔 servos.", { body: msg });
-  };
-  const sN = (nm, hr) => {
-    broadcast(`${nm} — ${hr}`);
-    showT(`${nm} — ${hr}`, "n");
-  };
-  const notifyAll = async (msg, publico = "todos") => {
-    if (enviando.current) return;
-    enviando.current = true;
-    showT(msg, "n");
-    try {
-      await fetch(
-        "https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ titulo: msg, horario: "", publico }),
-        },
-      );
-    } catch (err) {
-      console.error("Erro ao notificar:", err);
-    }
-    enviando.current = false;
-  };
-
-  if (sp) return <Splash done={() => setSp(false)} />;
-
-  if (faqOpen) return <FAQ onVoltar={() => setFaqOpen(false)} />;
-
-  if (scr === "pagamento_confirmado")
-    return <ConfirmadoV encId={encId} onVoltar={() => setScr("welcome")} />;
-
-  if (scr === "pagamento_pendente")
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-        }}
-      >
-        <style>{css}</style>
-        <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
-          <img
-            src="/IMG_2408.PNG"
-            alt="Encontro com Deus"
-            style={{
-              width: 180,
-              mixBlendMode: "screen",
-              display: "block",
-              margin: "0 auto 24px",
-            }}
-          />
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-          <div
-            style={{
-              color: "#fff",
-              fontSize: 22,
-              fontWeight: 800,
-              marginBottom: 8,
-            }}
-          >
-            Pagamento pendente!
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,.5)",
-              fontSize: 16,
-              lineHeight: 1.6,
-              marginBottom: 24,
-            }}
-          >
-            Seu pagamento está sendo processado. Assim que confirmado sua vaga
-            será garantida!
-          </div>
-          <a
-            href="https://wa.me/5511982222149?text=Olá!%20Realizei%20o%20pagamento%20do%20Encontro%20com%20Deus%20e%20gostaria%20de%20confirmar%20minha%20inscrição."
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "block",
-              background: "#25d366",
-              color: "#fff",
-              textDecoration: "none",
-              padding: "14px",
-              borderRadius: 14,
-              fontWeight: 700,
-              fontSize: 15,
-              marginBottom: 12,
-            }}
-          >
-            Enviar comprovante no WhatsApp
-          </a>
-          <button
-            onClick={() => setScr("welcome")}
-            style={BK({ width: "100%", padding: 14, borderRadius: 14 })}
-          >
-            Voltar ao início
-          </button>
-        </div>
-        <BotaoAjuda />
-        <BotaoInsta />
-      </div>
-    );
-
-  if (scr === "welcome")
-  return (
-    <Welcome
-      onServos={() => setScr("login")}
-      onEncontrista={() => setScr("inscricao")}
-      onFaq={() => setFaqOpen(true)}
-      onJaInscrito={() => setScr('ja_inscrito')}
-      bloqueadas={inscricoesBloqueadas}
-    />
-  );
-
-  if (scr === "inscricao" && inscricoesBloqueadas) {
-    return (
-      <Welcome
-        onServos={() => setScr("login")}
-        onEncontrista={() => {}}
-        onFaq={() => setFaqOpen(true)}
-        onJaInscrito={() => setScr('ja_inscrito')}
-        bloqueadas={inscricoesBloqueadas}
-      />
-    );
-  }
-
-  if (scr === "inscricao")
-    return (
-      <Inscricao
-        onVoltar={() => setScr("welcome")}
-        onPago={(id) => {
-          setEncId(id);
-          setScr("pagamento_confirmado");
-        }}
-        onFaq={() => setFaqOpen(true)}
-      />
-    );
-
-  if (scr === "termo")
-    return <Termo cpf={termoCpf} onVoltar={() => setScr("welcome")} />;
-
-  if (scr === 'ja_inscrito')
-    return <JaInscritoV onVoltar={() => setScr('welcome')} bloqueadas={inscricoesBloqueadas} />;
-
-  if (user?.primeiro) return (
-    <PrimeiroAcessoV 
-      user={user} 
-      onConcluido={() => setUsers(prev => prev.map(u => u.id === user.id ? { ...u, primeiro: false } : u))} 
-    />
-  );
-
-  if (scr === "login")
-    return (
-      <Login
-        onLogin={login}
-        onVoltar={() => setScr("welcome")}
-        users={users}
-        setUsers={setUsers}
-      />
-    );
   // shared top bar
-  const TB = () => (
+  const TB = ({ pg, user, nav, showT, setMenu, notif, setNotif }) => (
     <div style={{
         background: "#000",
         borderBottom: "1px solid #1a1a1a",
@@ -4322,9 +3884,9 @@ export default function App() {
       {/* Centro */}
       <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
         {pg === "home" ? (
-          <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
+          <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, opacity: 0.85 }} />
         ) : (
-          <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{LABELS[pg]}</span>
+          <span key={pg} className="tt" style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{LABELS[pg]}</span>
         )}
       </div>
       {/* Direita */}
@@ -4344,30 +3906,6 @@ export default function App() {
       </div>
     </div>
   );
-
-  // menu drawer
-  const MENU_ITEMS = [
-    [Home, "home"],
-    ...(temPermissao("servos") ? [[Users, "servos"]] : []),
-    ...(temPermissao("enc") ? [[Users, "enc"]] : []),
-    ...(temPermissao("checkin") ? [[CheckSquare, "checkin"]] : []),
-    ...(temPermissao("termo") ? [[FileText, "termo"]] : []),
-    ...(temPermissao("quartos") ? [[BedDouble, "quartos"]] : []),
-    ...(temPermissao("onibus") ? [[Bus, "onibus"]] : []),
-    ...(temPermissao("mins") ? [[Calendar, "mins"]] : []),
-    ...(temPermissao("rest") ? [[ShieldOff, "rest"]] : []),
-    ...(temPermissao("img") ? [[Image, "img"]] : []),
-    ...(temPermissao("info") ? [[AlertTriangle, "info"]] : []),
-    ...(temPermissao("ach") ? [[Search, "ach"]] : []),
-    ...(temPermissao("crac") ? [[CreditCard, "crac"]] : []),
-    ...(temPermissao("saude") ? [[PillIcon, "saude"]] : []),
-    ...((role === "lider_cartas" || isAdm) ? [[FileText, "cartas"]] : []),
-    ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
-    ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
-    ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
-    ...(isAdm ? [[Settings, "back"]] : []),
-  ];
-
   // ── SERVO SHELL ──
     const TelaRestrita = () => (
       <div style={{ textAlign: "center", padding: 48 }}>
@@ -4376,751 +3914,6 @@ export default function App() {
         <div style={{ color: G.tm, fontSize: 13 }}>Você não tem permissão para acessar esta tela.</div>
       </div>
     );
-
-    if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
-
-    const MAPA_SERVO = {
-      "perfil": [User, "sperfil", "Perfil"],
-      "mins": [Calendar, "smins", "Agenda"],
-      "avisos": [Megaphone, "savs", "Avisos"],
-      "uniforme": [Shirt, "suni", "Uniforme"],
-      "info": [AlertTriangle, "sinfo", "Ocorrências"],
-      "rest": [ShieldOff, "srest", "Restrições"],
-      "img": [Image, "simg", "Uso de Imagem"],
-      "saude": [PillIcon, "ssaude", "Saúde"],
-      "quartos": [BedDouble, "squartos", "Quartos"],
-      "checkin": [CheckSquare, "scheckin", "Check-in"],
-      "onibus": [Bus, "sonibus", "Ônibus"],
-      "termo": [FileText, "stermo", "Termo"],
-      "ach": [Search, "sach", "Achados & Perdidos"],
-      "crac": [CreditCard, "scrac", "Crachás"], 
-      "cartas": [FileText, "scartas", "Cartas"],
-    };
-
-    const SERVO_MENU = Object.entries(MAPA_SERVO)
-      .filter(([tela]) => {
-        if (tela === "perfil") return true;
-        if (tela === "rest") return role === "lider_celula" || user?.liderCelula === true;
-        if (tela === "img") return role === "lider_midia" || Object.values(user?.escala || {}).flat().includes("Mídia");
-        return temPermissao(tela);
-      })
-      .map(([, item]) => item);
-
-    return (
-      <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
-        <style>{css}</style>
-        {toast && <Toast m={toast.m} tp={toast.tp} />}
-        {menu && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 200 }}>
-            <div
-              onClick={() => setMenu(false)}
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,.85)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: 270,
-                background: "#0d0d0d",
-                borderRight: "1px solid #1a1a1a",
-                overflowY: "auto",
-              }}
-            >
-              <div
-                style={{
-                  padding: "22px 16px 16px",
-                  borderBottom: "1px solid #1a1a1a",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 900,
-                      color: "#fff",
-                      letterSpacing: -1,
-                    }}
-                  >
-                    Peniel<span style={{ color: G.green }}>.</span>
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>
-                    {user.nome} · {PERFIS[role]?.l}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setMenu(false)}
-                  style={BK({
-                    padding: "6px 10px",
-                    borderRadius: 9,
-                    fontSize: 12,
-                  })}
-                >
-                  ✕
-                </button>
-              </div>
-              {SERVO_MENU.map(([ic, p, lb]) => (
-                <button
-                  key={p}
-                  onClick={() => {
-                    setPg(p);
-                    setMenu(false);
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    width: "100%",
-                    background: pg === p ? "rgba(0,200,81,.08)" : "transparent",
-                    border: "none",
-                    borderLeft:
-                      pg === p
-                        ? `3px solid ${G.green}`
-                        : "3px solid transparent",
-                    padding: "12px 16px",
-                    color: pg === p ? G.green : G.td,
-                    fontSize: 13,
-                    fontWeight: pg === p ? 700 : 500,
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  {(() => { const Icon = ic; return <Icon size={16} style={{ flexShrink: 0, width: 18 }} />; })()}
-                  {lb}
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  setMenu(false);
-                  logout();
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  width: "100%",
-                  background: "transparent",
-                  border: "none",
-                  borderLeft: "3px solid transparent",
-                  borderTop: "1px solid #1a1a1a",
-                  padding: "12px 16px",
-                  color: "rgba(255,59,48,.6)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  marginTop: 8,
-                }}
-              >
-                <LogOut size={16} style={{ width: 18 }} />
-                Sair
-              </button>
-            </div>
-          </div>
-        )}
-        {/* top bar servo */}
-        <div style={{
-          background: "#000",
-          borderBottom: "1px solid #1a1a1a",
-          padding: "14px 16px",
-          display: "flex",
-          alignItems: "center",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-        }}>
-          {/* Esquerda */}
-          <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
-            {(pg === "smins" || pg === "home") ? (
-              <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
-            ) : (
-              <button onClick={() => setPg("smins")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
-            )}
-          </div>
-
-          {/* Centro */}
-          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-            {(pg === "smins" || pg === "home") ? (
-              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, mixBlendMode: "screen", opacity: 0.85 }} />
-            ) : (
-              <span style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-                {pg === "sperfil" ? "Perfil"
-                : pg === "savs" ? "Avisos"
-                : pg === "suni" ? "Uniforme"
-                : pg === "sinfo" ? "Ocorrências"
-                : pg === "srest" ? "Restrições"
-                : pg === "simg" ? "Uso de Imagem"
-                : pg === "ssaude" ? "Saúde"
-                : pg === "squartos" ? "Quartos"
-                : pg === "scozinha" ? "Cozinha"
-                : pg === "scheckin" ? "Check-in"
-                : pg === "sonibus" ? "Ônibus"
-                : pg === "senc" ? "Encontristas"
-                : pg === "stermo" ? "Termo"
-                : pg === "sach" ? "Achados & Perdidos"
-                : pg === "scrac" ? "Crachás"
-                : pg === "scartas" ? "Cartas"
-                : ""}
-              </span>
-            )}
-          </div>
-
-          {/* Direita */}
-          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-            {(pg === "smins" || pg === "home") && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
-            {(pg === "smins" || pg === "home") && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
-            <button
-              onClick={async () => {
-                const token = await iniciarNotificacoes(user?.id);
-                if (token) { setNotif(true); showT("Notificações ativas!", "n"); }
-                else showT("Permissão negada", "w");
-              }}
-              style={{ ...BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td }), display: "flex", alignItems: "center" }}>
-              <Bell size={16} />
-            </button>
-          </div>
-        </div>
-        {/* home com 3 cards */}
-        {(pg === "smins" || pg === "home") && (
-          <ServoHomeV
-            user={user}
-            mins={mins}
-            avs={avs}
-            ocorr={ocorr}
-            setPg={setPg}
-            pago={user?.pago}
-            role={role}
-            uni={uni}
-            dataLimiteUni={dataLimiteUni}
-            dataLimitePagamento={dataLimitePagamento}
-            esc={esc}
-            users={users}
-            qh={qh}
-            qm={qm}
-            on={on}
-          />
-        )}
-        <div
-          style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}
-        >
-          {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} />}
-          {pg === "savs" && (
-            <div>
-              {canAvisos(role) && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                  <select
-                    onChange={(e) => { if (e.target.value) setAvTextoServo(e.target.value); }}
-                    style={{ ...I, fontSize: 12 }}
-                    defaultValue=""
-                  >
-                    <option value="">Usar template de aviso...</option>
-                    {AVISOS_TEMPLATES.map((a, i) => (
-                      <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
-                    ))}
-                  </select>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[["todos", "Todos"], ["homens", "Homens"], ["mulheres", "Mulheres"]].map(([k, l]) => (
-                      <button
-                        key={k}
-                        onClick={() => setAvPublicoServo(k)}
-                        style={{
-                          flex: 1,
-                          padding: "8px 6px",
-                          borderRadius: 9,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          border: `1px solid ${avPublicoServo === k ? "#0a84ff" : "#2a2a2a"}`,
-                          background: avPublicoServo === k ? "rgba(10,132,255,.12)" : "#1a1a1a",
-                          color: avPublicoServo === k ? "#0a84ff" : G.td,
-                        }}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={avTextoServo}
-                      onChange={(e) => setAvTextoServo(e.target.value)}
-                      placeholder="Escrever aviso..."
-                      style={{ ...I, flex: 1 }}
-                    />
-                    <button
-                      onClick={async () => {
-                        if (enviandoAvisoServoRef.current) return;
-                        if (!avTextoServo.trim()) return;
-                        enviandoAvisoServoRef.current = true;
-                        vibrar(100);
-                        const txt = avTextoServo.trim();
-                        const publico = avPublicoServo;
-                        setAvTextoServo("");
-                        const aviso = {
-                          txt,
-                          autor: user.nome,
-                          autorPerfil: role,
-                          publico,
-                          hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-                          createdAt: Date.now(),
-                        };
-                        await addDoc(collection(db, "avisos"), aviso);
-                        notifyAll(`Aviso: ${txt}`, publico);
-                        showT("Aviso publicado!");
-                        setTimeout(() => { enviandoAvisoServoRef.current = false; }, 1500);
-                      }}
-                      style={BG({ padding: "13px 15px", borderRadius: 12 })}
-                    >+</button>
-                  </div>
-                </div>
-              )}
-              {avs.length === 0 && (
-                <div
-                  style={{
-                    color: G.tm,
-                    textAlign: "center",
-                    padding: 48,
-                    fontSize: 13,
-                  }}
-                >
-                  Nenhum aviso no momento. ✓
-                </div>
-              )}
-              {avs.map((a) => (
-                <div
-                  key={a.id}
-                  className="fu"
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${G.green}`,
-                    borderRadius: 14,
-                    padding: "12px 14px",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>
-                    {a.txt}
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    {a.autor}{a.autorPerfil && PERFIS[a.autorPerfil] ? ` · ${PERFIS[a.autorPerfil].l}` : ""} · {a.hr}
-                    {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
-                    {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
-                  </div>
-                  {canAvisos(role) && (
-                    <span
-                      onClick={async () => { await deleteDoc(doc(db, "avisos", a.id)); }}
-                      style={{ color: "rgba(255,59,48,.6)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "inline-block", marginTop: 6 }}
-                    >
-                      Excluir
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {pg === "suni" && (
-            <UniV
-              uni={uni}
-              setUni={setUni}
-              dataLimite={dataLimiteUni}
-              setDataLimite={salvarDataLimite}
-              dataLimitePagamento={dataLimitePagamento}
-              user={user}
-              role={role}
-              edit={isAdm}
-              dataLimitePedido={dataLimitePedido}
-              dataLimiteRestante={dataLimiteRestante}
-              t={showT}
-            />
-          )}
-          {pg === "srest" && (role === "lider_celula" || user?.liderCelula === true) && (
-            <ServoRestV user={user} encH={encH} encM={encM} t={showT} />
-          )}
-          {pg === "simg" && <ImgV encH={encH} encM={encM} />}
-          {pg === "sinfo" && (
-            <InfoV ocorr={ocorr} setOcorr={setOcorr} t={showT} notifyAll={notifyAll} />
-          )}
-          {pg === "squartos" && (
-            temPermissao("quartos")
-              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role) || canExtra("quartos")} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} user={user} />
-              : <TelaRestrita />
-          )}
-          {pg === "scheckin" && (
-            temPermissao("checkin") 
-              ? <CkV ck={ck} setCk={setCk} on={on} edit={
-                  Object.values(user?.escala || {}).flat().includes("Check-in")
-                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} /> 
-              : <TelaRestrita />
-          )}
-          {pg === "stermo" && (
-            temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} /> : <TelaRestrita />
-          )}
-          {pg === "sach" && (
-            temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
-          )}
-          {pg === "scrac" && (
-            temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={isAdm || canExtra("crac")} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
-          )}
-          {pg === "scartas" && (
-            <CartasV users={users} user={user} role={role} t={showT} />
-          )}
-          {pg === "sonibus" && (
-            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
-          )}
-          {pg === "senc" && (
-            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} inscricoesBloqueadas={inscricoesBloqueadas} salvarInscricoesBloqueadas={salvarInscricoesBloqueadas} /> : <TelaRestrita />
-          )}
-          {pg === "scozinha" && (
-            temPermissao("cozinha") ? <CozinhaV edit={isAdm || canExtra("cozinha")} t={showT} users={users} /> : <TelaRestrita />
-          )}
-          {pg === "ssaude" && (
-            <SauV sau={sau} setSau={setSau} edit={isAdm || canExtra("saude")} t={showT} />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
-      <style>{css}</style>
-      {toast && <Toast m={toast.m} tp={toast.tp} />}
-      {menu && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 200 }}>
-          <div
-            onClick={() => setMenu(false)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,.85)",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: 270,
-              background: "#0d0d0d",
-              borderRight: "1px solid #1a1a1a",
-              overflowY: "auto",
-            }}
-          >
-            <div
-              style={{
-                padding: "22px 16px 16px",
-                borderBottom: "1px solid #1a1a1a",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 900,
-                    color: "#fff",
-                    letterSpacing: -1,
-                  }}
-                >
-                  Peniel<span style={{ color: G.green }}>.</span>
-                </div>
-                <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>
-                  {user.nome} · {PERFIS[role]?.l}
-                </div>
-              </div>
-              <button
-                onClick={() => setMenu(false)}
-                style={BK({
-                  padding: "6px 10px",
-                  borderRadius: 9,
-                  fontSize: 12,
-                })}
-              >
-                ✕
-              </button>
-            </div>
-            {MENU_ITEMS.map(([ic, p]) => (
-              <button
-                key={p}
-                onClick={() => nav(p)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  width: "100%",
-                  background: pg === p ? "rgba(0,200,81,.08)" : "transparent",
-                  border: "none",
-                  borderLeft:
-                    pg === p ? `3px solid ${G.green}` : "3px solid transparent",
-                  padding: "12px 16px",
-                  color: pg === p ? G.green : G.td,
-                  fontSize: 13,
-                  fontWeight: pg === p ? 700 : 500,
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-              >
-                {(() => { const Icon = ic; return <Icon size={16} color="currentColor" style={{ flexShrink: 0, width: 18 }} />; })()}
-                <span style={{ flex: 1 }}>{LABELS[p]}</span>
-                {p === "uniformes" &&
-                  uni.filter((u) => u.status === "pendente").length > 0 && (
-                    <span
-                      style={{
-                        background: "#ff9f0a",
-                        color: "#000",
-                        borderRadius: 50,
-                        fontSize: 10,
-                        fontWeight: 800,
-                        padding: "2px 7px",
-                        minWidth: 18,
-                        textAlign: "center",
-                      }}
-                    >
-                      {uni.filter((u) => u.status === "pendente").length}
-                    </span>
-                  )}
-              </button>
-            ))}
-            <button
-              onClick={() => {
-                setMenu(false);
-                logout();
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                width: "100%",
-                background: "transparent",
-                border: "none",
-                borderLeft: "3px solid transparent",
-                borderTop: "1px solid #1a1a1a",
-                padding: "12px 16px",
-                color: "rgba(255,59,48,.6)",
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-                textAlign: "left",
-                marginTop: 8,
-              }}
-            >
-              <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
-                ↪
-              </span>
-              Sair
-            </button>
-          </div>
-        </div>
-      )}
-      <TB />
-      <div style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
-        {pg === "home" && (
-          <HomeV
-            role={role}
-            user={user}
-            ck={ck}
-            mins={mins}
-            ocorr={ocorr}
-            avs={avs}
-            qh={qh}
-            qm={qm}
-            on={on}
-            nav={nav}
-            edit={canG(role)}
-            canAvisos={canAvisos(role)}
-            encH={encH}
-            encM={encM}
-            addAv={async (txt, publico = "todos") => {
-              const aviso = {
-                txt,
-                autor: user.nome,
-                autorPerfil: role,
-                publico,
-                hr: new Date().toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-                createdAt: Date.now(),
-              };
-              await addDoc(collection(db, "avisos"), aviso);
-              notifyAll(`Aviso: ${txt}`, publico);
-              showT("Aviso publicado!");
-            }}
-            delAv={async (id) => {
-              await deleteDoc(doc(db, "avisos", id));
-            }}
-            users={users}
-          />
-        )}
-        {pg === "checkin" && (
-          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} telaTermo="termo" />
-        )}
-        {pg === "mins" && (
-          <MinsV
-            mins={mins}
-            setMins={setMins}
-            edit={canG(role)}
-            role={role}
-            t={showT}
-            sN={sN}
-          />
-        )}
-        {pg === "quartos" && (
-          <QV
-            qh={qh}
-            qm={qm}
-            uQH={uQH}
-            uQM={uQM}
-            setQh={setQh}
-            setQm={setQm}
-            edit={canQ(role) || canExtra("quartos")}
-            t={showT}
-            encH={encH}
-            encM={encM}
-            users={users}
-            salvarQuarto={salvarQuarto}
-            deletarQuarto={deletarQuarto}
-            tab={quartoTab}
-            setTab={setQuartoTab}
-            abertos={quartosAbertos}
-            setAbertos={setQuartosAbertos}
-            user={user}
-          />
-        )}
-        {pg === "enc" && (
-          <EncV
-            encH={encH}
-            setEncH={setEncH}
-            encM={encM}
-            setEncM={setEncM}
-            qh={qh}
-            qm={qm}
-            setQh={setQh}
-            setQm={setQm}
-            edit={canG(role)}
-            t={showT}
-            inscricoesBloqueadas={inscricoesBloqueadas}
-            salvarInscricoesBloqueadas={salvarInscricoesBloqueadas}
-          />
-        )}
-        {pg === "onibus" && (
-          <OnV
-            on={on}
-            uOn={uOn}
-            setOn={setOn}
-            encH={encH}
-            encM={encM}
-            edit={canG(role)}
-            t={showT}
-            salvarOnibus={salvarOnibus}
-            deletarOnibus={deletarOnibus}
-            users={users}
-          />
-        )}
-        {pg === "rest" && (
-          <RestV
-            users={users}
-            encH={encH}
-            encM={encM}
-            qm={qm}
-            setQm={setQm}
-            role={role}
-            t={showT}
-          />
-        )}
-        {pg === "img" && <ImgV encH={encH} encM={encM} />}
-        {pg === "info" && (
-          <InfoV
-            ocorr={ocorr}
-            setOcorr={setOcorr}
-            t={showT}
-            notifyAll={notifyAll}
-          />
-        )}
-        {pg === "ach" && <AchV ach={ach} setAch={setAch} t={showT} />}
-        {pg === "crac" && (
-          <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={canG(role)} t={showT} ph="Nome do encontrista..." />
-        )}
-        {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} />}
-        {pg === "saude" && (
-          <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
-        )}
-        {pg === "cozinha" && (
-          <CozinhaV edit={canC(role)} t={showT} users={users} />
-        )}
-        {pg === "cartas" && (
-          <CartasV users={users} user={user} role={role} t={showT} />
-        )}
-        {pg === "uniformes" && (
-          <UniV
-            uni={uni}
-            setUni={setUni}
-            dataLimite={dataLimiteUni}
-            setDataLimite={salvarDataLimite}
-            user={user}
-            role={role}
-            edit={isAdm}
-            t={showT}
-          />
-        )}
-        {pg === "equipes" && (
-          <EqV
-            esc={esc}
-            setEsc={setEsc}
-            uEs={uEs}
-            edit={canG(role)}
-            t={showT}
-          />
-        )}
-        {pg === "servos" && (
-          <SvV
-            users={users}
-            setUsers={setUsers}
-            esc={esc}
-            edit={isAdm}
-            t={showT}
-            dataLimitePagamento={dataLimitePagamento}
-          />
-        )}
-        {pg === "test" &&
-          ["admin", "lider_geral", "lider_templo", "pastor"].includes(role) && (
-            <TestV encH={encH} encM={encM} t={showT} />
-          )}
-        {pg === "back" && isAdm && (
-          <BackV
-            users={users}
-            setUsers={setUsers}
-            fns={fns}
-            setFns={setFns}
-            t={showT}
-            expandidos={backExpandidos}
-            setExpandidos={setBackExpandidos}
-            permissoes={permissoes}
-            tab={backTab}
-            setTab={setBackTab}
-            gruposAbertos={backGruposAbertos}
-            setGruposAbertos={setBackGruposAbertos}
-            liderMapOverrides={liderMapOverrides}
-            setLiderMapOverrides={setLiderMapOverrides}
-            perfisExtra={perfisExtra}
-            buscaUserRef={backBuscaUserRef}
-          />
-        )}
-      </div>
-    </div>
-  );
-
     function FAQ({ onVoltar }) {
       const [aberto, setAberto] = useState(null);
       const perguntas = [
@@ -5179,7 +3972,7 @@ export default function App() {
                   borderRadius: 14,
                   marginBottom: 8,
                   overflow: "hidden",
-                  transition: "border .2s",
+                  transition: "border-color var(--d-fast) var(--e-out)",
                 }}
               >
                 <div
@@ -5199,7 +3992,7 @@ export default function App() {
                   <span style={{
                     color: G.green,
                     fontSize: 18,
-                    transition: "transform .2s",
+                    transition: "transform var(--d-fast) var(--e-out)",
                     display: "inline-block",
                     transform: aberto === i ? "rotate(45deg)" : "none",
                     marginLeft: 10,
@@ -5247,7 +4040,6 @@ export default function App() {
         </div>
       );
     }
-
   function CozinhaServoV({ nome }) {
     const [tarefas, setTarefas] = useState([]);
 
@@ -5288,7 +4080,6 @@ export default function App() {
       </div>
     );
   }
-
   function MinCard({ m }) {
     const [aberto, setAberto] = useState(false);
     return (
@@ -5298,7 +4089,7 @@ export default function App() {
             <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{m.titulo}</div>
             <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{m.dia}</div>
           </div>
-          <span style={{ color: G.tm, fontSize: 12, display: "inline-block", transform: aberto ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+          <span style={{ color: G.tm, fontSize: 12, display: "inline-block", transform: aberto ? "rotate(180deg)" : "none", transition: "transform var(--d-fast) var(--e-out)" }}>▾</span>
         </div>
         {aberto && (
           <div style={{ borderTop: `1px solid ${G.cb}`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -5318,7 +4109,7 @@ export default function App() {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users, qh, qm, on }) {
+  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users, qh, qm, on, liderMapOverrides }) {
     const [cartasGlobais, setCartasGlobais] = useState([]);
     useEffect(() => {
       const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
@@ -5468,7 +4259,7 @@ export default function App() {
                     {slides.length > 1 && (
                       <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 8 }}>
                         {slides.map((_, i) => (
-                          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#333", transition: "all .3s", cursor: "pointer" }} />
+                          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#333", transition: "transform var(--d-base) var(--e-out), width var(--d-base) var(--e-out), background var(--d-base) var(--e-out)", cursor: "pointer" }} />
                         ))}
                       </div>
                     )}
@@ -5523,6 +4314,7 @@ export default function App() {
                     {slideAtual?.tipo === "uniforme_pagamento" && (
                       <div
                         onClick={() => setPg("suni")}
+                        className="press-sc"
                         style={{
                           background: "rgba(255,59,48,.08)",
                           border: "1px solid rgba(255,59,48,.25)",
@@ -5545,7 +4337,7 @@ export default function App() {
                       </div>
                     )}
                     {slideAtual?.tipo === "uniforme_sem_pedido" && (
-                      <div onClick={() => setPg("suni")} style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                      <div onClick={() => setPg("suni")} className="press-sc" style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
                         <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Pedido de Uniforme</div>
                         <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>Você ainda não fez seu pedido de uniforme</div>
                         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
@@ -5556,6 +4348,7 @@ export default function App() {
                     {slideAtual?.tipo === "uniforme_sinal_pago" && (
                       <div
                         onClick={() => setPg("suni")}
+                        className="press-sc"
                         style={{
                           background: "rgba(255,159,10,.08)",
                           border: "1px solid rgba(255,159,10,.25)",
@@ -5651,7 +4444,7 @@ export default function App() {
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <Pill c={`${fns.length} funç${fns.length > 1 ? 'ões' : 'ão'}`} bg={`${dC[dia]}18`} tc={dC[dia]} />
-                            <span style={{ color: G.tm, fontSize: 12, transition: "transform .2s", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
+                            <span style={{ color: G.tm, fontSize: 12, transition: "transform var(--d-fast) var(--e-out)", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
                           </div>
                         </div>
 
@@ -5795,7 +4588,7 @@ export default function App() {
     );
   }
   // ── HOME ─────────────────────────────────────────────────────────────────────
-function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos }) {
+function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos, enviandoAviso }) {
   const [tab, setTab] = useState("dash");
   const [av, setAv] = useState("");
   const [publicoAviso, setPublicoAviso] = useState("todos");
@@ -5906,7 +4699,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const BarPct = ({ val, max, color }) => (
     <div style={{ background: '#1a1a1a', borderRadius: 4, height: 6, flex: 1 }}>
-      <div style={{ background: color, borderRadius: 4, height: 6, width: `${Math.min(100, (val / max) * 100)}%`, transition: 'width .4s' }} />
+      <div style={{ background: color, borderRadius: 4, height: 6, width: `${Math.min(100, (val / max) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
     </div>
   );
 
@@ -5956,7 +4749,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   <span style={{ color: G.tm, fontSize: 11 }}>{Math.round((todosEnc.length / META_ENC) * 100)}% preenchido</span>
                 </div>
                 <div style={{ background: '#1a1a1a', borderRadius: 6, height: 8 }}>
-                  <div style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (todosEnc.length / META_ENC) * 100)}%`, transition: 'width .4s' }} />
+                  <div style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (todosEnc.length / META_ENC) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
                 </div>
               </div>
 
@@ -5965,25 +4758,25 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pago</span>
                   <BarPct val={encPagos} max={META_ENC} color={G.green} />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPagos}</span>
+                  <span key={String(encPagos)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encPagos}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pend.</span>
                   <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPendentes}</span>
+                  <span key={String(encPendentes)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encPendentes}</span>
                 </div>
                 {encPagarDepois > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: '#ff9f0a', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pagar dep.</span>
                     <BarPct val={encPagarDepois} max={META_ENC} color="#ff9f0a" />
-                    <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encPagarDepois}</span>
+                    <span key={String(encPagarDepois)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encPagarDepois}</span>
                   </div>
                 )}
                 {encDesistencia > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: '#636366', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Desistência</span>
                     <BarPct val={encDesistencia} max={META_ENC} color="#636366" />
-                    <span style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right' }}>{encDesistencia}</span>
+                    <span key={String(encDesistencia)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encDesistencia}</span>
                   </div>
                 )}
               </div>
@@ -6256,7 +5049,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     </div>
   );
 }
-
   // ── CHECK-IN ─────────────────────────────────────────────────────────────────
   function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen, setPg, setTermoBusca, telaTermo }) {
     const [s, setS] = useState("");
@@ -6280,6 +5072,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       setScanMsg("");
       setTimeout(async () => {
         try {
+          const Html5Qrcode = await carregarHtml5Qrcode();
           const scanner = new Html5Qrcode("qr-reader");
           scannerRef.current = scanner;
           await scanner.start(
@@ -6451,7 +5244,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               t("Nenhum check-in confirmado ainda.", "w");
               return;
             }
-            const wb = new ExcelJS.Workbook();
+            const ExcelJS = await carregarExcelJS();
+              const wb = new ExcelJS.Workbook();
             const ws = wb.addWorksheet("Check-in");
             ws.columns = [
               { header: "Nome", key: "nome", width: 35 },
@@ -6740,7 +5534,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       </div>
     );
   }
-
   // ── MINISTRAÇÕES ─────────────────────────────────────────────────────────────
   function MinsV({ mins, setMins, edit, role, t, sN }) {
     const [sh, setSh] = useState(false);
@@ -6998,8 +5791,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       </div>
     );
   }
-
-
   // ── ENCONTRISTAS ─────────────────────────────────────────────────────────────
   function EncV({
     encH,
@@ -7016,32 +5807,54 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     salvarInscricoesBloqueadas,
   }) {
     const [g, setG] = useState("T");
-    const [filtroStatus, setFiltroStatus] = useState("todos");
-    const [shFiltroStatus, setShFiltroStatus] = useState(false);
+    // status: múltipla seleção — nenhum marcado = todos
+    const [filtroStatus, setFiltroStatus] = useState([]);
     const [filtroCelula, setFiltroCelula] = useState("todas");
-    const [expandido, setExpandido] = useState({});
-    const [busca, setBusca] = useState('');
-    const baseList = g === "T" ? [...encM, ...encH] : g === "M" ? [...encM] : [...encH];
-    const celulasUnicas = ["todas", ...Array.from(new Set(baseList.map(e => e.celula).filter(Boolean))).sort()];
-    const lista = baseList.filter(e =>
-      e.nome.toLowerCase().includes(busca.toLowerCase()) &&
-      (filtroStatus === "todos" ? true
-        : filtroStatus === "pago" ? e.pago
-        : filtroStatus === "pagardepois" ? (!e.pago && e.pagarDepois && !e.desistiu)
-        : filtroStatus === "desistencia" ? (!e.pago && e.desistiu)
-        : (!e.pago && !e.pagarDepois && !e.desistiu)) &&
-      (filtroCelula === "todas" ? true : e.celula === filtroCelula)
-    ).sort((a, b) => {
+    // um card aberto por vez
+    const [expandido, setExpandido] = useState(null);
+    const [busca, setBusca] = useState("");
+
+    const todos = [...encM, ...encH];
+    const celulasUnicas = [
+      "todas",
+      ...Array.from(new Set(todos.map((e) => e.celula).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    ];
+
+    // stats sobre TODOS (não filtrado)
+    const stats = { total: todos.length, pago: 0, pendente: 0, pagar_depois: 0, desistiu: 0 };
+    todos.forEach((e) => { stats[encStatus(e)] += 1; });
+
+    // Cada contagem ignora o SEU PRÓPRIO filtro: o número mostrado numa opção
+    // diz quantas linhas ela traz se for marcada — e não quantas sobram depois.
+    const q = busca.trim().toLowerCase();
+    const porCelula = (e) => filtroCelula === "todas" || e.celula === filtroCelula;
+    const porBusca = (e) => !q || (e.nome || "").toLowerCase().includes(q);
+    const casaStatus = (e) => filtroStatus.length === 0 || filtroStatus.includes(encStatus(e));
+    const casaSexo = (e) => g === "T" || e.sexo === (g === "M" ? "Feminino" : "Masculino");
+    const baseSexo = todos.filter((e) => porCelula(e) && porBusca(e) && casaStatus(e));
+    const baseStatus = todos.filter((e) => porCelula(e) && porBusca(e) && casaSexo(e));
+    const porSexo = {
+      T: baseSexo.length,
+      M: baseSexo.filter((e) => e.sexo === "Feminino").length,
+      H: baseSexo.filter((e) => e.sexo === "Masculino").length,
+    };
+    const porStatus = Object.fromEntries(
+      Object.keys(ENC_STATUS).map((st) => [st, baseStatus.filter((e) => encStatus(e) === st).length]),
+    );
+    const lista = baseSexo.filter(casaSexo).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
       if (!a.criadoEm) return 1;
       if (!b.criadoEm) return -1;
       const toDate = (s) => {
-        const [d, t] = s.split(', ');
-        const [dia, mes, ano] = d.split('/');
-        return new Date(`${ano}-${mes}-${dia}T${t}`);
+        const [d, hora] = s.split(", ");
+        const [dia, mes, ano] = d.split("/");
+        return new Date(`${ano}-${mes}-${dia}T${hora}`);
       };
       return toDate(b.criadoEm) - toDate(a.criadoEm);
     });
+    const temFiltro = g !== "T" || filtroCelula !== "todas" || filtroStatus.length > 0 || q !== "";
+    const alternarStatus = (st) =>
+      setFiltroStatus((prev) => (prev.includes(st) ? prev.filter((x) => x !== st) : [...prev, st]));
 
     const dist = () => {
       if (!lista.length) {
@@ -7059,240 +5872,281 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       else setQm(qm.map((q) => cp.find((c) => c.num === q.num) || q));
       t(`${lista.length} distribuídos!`);
     };
-    const toggle = (id) =>
-      setExpandido((prev) => ({ ...prev, [id]: !prev[id] }));
 
-    const [valorTemp, setValorTemp] = useState({});
-    const [acordoForm, setAcordoForm] = useState({});
+    // rascunhos por card (acordo / pagar depois)
+    const [acordoTemp, setAcordoTemp] = useState({});
     const [editandoAcordo, setEditandoAcordo] = useState({});
-    const [pdForm, setPdForm] = useState({});
+    const [mostrarAcordo, setMostrarAcordo] = useState({});
     const [pdDataTemp, setPdDataTemp] = useState({});
     const [pdObsTemp, setPdObsTemp] = useState({});
+    const [editandoPd, setEditandoPd] = useState({});
 
-    const salvarDesistiu = async (enc, ativo) => {
-      const upd = { desistiu: ativo };
+    // persiste no Firestore e aplica otimista nas duas listas (o snapshot confirma depois)
+    const salvar = async (enc, upd, msg) => {
       try {
         await setDoc(doc(db, "encontristas", enc.id), upd, { merge: true });
         const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
         setEncH((prev) => apply(prev));
         setEncM((prev) => apply(prev));
-        t(ativo ? "Marcado como desistência." : "Desistência removida.");
+        if (msg) t(msg);
+        return true;
       } catch (err) {
-        console.error("Erro ao salvar desistência:", err);
+        console.error("Erro ao salvar encontrista:", err);
         t("Erro ao salvar.", "w");
+        return false;
       }
     };
 
-    const salvarPagarDepois = async (enc, ativo, dataPrev, obs) => {
-      const upd = ativo
-        ? { pagarDepois: true, pagarDepoisData: dataPrev || null, pagarDepoisObs: obs || null }
-        : { pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null };
-      try {
-        await setDoc(doc(db, "encontristas", enc.id), upd, { merge: true });
-        const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
-        setEncH((prev) => apply(prev));
-        setEncM((prev) => apply(prev));
-        setPdForm((prev) => ({ ...prev, [enc.id]: false }));
-        t(ativo ? "Pagar depois salvo!" : "Status removido.");
-      } catch (err) {
-        console.error("Erro ao salvar pagar depois:", err);
-        t("Erro ao salvar.", "w");
+    // descarta os rascunhos de "pagar depois" quando a data deixa de existir no banco,
+    // senão a caixa reabre com a data antiga travada em modo leitura
+    const limparDraftPd = (id) => {
+      const drop = (prev) => { const { [id]: _, ...resto } = prev; return resto; };
+      setPdDataTemp(drop);
+      setPdObsTemp(drop);
+      setEditandoPd(drop);
+    };
+
+    // status manual — exclusivo entre si; "pago" só via Mercado Pago ou admin
+    const mudarStatus = (enc, st) => {
+      if (st === encStatus(enc)) return;
+      if (st === "pendente") {
+        limparDraftPd(enc.id);
+        return salvar(enc, { desistiu: false, pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null }, "Status atualizado.");
+      }
+      if (st === "pagar_depois") return salvar(enc, { pagarDepois: true, desistiu: false }, "Pagar depois salvo!");
+      if (st === "desistiu") {
+        // limpa pagarDepois junto: o check-in monta a lista pelos flags
+        // (pago || pagarDepois), então um desistente com a flag antiga continuaria lá
+        limparDraftPd(enc.id);
+        return salvar(enc, { desistiu: true, pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null }, "Marcado como desistência.");
       }
     };
 
-    const salvarAcordo = async (enc, ativo, valor) => {
-      const valorAcordado = ativo && valor !== "" && valor != null ? parseFloat(valor) : null;
-      if (ativo && (valorAcordado == null || isNaN(valorAcordado) || valorAcordado < 0)) {
+    const salvarPagarDepois = async (enc, data, obs) => {
+      const ok = await salvar(
+        enc,
+        { pagarDepois: true, desistiu: false, pagarDepoisData: data || null, pagarDepoisObs: obs || null },
+        "Pagar depois salvo!",
+      );
+      if (ok) setEditandoPd((prev) => ({ ...prev, [enc.id]: false }));
+    };
+
+    // valor vazio → remove o acordo (volta ao valor padrão)
+    const salvarAcordo = async (enc, valor) => {
+      const raw = String(valor ?? "").trim().replace(",", ".");
+      if (raw === "") {
+        const ok = await salvar(enc, { acordo: false, valorAcordado: null }, "Acordo removido.");
+        if (ok) setEditandoAcordo((prev) => ({ ...prev, [enc.id]: true }));
+        return;
+      }
+      const v = parseFloat(raw);
+      if (isNaN(v) || v < 0) {
         t("Informe um valor válido.", "w");
         return;
       }
-      const upd = { acordo: ativo, valorAcordado: ativo ? valorAcordado : null };
-      try {
-        await setDoc(doc(db, "encontristas", enc.id), upd, { merge: true });
-        const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
-        setEncH((prev) => apply(prev));
-        setEncM((prev) => apply(prev));
-        setEditandoAcordo((prev) => ({ ...prev, [enc.id]: false }));
-        t(ativo ? "Acordo salvo!" : "Acordo removido.");
-      } catch (err) {
-        console.error("Erro ao salvar acordo:", err);
-        t("Erro ao salvar acordo.", "w");
-      }
+      const ok = await salvar(enc, { acordo: true, valorAcordado: v }, "Acordo salvo!");
+      if (ok) setEditandoAcordo((prev) => ({ ...prev, [enc.id]: false }));
+    };
+
+    // só admin/edição. Confirma antes: mexe no valor arrecadado do painel.
+    const marcarPago = (enc) => {
+      if (!window.confirm(`Marcar ${enc.nome} como PAGO (fora do app)?`)) return;
+      salvar(enc, { pago: true }, "Marcado como pago.");
+    };
+    const reverterPago = (enc) => {
+      if (!window.confirm("Reverter este pagamento para PENDENTE?")) return;
+      // volta mesmo para pendente: quem era "pagar depois"/"desistiu" antes de pagar
+      // manteria esses flags e reapareceria com o status antigo
+      limparDraftPd(enc.id);
+      salvar(
+        enc,
+        { pago: false, pagarDepois: false, desistiu: false, pagarDepoisData: null, pagarDepoisObs: null },
+        "Pagamento revertido.",
+      );
     };
 
     const msgPendente = (nome) =>
       `Olá, ${nome.split(" ")[0]}! 🙏\n\nVi que você se inscreveu no *Encontro com Deus* mas ainda não confirmou sua vaga.\n\nEsse fim de semana pode mudar sua vida de uma forma que você nunca imaginou. Um encontro real com Deus transforma, liberta e renova — e você merece viver isso! 💫\n\nPodemos te ajudar? Ficou com alguma dúvida sobre o pagamento ou sobre o evento? É só falar, estamos aqui! ❤️`;
+    // lembrete do combinado, citando a data quando houver
+    const msgPagarDepois = (nome, data) =>
+      `Olá, ${nome.split(" ")[0]}! 🙏\n\nPassando para lembrar do nosso combinado sobre a sua inscrição no *Encontro com Deus*: ficou de acertar o pagamento ${data ? `até *${fmtISO(data)}*` : "nos próximos dias"}.\n\nA sua vaga está reservada até lá — assim que o pagamento entrar, ela fica confirmada de vez. 💚\n\nSe alguma coisa mudou e você não puder ir, é só responder esta mensagem que a gente ajusta o seu cadastro.`;
+
+    const exportarPlanilha = async () => {
+      const ExcelJS = await carregarExcelJS();
+              const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Encontristas");
+      ws.columns = [
+        { header: "Nome", key: "nome", width: 40 },
+        { header: "Sexo", key: "sexo", width: 12 },
+        { header: "CPF", key: "cpf", width: 18 },
+        { header: "Nascimento", key: "nascimento", width: 14 },
+        { header: "Igreja", key: "igreja", width: 25 },
+        { header: "Célula", key: "celula", width: 25 },
+        { header: "Camiseta", key: "camiseta", width: 14 },
+        { header: "Status", key: "status", width: 14 },
+        { header: "Check-in", key: "checkin", width: 10 },
+      ];
+      ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
+      ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+      // exporta o que está filtrado na tela (sem filtro = todos)
+      [...lista].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach((e) => {
+        ws.addRow({
+          nome: e.nome || "",
+          sexo: e.sexo || "",
+          cpf: e.cpf || "",
+          nascimento: e.nascimento ? fmtISO(e.nascimento) : "",
+          igreja: e.igreja === "Outra" ? (e.igrejaCustom || "Outra") : (e.igreja || ""),
+          celula: e.celula || "",
+          camiseta: e.camiseta || "",
+          status: ENC_STATUS[encStatus(e)].l,
+          checkin: e.chegou ? "Sim" : "Não",
+        });
+      });
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "encontristas.xlsx"; a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    const lbl = { color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" };
+    const segLabel = (txt, n) => (
+      <>
+        {txt} <span style={{ opacity: 0.55, fontSize: 11, fontWeight: 800 }}>{n}</span>
+      </>
+    );
+    // botão de status: ativo = preenchido com a cor, inativo = contorno
+    const btnStatus = (ativo, cor) => ({
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: 10,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer",
+      background: ativo ? cor : "transparent",
+      border: `1px solid ${ativo ? cor : G.cb}`,
+      color: ativo ? (cor === G.green ? "#000" : "#fff") : G.td,
+    });
+    const caixa = (cor) => ({
+      marginTop: 10,
+      padding: 12,
+      borderRadius: 10,
+      border: `1px solid ${cor}66`,
+      background: `${cor}14`,
+    });
+    const AC = "#0a84ff"; // cor do Acordo (não é status)
 
     return (
       <div>
+        {/* total geral */}
         <div
           style={{
             background: "#111",
+            border: `1px solid ${G.cb}`,
             borderRadius: 12,
-            padding: "12px 8px",
+            padding: "14px 8px",
             textAlign: "center",
-            borderTop: "2px solid #636366",
             marginBottom: 8,
           }}
         >
-          <div style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{encM.length + encH.length}</div>
-          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-            Total Geral
-          </div>
+          <div style={{ color: G.t, fontSize: 30, fontWeight: 800 }}>{stats.total}</div>
+          <div style={{ ...lbl, marginTop: 3 }}>Total Geral</div>
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 8,
-            marginBottom: 14,
-          }}
-        >
+        {/* 4 cards por status (sobre todos, não filtrado) */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
           {[
-            [lista.filter((e) => e.pago).length, "Pagos", G.green],
-            [lista.filter((e) => !e.pago && !e.pagarDepois && !e.desistiu).length, "Pendentes", "#ff3b30"],
-            [lista.filter((e) => !e.pago && e.pagarDepois && !e.desistiu).length, "Pagar dep.", "#ff9f0a"],
-            [lista.filter((e) => !e.pago && e.desistiu).length, "Desistência", "#636366"],
-          ].map(([n, l, c]) => (
+            ["pago", "Pagos"],
+            ["pendente", "Pendentes"],
+            ["pagar_depois", "Pagar dep."],
+            ["desistiu", "Desistência"],
+          ].map(([st, l]) => (
             <div
-              key={l}
+              key={st}
               style={{
                 background: "#111",
+                border: `1px solid ${G.cb}`,
+                borderLeft: `3px solid ${ENC_STATUS[st].c}`,
                 borderRadius: 12,
-                padding: "10px 8px",
-                textAlign: "center",
-                borderTop: `2px solid ${c}`,
+                padding: "10px 12px",
               }}
             >
-              <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>
-                {n}
-              </div>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  marginTop: 3,
-                }}
-              >
-                {l}
-              </div>
+              <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>{stats[st]}</div>
+              <div style={{ ...lbl, marginTop: 3 }}>{l}</div>
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <div style={{ flex: 1 }}>
-            <Seg
-              opts={[["T", "Todos"], ["M", "Mulheres"], ["H", "Homens"]]}
-              val={g}
-              set={setG}
-            />
-          </div>
-          <button
-            onClick={() => setShFiltroStatus(true)}
-            style={{
-              ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
-              position: "relative",
-              borderColor: filtroStatus !== "todos" ? "rgba(10,132,255,.5)" : G.cb,
-              color: filtroStatus !== "todos" ? "#0a84ff" : G.t,
-              background: filtroStatus !== "todos" ? "rgba(10,132,255,.08)" : G.card,
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <SlidersHorizontal size={18} />
-            {filtroStatus !== "todos" && (
-              <span style={{
-                position: "absolute", top: 4, right: 4,
-                background: "#0a84ff", color: "#fff",
-                fontSize: 10, fontWeight: 800,
-                borderRadius: "50%", width: 16, height: 16,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                1
-              </span>
-            )}
-          </button>
-        </div>
-        <Sheet open={shFiltroStatus} onClose={() => setShFiltroStatus(false)} title="Filtrar por status">
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[["todos", "Todos"], ["pago", "Pagos"], ["pendente", "Pendentes"], ["pagardepois", "Pagar dep."], ["desistencia", "Desistência"]].map(([val, label]) => (
-              <button
-                key={val}
-                onClick={() => { setFiltroStatus(val); setShFiltroStatus(false); }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "13px 16px",
-                  borderRadius: 12,
-                  border: `1px solid ${filtroStatus === val ? "rgba(10,132,255,.5)" : "#2a2a2a"}`,
-                  background: filtroStatus === val ? "rgba(10,132,255,.08)" : "transparent",
-                  color: filtroStatus === val ? "#0a84ff" : G.td,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {label}
-                {filtroStatus === val && <span style={{ fontSize: 16 }}>✓</span>}
-              </button>
-            ))}
-          </div>
-        </Sheet>
+
+        {/* abas de sexo (com contagem) */}
+        <Seg
+          opts={[
+            ["T", segLabel("Todos", porSexo.T)],
+            ["M", segLabel("Mulheres", porSexo.M)],
+            ["H", segLabel("Homens", porSexo.H)],
+          ]}
+          val={g}
+          set={setG}
+        />
+
+        {/* filtro de célula */}
         <select
           value={filtroCelula}
-          onChange={e => setFiltroCelula(e.target.value)}
-          style={{ ...I, marginTop: 8, marginBottom: 0, fontSize: 13 }}
+          onChange={(e) => setFiltroCelula(e.target.value)}
+          style={{ ...I, marginTop: 10, marginBottom: 0, fontSize: 13 }}
         >
-          {celulasUnicas.map(c => (
+          {celulasUnicas.map((c) => (
             <option key={c} value={c}>{c === "todas" ? "Todas as células" : c}</option>
           ))}
         </select>
+
+        {/* status: múltipla seleção (nenhum marcado = todos) */}
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={lbl}>
+              Status <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>— marque quantos quiser</span>
+            </span>
+            {filtroStatus.length > 0 && (
+              <span
+                onClick={() => setFiltroStatus([])}
+                style={{ color: AC, fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
+              >
+                Limpar
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {Object.keys(ENC_STATUS).map((st) => {
+              const ativo = filtroStatus.includes(st);
+              const c = ENC_STATUS[st].c;
+              return (
+                <button
+                  key={st}
+                  onClick={() => alternarStatus(st)}
+                  aria-pressed={ativo}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    borderRadius: 50,
+                    padding: "7px 12px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: `1px solid ${ativo ? c : G.cb}`,
+                    background: ativo ? `${c}1a` : "transparent",
+                    color: ativo ? c : G.td,
+                  }}
+                >
+                  {ENC_STATUS[st].l}
+                  <span style={{ opacity: 0.65, fontSize: 11 }}>{porStatus[st]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
-          onClick={async () => {
-            const todos = [...encM, ...encH];
-            const wb = new ExcelJS.Workbook();
-            const ws = wb.addWorksheet("Encontristas");
-            ws.columns = [
-              { header: "Nome", key: "nome", width: 40 },
-              { header: "Sexo", key: "sexo", width: 12 },
-              { header: "CPF", key: "cpf", width: 18 },
-              { header: "Nascimento", key: "nascimento", width: 14 },
-              { header: "Igreja", key: "igreja", width: 25 },
-              { header: "Célula", key: "celula", width: 25 },
-              { header: "Camiseta", key: "camiseta", width: 14 },
-              { header: "Pago", key: "pago", width: 12 },
-            ];
-            ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
-            ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
-            todos.sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach(e => {
-              ws.addRow({
-                nome: e.nome || "",
-                sexo: e.sexo || "",
-                cpf: e.cpf || "",
-                nascimento: e.nascimento
-                  ? (e.nascimento.includes('-') && e.nascimento.length === 10
-                      ? e.nascimento.split('-').reverse().join('/')
-                      : e.nascimento)
-                  : "",
-                igreja: e.igreja === "Outra" ? (e.igrejaCustom || "Outra") : (e.igreja || ""),
-                celula: e.celula || "",
-                camiseta: e.camiseta || "",
-                pago: e.pago ? "Pago" : "Pendente",
-              });
-            });
-            const buf = await wb.xlsx.writeBuffer();
-            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a"); a.href = url; a.download = "encontristas.xlsx"; a.click();
-            URL.revokeObjectURL(url);
-          }}
-          style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginTop: 10, marginBottom: 0 }) }}
+          onClick={exportarPlanilha}
+          style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginTop: 12, marginBottom: 0 }) }}
         >
           Exportar Excel
         </button>
@@ -7328,7 +6182,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 background: inscricoesBloqueadas ? "#ff3b30" : "#333",
                 position: "relative",
                 flexShrink: 0,
-                transition: "background .15s",
+                transition: "background var(--d-fast) var(--e-out)",
               }}
             >
               <div
@@ -7339,524 +6193,299 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   background: "#fff",
                   position: "absolute",
                   top: 3,
-                  left: inscricoesBloqueadas ? 21 : 3,
-                  transition: "left .15s",
+                  left: 3,
+                  transform: inscricoesBloqueadas ? "translateX(18px)" : "none",
+                  transition: "transform var(--d-fast) var(--e-sheet)",
                 }}
               />
             </div>
           </div>
         )}
+
+        {/* busca */}
         <div style={{ position: "relative", marginTop: 10 }}>
           <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
           <input
             value={busca}
-            onChange={e => { setBusca(e.target.value); setExpandido({}); }}
+            onChange={(e) => { setBusca(e.target.value); setExpandido(null); }}
             placeholder="Buscar por nome..."
             style={{ ...I, marginTop: 0, marginBottom: 0, paddingLeft: 34 }}
           />
         </div>
-        <div style={{ marginTop: 10 }}>
+
+        {/* quantos o filtro atual traz */}
+        <div style={{ color: G.tm, fontSize: 12, marginTop: 10 }}>
+          <span style={{ color: G.t, fontWeight: 800, fontSize: 15 }}>{lista.length}</span>{" "}
+          {lista.length === 1 ? "encontrista" : "encontristas"}
+          {temFiltro && ` de ${todos.length}`}
+        </div>
+
+        {/* lista */}
+        <div style={{ marginTop: 8 }}>
           {lista.length === 0 && (
-            <div
-              style={{
-                color: G.tm,
-                textAlign: "center",
-                padding: 28,
-                fontSize: 13,
-              }}
-            >
-              Nenhum encontrista.
+            <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+              Nenhum encontrista encontrado.
             </div>
           )}
           {lista.map((e) => {
-            const aberto = expandido[e.id];
-            const waNumero = e.whatsapp?.replace(/\D/g, "");
+            const st = encStatus(e);
+            const cor = ENC_STATUS[st].c;
+            const aberto = expandido === e.id;
+            const wa = waLink(e.whatsapp);
+            // pago fora do app (sem pagamentoId) ainda pode ter acordo — afeta o arrecadado no painel
+            const podeAcordo = !e.pago || !e.pagamentoId;
+            const mostrarAcordoAtivo = mostrarAcordo[e.id] ?? !!e.acordo;
+            const emEdicaoAcordo = editandoAcordo[e.id] ?? !e.acordo;
+            const acordoVal = acordoTemp[e.id] ?? (e.valorAcordado != null ? String(e.valorAcordado) : "");
+            const emEdicaoPd = editandoPd[e.id] ?? !e.pagarDepoisData;
+            const pdData = pdDataTemp[e.id] ?? (e.pagarDepoisData || "");
+            const pdObs = pdObsTemp[e.id] ?? (e.pagarDepoisObs || "");
             return (
               <div
                 key={e.id}
                 className="fu"
                 style={{
                   background: G.card,
-                  border: `1px solid ${e.pago ? "rgba(0,200,81,.25)" : "rgba(255,59,48,.2)"}`,
-                  borderLeft: `3px solid ${e.pago ? G.green : e.desistiu ? "#636366" : e.pagarDepois ? "#ff9f0a" : "#ff3b30"}`,
+                  border: `1px solid ${G.cb}`,
+                  borderLeft: `3px solid ${cor}`,
                   borderRadius: 13,
                   marginBottom: 7,
                   overflow: "hidden",
                 }}
               >
-                {/* Header clicável inteiro */}
+                {/* cabeçalho do card (clicável) */}
                 <div
-                  onClick={() => toggle(e.id)}
+                  onClick={() => setExpandido(aberto ? null : e.id)}
+                  className="press"
                   style={{
                     padding: "12px 14px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    gap: 8,
                     cursor: "pointer",
                     userSelect: "none",
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: G.t, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {e.nome}
                     </div>
-                    <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                      {e.igreja || "—"} · {e.celula || "Sem célula"}
-                      {e.criadoEm && (
-                        <span style={{ color: "rgba(255,255,255,.3)", marginLeft: 6 }}>
-                          · {e.criadoEm.split(', ')[0]}
-                        </span>
-                      )}
+                    <div style={{ color: G.tm, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {e.igreja || "—"} · {e.celula || "Não tenho célula"}
+                      {e.criadoEm ? ` · ${e.criadoEm.split(", ")[0]}` : ""}
+                      {st === "pagar_depois" && e.pagarDepoisData ? ` · pagar até ${fmtISO(e.pagarDepoisData)}` : ""}
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {e.pago ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }} onClick={(e2) => e2.stopPropagation()}>
-                        {e.pagamentoId 
-                          ? <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
-                          : <Banknote size={14} color={G.green} />
-                        }
-                        <span style={{ color: G.green, fontSize: 11, fontWeight: 700 }}>
-                          {e.pagamentoId ? "Pago" : "Pago fora do app"}
-                        </span>
-                      </div>
-                    ) : e.desistiu ? (
-                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#8e8e93", fontSize: 11, fontWeight: 700 }}>
-                        Desistiu
-                      </span>
-                    ) : e.pagarDepois ? (
-                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 700 }}>
-                        Pagar depois
-                      </span>
-                    ) : (
-                      <span onClick={(e2) => e2.stopPropagation()} style={{ color: "#ff3b30", fontSize: 11, fontWeight: 700 }}>
-                        Pendente
-                      </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {e.pago && e.pagamentoId && (
+                      <img src="/mp-logo.png" alt="Mercado Pago" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
                     )}
-                    <span
-                      style={{
-                        color: G.tm,
-                        fontSize: 12,
-                        transition: "transform .2s",
-                        display: "inline-block",
-                        transform: aberto ? "rotate(180deg)" : "none",
-                      }}
-                    >
-                      ▾
-                    </span>
+                    <Pill c={e.pago && !e.pagamentoId ? "Pago fora do app" : ENC_STATUS[st].l} bg={`${cor}1a`} tc={cor} />
                   </div>
                 </div>
-                {/* Detalhes expandidos */}
+
+                {/* detalhes expandidos */}
                 {aberto && (
-                  <div
-                    style={{
-                      borderTop: "1px solid #1e1e1e",
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 8,
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            color: G.tm,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                            textTransform: "uppercase",
-                            marginBottom: 3,
-                          }}
-                        >
-                          CPF
-                        </div>
-                        <div style={{ color: G.td, fontSize: 12 }}>
-                          {e.cpf
-                            ? e.cpf.replace(
-                                /(\d{3})(\d{3})(\d{3})(\d{2})/,
-                                "$1.$2.$3-$4",
-                              )
-                            : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            color: G.tm,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                            textTransform: "uppercase",
-                            marginBottom: 3,
-                          }}
-                        >
-                          Nascimento
-                        </div>
-                        <div style={{ color: G.td, fontSize: 12 }}>
-                          {e.nascimento
-                          ? e.nascimento.includes('-') && e.nascimento.length === 10
-                            ? e.nascimento.split('-').reverse().join('/')
-                            : e.nascimento
-                          : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            color: G.tm,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                            textTransform: "uppercase",
-                            marginBottom: 3,
-                          }}
-                        >
-                          Camiseta
-                        </div>
-                        <div style={{ color: G.td, fontSize: 12 }}>
-                          {e.camiseta || "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            color: G.tm,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                            textTransform: "uppercase",
-                            marginBottom: 3,
-                          }}
-                        >
-                          Emergência
-                        </div>
-                        <div style={{ color: G.td, fontSize: 12 }}>
-                          {e.emergencia || "—"}
-                        </div>
-                      </div>
-                      {e.medicamento && (
-                        <div style={{ gridColumn: "1 / -1" }}>
-                          <div
-                            style={{
-                              color: G.tm,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: 1,
-                              textTransform: "uppercase",
-                              marginBottom: 3,
-                            }}
-                          >
-                            Medicamento
-                          </div>
-                          <div style={{ color: G.td, fontSize: 12 }}>
-                            {e.medicamento}
-                          </div>
-                        </div>
-                      )}
-                      {e.doenca && (
-                        <div style={{ gridColumn: "1 / -1" }}>
-                          <div
-                            style={{
-                              color: G.tm,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: 1,
-                              textTransform: "uppercase",
-                              marginBottom: 3,
-                            }}
-                          >
-                            Doença Crônica
-                          </div>
-                          <div style={{ color: G.td, fontSize: 12 }}>
-                            {e.doenca}
-                          </div>
-                        </div>
-                      )}
+                  <div style={{ borderTop: "1px solid #1e1e1e", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <CampoInfo label="CPF" valor={fmtCPF(e.cpf)} />
+                      <CampoInfo label="Nascimento" valor={fmtISO(e.nascimento)} />
+                      <CampoInfo label="Camiseta" valor={e.camiseta || "—"} />
+                      <CampoInfo label="Emergência" valor={e.emergencia || "—"} />
+                      <CampoInfo label="Medicamento" valor={e.medicamento || "Não"} />
+                      <CampoInfo label="Doença crônica" valor={e.doenca || "Não"} />
                     </div>
 
-                    {/* Acordo - valor diferente combinado com o encontrista (só pendentes ou pagos fora do app) */}
-                    {(!e.pago || !e.pagamentoId) && (
-                      <>
-                        <div
-                          onClick={() => {
-                            if (e.acordo) {
-                              salvarAcordo(e, false, null);
-                            } else if (acordoForm[e.id]) {
-                              setAcordoForm((prev) => ({ ...prev, [e.id]: false }));
-                            } else {
-                              setAcordoForm((prev) => ({ ...prev, [e.id]: true }));
-                            }
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            cursor: "pointer",
-                            padding: "8px 10px",
-                            borderRadius: 10,
-                            background: e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.08)" : "#111",
-                            border: `1px solid ${e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.3)" : "#1e1e1e"}`,
-                          }}
-                        >
-                          <div
+                    {/* status (some quando pago) + acordo */}
+                    {podeAcordo && (
+                      <div>
+                        <div style={{ ...lbl, marginBottom: 8 }}>{e.pago ? "Acordo" : "Status"}</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+                          {/* Marcar como pago — só admin. Fica em destaque no topo. */}
+                          {!e.pago && edit && (
+                            <button onClick={() => marcarPago(e)} style={btnStatus(true, ENC_STATUS.pago.c)}>
+                              Marcar como pago
+                            </button>
+                          )}
+                          {!e.pago &&
+                            ENC_STATUS_MANUAL.map((s) => (
+                              <button key={s} onClick={() => mudarStatus(e, s)} style={btnStatus(st === s, ENC_STATUS[s].c)}>
+                                {ENC_STATUS[s].l}
+                              </button>
+                            ))}
+                          {/* Acordo: não é status — abre o campo de valor combinado */}
+                          <button
+                            onClick={() => setMostrarAcordo((prev) => ({ ...prev, [e.id]: !mostrarAcordoAtivo }))}
                             style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: 5,
-                              border: `2px solid ${e.acordo || acordoForm[e.id] ? "#ff9f0a" : "#444"}`,
-                              background: e.acordo || acordoForm[e.id] ? "rgba(255,159,10,.15)" : "transparent",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
+                              ...btnStatus(mostrarAcordoAtivo, AC),
+                              border: `1px solid ${mostrarAcordoAtivo ? AC : `${AC}80`}`,
+                              color: mostrarAcordoAtivo ? "#fff" : AC,
                             }}
                           >
-                            {(e.acordo || acordoForm[e.id]) && <span style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 800 }}>✓</span>}
-                          </div>
-                          <span style={{ color: e.acordo || acordoForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
-                            Acordo
-                          </span>
+                            Acordo{e.acordo && e.valorAcordado != null ? ` · R$ ${e.valorAcordado}` : ""}
+                          </button>
                         </div>
-                        {(e.acordo || acordoForm[e.id]) && (() => {
-                          const emEdicao = editandoAcordo[e.id] || !e.acordo;
-                          return (
-                            <div style={{ display: "flex", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
+
+                        {/* campo de acordo — só quando o botão Acordo está ativo */}
+                        {mostrarAcordoAtivo && (
+                          <div style={caixa(AC)} onClick={(ev) => ev.stopPropagation()}>
+                            <div style={{ ...lbl, color: AC, marginBottom: 8 }}>Acordo — valor combinado</div>
+                            <div style={{ display: "flex", gap: 8 }}>
                               <div style={{ position: "relative", flex: 1 }}>
-                                <span style={{
-                                  position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-                                  color: G.tm, fontSize: 14, fontWeight: 600, pointerEvents: "none",
-                                }}>
+                                <span
+                                  style={{
+                                    position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                                    color: G.tm, fontSize: 14, fontWeight: 600, pointerEvents: "none",
+                                  }}
+                                >
                                   R$
                                 </span>
                                 <input
                                   type="number"
                                   min="0"
                                   step="0.01"
-                                  autoFocus={!e.acordo}
-                                  readOnly={!emEdicao}
-                                  value={valorTemp[e.id] ?? e.valorAcordado ?? ""}
-                                  onChange={(ev) =>
-                                    setValorTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))
-                                  }
+                                  inputMode="decimal"
                                   placeholder="0,00"
-                                  style={{ ...I, marginBottom: 0, opacity: emEdicao ? 1 : 0.7, paddingLeft: 36 }}
+                                  value={acordoVal}
+                                  readOnly={!emEdicaoAcordo}
+                                  onChange={(ev) => setAcordoTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                                  style={{ ...I, marginBottom: 0, paddingLeft: 36, fontSize: 14, opacity: emEdicaoAcordo ? 1 : 0.7 }}
                                 />
                               </div>
-                              <button
-                                onClick={() =>
-                                  emEdicao
-                                    ? salvarAcordo(e, true, valorTemp[e.id] ?? e.valorAcordado ?? "")
-                                    : setEditandoAcordo((prev) => ({ ...prev, [e.id]: true }))
-                                }
-                                style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13 })}
-                              >
-                                {emEdicao ? "Salvar" : "Editar"}
-                              </button>
+                              {emEdicaoAcordo ? (
+                                <button
+                                  onClick={() => salvarAcordo(e, acordoVal)}
+                                  style={BG({ padding: "10px 16px", borderRadius: 10, fontSize: 13, background: AC, color: "#fff" })}
+                                >
+                                  Salvar
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setEditandoAcordo((prev) => ({ ...prev, [e.id]: true }))}
+                                  style={BK({ padding: "10px 16px", borderRadius: 10, fontSize: 13, borderColor: AC, color: AC })}
+                                >
+                                  Editar
+                                </button>
+                              )}
                             </div>
-                          );
-                        })()}
-                      </>
-                    )}
-
-                    {/* Pagar depois - só para status Pendente */}
-                    {!e.pago && (
-                      <div
-                        onClick={() => {
-                          if (e.pagarDepois) {
-                            salvarPagarDepois(e, false, null, null);
-                          } else if (pdForm[e.id]) {
-                            setPdForm((prev) => ({ ...prev, [e.id]: false }));
-                          } else {
-                            setPdDataTemp((prev) => ({ ...prev, [e.id]: e.pagarDepoisData || "" }));
-                            setPdObsTemp((prev) => ({ ...prev, [e.id]: e.pagarDepoisObs || "" }));
-                            setPdForm((prev) => ({ ...prev, [e.id]: true }));
-                          }
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          cursor: "pointer",
-                          padding: "8px 10px",
-                          borderRadius: 10,
-                          background: e.pagarDepois || pdForm[e.id] ? "rgba(255,159,10,.08)" : "#111",
-                          border: `1px solid ${e.pagarDepois || pdForm[e.id] ? "rgba(255,159,10,.3)" : "#1e1e1e"}`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: 5,
-                            border: `2px solid ${e.pagarDepois || pdForm[e.id] ? "#ff9f0a" : "#444"}`,
-                            background: e.pagarDepois || pdForm[e.id] ? "rgba(255,159,10,.15)" : "transparent",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {(e.pagarDepois || pdForm[e.id]) && <span style={{ color: "#ff9f0a", fontSize: 11, fontWeight: 800 }}>✓</span>}
-                        </div>
-                        <span style={{ color: e.pagarDepois || pdForm[e.id] ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
-                          Pagar depois
-                        </span>
-                      </div>
-                    )}
-                    {!e.pago && (e.pagarDepois || pdForm[e.id]) && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }} onClick={(ev) => ev.stopPropagation()}>
-                        <div>
-                          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-                            Data prevista
+                            {e.acordo && (
+                              <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>
+                                Para remover o acordo, apague o valor e toque em Salvar.
+                              </div>
+                            )}
                           </div>
-                          <input
-                            type="date"
-                            value={pdDataTemp[e.id] ?? e.pagarDepoisData ?? ""}
-                            onChange={(ev) => setPdDataTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
-                            style={{ ...I, fontSize: 13, marginBottom: 0 }}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-                            Observações
+                        )}
+
+                        {/* data combinada — só quando "Pagar depois" está ativo */}
+                        {!e.pago && st === "pagar_depois" && (
+                          <div style={caixa(ENC_STATUS.pagar_depois.c)} onClick={(ev) => ev.stopPropagation()}>
+                            <div style={{ ...lbl, color: ENC_STATUS.pagar_depois.c, marginBottom: 8 }}>
+                              Data combinada para pagamento
+                            </div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <input
+                                type="date"
+                                value={pdData}
+                                readOnly={!emEdicaoPd}
+                                onChange={(ev) => setPdDataTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                                style={{ ...I, flex: 1, marginBottom: 0, fontSize: 13, colorScheme: "dark", opacity: emEdicaoPd ? 1 : 0.7 }}
+                              />
+                              {emEdicaoPd ? (
+                                <button
+                                  onClick={() => salvarPagarDepois(e, pdData, pdObs)}
+                                  disabled={!pdData}
+                                  style={BG({
+                                    padding: "10px 16px", borderRadius: 10, fontSize: 13,
+                                    background: ENC_STATUS.pagar_depois.c, color: "#fff",
+                                    opacity: pdData ? 1 : 0.5,
+                                  })}
+                                >
+                                  Salvar
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setEditandoPd((prev) => ({ ...prev, [e.id]: true }))}
+                                  style={BK({ padding: "10px 16px", borderRadius: 10, fontSize: 13, borderColor: ENC_STATUS.pagar_depois.c, color: ENC_STATUS.pagar_depois.c })}
+                                >
+                                  Editar
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              value={pdObs}
+                              readOnly={!emEdicaoPd}
+                              onChange={(ev) => setPdObsTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                              placeholder="Observações (ex: vai pagar na sexta...)"
+                              style={{ ...I, marginTop: 8, marginBottom: 0, fontSize: 13, opacity: emEdicaoPd ? 1 : 0.7 }}
+                            />
                           </div>
-                          <input
-                            type="text"
-                            value={pdObsTemp[e.id] ?? e.pagarDepoisObs ?? ""}
-                            onChange={(ev) => setPdObsTemp((prev) => ({ ...prev, [e.id]: ev.target.value }))}
-                            placeholder="Ex: vai pagar na sexta..."
-                            style={{ ...I, fontSize: 13, marginBottom: 0 }}
-                          />
-                        </div>
-                        <button
-                          onClick={() =>
-                            salvarPagarDepois(
-                              e,
-                              true,
-                              pdDataTemp[e.id] ?? e.pagarDepoisData ?? "",
-                              pdObsTemp[e.id] ?? e.pagarDepoisObs ?? "",
-                            )
-                          }
-                          style={BG({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 })}
-                        >
-                          Salvar
-                        </button>
+                        )}
                       </div>
                     )}
 
-                    {/* Desistiu - só para status Pendente */}
-                    {!e.pago && (
-                      <div
-                        onClick={() => salvarDesistiu(e, !e.desistiu)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          cursor: "pointer",
-                          padding: "8px 10px",
-                          borderRadius: 10,
-                          background: e.desistiu ? "rgba(255,59,48,.08)" : "#111",
-                          border: `1px solid ${e.desistiu ? "rgba(255,59,48,.3)" : "#1e1e1e"}`,
-                        }}
+                    {/* reverter pagamento — só admin, e só quando já está pago */}
+                    {e.pago && edit && (
+                      <button
+                        onClick={() => reverterPago(e)}
+                        style={BK({ width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, borderColor: "rgba(255,59,48,.5)", color: "#ff3b30" })}
                       >
-                        <div
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: 5,
-                            border: `2px solid ${e.desistiu ? "#ff3b30" : "#444"}`,
-                            background: e.desistiu ? "rgba(255,59,48,.15)" : "transparent",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {e.desistiu && <span style={{ color: "#ff3b30", fontSize: 11, fontWeight: 800 }}>✓</span>}
-                        </div>
-                        <span style={{ color: e.desistiu ? G.t : G.td, fontSize: 13, fontWeight: 600 }}>
-                          Desistiu
-                        </span>
-                      </div>
+                        Reverter para pendente
+                      </button>
                     )}
 
-                    {(e.pago || e.pagarDepois) && waNumero && (
+                    {(e.pago || st === "pagar_depois") && wa && (
                       <a
-                        href={`https://wa.me/55${waNumero}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
+                        href={`${wa}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 8,
-                          background: "rgba(10,132,255,.1)",
-                          border: "1px solid rgba(10,132,255,.3)",
-                          color: "#64b5f6",
-                          borderRadius: 10,
-                          padding: "10px",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          textDecoration: "none",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.3)", color: "#64b5f6",
+                          borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 700, textDecoration: "none",
                         }}
                       >
                         Reenviar QR Code
                       </a>
                     )}
 
-                    {/* Botão WhatsApp contato */}
-                    {waNumero && (
+                    {/* entrar em contato (WhatsApp) — mensagem conforme o status:
+                        pendente gera link de pagamento do Mercado Pago, pagar depois
+                        lembra do prazo combinado, pago/desistiu abre a conversa limpa */}
+                    {wa && (
                       <button
                         onClick={async () => {
-                          if (!e.pago && !e.pagarDepois) {
+                          if (st === "pendente") {
                             try {
                               const res = await fetch(
                                 "https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento",
                                 {
                                   method: "POST",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                  },
-                                  body: JSON.stringify({
-                                    encontristaId: e.id,
-                                    nome: e.nome,
-                                    email: "",
-                                  }),
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ encontristaId: e.id, nome: e.nome, email: "" }),
                                 },
                               );
                               const data = await res.json();
                               if (data.init_point) {
                                 const msg = `${msgPendente(e.nome)}\n\npara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}`;
-                                window.location.href = `https://wa.me/55${waNumero}?text=${encodeURIComponent(msg)}`;
+                                window.location.href = `${wa}?text=${encodeURIComponent(msg)}`;
+                              } else {
+                                t("Erro ao gerar link de pagamento", "w");
                               }
                             } catch {
                               t("Erro ao gerar link de pagamento", "w");
                             }
+                          } else if (st === "pagar_depois") {
+                            window.location.href = `${wa}?text=${encodeURIComponent(msgPagarDepois(e.nome, e.pagarDepoisData))}`;
                           } else {
-                            window.location.href = `https://wa.me/55${waNumero}`;
+                            window.location.href = wa;
                           }
                         }}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 8,
-                          background: "rgba(37,211,102,.1)",
-                          border: "1px solid rgba(37,211,102,.3)",
-                          color: "#25d366",
-                          borderRadius: 10,
-                          padding: "10px",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          width: "100%",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          background: "rgba(37,211,102,.1)", border: "1px solid rgba(37,211,102,.3)", color: "#25d366",
+                          borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", width: "100%",
                         }}
                       >
                         Entrar em contato — {e.whatsapp}
@@ -7871,7 +6500,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       </div>
     );
   }
-
   function EditOnibus({ o, onSave }) {
     const [aberto, setAberto] = useState(false);
     const [f, setF] = useState({
@@ -8001,7 +6629,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       </div>
     );
   }
-
   // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
   function OnV({
     on,
@@ -8418,7 +7045,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     borderRadius: 5,
                     height: 5,
                     width: `${pct}%`,
-                    transition: "width .3s",
+                    transition: "width var(--d-slow) var(--e-out)",
                   }}
                 />
               </div>
@@ -8553,7 +7180,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       </div>
     );
   }
-
   // ── RESTRIÇÕES ───────────────────────────────────────────────────────────────
 function RestV({ users, encH, encM, qm, setQm, role, t }) {
   const can = ['admin', 'lider_geral', 'pastor', 'lider_quartos'].includes(role);
@@ -8596,7 +7222,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     </div>
   );
 }
-
   function ImgV({ encH, encM }) {
     const todos = [...encH, ...encM].filter((e) => e.autorizaImagem === "Não");
     return (
@@ -8650,7 +7275,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
   }
-
   // ── LIST (imagem / crachás) ───────────────────────────────────────────────────
   function ListV({ icon, color, items, setItems, edit, t, ph }) {
     return (
@@ -8714,9 +7338,8 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
   }
-
   // ── INFO (ocorrências) ────────────────────────────────────────────────────────
-  function InfoV({ ocorr, setOcorr, t, notifyAll }) {
+  function InfoV({ ocorr, setOcorr, t, notifyAll, user }) {
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({ tipo: "", local: "", desc: "" });
     const registrar = async () => {
@@ -8921,7 +7544,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
   }
-
   // ── ACHADOS ──────────────────────────────────────────────────────────────────
   function CartasV({ users, user, role, t }) {
     const [cartas, setCartas] = useState([]);
@@ -9228,7 +7850,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
   }
-
   function AchV({ ach, setAch, t }) {
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({ item: "", local: "", dono: "" });
@@ -9413,7 +8034,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
   }
-
   // ── SAÚDE ────────────────────────────────────────────────────────────────────
   function SauV({ sau, setSau, edit, t }) {
     const [sh, setSh] = useState(false);
@@ -9595,7 +8215,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
   }
-
   function AddServoCozinha({ tarefaId, servosJa, users, onAdd }) {
     const [busca, setBusca] = useState('');
     const [aberto, setAberto] = useState(false);
@@ -9651,7 +8270,6 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
     );
 }
-
   // ── LOUÇA ────────────────────────────────────────────────────────────────────
 function CardapioTextarea({ valorInicial, cor, edit, onSalvar }) {
   const [texto, setTexto] = useState(valorInicial);
@@ -9695,7 +8313,6 @@ function CardapioTextarea({ valorInicial, cor, edit, onSalvar }) {
     </div>
   );
 }
-
 function CozinhaV({ edit, t, users }) {
   const [tab, setTab] = useState('estoque'); // 'estoque' | 'cardapio'
   const [tarefas, setTarefas] = useState([]);
@@ -9977,7 +8594,6 @@ function CozinhaV({ edit, t, users }) {
     </div>
   );
 }
-
   // ── EQUIPES ──────────────────────────────────────────────────────────────────
   function EqV({ esc, setEsc, uEs, edit, t }) {
     const [sh, setSh] = useState(false);
@@ -10139,7 +8755,6 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
-
   // ── Toggle Component ─────────────────────────────────────────────────────────
   function Toggle({
     val,
@@ -10166,7 +8781,7 @@ function CozinhaV({ edit, t, users }) {
             height: 24,
             borderRadius: 20,
             background: val ? colorOn : colorOff,
-            transition: "background .2s",
+            transition: "background var(--d-fast) var(--e-out)",
             position: "relative",
             flexShrink: 0,
           }}
@@ -10175,12 +8790,13 @@ function CozinhaV({ edit, t, users }) {
             style={{
               position: "absolute",
               top: 3,
-              left: val ? 19 : 3,
+              left: 3,
               width: 18,
               height: 18,
               borderRadius: "50%",
               background: "#fff",
-              transition: "left .2s",
+              transform: val ? "translateX(16px)" : "none",
+              transition: "transform var(--d-fast) var(--e-sheet)",
             }}
           />
         </div>
@@ -10192,7 +8808,6 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
-
   function LiderInput({ u, campo, ph, users, upd }) {
     const [busca, setBusca] = useState(u[campo] || "");
     const [aberto, setAberto] = useState(false);
@@ -10296,7 +8911,6 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
-
   // ── SERVOS ───────────────────────────────────────────────────────────────────
   function PagarDepoisWidget({ u, upd, t }) {
     const [pdData, setPdData] = useState(u.pagarDepoisData || "");
@@ -10350,7 +8964,6 @@ function CozinhaV({ edit, t, users }) {
       </>
     );
   }
-
   function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -10747,6 +9360,7 @@ function CozinhaV({ edit, t, users }) {
         {edit && (
           <button
             onClick={async () => {
+              const ExcelJS = await carregarExcelJS();
               const wb = new ExcelJS.Workbook();
               const ws = wb.addWorksheet("Servos");
               ws.columns = [
@@ -11204,7 +9818,6 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
-
   function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, dataLimitePedido, dataLimiteRestante, user, role, edit, t }) {
     const isAdm = edit;
     const hoje = new Date().toISOString().split("T")[0];
@@ -12509,7 +11122,7 @@ function CozinhaV({ edit, t, users }) {
         {/* EXPORTAR */}
         {uniFiltrado.length > 0 && (
           <button
-            onClick={() => {
+            onClick={async () => {
               const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
 
               const buildAba = (wb, titulo, dados) => {
@@ -12705,6 +11318,7 @@ function CozinhaV({ edit, t, users }) {
                 ws.getRow(row).height = 20;
               };
 
+              const ExcelJS = await carregarExcelJS();
               const wb = new ExcelJS.Workbook();
               buildAba(wb, "SERVO", uni.filter((u) => (u.perfil === "servo" || u.perfil === "cozinha") && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
               buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.perfil !== "cozinha" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
@@ -12875,7 +11489,6 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
-
   function AddFuncao({ u, fns, users, setUsers, t }) {
     const [busca, setBusca] = useState("");
     const [aberto, setAberto] = useState(false);
@@ -13006,7 +11619,6 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
-
   // ── TESTEMUNHOS ──────────────────────────────────────────────────────────────
   function TestV({ encH, encM, t }) {
     const [busca, setBusca] = useState("");
@@ -13191,6 +11803,1486 @@ function CozinhaV({ edit, t, users }) {
       </div>
     );
   }
+
+export default function App() {
+  const [sp, setSp] = useState(true);
+  const [spSaindo, setSpSaindo] = useState(false);
+  const spSaindoRef = useRef(false);
+  // desmonta a splash só depois do fade — antes ela sumia num corte seco
+  const fecharSplash = () => {
+    if (spSaindoRef.current) return;
+    spSaindoRef.current = true;
+    setSpSaindo(true);
+    setTimeout(() => setSp(false), durMs(280));
+  };
+  const [scr, setScr] = useState("welcome");
+  const [user, setUser] = useState(null);
+  const [pg, setPg] = useState("home");
+  const pgRef = useRef(pg);
+  useEffect(() => { pgRef.current = pg; }, [pg]);
+  const menuRef = useRef(false);
+
+  useEffect(() => {
+    const safePush = () => {
+      try {
+        history.pushState({ marker: "buffer" }, "");
+      } catch (err) {
+        console.warn("history.pushState indisponível neste navegador:", err);
+      }
+    };
+    safePush();
+    const onPopState = () => {
+      if (menuRef.current) {
+        setMenu(false);
+        safePush();
+        return;
+      }
+      if (pgRef.current !== "home" && pgRef.current !== "smins") {
+        setPg("home");
+        safePush();
+      }
+      // se já está na home, deixa o botão voltar seguir o comportamento padrão
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const [menu, setMenu] = useState(false);
+  useEffect(() => { menuRef.current = menu; }, [menu]);
+  // mantém o drawer montado durante a animação de saída
+  const menuP = usePresenca(menu, 220);
+  const [pagamentoId, setPagamentoId] = useState(null);
+  const [encId, setEncId] = useState(null);
+  const [termoCpf, setTermoCpf] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [fns, setFns] = useState(FUNCOES_INIT);
+  const [perfisExtra, setPerfisExtra] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "perfis_extra"), (snap) => {
+      const lista = snap.exists() ? (snap.data().lista || []) : [];
+      lista.forEach((p) => {
+        if (p?.key) PERFIS[p.key] = { l: p.label, c: p.color || "#0a84ff" };
+      });
+      setPerfisExtra(lista);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, "config", "inscricoes"),
+      (snap) => {
+        setInscricoesBloqueadas(snap.exists() ? !!snap.data().bloqueadas : false);
+      },
+      (err) => {
+        console.error("Erro ao ler status das inscrições (provável regra do Firestore bloqueando leitura pública):", err);
+      },
+    );
+    return () => unsub();
+  }, []);
+
+  const salvarInscricoesBloqueadas = async (valor) => {
+    try {
+      await setDoc(doc(db, "config", "inscricoes"), { bloqueadas: valor }, { merge: true });
+      setInscricoesBloqueadas(valor);
+      showT(valor ? "Inscrições bloqueadas." : "Inscrições reabertas!");
+    } catch (err) {
+      console.error("Erro ao salvar status das inscrições:", err);
+      showT("Erro ao salvar.", "w");
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "funcoes_extra"));
+        if (snap.exists()) {
+          const extras = snap.data().lista || [];
+          if (extras.length > 0) {
+            setFns(prev => Array.from(new Set([...prev, ...extras])).sort((a, b) => a.localeCompare(b)));
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar funções extras:", err);
+      }
+    })();
+  }, []);
+
+  const [esc, setEsc] = useState([]);
+  const [qh, setQh] = useState(QH_INIT);
+  const [qm, setQm] = useState(QM_INIT);
+  const [on, setOn] = useState(ON_INIT);
+  const [mins, setMins] = useState(MINS_INIT);
+  const minsLoadedRef = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "agenda"));
+        if (snap.exists() && Array.isArray(snap.data().lista)) {
+          setMins(snap.data().lista);
+        } else {
+          await setDoc(doc(db, "config", "agenda"), { lista: MINS_INIT });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar agenda:", err);
+      } finally {
+        minsLoadedRef.current = true;
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!minsLoadedRef.current) return;
+    setDoc(doc(db, "config", "agenda"), { lista: mins }).catch((err) =>
+      console.error("Erro ao salvar agenda:", err),
+    );
+  }, [mins]);
+
+  const [rest, setRest] = useState(REST_INIT);
+  const [ck, setCk] = useState(CK_INIT);
+  const [img, setImg] = useState([]);
+  const unsubOcorrRef = useRef(null);
+  const [ach, setAch] = useState([]);
+  const [ocorr, setOcorr] = useState([]);
+  const [crac, setCrac] = useState([]);
+  const [sau, setSau] = useState([]);
+  const [avs, setAvs] = useState([]);
+  const [encH, setEncH] = useState([]);
+  const [encM, setEncM] = useState([]);
+  const [uni, setUni] = useState([]);
+  const [dataLimiteUni, setDataLimiteUni] = useState("");
+  const [toast, setToast] = useState(null);
+  const toastKey = useRef(0);
+  const [notif, setNotif] = useState(false);
+  const unsubConfigRef = useRef(null);
+  const unsubUniRef = useRef(null);
+  const unsubAvsRef = useRef(null);
+  const unsubEncRef = useRef(null);
+  const unsubQHRef = useRef(null);
+  const unsubQMRef = useRef(null);
+  const unsubOnRef = useRef(null);
+  const unsubUsersRef = useRef(null);
+  const unsubEscRef = useRef(null);
+  const unsubSauRef = useRef(null);
+  const enviando = useRef(false);
+  const enviandoAviso = useRef(false);
+  const [quartoTab, setQuartoTab] = useState("M");
+  const [quartosAbertos, setQuartosAbertos] = useState({});
+  const [dataLimitePagamento, setDataLimitePagamento] = useState("");
+  const [inscricoesBloqueadas, setInscricoesBloqueadas] = useState(false);
+  const [avTextoServo, setAvTextoServo] = useState("");
+  const [avPublicoServo, setAvPublicoServo] = useState("todos");
+  const enviandoAvisoServoRef = useRef(false);
+  const [dataLimitePedido, setDataLimitePedido] = useState("");
+  const [dataLimiteRestante, setDataLimiteRestante] = useState("");
+  const [backExpandidos, setBackExpandidos] = useState({});
+  const [permissoes, setPermissoes] = useState({});
+  const [backTab, setBackTab] = useState("grupos");
+  const [backGruposAbertos, setBackGruposAbertos] = useState({});
+  const backBuscaUserRef = useRef("");
+  const unsubPermRef = useRef(null);
+
+  // Inicializa quarto mães se não existir
+  const inicializarQuartoMaes = async () => {
+    const ref = doc(db, "quartos_m", "12");
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, { num: 12, maes: true, lim: 9, servos: [], enc: [] });
+    }
+  };
+
+  const salvarQuarto = async (colecao, quarto) => {
+    await setDoc(doc(db, colecao, String(quarto.num)), quarto);
+  };
+
+  const deletarQuarto = async (colecao, num) => {
+    await deleteDoc(doc(db, colecao, String(num)));
+  };
+
+  const salvarOnibus = async (onibus) => {
+    await setDoc(doc(db, "onibus", String(onibus.num)), onibus);
+  };
+
+  const deletarOnibus = async (num) => {
+    await deleteDoc(doc(db, "onibus", String(num)));
+  };
+
+  useEffect(() => {
+    // Timeout de segurança: se o Firebase Auth não responder em 6s
+    // (comum em WebViews do Instagram/WhatsApp no iOS que bloqueiam indexedDB),
+    // libera a splash e manda para a tela de boas-vindas em vez de travar para sempre.
+    const spTimeout = setTimeout(() => {
+      if (!spSaindoRef.current) {
+        console.warn("Firebase Auth não respondeu a tempo — liberando splash.");
+        setScr((s) => (s === "welcome" ? "welcome" : s));
+        fecharSplash();
+      }
+    }, 6000);
+    return () => clearTimeout(spTimeout);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    console.log("URL params:", window.location.search);
+    // Termo digital
+    const termo = params.get("termo");
+    const cpf = params.get("cpf");
+    if (termo === "true" && cpf) {
+      setTermoCpf(cpf);
+      setScr("termo");
+      fecharSplash();
+      return;
+    }
+
+    const qr = params.get("qr");
+    const qrId = params.get("id");
+    if (qr === "true" && qrId) {
+      setEncId(qrId);
+      setScr("pagamento_confirmado");
+      fecharSplash();
+      return;
+    }
+    const pago = params.get("pago");
+    const id = params.get("id");
+    const statusMP = params.get("status");
+    console.log('URL params:', window.location.search);
+    const externalRef = params.get("external_reference");
+
+    if (pago === "true" && id) {
+      setScr("pagamento_confirmado");
+      setEncId(id);  // ← troca setPagamentoId por setEncId
+      window.history.replaceState({}, "", "/");
+    } else if (pago === "pending" && id) {
+      setScr("pagamento_pendente");
+      setPagamentoId(id);
+      window.history.replaceState({}, "", "/");
+    } else if (statusMP === "pending" && externalRef) {
+      setScr("pagamento_pendente");
+      setPagamentoId(externalRef);
+      window.history.replaceState({}, "", "/");
+    } else if (statusMP === "approved" && externalRef) {
+      setScr("pagamento_confirmado");
+      setEncId(externalRef);
+      window.history.replaceState({}, "", "/");
+    }
+
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        inicializarQuartoMaes();
+        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+
+          if (data.ativo === false) {
+            await signOut(auth);
+            fecharSplash();
+            setScr("login");
+            return;
+          }
+
+          setUser({ id: firebaseUser.uid, ...data });
+          setScr("app");
+          if (data.perfil === "servo") setPg("smins");
+
+          unsubEscRef.current = onSnapshot(collection(db, "equipes"), (s) => {
+            setEsc(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+          });
+
+          unsubConfigRef.current = onSnapshot(doc(db, "config", "uniformes"), (s) => {
+            if (s.exists()) {
+              if (s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
+              if (s.data().dataLimitePagamento) setDataLimitePagamento(s.data().dataLimitePagamento);
+              if (s.data().dataLimitePedido) setDataLimitePedido(s.data().dataLimitePedido);
+              if (s.data().dataLimiteRestante) setDataLimiteRestante(s.data().dataLimiteRestante);
+            }
+          });
+
+          unsubUsersRef.current = onSnapshot(collection(db, "users"), (s) => {
+            setUsers(s.docs.map((d) => {
+              const data = d.data();
+              const tipo = data.tipo || (
+                data.perfil === "staff" ? "staff" :
+                data.perfil?.startsWith("lider_") ? "lider" :
+                "servo"
+              );
+              return { id: d.id, ...data, tipo };
+            }));
+          });
+
+          unsubUniRef.current = onSnapshot(collection(db, "uniformes"), (s) => {
+            setUni(s.docs.map((d) => ({ userId: d.id, ...d.data() })));
+          });
+
+          unsubAvsRef.current = onSnapshot(collection(db, "avisos"), (s) => {
+            setAvs(
+              s.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => b.createdAt - a.createdAt),
+            );
+          });
+
+          unsubEncRef.current = onSnapshot(
+            collection(db, "encontristas"),
+            (s) => {
+              const lista = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+              setEncM(lista.filter((e) => e.sexo === "Feminino"));
+              setEncH(lista.filter((e) => e.sexo === "Masculino"));
+              setCk(
+                lista
+                  // desistiu tem prioridade: registros antigos podem ter ficado
+                  // com pagarDepois:true junto da desistência
+                  .filter((e) => e.pago || (e.pagarDepois && !e.desistiu))
+                  .map((e) => ({
+                    id: e.id,
+                    nome: e.nome,
+                    gen: e.sexo === "Feminino" ? "M" : "H",
+                    ok: e.chegou || false,
+                    on: e.onibus || null,
+                    whatsapp: e.whatsapp || null,
+                    cpf: e.cpf || null,
+                  })),
+              );
+            },
+          );
+
+          unsubQHRef.current = onSnapshot(collection(db, "quartos_h"), (s) => {
+            if (!s.empty)
+              setQh(s.docs.map((d) => d.data()).sort((a, b) => a.num - b.num));
+          });
+
+          unsubQMRef.current = onSnapshot(collection(db, "quartos_m"), (s) => {
+            if (!s.empty)
+              setQm(s.docs.map((d) => d.data()).sort((a, b) => a.num - b.num));
+          });
+
+          unsubOnRef.current = onSnapshot(collection(db, "onibus"), (s) => {
+            setOn(
+              s.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => a.num - b.num),
+            );
+          });
+          
+          unsubSauRef.current = onSnapshot(collection(db, 'saude'), (s) => {
+            setSau(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+          });
+
+          unsubOcorrRef.current = onSnapshot(collection(db, "ocorrencias"), (s) => {
+            setOcorr(s.docs.map(d => d.data()).sort((a, b) => b.id - a.id));
+          });
+
+          unsubPermRef.current = onSnapshot(collection(db, "permissoes"), (s) => {
+            const p = {};
+            s.docs.forEach(d => { p[d.id] = d.data(); });
+            setPermissoes(p);
+          });
+
+          if (Notification.permission !== "denied") {
+            iniciarNotificacoes(firebaseUser.uid).then((token) => {
+              if (token) setNotif(true);
+            });
+          }
+        } else {
+          setScr("welcome");
+        }
+      } else {
+        unsubConfigRef.current?.();
+        unsubUniRef.current?.();
+        unsubAvsRef.current?.();
+        unsubEncRef.current?.();
+        unsubQHRef.current?.();
+        unsubQMRef.current?.();
+        unsubOnRef.current?.();
+        unsubUsersRef.current?.();
+        unsubEscRef.current?.();
+        unsubSauRef.current?.();
+        unsubPermRef.current?.();
+        setScr("welcome");
+      }
+      fecharSplash();
+    });
+
+    return () => {
+      unsubAuth();
+      unsubConfigRef.current?.();
+      unsubUniRef.current?.();
+      unsubAvsRef.current?.();
+      unsubEncRef.current?.();
+      unsubQHRef.current?.();
+      unsubQMRef.current?.();
+      unsubOnRef.current?.();
+      unsubUsersRef.current?.();
+      unsubEscRef.current?.();
+    };
+  }, []);
+
+  const salvarDataLimite = async (data) => {
+    setDataLimiteUni(data);
+    await setDoc(
+      doc(db, "config", "uniformes"),
+      { dataLimite: data },
+      { merge: true },
+    );
+  };
+
+  const temPermissao = (tela) => {
+    if (role === "admin") return true;
+    if (role === "lider_geral") return true;
+    const telasFixas = ["mins", "avisos", "uniforme", "info", "cartas"];
+    if (telasFixas.includes(tela)) return true;
+    // Telas extras atribuídas individualmente ao usuário
+    if ((user?.telasExtra || []).includes(tela)) return true;
+    const p = permissoes[role];
+    if (!p) return false;
+    return (p.telas || []).includes(tela);
+  };
+
+  // `k` reinicia a animação quando um toast chega em cima do outro;
+  // `saindo` toca o fade de saída antes de desmontar.
+  const toastTimers = useRef([]);
+  const showT = (m, tp = "s") => {
+    toastTimers.current.forEach(clearTimeout);
+    toastTimers.current = [];
+    setToast({ m, tp, k: toastKey.current++, saindo: false });
+    toastTimers.current.push(
+      setTimeout(() => setToast((cur) => (cur ? { ...cur, saindo: true } : cur)), 2500),
+      setTimeout(() => setToast(null), 2500 + durMs(220)),
+    );
+  };
+  const nav = (p) => {
+    setPg(p);
+    setMenu(false);
+  };
+  const logout = async () => {
+    unsubConfigRef.current?.();
+    unsubUniRef.current?.();
+    unsubAvsRef.current?.();
+    unsubEncRef.current?.();
+    unsubQHRef.current?.();
+    unsubQMRef.current?.();
+    unsubOnRef.current?.();
+    unsubUsersRef.current?.();
+    unsubEscRef.current?.();
+    unsubOcorrRef.current?.();
+    await signOut(auth);
+    setUser(null);
+    setScr("welcome");
+    setPg("home");
+  };
+
+  const login = (f) => {
+    setUser(f);
+    setScr("app");
+    const admins = ["admin", "lider_geral", "pastor"];
+    if (!admins.includes(f.perfil)) setPg("smins");
+  };
+
+  const role = user?.perfil || "servo";
+  const isAdm = role === "admin" || role === "lider_geral";
+  const [liderMapOverrides, setLiderMapOverrides] = useState({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "config", "lider_map"));
+        if (snap.exists()) {
+          setLiderMapOverrides(snap.data() || {});
+        }
+      } catch (err) {
+        console.error("Erro ao carregar lider_map:", err);
+      }
+    })();
+  }, []);
+
+  const canExtra = (tela) => (user?.telasExtra || []).includes(tela);
+  const [ckSub, setCkSub] = useState("pend");
+  const [ckGen, setCkGen] = useState("M");
+  const [termoBusca, setTermoBusca] = useState("");
+
+  const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
+  const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
+  const uOn = (n, fn) => setOn(on.map((o) => (o.num === n ? fn(o) : o)));
+  const uEs = (id, fn) => setEsc(esc.map((e) => (e.id === id ? fn(e) : e)));
+  const broadcast = (msg) => {
+    if (
+      notif &&
+      "Notification" in window &&
+      Notification.permission === "granted"
+    )
+      new Notification("🔔 servos.", { body: msg });
+  };
+  const sN = (nm, hr) => {
+    broadcast(`${nm} — ${hr}`);
+    showT(`${nm} — ${hr}`, "n");
+  };
+  const notifyAll = async (msg, publico = "todos") => {
+    if (enviando.current) return;
+    enviando.current = true;
+    showT(msg, "n");
+    try {
+      await fetch(
+        "https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ titulo: msg, horario: "", publico }),
+        },
+      );
+    } catch (err) {
+      console.error("Erro ao notificar:", err);
+    }
+    enviando.current = false;
+  };
+
+  if (sp) return <Splash saindo={spSaindo} />;
+
+  if (faqOpen) return <FAQ onVoltar={() => setFaqOpen(false)} />;
+
+  if (scr === "pagamento_confirmado")
+    return <ConfirmadoV encId={encId} onVoltar={() => setScr("welcome")} />;
+
+  if (scr === "pagamento_pendente")
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#000",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+        }}
+      >
+        <style>{css}</style>
+        <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
+          <img
+            src="/IMG_2408.PNG"
+            alt="Encontro com Deus"
+            style={{
+              width: 180,
+              mixBlendMode: "screen",
+              display: "block",
+              margin: "0 auto 24px",
+            }}
+          />
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+          <div
+            style={{
+              color: "#fff",
+              fontSize: 22,
+              fontWeight: 800,
+              marginBottom: 8,
+            }}
+          >
+            Pagamento pendente!
+          </div>
+          <div
+            style={{
+              color: "rgba(255,255,255,.5)",
+              fontSize: 16,
+              lineHeight: 1.6,
+              marginBottom: 24,
+            }}
+          >
+            Seu pagamento está sendo processado. Assim que confirmado sua vaga
+            será garantida!
+          </div>
+          <a
+            href="https://wa.me/5511982222149?text=Olá!%20Realizei%20o%20pagamento%20do%20Encontro%20com%20Deus%20e%20gostaria%20de%20confirmar%20minha%20inscrição."
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block",
+              background: "#25d366",
+              color: "#fff",
+              textDecoration: "none",
+              padding: "14px",
+              borderRadius: 14,
+              fontWeight: 700,
+              fontSize: 15,
+              marginBottom: 12,
+            }}
+          >
+            Enviar comprovante no WhatsApp
+          </a>
+          <button
+            onClick={() => setScr("welcome")}
+            style={BK({ width: "100%", padding: 14, borderRadius: 14 })}
+          >
+            Voltar ao início
+          </button>
+        </div>
+        <BotaoAjuda />
+        <BotaoInsta />
+      </div>
+    );
+
+  if (scr === "welcome")
+  return (
+    <Welcome
+      onServos={() => setScr("login")}
+      onEncontrista={() => setScr("inscricao")}
+      onFaq={() => setFaqOpen(true)}
+      onJaInscrito={() => setScr('ja_inscrito')}
+      bloqueadas={inscricoesBloqueadas}
+    />
+  );
+
+  if (scr === "inscricao" && inscricoesBloqueadas) {
+    return (
+      <Welcome
+        onServos={() => setScr("login")}
+        onEncontrista={() => {}}
+        onFaq={() => setFaqOpen(true)}
+        onJaInscrito={() => setScr('ja_inscrito')}
+        bloqueadas={inscricoesBloqueadas}
+      />
+    );
+  }
+
+  if (scr === "inscricao")
+    return (
+      <Inscricao
+        onVoltar={() => setScr("welcome")}
+        onPago={(id) => {
+          setEncId(id);
+          setScr("pagamento_confirmado");
+        }}
+        onFaq={() => setFaqOpen(true)}
+      />
+    );
+
+  if (scr === "termo")
+    return <Termo cpf={termoCpf} onVoltar={() => setScr("welcome")} />;
+
+  if (scr === 'ja_inscrito')
+    return <JaInscritoV onVoltar={() => setScr('welcome')} bloqueadas={inscricoesBloqueadas} />;
+
+  if (user?.primeiro) return (
+    <PrimeiroAcessoV 
+      user={user} 
+      onConcluido={() => setUsers(prev => prev.map(u => u.id === user.id ? { ...u, primeiro: false } : u))} 
+    />
+  );
+
+  if (scr === "login")
+    return (
+      <Login
+        onLogin={login}
+        onVoltar={() => setScr("welcome")}
+        users={users}
+        setUsers={setUsers}
+      />
+    );
+
+  // menu drawer
+  const MENU_ITEMS = [
+    [Home, "home"],
+    ...(temPermissao("servos") ? [[Users, "servos"]] : []),
+    ...(temPermissao("enc") ? [[Users, "enc"]] : []),
+    ...(temPermissao("checkin") ? [[CheckSquare, "checkin"]] : []),
+    ...(temPermissao("termo") ? [[FileText, "termo"]] : []),
+    ...(temPermissao("quartos") ? [[BedDouble, "quartos"]] : []),
+    ...(temPermissao("onibus") ? [[Bus, "onibus"]] : []),
+    ...(temPermissao("mins") ? [[Calendar, "mins"]] : []),
+    ...(temPermissao("rest") ? [[ShieldOff, "rest"]] : []),
+    ...(temPermissao("img") ? [[Image, "img"]] : []),
+    ...(temPermissao("info") ? [[AlertTriangle, "info"]] : []),
+    ...(temPermissao("ach") ? [[Search, "ach"]] : []),
+    ...(temPermissao("crac") ? [[CreditCard, "crac"]] : []),
+    ...(temPermissao("saude") ? [[PillIcon, "saude"]] : []),
+    ...((role === "lider_cartas" || isAdm) ? [[FileText, "cartas"]] : []),
+    ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
+    ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
+    ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
+    ...(isAdm ? [[Settings, "back"]] : []),
+  ];
+
+
+    if (scr === "app" && !["admin", "lider_geral", "pastor"].includes(role)) {
+
+    const MAPA_SERVO = {
+      "perfil": [User, "sperfil", "Perfil"],
+      "mins": [Calendar, "smins", "Agenda"],
+      "avisos": [Megaphone, "savs", "Avisos"],
+      "uniforme": [Shirt, "suni", "Uniforme"],
+      "info": [AlertTriangle, "sinfo", "Ocorrências"],
+      "rest": [ShieldOff, "srest", "Restrições"],
+      "img": [Image, "simg", "Uso de Imagem"],
+      "saude": [PillIcon, "ssaude", "Saúde"],
+      "quartos": [BedDouble, "squartos", "Quartos"],
+      "checkin": [CheckSquare, "scheckin", "Check-in"],
+      "onibus": [Bus, "sonibus", "Ônibus"],
+      "termo": [FileText, "stermo", "Termo"],
+      "ach": [Search, "sach", "Achados & Perdidos"],
+      "crac": [CreditCard, "scrac", "Crachás"], 
+      "cartas": [FileText, "scartas", "Cartas"],
+    };
+
+    const SERVO_MENU = Object.entries(MAPA_SERVO)
+      .filter(([tela]) => {
+        if (tela === "perfil") return true;
+        if (tela === "rest") return role === "lider_celula" || user?.liderCelula === true;
+        if (tela === "img") return role === "lider_midia" || Object.values(user?.escala || {}).flat().includes("Mídia");
+        return temPermissao(tela);
+      })
+      .map(([, item]) => item);
+
+    return (
+      <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
+        <style>{css}</style>
+        {toast && <Toast key={toast.k} m={toast.m} tp={toast.tp} saindo={toast.saindo} />}
+        {menuP.montado && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 200 }} className={menuP.saindo ? "out" : undefined}>
+            <div
+              onClick={() => setMenu(false)}
+              className={`scrim${menuP.saindo ? " out" : ""}`}
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(0,0,0,.85)",
+              }}
+            />
+            <div
+              className={`drawer${menuP.saindo ? " out" : ""}`}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: 270,
+                background: "#0d0d0d",
+                borderRight: "1px solid #1a1a1a",
+                overflowY: "auto",
+              }}
+            >
+              <div
+                style={{
+                  padding: "22px 16px 16px",
+                  borderBottom: "1px solid #1a1a1a",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 900,
+                      color: "#fff",
+                      letterSpacing: -1,
+                    }}
+                  >
+                    Peniel<span style={{ color: G.green }}>.</span>
+                  </div>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>
+                    {user.nome} · {PERFIS[role]?.l}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMenu(false)}
+                  style={BK({
+                    padding: "6px 10px",
+                    borderRadius: 9,
+                    fontSize: 12,
+                  })}
+                >
+                  ✕
+                </button>
+              </div>
+              {SERVO_MENU.map(([ic, p, lb]) => (
+                <button
+                  key={p}
+                  onClick={() => {
+                    setPg(p);
+                    setMenu(false);
+                  }}
+                  className="press"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    width: "100%",
+                    background: pg === p ? "rgba(0,200,81,.08)" : "transparent",
+                    border: "none",
+                    borderLeft:
+                      pg === p
+                        ? `3px solid ${G.green}`
+                        : "3px solid transparent",
+                    padding: "12px 16px",
+                    color: pg === p ? G.green : G.td,
+                    fontSize: 13,
+                    fontWeight: pg === p ? 700 : 500,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  {(() => { const Icon = ic; return <Icon size={16} style={{ flexShrink: 0, width: 18 }} />; })()}
+                  {lb}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  setMenu(false);
+                  logout();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  width: "100%",
+                  background: "transparent",
+                  border: "none",
+                  borderLeft: "3px solid transparent",
+                  borderTop: "1px solid #1a1a1a",
+                  padding: "12px 16px",
+                  color: "rgba(255,59,48,.6)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  marginTop: 8,
+                }}
+              >
+                <LogOut size={16} style={{ width: 18 }} />
+                Sair
+              </button>
+            </div>
+          </div>
+        )}
+        {/* top bar servo */}
+        <div style={{
+          background: "#000",
+          borderBottom: "1px solid #1a1a1a",
+          padding: "14px 16px",
+          display: "flex",
+          alignItems: "center",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+        }}>
+          {/* Esquerda */}
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+            {(pg === "smins" || pg === "home") ? (
+              <button onClick={() => setMenu(true)} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>☰</button>
+            ) : (
+              <button onClick={() => setPg("smins")} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+            )}
+          </div>
+
+          {/* Centro */}
+          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+            {(pg === "smins" || pg === "home") ? (
+              <img src="/IMG_2409.PNG" alt="Fonte" style={{ height: 44, opacity: 0.85 }} />
+            ) : (
+              <span key={pg} className="tt" style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
+                {pg === "sperfil" ? "Perfil"
+                : pg === "savs" ? "Avisos"
+                : pg === "suni" ? "Uniforme"
+                : pg === "sinfo" ? "Ocorrências"
+                : pg === "srest" ? "Restrições"
+                : pg === "simg" ? "Uso de Imagem"
+                : pg === "ssaude" ? "Saúde"
+                : pg === "squartos" ? "Quartos"
+                : pg === "scozinha" ? "Cozinha"
+                : pg === "scheckin" ? "Check-in"
+                : pg === "sonibus" ? "Ônibus"
+                : pg === "senc" ? "Encontristas"
+                : pg === "stermo" ? "Termo"
+                : pg === "sach" ? "Achados & Perdidos"
+                : pg === "scrac" ? "Crachás"
+                : pg === "scartas" ? "Cartas"
+                : ""}
+              </span>
+            )}
+          </div>
+
+          {/* Direita */}
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+            {(pg === "smins" || pg === "home") && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            {(pg === "smins" || pg === "home") && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
+            <button
+              onClick={async () => {
+                const token = await iniciarNotificacoes(user?.id);
+                if (token) { setNotif(true); showT("Notificações ativas!", "n"); }
+                else showT("Permissão negada", "w");
+              }}
+              style={{ ...BK({ padding: "8px 11px", borderRadius: 10, fontSize: 13, borderColor: notif ? "rgba(0,200,81,.4)" : "#2a2a2a", color: notif ? G.green : G.td }), display: "flex", alignItems: "center" }}>
+              <Bell size={16} />
+            </button>
+          </div>
+        </div>
+        {/* home com 3 cards */}
+        {(pg === "smins" || pg === "home") && (
+          <ServoHomeV
+            liderMapOverrides={liderMapOverrides}
+            user={user}
+            mins={mins}
+            avs={avs}
+            ocorr={ocorr}
+            setPg={setPg}
+            pago={user?.pago}
+            role={role}
+            uni={uni}
+            dataLimiteUni={dataLimiteUni}
+            dataLimitePagamento={dataLimitePagamento}
+            esc={esc}
+            users={users}
+            qh={qh}
+            qm={qm}
+            on={on}
+          />
+        )}
+        <div
+          key={pg}
+          className="pg"
+          style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}
+        >
+          {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} />}
+          {pg === "savs" && (
+            <div>
+              {canAvisos(role) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                  <select
+                    onChange={(e) => { if (e.target.value) setAvTextoServo(e.target.value); }}
+                    style={{ ...I, fontSize: 12 }}
+                    defaultValue=""
+                  >
+                    <option value="">Usar template de aviso...</option>
+                    {AVISOS_TEMPLATES.map((a, i) => (
+                      <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
+                    ))}
+                  </select>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[["todos", "Todos"], ["homens", "Homens"], ["mulheres", "Mulheres"]].map(([k, l]) => (
+                      <button
+                        key={k}
+                        onClick={() => setAvPublicoServo(k)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 6px",
+                          borderRadius: 9,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          border: `1px solid ${avPublicoServo === k ? "#0a84ff" : "#2a2a2a"}`,
+                          background: avPublicoServo === k ? "rgba(10,132,255,.12)" : "#1a1a1a",
+                          color: avPublicoServo === k ? "#0a84ff" : G.td,
+                        }}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={avTextoServo}
+                      onChange={(e) => setAvTextoServo(e.target.value)}
+                      placeholder="Escrever aviso..."
+                      style={{ ...I, flex: 1 }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (enviandoAvisoServoRef.current) return;
+                        if (!avTextoServo.trim()) return;
+                        enviandoAvisoServoRef.current = true;
+                        vibrar(100);
+                        const txt = avTextoServo.trim();
+                        const publico = avPublicoServo;
+                        setAvTextoServo("");
+                        const aviso = {
+                          txt,
+                          autor: user.nome,
+                          autorPerfil: role,
+                          publico,
+                          hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                          createdAt: Date.now(),
+                        };
+                        await addDoc(collection(db, "avisos"), aviso);
+                        notifyAll(`Aviso: ${txt}`, publico);
+                        showT("Aviso publicado!");
+                        setTimeout(() => { enviandoAvisoServoRef.current = false; }, 1500);
+                      }}
+                      style={BG({ padding: "13px 15px", borderRadius: 12 })}
+                    >+</button>
+                  </div>
+                </div>
+              )}
+              {avs.length === 0 && (
+                <div
+                  style={{
+                    color: G.tm,
+                    textAlign: "center",
+                    padding: 48,
+                    fontSize: 13,
+                  }}
+                >
+                  Nenhum aviso no momento. ✓
+                </div>
+              )}
+              {avs.map((a) => (
+                <div
+                  key={a.id}
+                  className="fu"
+                  style={{
+                    background: G.card,
+                    border: `1px solid ${G.cb}`,
+                    borderLeft: `3px solid ${G.green}`,
+                    borderRadius: 14,
+                    padding: "12px 14px",
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>
+                    {a.txt}
+                  </div>
+                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                    {a.autor}{a.autorPerfil && PERFIS[a.autorPerfil] ? ` · ${PERFIS[a.autorPerfil].l}` : ""} · {a.hr}
+                    {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+                    {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
+                  </div>
+                  {canAvisos(role) && (
+                    <span
+                      onClick={async () => { await deleteDoc(doc(db, "avisos", a.id)); }}
+                      style={{ color: "rgba(255,59,48,.6)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "inline-block", marginTop: 6 }}
+                    >
+                      Excluir
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {pg === "suni" && (
+            <UniV
+              uni={uni}
+              setUni={setUni}
+              dataLimite={dataLimiteUni}
+              setDataLimite={salvarDataLimite}
+              dataLimitePagamento={dataLimitePagamento}
+              user={user}
+              role={role}
+              edit={isAdm}
+              dataLimitePedido={dataLimitePedido}
+              dataLimiteRestante={dataLimiteRestante}
+              t={showT}
+            />
+          )}
+          {pg === "srest" && (role === "lider_celula" || user?.liderCelula === true) && (
+            <ServoRestV user={user} encH={encH} encM={encM} t={showT} />
+          )}
+          {pg === "simg" && <ImgV encH={encH} encM={encM} />}
+          {pg === "sinfo" && (
+            <InfoV ocorr={ocorr} setOcorr={setOcorr} t={showT} notifyAll={notifyAll} user={user} />
+          )}
+          {pg === "squartos" && (
+            temPermissao("quartos")
+              ? <QV qh={qh} qm={qm} uQH={uQH} uQM={uQM} setQh={setQh} setQm={setQm} edit={canQ(role) || canExtra("quartos")} t={showT} encH={encH} encM={encM} users={users} salvarQuarto={salvarQuarto} deletarQuarto={deletarQuarto} tab={quartoTab} setTab={setQuartoTab} abertos={quartosAbertos} setAbertos={setQuartosAbertos} user={user} />
+              : <TelaRestrita />
+          )}
+          {pg === "scheckin" && (
+            temPermissao("checkin") 
+              ? <CkV ck={ck} setCk={setCk} on={on} edit={
+                  Object.values(user?.escala || {}).flat().includes("Check-in")
+                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} /> 
+              : <TelaRestrita />
+          )}
+          {pg === "stermo" && (
+            temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} /> : <TelaRestrita />
+          )}
+          {pg === "sach" && (
+            temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
+          )}
+          {pg === "scrac" && (
+            temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={isAdm || canExtra("crac")} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
+          )}
+          {pg === "scartas" && (
+            <CartasV users={users} user={user} role={role} t={showT} />
+          )}
+          {pg === "sonibus" && (
+            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
+          )}
+          {pg === "senc" && (
+            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} inscricoesBloqueadas={inscricoesBloqueadas} salvarInscricoesBloqueadas={salvarInscricoesBloqueadas} /> : <TelaRestrita />
+          )}
+          {pg === "scozinha" && (
+            temPermissao("cozinha") ? <CozinhaV edit={isAdm || canExtra("cozinha")} t={showT} users={users} /> : <TelaRestrita />
+          )}
+          {pg === "ssaude" && (
+            <SauV sau={sau} setSau={setSau} edit={isAdm || canExtra("saude")} t={showT} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
+      <style>{css}</style>
+      {toast && <Toast key={toast.k} m={toast.m} tp={toast.tp} saindo={toast.saindo} />}
+      {menuP.montado && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200 }} className={menuP.saindo ? "out" : undefined}>
+          <div
+            onClick={() => setMenu(false)}
+            className={`scrim${menuP.saindo ? " out" : ""}`}
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(0,0,0,.85)",
+            }}
+          />
+          <div
+            className={`drawer${menuP.saindo ? " out" : ""}`}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: 270,
+              background: "#0d0d0d",
+              borderRight: "1px solid #1a1a1a",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              style={{
+                padding: "22px 16px 16px",
+                borderBottom: "1px solid #1a1a1a",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 900,
+                    color: "#fff",
+                    letterSpacing: -1,
+                  }}
+                >
+                  Peniel<span style={{ color: G.green }}>.</span>
+                </div>
+                <div style={{ color: G.tm, fontSize: 11, marginTop: 3 }}>
+                  {user.nome} · {PERFIS[role]?.l}
+                </div>
+              </div>
+              <button
+                onClick={() => setMenu(false)}
+                style={BK({
+                  padding: "6px 10px",
+                  borderRadius: 9,
+                  fontSize: 12,
+                })}
+              >
+                ✕
+              </button>
+            </div>
+            {MENU_ITEMS.map(([ic, p]) => (
+              <button
+                key={p}
+                onClick={() => nav(p)}
+                className="press"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  width: "100%",
+                  background: pg === p ? "rgba(0,200,81,.08)" : "transparent",
+                  border: "none",
+                  borderLeft:
+                    pg === p ? `3px solid ${G.green}` : "3px solid transparent",
+                  padding: "12px 16px",
+                  color: pg === p ? G.green : G.td,
+                  fontSize: 13,
+                  fontWeight: pg === p ? 700 : 500,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                {(() => { const Icon = ic; return <Icon size={16} color="currentColor" style={{ flexShrink: 0, width: 18 }} />; })()}
+                <span style={{ flex: 1 }}>{LABELS[p]}</span>
+                {p === "uniformes" &&
+                  uni.filter((u) => u.status === "pendente").length > 0 && (
+                    <span
+                      style={{
+                        background: "#ff9f0a",
+                        color: "#000",
+                        borderRadius: 50,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: "2px 7px",
+                        minWidth: 18,
+                        textAlign: "center",
+                      }}
+                    >
+                      {uni.filter((u) => u.status === "pendente").length}
+                    </span>
+                  )}
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                setMenu(false);
+                logout();
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                width: "100%",
+                background: "transparent",
+                border: "none",
+                borderLeft: "3px solid transparent",
+                borderTop: "1px solid #1a1a1a",
+                padding: "12px 16px",
+                color: "rgba(255,59,48,.6)",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                textAlign: "left",
+                marginTop: 8,
+              }}
+            >
+              <span style={{ fontSize: 16, width: 18, textAlign: "center" }}>
+                ↪
+              </span>
+              Sair
+            </button>
+          </div>
+        </div>
+      )}
+      <TB pg={pg} user={user} nav={nav} showT={showT} setMenu={setMenu} notif={notif} setNotif={setNotif} />
+      <div key={pg} className="pg" style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
+        {pg === "home" && (
+          <HomeV
+            enviandoAviso={enviandoAviso}
+            role={role}
+            user={user}
+            ck={ck}
+            mins={mins}
+            ocorr={ocorr}
+            avs={avs}
+            qh={qh}
+            qm={qm}
+            on={on}
+            nav={nav}
+            edit={canG(role)}
+            canAvisos={canAvisos(role)}
+            encH={encH}
+            encM={encM}
+            addAv={async (txt, publico = "todos") => {
+              const aviso = {
+                txt,
+                autor: user.nome,
+                autorPerfil: role,
+                publico,
+                hr: new Date().toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                createdAt: Date.now(),
+              };
+              await addDoc(collection(db, "avisos"), aviso);
+              notifyAll(`Aviso: ${txt}`, publico);
+              showT("Aviso publicado!");
+            }}
+            delAv={async (id) => {
+              await deleteDoc(doc(db, "avisos", id));
+            }}
+            users={users}
+          />
+        )}
+        {pg === "checkin" && (
+          <CkV ck={ck} setCk={setCk} on={on} edit={canG(role) || canExtra("checkin")} t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} telaTermo="termo" />
+        )}
+        {pg === "mins" && (
+          <MinsV
+            mins={mins}
+            setMins={setMins}
+            edit={canG(role)}
+            role={role}
+            t={showT}
+            sN={sN}
+          />
+        )}
+        {pg === "quartos" && (
+          <QV
+            qh={qh}
+            qm={qm}
+            uQH={uQH}
+            uQM={uQM}
+            setQh={setQh}
+            setQm={setQm}
+            edit={canQ(role) || canExtra("quartos")}
+            t={showT}
+            encH={encH}
+            encM={encM}
+            users={users}
+            salvarQuarto={salvarQuarto}
+            deletarQuarto={deletarQuarto}
+            tab={quartoTab}
+            setTab={setQuartoTab}
+            abertos={quartosAbertos}
+            setAbertos={setQuartosAbertos}
+            user={user}
+          />
+        )}
+        {pg === "enc" && (
+          <EncV
+            encH={encH}
+            setEncH={setEncH}
+            encM={encM}
+            setEncM={setEncM}
+            qh={qh}
+            qm={qm}
+            setQh={setQh}
+            setQm={setQm}
+            edit={canG(role)}
+            t={showT}
+            inscricoesBloqueadas={inscricoesBloqueadas}
+            salvarInscricoesBloqueadas={salvarInscricoesBloqueadas}
+          />
+        )}
+        {pg === "onibus" && (
+          <OnV
+            on={on}
+            uOn={uOn}
+            setOn={setOn}
+            encH={encH}
+            encM={encM}
+            edit={canG(role)}
+            t={showT}
+            salvarOnibus={salvarOnibus}
+            deletarOnibus={deletarOnibus}
+            users={users}
+          />
+        )}
+        {pg === "rest" && (
+          <RestV
+            users={users}
+            encH={encH}
+            encM={encM}
+            qm={qm}
+            setQm={setQm}
+            role={role}
+            t={showT}
+          />
+        )}
+        {pg === "img" && <ImgV encH={encH} encM={encM} />}
+        {pg === "info" && (
+          <InfoV
+            ocorr={ocorr}
+            setOcorr={setOcorr}
+            t={showT}
+            notifyAll={notifyAll}
+            user={user}
+          />
+        )}
+        {pg === "ach" && <AchV ach={ach} setAch={setAch} t={showT} />}
+        {pg === "crac" && (
+          <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={canG(role)} t={showT} ph="Nome do encontrista..." />
+        )}
+        {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} />}
+        {pg === "saude" && (
+          <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
+        )}
+        {pg === "cozinha" && (
+          <CozinhaV edit={canC(role)} t={showT} users={users} />
+        )}
+        {pg === "cartas" && (
+          <CartasV users={users} user={user} role={role} t={showT} />
+        )}
+        {pg === "uniformes" && (
+          <UniV
+            uni={uni}
+            setUni={setUni}
+            dataLimite={dataLimiteUni}
+            setDataLimite={salvarDataLimite}
+            user={user}
+            role={role}
+            edit={isAdm}
+            t={showT}
+          />
+        )}
+        {pg === "equipes" && (
+          <EqV
+            esc={esc}
+            setEsc={setEsc}
+            uEs={uEs}
+            edit={canG(role)}
+            t={showT}
+          />
+        )}
+        {pg === "servos" && (
+          <SvV
+            users={users}
+            setUsers={setUsers}
+            esc={esc}
+            edit={isAdm}
+            t={showT}
+            dataLimitePagamento={dataLimitePagamento}
+          />
+        )}
+        {pg === "test" &&
+          ["admin", "lider_geral", "lider_templo", "pastor"].includes(role) && (
+            <TestV encH={encH} encM={encM} t={showT} />
+          )}
+        {pg === "back" && isAdm && (
+          <BackV
+            users={users}
+            setUsers={setUsers}
+            fns={fns}
+            setFns={setFns}
+            t={showT}
+            expandidos={backExpandidos}
+            setExpandidos={setBackExpandidos}
+            permissoes={permissoes}
+            tab={backTab}
+            setTab={setBackTab}
+            gruposAbertos={backGruposAbertos}
+            setGruposAbertos={setBackGruposAbertos}
+            liderMapOverrides={liderMapOverrides}
+            setLiderMapOverrides={setLiderMapOverrides}
+            perfisExtra={perfisExtra}
+            buscaUserRef={backBuscaUserRef}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // ── BACK OFFICE ──────────────────────────────────────────────────────────────
 }
@@ -13628,6 +13720,7 @@ function CozinhaV({ edit, t, users }) {
         {edit && (
           <button
             onClick={async () => {
+              const ExcelJS = await carregarExcelJS();
               const wb = new ExcelJS.Workbook();
 
               const montarAba = (nomeAba, quartos, encontristas) => {
@@ -13829,7 +13922,7 @@ function CozinhaV({ edit, t, users }) {
                     borderRadius: 5,
                     height: 5,
                     width: `${pct}%`,
-                    transition: "width .3s",
+                    transition: "width var(--d-slow) var(--e-out)",
                   }}
                 />
               </div>
@@ -14068,7 +14161,8 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
               <button
                 onClick={async () => {
                   const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
-                  const wb = new ExcelJS.Workbook();
+                  const ExcelJS = await carregarExcelJS();
+              const wb = new ExcelJS.Workbook();
                   const ws = wb.addWorksheet("Escalas");
                   ws.columns = [
                     { header: "Nome", key: "nome", width: 35 },
@@ -14222,7 +14316,7 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                               <option key={k} value={k}>{v.l}</option>
                             ))}
                           </select>
-                          <span style={{ color: G.tm, fontSize: 12, transition: "transform .2s", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
+                          <span style={{ color: G.tm, fontSize: 12, transition: "transform var(--d-fast) var(--e-out)", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
                         </div>
                       </div>
 
