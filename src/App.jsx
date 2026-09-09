@@ -74,8 +74,7 @@ const G = {
   td: "rgba(255,255,255,.55)",
   tm: "rgba(255,255,255,.28)",
 };
-const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}html,body{background:#0a0a0a;font-family:'Inter',sans-serif;}
+const css = `*{box-sizing:border-box;margin:0;padding:0;}html,body{background:#0a0a0a;font-family:'Inter',sans-serif;}
 input,select,button,textarea{font-family:'Inter',sans-serif;}
 input::placeholder,textarea::placeholder{color:rgba(255,255,255,.25);}
 input:focus,select:focus,textarea:focus{outline:none!important;border-color:rgba(0,200,81,.6)!important;}
@@ -112,6 +111,11 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:rgba
 .fu{animation:fu .35s var(--e-out) backwards}
 /* teto de camadas simultâneas: listas longas (servos/encontristas) não animam além do 8º */
 .fu:nth-child(n+9){animation:none}
+
+/* Estado vazio com atraso: os snapshots do Firestore começam vazios, então
+   "Nenhum..." piscava antes dos dados chegarem e lia como app quebrado. Com
+   300ms de atraso, um snapshot em cache substitui o texto antes de ele pintar. */
+.empty{animation:fi .4s var(--e-out) .3s backwards}
 
 /* conteúdo do accordion: seguro de novo — os componentes que usam Acc agora
    estão no escopo do módulo, então isto não replaya a cada render do App */
@@ -156,10 +160,24 @@ button,.press-sc{transition:transform var(--d-fast) var(--e-out)}
 @media (prefers-reduced-motion:reduce){
   :root{--d-fast:.01s;--d-base:.01s;--d-slow:.01s;--d-out:.01s}
   /* animation:none (e não .01s): com fill both o toast pararia em opacity 0 */
-  .fu,.pg,.scr,.tt,.rv,.pop,.tick,.toast,.scrim,.sheet,.drawer,.splash{animation:none}
+  .fu,.pg,.scr,.tt,.rv,.empty,.pop,.tick,.toast,.scrim,.sheet,.drawer,.splash{animation:none}
   .toast.out,.scrim.out,.sheet.out,.drawer.out{animation:none;opacity:0}
   button:not(:disabled):active,.press-sc:active{transform:none}
 }`;
+
+// Uma única injeção. Antes esta folha era montada por 15 telas diferentes, então
+// toda troca de tela reparsava o CSS inteiro. O check de textContent mantém o
+// HMR funcionando sem empilhar <style> duplicados.
+if (typeof document !== "undefined") {
+  const ID_ESTILO = "app-css";
+  let tag = document.getElementById(ID_ESTILO);
+  if (!tag) {
+    tag = document.createElement("style");
+    tag.id = ID_ESTILO;
+    document.head.appendChild(tag);
+  }
+  if (tag.textContent !== css) tag.textContent = css;
+}
 
 const I = {
   background: "#1a1a1a",
@@ -978,7 +996,6 @@ function Splash({ saindo }) {
         zIndex: 1000,
       }}
     >
-      <style>{css}</style>
       <div style={{ textAlign: "center" }}>
         <img
           className="splash-logo"
@@ -1061,7 +1078,6 @@ function Login({ onLogin, onVoltar }) {
         padding: 24,
       }}
     >
-      <style>{css}</style>
       {/* Botão voltar */}
       <button
         onClick={onVoltar}
@@ -1286,7 +1302,6 @@ function PrimeiroAcessoV({ user, onConcluido }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <style>{css}</style>
       <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
         <img src="/IMG_2408.PNG" alt="" style={{ width: 160, mixBlendMode: 'screen', display: 'block', margin: '0 auto 24px' }} />
         <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Crie sua senha</div>
@@ -1352,7 +1367,6 @@ function ConfirmadoV({ encId, onVoltar }) {
 
   return (
     <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <style>{css}</style>
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
 
@@ -1485,7 +1499,6 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
 
 return (
   <div style={{ minHeight: '100vh', background: '#000' }}>
-    <style>{css}</style>
     <div style={{ background: '#000', borderBottom: '1px solid #1a1a1a', padding: '14px 16px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 50 }}>
       <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
     </div>
@@ -1621,7 +1634,6 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
 
   return (
     <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <style>{css}</style>
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 180, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
 
@@ -1706,7 +1718,6 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
         paddingBottom: 48,
       }}
     >
-      <style>{css}</style>
       <img
         src="/campo.jpg"
         alt=""
@@ -2077,7 +2088,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 40 }}>
-      <style>{css}</style>
 
       {duplicado && !dupConfirmado && !dupTermoPendente && !dupPagamento && (
         <div className="scrim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>
@@ -2554,7 +2564,6 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 60 }}>
-      <style>{css}</style>
 
       {/* Modal: a foto já tem frente e verso? */}
       {modalVerso && (
@@ -2974,7 +2983,6 @@ function Termo({ cpf, onVoltar }) {
     if (assinado)
     return (
       <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <style>{css}</style>
         <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
           <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
           <CheckCircle2 size={48} color={G.green} style={{ marginBottom: 12 }} />
@@ -3006,7 +3014,6 @@ function Termo({ cpf, onVoltar }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 60 }}>
-      <style>{css}</style>
       <div
         style={{
           background: "#000",
@@ -3628,7 +3635,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
       )}
 
       {lista.length === 0 && (
-        <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+        <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
           Nenhum encontrista aqui.
         </div>
       )}
@@ -3777,6 +3784,7 @@ function ServoRestV({ user, encH, encM, t }) {
 
       {todos.length === 0 && (
         <div
+          className="empty"
           style={{
             color: G.tm,
             textAlign: "center",
@@ -3946,7 +3954,6 @@ function ServoRestV({ user, encH, encM, t }) {
 
       return (
         <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 40 }}>
-          <style>{css}</style>
           <div style={{
             background: "#000",
             borderBottom: "1px solid #1a1a1a",
@@ -4936,7 +4943,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               </div>
 
               {diasOrdenados.length === 0 ? (
-                <div style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum cadastro nesse período.</div>
+                <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum cadastro nesse período.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {diasOrdenados.map(([dia, qtd]) => (
@@ -4955,7 +4962,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Por Célula</div>
               </div>
               {celulasOrdenadas.length === 0 ? (
-                <div style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum inscrito ainda.</div>
+                <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum inscrito ainda.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {celulasOrdenadas.map(([celula, qtd]) => (
@@ -5334,6 +5341,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         />
         {lista.length === 0 && (
           <div
+            className="empty"
             style={{
               color: G.tm,
               textAlign: "center",
@@ -5356,6 +5364,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               borderRadius: 13,
               padding: "12px 14px",
               marginBottom: 7,
+              transition: "border-color var(--d-base) var(--e-out)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
@@ -5400,9 +5409,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  transition: "border-color var(--d-fast) var(--e-out), background var(--d-fast) var(--e-out)",
                 }}
               >
-                {c.ok ? "✓" : ""}
+                {/* o ✓ nasce com escala: no dia do encontro esta é a ação mais
+                    repetida, e sem isso não há confirmação de que o toque pegou */}
+                {c.ok ? <span className="pop" style={{ display: "block", lineHeight: 1 }}>✓</span> : ""}
               </button>
               <div style={{ flex: 1 }}>
                 <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
@@ -6223,7 +6235,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         {/* lista */}
         <div style={{ marginTop: 8 }}>
           {lista.length === 0 && (
-            <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+            <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
               Nenhum encontrista encontrado.
             </div>
           )}
@@ -6990,6 +7002,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
         {on.length === 0 && (
           <div
+            className="empty"
             style={{
               color: G.tm,
               textAlign: "center",
@@ -7201,7 +7214,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       </div>
 
       {grupos.length === 0 && (
-        <div style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
+        <div className="empty" style={{ color: G.tm, textAlign: 'center', padding: 28, fontSize: 13 }}>
           Nenhuma restrição cadastrada ainda.
         </div>
       )}
@@ -12356,7 +12369,6 @@ export default function App() {
           padding: 24,
         }}
       >
-        <style>{css}</style>
         <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
           <img
             src="/IMG_2408.PNG"
@@ -12533,7 +12545,6 @@ export default function App() {
 
     return (
       <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
-        <style>{css}</style>
         {toast && <Toast key={toast.k} m={toast.m} tp={toast.tp} saindo={toast.saindo} />}
         {menuP.montado && (
           <div style={{ position: "fixed", inset: 0, zIndex: 200 }} className={menuP.saindo ? "out" : undefined}>
@@ -12922,7 +12933,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
-      <style>{css}</style>
       {toast && <Toast key={toast.k} m={toast.m} tp={toast.tp} saindo={toast.saindo} />}
       {menuP.montado && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200 }} className={menuP.saindo ? "out" : undefined}>

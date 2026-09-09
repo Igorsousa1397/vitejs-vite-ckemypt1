@@ -12,6 +12,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Encontro com Deus" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- A fonte era carregada por @import dentro da folha de estilo do app, o que
+         serializa as buscas: baixa o CSS, só então descobre a fonte, só então a
+         baixa. Aqui as duas correm em paralelo desde o HTML. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap"
+    />
     <style>
       html, body { margin: 0; padding: 0; background: #0a0a0a; }
       #root { min-height: 100vh; width: 100%; }
