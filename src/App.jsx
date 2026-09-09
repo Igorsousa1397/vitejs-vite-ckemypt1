@@ -2748,6 +2748,29 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           }
         </label>
 
+        {/* Sem os documentos em mãos a pessoa costuma abandonar aqui. Este aviso
+            existe porque o caminho de volta e real: em JaInscritoV, um CPF cujo
+            termoAssinado ainda e falso cai de novo nesta mesma tela. */}
+        <div
+          style={{
+            background: "rgba(10,132,255,.08)",
+            border: "1px solid rgba(10,132,255,.25)",
+            borderRadius: 14,
+            padding: "13px 15px",
+            marginBottom: 20,
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+          }}
+        >
+          <span style={{ fontSize: 15, lineHeight: 1.4, flexShrink: 0 }}>💡</span>
+          <div style={{ color: "rgba(255,255,255,.75)", fontSize: 13, lineHeight: 1.6 }}>
+            Não está com os documentos agora? Sem problema — sua inscrição já está guardada.
+            Volte quando puder, toque em <strong style={{ color: "#fff" }}>“Já se inscreveu?”</strong> na
+            tela inicial e informe seu CPF: você cai direto aqui para enviar as fotos e seguir para o pagamento.
+          </div>
+        </div>
+
         <button
           onClick={assinar}
           disabled={saving}
