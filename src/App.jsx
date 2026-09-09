@@ -975,7 +975,6 @@ const LABELS = {
   crac: "Crachás",
   saude: "Saúde",
   cozinha: "Cozinha",
-  equipes: "Equipes",
   back: "Back Office",
   uniformes: "Uniformes",
   termo: "Termo",
@@ -4180,7 +4179,7 @@ function ServoRestV({ user, encH, encM, t }) {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, esc, users, qh, qm, on, liderMapOverrides }) {
+  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, users, qh, qm, on, liderMapOverrides }) {
     const [cartasGlobais, setCartasGlobais] = useState([]);
     useEffect(() => {
       const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
@@ -8690,171 +8689,6 @@ function CozinhaV({ edit, t, users }) {
   );
 }
   // ── EQUIPES ──────────────────────────────────────────────────────────────────
-  function EqV({ esc, setEsc, uEs, edit, t }) {
-    const [sh, setSh] = useState(false);
-    const [f, setF] = useState({ equipe: "", tipo: "ministerio", resp: "" });
-    const tC = { ministerio: "#0a84ff", staff: "#ff9f0a" };
-    return (
-      <div>
-        {edit && (
-          <>
-            <button
-              onClick={() => setSh(!sh)}
-              style={
-                sh
-                  ? BK({
-                      width: "100%",
-                      padding: 12,
-                      marginBottom: 14,
-                      borderRadius: 13,
-                    })
-                  : BG({
-                      width: "100%",
-                      padding: 12,
-                      marginBottom: 14,
-                      borderRadius: 13,
-                    })
-              }
-            >
-              {sh ? "✕ Cancelar" : "＋ Nova Equipe"}
-            </button>
-            {sh && (
-              <div
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 14,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                <input
-                  style={I}
-                  placeholder="Nome *"
-                  value={f.equipe}
-                  onChange={(e) => setF({ ...f, equipe: e.target.value })}
-                />
-                <select
-                  style={I}
-                  value={f.tipo}
-                  onChange={(e) => setF({ ...f, tipo: e.target.value })}
-                >
-                  <option value="ministerio">Ministério</option>
-                  <option value="staff">Staff</option>
-                </select>
-                <input
-                  style={I}
-                  placeholder="Responsável"
-                  value={f.resp}
-                  onChange={(e) => setF({ ...f, resp: e.target.value })}
-                />
-                <button
-                  onClick={async () => {
-                    if (!f.equipe.trim()) return;
-                    await addDoc(collection(db, "equipes"), {
-                      ...f,
-                      servos: [],
-                    });
-                    setF({ equipe: "", tipo: "ministerio", resp: "" });
-                    setSh(false);
-                    t("Criado!");
-                  }}
-                  style={BG({ padding: 12, borderRadius: 12 })}
-                >
-                  Criar
-                </button>
-              </div>
-            )}
-          </>
-        )}
-        {esc.map((eq) => (
-          <Acc
-            key={eq.id}
-            title={eq.equipe}
-            right={
-              <Pill
-                c={eq.tipo === "ministerio" ? "Ministério" : "Staff"}
-                bg={`${tC[eq.tipo]}18`}
-                tc={tC[eq.tipo]}
-              />
-            }
-            onDel={
-              edit
-                ? async () => {
-                    try {
-                      await deleteDoc(doc(db, "equipes", eq.id));
-                      t("Removido.");
-                    } catch (err) {
-                      console.error("Erro ao remover equipe:", err);
-                      t(msgErroExclusao(err), "w");
-                    }
-                  }
-                : undefined
-            }
-          >
-            <SL c="Responsável" mt={0} />
-            <input
-              style={I}
-              placeholder="Responsável..."
-              value={eq.resp}
-              onChange={(e) =>
-                uEs(eq.id, (x) => ({ ...x, resp: e.target.value }))
-              }
-            />
-            <SL c="Membros" />
-            {eq.servos.length > 0 ? (
-              <Tags
-                items={eq.servos || []}
-                ax={tC[eq.tipo]}
-                onX={
-                  edit
-                    ? async (i) => {
-                        const novos = (eq.servos || []).filter(
-                          (_, j) => j !== i,
-                        );
-                        await setDoc(
-                          doc(db, "equipes", eq.id),
-                          { servos: novos },
-                          { merge: true },
-                        );
-                      }
-                    : undefined
-                }
-              />
-            ) : (
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 12,
-                  fontStyle: "italic",
-                  margin: "4px 0 8px",
-                }}
-              >
-                Nenhum
-              </div>
-            )}
-            {edit && (
-              <AddIn
-                ph="Adicionar membro..."
-                onAdd={async (n) => {
-                  await setDoc(
-                    doc(db, "equipes", eq.id),
-                    { servos: [...(eq.servos || []), n] },
-                    { merge: true },
-                  );
-                  t("✓");
-                }}
-                mt={8}
-              />
-            )}
-          </Acc>
-        ))}
-      </div>
-    );
-  }
   // ── Toggle Component ─────────────────────────────────────────────────────────
   function Toggle({
     val,
@@ -9064,7 +8898,7 @@ function CozinhaV({ edit, t, users }) {
       </>
     );
   }
-  function SvV({ users, setUsers, esc, edit, t, dataLimitePagamento }) {
+  function SvV({ users, setUsers, edit, t, dataLimitePagamento }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
     const [filtroSexo, setFiltroSexo] = useState("todos");
@@ -9082,10 +8916,6 @@ function CozinhaV({ edit, t, users }) {
     });
     const [filtro, setFiltro] = useState("todos"); // mantido por compatibilidade
     const [loading, setLoading] = useState(false);
-    const fnsDasEquipes = useMemo(
-      () => [...new Set(esc.filter((e) => e.equipe).map((e) => e.equipe))],
-      [esc],
-    );
     const [busca, setBusca] = useState("");
     const upd = (id, fn) =>
       setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
@@ -12010,7 +11840,6 @@ export default function App() {
     })();
   }, []);
 
-  const [esc, setEsc] = useState([]);
   const [qh, setQh] = useState(QH_INIT);
   const [qm, setQm] = useState(QM_INIT);
   const [on, setOn] = useState(ON_INIT);
@@ -12065,7 +11894,6 @@ export default function App() {
   const unsubQMRef = useRef(null);
   const unsubOnRef = useRef(null);
   const unsubUsersRef = useRef(null);
-  const unsubEscRef = useRef(null);
   const unsubSauRef = useRef(null);
   const enviando = useRef(false);
   const enviandoAviso = useRef(false);
@@ -12187,10 +12015,6 @@ export default function App() {
           setScr("app");
           if (data.perfil === "servo") setPg("smins");
 
-          unsubEscRef.current = onSnapshot(collection(db, "equipes"), (s) => {
-            setEsc(s.docs.map((d) => ({ id: d.id, ...d.data() })));
-          });
-
           unsubConfigRef.current = onSnapshot(doc(db, "config", "uniformes"), (s) => {
             if (s.exists()) {
               if (s.data().dataLimite) setDataLimiteUni(s.data().dataLimite);
@@ -12297,7 +12121,6 @@ export default function App() {
         unsubQMRef.current?.();
         unsubOnRef.current?.();
         unsubUsersRef.current?.();
-        unsubEscRef.current?.();
         unsubSauRef.current?.();
         unsubPermRef.current?.();
         setScr("welcome");
@@ -12315,7 +12138,6 @@ export default function App() {
       unsubQMRef.current?.();
       unsubOnRef.current?.();
       unsubUsersRef.current?.();
-      unsubEscRef.current?.();
     };
   }, []);
 
@@ -12365,7 +12187,6 @@ export default function App() {
     unsubQMRef.current?.();
     unsubOnRef.current?.();
     unsubUsersRef.current?.();
-    unsubEscRef.current?.();
     unsubOcorrRef.current?.();
     await signOut(auth);
     setUser(null);
@@ -12405,7 +12226,6 @@ export default function App() {
   const uQH = (n, fn) => setQh(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uQM = (n, fn) => setQm(prev => prev.map((q) => (q.num === n ? fn(q) : q)));
   const uOn = (n, fn) => setOn(on.map((o) => (o.num === n ? fn(o) : o)));
-  const uEs = (id, fn) => setEsc(esc.map((e) => (e.id === id ? fn(e) : e)));
   const broadcast = (msg) => {
     if (
       notif &&
@@ -12828,7 +12648,6 @@ export default function App() {
             uni={uni}
             dataLimiteUni={dataLimiteUni}
             dataLimitePagamento={dataLimitePagamento}
-            esc={esc}
             users={users}
             qh={qh}
             qm={qm}
@@ -13307,20 +13126,10 @@ export default function App() {
             t={showT}
           />
         )}
-        {pg === "equipes" && (
-          <EqV
-            esc={esc}
-            setEsc={setEsc}
-            uEs={uEs}
-            edit={canG(role)}
-            t={showT}
-          />
-        )}
         {pg === "servos" && (
           <SvV
             users={users}
             setUsers={setUsers}
-            esc={esc}
             edit={isAdm}
             t={showT}
             dataLimitePagamento={dataLimitePagamento}
