@@ -2753,8 +2753,8 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
             termoAssinado ainda e falso cai de novo nesta mesma tela. */}
         <div
           style={{
-            background: "rgba(10,132,255,.08)",
-            border: "1px solid rgba(10,132,255,.25)",
+            background: "rgba(255,159,10,.08)",
+            border: "1px solid rgba(255,159,10,.3)",
             borderRadius: 14,
             padding: "13px 15px",
             marginBottom: 20,
