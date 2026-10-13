@@ -900,60 +900,47 @@ const LOUÇA_INIT = [
     s: ["Ev. Caíque", "João Clesio", "Davi", "Valter"],
   },
 ];
-const USERS_INIT = [
-  {
-    id: 1,
-    nome: "Admin",
-    senha: "admin123",
-    perfil: "admin",
-    primeiro: false,
-    funcoes: [],
-    ativo: true,
-    pago: true,
-  },
-  {
-    id: 2,
-    nome: "Pr. Eliel",
-    senha: "123456",
-    perfil: "pastor",
-    primeiro: true,
-    funcoes: [],
-    ativo: true,
-    pago: true,
-  },
-  {
-    id: 3,
-    nome: "Thamires Lima",
-    senha: "123456",
-    perfil: "lider_geral",
-    primeiro: true,
-    funcoes: [],
-    ativo: true,
-    pago: false,
-  },
-  {
-    id: 4,
-    nome: "Silas Costa",
-    senha: "123456",
-    perfil: "lider_staff",
-    primeiro: true,
-    funcoes: ["Banheiro"],
-    ativo: true,
-    pago: true,
-  },
-  {
-    id: 5,
-    nome: "Caio Silva",
-    senha: "123456",
-    perfil: "servo",
-    primeiro: true,
-    funcoes: ["Som"],
-    ativo: false,
-    pago: false,
-  },
-];
 const UNI_INIT = [];
 const DATA_LIMITE_UNI = "2025-12-01";
+// Valores de inscrição em PIX/boleto. Cartão de crédito = PIX + 5%.
+// Mantenha alinhado com os padrões em functions/index.js (criarPagamento).
+const VALORES = {
+  encontrista: 390,
+  encontristaItajai: 200,
+  servo: 250, // servo, staff e líderes (exceto pastor/pastor auxiliar/líder geral, que são isentos)
+  cozinha: 150,
+};
+const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
+const isEncItajai = (e) => e?.igreja === "Fonte Itajaí" || e?.celula === "Peniel - Santa Catarina";
+const valorEncPix = (e) => (isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista);
+const valorServoPix = (perfil) => (perfil === "cozinha" ? VALORES.cozinha : VALORES.servo);
+const fmtReal = (v) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+
+// Cloud Functions. `comAuth` manda o ID token do usuário logado — as functions
+// que mexem em servos/uniformes/notificações exigem isso.
+const FN_URL = "https://us-central1-servos-peniel.cloudfunctions.net";
+const authHeaders = async () => {
+  try {
+    const tk = await auth.currentUser?.getIdToken();
+    return tk ? { Authorization: `Bearer ${tk}` } : {};
+  } catch { return {}; }
+};
+const chamarFn = async (nome, body, comAuth = false) => {
+  const res = await fetch(`${FN_URL}/${nome}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(comAuth ? await authHeaders() : {}) },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+  return data;
+};
+// Abre o checkout do Mercado Pago; o valor é calculado pela function.
+const irParaPagamento = async (encontristaId, tipo, extra = {}, comAuth = false) => {
+  const data = await chamarFn("criarPagamento", { encontristaId, tipo, ...extra }, comAuth);
+  if (data.init_point) window.location.href = data.init_point;
+  else throw new Error("Erro ao gerar pagamento.");
+};
 const CK_INIT = [
   { id: 1, nome: "Ana Paula Santos", gen: "M", ok: true, on: "1" },
   { id: 2, nome: "Maria Fernanda", gen: "M", ok: false, on: null },
@@ -1423,9 +1410,7 @@ function ConfirmadoV({ encId, onVoltar }) {
 
   useEffect(() => {
     if (!encId) return;
-    getDoc(doc(db, 'encontristas', encId)).then(snap => {
-      if (snap.exists()) setNome(snap.data().nome || '');
-    });
+    chamarFn('statusInscricao', { id: encId }).then(d => setNome(d.nome || '')).catch(() => {});
   }, [encId]);
 
   return (
@@ -1511,7 +1496,7 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
       <PagamentoV
         encId={encId}
         nome={encontrista.nome}
-        igreja={encontrista.igreja}
+        encontrista={encontrista}
         onVoltar={() => { setDone(false); setEncontrista(null); setBusca(''); }}
         onPago={() => setEncontrista({ ...encontrista, pago: true })}
       />
@@ -1523,32 +1508,27 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
     setErro('');
     setEncontrista(null);
     try {
-      const snap = await getDocs(collection(db, 'encontristas'));
-      const limpo = busca.replace(/\D/g, '');
-      const found = snap.docs.find(d => {
-        const data = d.data();
-        return (
-          data.cpf === limpo ||
-          data.whatsapp?.replace(/\D/g, '') === limpo
-        );
-      });
-      if (found) {
-        const data = found.data();
+      // a function devolve só o necessário (sem baixar a coleção inteira)
+      let data = null;
+      try { data = (await chamarFn('buscarInscricao', { busca })).encontrista; } catch (err) {
+        if (!/não encontrada/i.test(err.message)) throw err;
+      }
+      if (data) {
         if (data.pago) {
-          setEncId(found.id);
+          setEncId(data.id);
           setConfirmado(true);
         } else if (bloqueadas) {
-          setEncId(found.id);
-          setEncontrista({ id: found.id, ...data });
+          setEncId(data.id);
+          setEncontrista(data);
           // Inscrições encerradas: mostra status, mas não libera pagamento
         } else if (!data.termoAssinado) {
           // Termo ainda não assinado: redireciona para assinar antes do pagamento
-          setEncId(found.id);
-          setEncontrista({ id: found.id, ...data });
+          setEncId(data.id);
+          setEncontrista(data);
           setTermoPendente(true);
         } else {
-          setEncId(found.id);
-          setEncontrista({ id: found.id, ...data });
+          setEncId(data.id);
+          setEncontrista(data);
           setDone(true);
         }
       } else {
@@ -1648,29 +1628,20 @@ return (
                 Sua inscrição foi encontrada mas o pagamento ainda não foi confirmado. Gere o link abaixo para concluir.
               </div>
               {(() => {
-                const isItajai = encontrista.igreja === 'Fonte Itajaí';
-                const valPix = isItajai ? 200 : 360;
-                const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 384;
+                const valPix = valorEncPix(encontrista);
+                const valCredito = comCredito(valPix);
                 return (<>
                   <button onClick={async () => {
                     vibrar(50);
-                    try {
-                      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'pix', valor: valPix }) });
-                      const data = await res.json();
-                      if (data.init_point) window.location.href = data.init_point;
-                      else setMsgPagamento('Erro ao gerar pagamento.');
-                    } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
+                    try { await irParaPagamento(encontrista.id, 'pix'); }
+                    catch (err) { setMsgPagamento(err.message || 'Erro ao gerar pagamento.'); }
                   }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: '#009ee3' }}>
                     PIX ou Boleto — R$ {valPix.toFixed(2).replace('.', ',')}
                   </button>
                   <button onClick={async () => {
                     vibrar(50);
-                    try {
-                      const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: encontrista.id, nome: encontrista.nome, email: '', tipo: 'credito', valor: valCredito }) });
-                      const data = await res.json();
-                      if (data.init_point) window.location.href = data.init_point;
-                      else setMsgPagamento('Erro ao gerar pagamento.');
-                    } catch { setMsgPagamento('Erro ao gerar pagamento.'); }
+                    try { await irParaPagamento(encontrista.id, 'credito'); }
+                    catch (err) { setMsgPagamento(err.message || 'Erro ao gerar pagamento.'); }
                   }} style={{ ...BG({ width: '100%', padding: 16, borderRadius: 14, fontSize: 15 }), background: '#009ee3' }}>
                     Cartão de Crédito — R$ {valCredito.toFixed(2).replace('.', ',')}
                   </button>
@@ -1689,11 +1660,10 @@ return (
 );
 }
 
-function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
+function PagamentoV({ encId, nome, encontrista, onVoltar, onPago }) {
   const [msgPagamento, setMsgPagamento] = useState('');
-  const isItajai = igreja === 'Fonte Itajaí';
-  const valPix = isItajai ? 200 : 360;
-  const valCredito = isItajai ? Math.ceil(200 / 0.9501 * 100) / 100 : 384;
+  const valPix = valorEncPix(encontrista);
+  const valCredito = comCredito(valPix);
 
   return (
     <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -1709,29 +1679,15 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
 
         <button onClick={async () => {
           vibrar(50);
-          try {
-            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'pix', valor: valPix }),
-            });
-            const data = await res.json();
-            if (data.init_point) window.location.href = data.init_point;
-            else alert('Erro ao gerar pagamento.');
-          } catch { alert('Erro ao gerar pagamento.'); }
+          try { await irParaPagamento(encId, 'pix'); }
+          catch (err) { setMsgPagamento(err.message || 'Erro ao gerar pagamento.'); }
         }} style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 8 }), background: "#009ee3" }}>
           PIX ou Boleto — R$ {valPix.toFixed(2).replace('.', ',')}
         </button>
         <button onClick={async () => {
           vibrar(50);
-          try {
-            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encontristaId: encId, nome, email: '', tipo: 'credito', valor: valCredito }),
-            });
-            const data = await res.json();
-            if (data.init_point) window.location.href = data.init_point;
-            else alert('Erro ao gerar pagamento.');
-          } catch { alert('Erro ao gerar pagamento.'); }
+          try { await irParaPagamento(encId, 'credito'); }
+          catch (err) { setMsgPagamento(err.message || 'Erro ao gerar pagamento.'); }
         }} style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15, marginBottom: 12 }), background: "#009ee3" }}>
           Cartão de Crédito — R$ {valCredito.toFixed(2).replace('.', ',')}
         </button>
@@ -1743,8 +1699,9 @@ function PagamentoV({ encId, nome, igreja, onVoltar, onPago }) {
         </div>
         <button onClick={async () => {
           if (!encId) { setMsgPagamento('ID não encontrado. Tente novamente.'); return; }
-          const snap = await getDoc(doc(db, 'encontristas', encId));
-          if (snap.exists() && snap.data().pago) {
+          let st = null;
+          try { st = await chamarFn('statusInscricao', { id: encId }); } catch {}
+          if (st?.pago) {
             onPago();
           } else {
             setMsgPagamento('Pagamento ainda não confirmado. Aguarde alguns instantes e tente novamente.');
@@ -1978,24 +1935,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     if (cpfLimpo.length !== 11) { alert("CPF inválido. Deve ter 11 dígitos."); enviandoRef.current = false; return; }
 
     setSaving(true);
-    let snap;
-    try {
-      snap = await getDocs(collection(db, "encontristas"));
-    } catch (err) {
-      console.error("Erro ao verificar CPF:", err);
-      alert("Erro ao verificar CPF: " + err.message);
-      setSaving(false);
-      enviandoRef.current = false;
-      return;
-    }
-    const cpfDoc = snap.docs.find((d) => d.data().cpf === cpfLimpo);
-    if (cpfDoc) {
-      setDuplicado({ id: cpfDoc.id, ...cpfDoc.data() });
-      setContagem(5);
-      setSaving(false);
-      enviandoRef.current = false;
-      return;
-    }
 
     // --- 2) Demais campos obrigatórios ---
     if (!form.igreja) { alert("Selecione sua igreja."); setSaving(false); enviandoRef.current = false; return; }
@@ -2021,42 +1960,20 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     if (idade < 14) { alert("É necessário ter pelo menos 14 anos para se inscrever."); setSaving(false); enviandoRef.current = false; return; }
 
     try {
-      const waLimpo = form.whatsapp.replace(/\D/g, "");
-      const waExiste = snap.docs.some((d) => d.data().whatsapp?.replace(/\D/g, "") === waLimpo);
-      if (waExiste) { alert("Este WhatsApp já está cadastrado!"); setSaving(false); enviandoRef.current = false; return; }
+      // A function valida de novo, checa CPF/WhatsApp duplicado, grava o
+      // encontrista (e a ficha de saúde) e avisa a liderança.
+      const data = await chamarFn("inscrever", { form: { ...form, cpf: cpfLimpo } });
 
-      const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() || "Outra" : form.igreja;
-      const docRef = await addDoc(collection(db, "encontristas"), {
-        ...form,
-        igreja: igrejaFinal,
-        emergencia: `${form.emergenciaNome} — ${form.emergenciaTel}`,
-        cpf: cpfLimpo,
-        criadoEm: new Date().toLocaleString("pt-BR"),
-      });
-
-      if (form.temMedicamento === 'Sim' || form.temDoenca === 'Sim') {
-        await addDoc(collection(db, 'saude'), {
-          encontristaId: docRef.id,
-          nome: form.nome,
-          quarto: '',
-          cond: [
-            form.temMedicamento === 'Sim' ? `Medicamento: ${form.medicamento}` : null,
-            form.temDoenca === 'Sim' ? `Doença: ${form.doenca}` : null,
-          ].filter(Boolean).join(' | '),
-          obs: '',
-          criadoEm: new Date().toLocaleString('pt-BR'),
-        });
+      // CPF já cadastrado: redireciona para a etapa em que a inscrição parou
+      if (data.duplicado) {
+        setDuplicado(data.duplicado);
+        setContagem(5);
+        setSaving(false);
+        enviandoRef.current = false;
+        return;
       }
 
-      try {
-        await fetch('https://us-central1-servos-peniel.cloudfunctions.net/notificarNovaInscricao', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome: form.nome, encontristaId: docRef.id }),
-        });
-      } catch {}
-
-      setEncId(docRef.id);
+      setEncId(data.id);
       setDone(true);
     } catch (err) {
       console.error("Erro ao salvar:", err);
@@ -2084,7 +2001,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     <PagamentoV
       encId={duplicado.id}
       nome={duplicado.nome}
-      igreja={duplicado.igreja}
+      encontrista={duplicado}
       onVoltar={onVoltar}
       onPago={() => setDupConfirmado(true)}
     />
@@ -2105,7 +2022,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     <PagamentoV
       encId={encId}
       nome={form.nome}
-      igreja={form.igreja === 'Outra' ? form.igrejaCustom : form.igreja}
+      encontrista={{ igreja: form.igreja === 'Outra' ? form.igrejaCustom : form.igreja, celula: form.celula }}
       onVoltar={onVoltar}
       // repassa para o onPago do App (que grava o encId e navega). Antes isto
       // chamava setScr direto, que não existe aqui — dava ReferenceError e o
@@ -2585,9 +2502,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
     if (!fotoRosto) { alert("Tire uma selfie para validar."); return; }
 
     setSaving(true);
-    const agora = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
     const endCompleto = `${end}, ${num}, ${comp}`;
-    const termoTexto = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.\n\nA autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 20, 21 e 22 de novembro de 2026.\n\nTambém concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.\n\nPor fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
 
     let urlDoc = null, urlVerso = null, urlRosto = null;
     try { urlDoc = await uploadFoto(fotoFrente, `termos/${encId}/documento_frente`); }
@@ -2601,23 +2516,13 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
     try { urlRosto = await uploadFoto(fotoRosto, `termos/${encId}/selfie`); }
     catch (err) { setSaving(false); alert("Erro ao enviar selfie: " + err.message); return; }
 
+    // a function grava o termo no encontrista e na coleção `termos`
     try {
-      await setDoc(doc(db, "encontristas", encId), {
-        endereco: endCompleto, termoAssinado: true, termoAssinadoEm: agora,
-        fotoDocumento: urlDoc, fotoDocumentoVerso: urlVerso || null, fotoRosto: urlRosto,
-      }, { merge: true });
-    } catch (err) { setSaving(false); alert("Erro ao salvar seus dados: " + err.message); return; }
-
-    try {
-      const nomeCompleto = form.nome?.trim() || "";
-      const igrejaFinal = form.igreja === "Outra" ? form.igrejaCustom?.trim() : form.igreja;
-      await addDoc(collection(db, "termos"), {
-        encontristaId: encId, nome: nomeCompleto, cpf: form.cpf?.replace(/[\.\-]/g, ""),
-        endereco: endCompleto, sexo: form.sexo, igreja: igrejaFinal,
-        autorizaImagem: form.autorizaImagem, assinadoEm: agora, termoTexto,
+      await chamarFn("assinarTermo", {
+        id: encId, endereco: endCompleto,
         fotoDocumento: urlDoc, fotoDocumentoVerso: urlVerso || null, fotoRosto: urlRosto,
       });
-    } catch (err) { console.error("Erro ao salvar termo:", err); }
+    } catch (err) { setSaving(false); alert("Erro ao salvar seus dados: " + err.message); return; }
 
     setSaving(false);
     onAssinado();
@@ -2821,6 +2726,7 @@ function Termo({ cpf, onVoltar }) {
   const [loadCep, setLoadCep] = useState(false);
   const [aceite, setAceite] = useState(false);
   const [assinado, setAssinado] = useState(false);
+  const [termoSalvo, setTermoSalvo] = useState(null);
   const [saving, setSaving] = useState(false);
   const [fotoDoc, setFotoDoc] = useState(null);
   const [fotoRosto, setFotoRosto] = useState(null);
@@ -2896,20 +2802,12 @@ function Termo({ cpf, onVoltar }) {
     const buscar = async () => {
       const cpfLimpo = cpf.replace(/\D/g, "");
       try {
-        // Query direta por cpf — muito mais rápida que baixar toda a coleção
-        const q = query(collection(db, "encontristas"), where("cpf", "==", cpfLimpo), limit(1));
-        const snap = await getDocs(q);
-        let found = snap.docs[0];
-
-        // Fallback: se não achou (ex: cpf salvo com formatação diferente), tenta busca completa
-        if (!found) {
-          const snapAll = await getDocs(collection(db, "encontristas"));
-          found = snapAll.docs.find((d) => d.data().cpf === cpfLimpo);
+        let data = null;
+        try { data = (await chamarFn("buscarInscricao", { busca: cpfLimpo })).encontrista; } catch (err) {
+          if (!/não encontrada/i.test(err.message)) throw err;
         }
-
-        if (found) {
-          const data = found.data();
-          setEnc({ id: found.id, ...data });
+        if (data) {
+          setEnc(data);
           if (data.termoAssinado) setAssinado(true);
           if (data.rg) setRg(data.rg);
           if (data.endereco) setEnd(data.endereco);
@@ -2937,15 +2835,7 @@ function Termo({ cpf, onVoltar }) {
     if (!fotoRosto) { alert("Tire uma selfie para validar."); return; }
     setSaving(true);
     
-    const agora = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
     const endCompleto = `${end}, ${num}, ${comp}`;
-    const termoTexto = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
-
-      A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 20, 21 e 22 de novembro de 2026.
-
-      Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.
-
-      Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
 
     let urlDoc = null;
     let urlRosto = null;
@@ -2968,28 +2858,19 @@ function Termo({ cpf, onVoltar }) {
       return;
     }
 
+    // a function grava o termo no encontrista e na coleção `termos`, e devolve
+    // o termo salvo para o botão "Baixar meu termo"
     try {
-      await setDoc(doc(db, "encontristas", enc.id), {
-        rg, endereco: endCompleto, termoAssinado: true, termoAssinadoEm: agora,
+      const data = await chamarFn("assinarTermo", {
+        id: enc.id, rg, endereco: endCompleto,
         fotoDocumento: urlDoc, fotoRosto: urlRosto,
-      }, { merge: true });
+      });
+      setTermoSalvo(data.termo || null);
     } catch (err) {
       console.error("Erro ao salvar encontrista:", err);
       setSaving(false);
       alert("Erro ao salvar seus dados: " + (err.message || "tente novamente.") + "\n\nVerifique sua conexão e tente outra vez.");
       return;
-    }
-
-    try {
-      await addDoc(collection(db, "termos"), {
-        encontristaId: enc.id, nome: enc.nome, cpf: enc.cpf, rg,
-        endereco: endCompleto, sexo: enc.sexo, igreja: enc.igreja,
-        autorizaImagem: enc.autorizaImagem, assinadoEm: agora, termoTexto,
-        fotoDocumento: urlDoc, fotoRosto: urlRosto,
-      });
-    } catch (err) {
-      console.error("Erro ao salvar termo:", err);
-      alert("Erro termo: " + err.message);
     }
 
     setAssinado(true);
@@ -3078,10 +2959,8 @@ function Termo({ cpf, onVoltar }) {
           </div>
           <button
             onClick={async () => {
-              const snap = await getDocs(collection(db, "termos"));
-              const termoDoc = snap.docs.find(d => d.data().encontristaId === enc.id);
-              if (!termoDoc) { alert("Termo não encontrado."); return; }
-              await exportarPDF({ id: termoDoc.id, ...termoDoc.data() });
+              if (!termoSalvo) { alert("Termo não encontrado. Se você já tinha assinado antes, peça o PDF à liderança."); return; }
+              await exportarPDF(termoSalvo);
             }}
             style={{ ...BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 12 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
@@ -4017,7 +3896,7 @@ function ServoRestV({ user, encH, encM, t }) {
         },
         {
           p: "Quanto custa e como pagar?",
-          r: "O valor do encontro é de R$ 360,00 no PIX ou boleto, e R$ 384,00 no cartão de crédito, o pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5% (R$ 384,00). O pagamento deve ser realizado pela plataforma Mercado Pago."
+          r: `O valor do encontro é de ${fmtReal(VALORES.encontrista)} no PIX ou boleto, e ${fmtReal(comCredito(VALORES.encontrista))} no cartão de crédito, o pagamento via cartão de crédito aceita parcelamento em até 12x com acréscimo de 5%. O pagamento deve ser realizado pela plataforma Mercado Pago.`
         },
         {
           p: "O que devo levar para o evento?",
@@ -4364,11 +4243,10 @@ function ServoRestV({ user, encH, encM, t }) {
                       </div>
                     )}
                     {slideAtual?.tipo === "pagamento" && (() => {
-                    const depois = new Date() > new Date("2026-06-01T03:00:00");
-                    const pixValor    = role === "cozinha" ? (depois ? 100  : 80)  : (depois ? 220  : 200);
-                    const creditoValor = role === "cozinha" ? (depois ? 105  : 84)  : (depois ? 231  : 210);
-                    const pixLabel    = `R$ ${pixValor.toFixed(2).replace(".", ",")}`;
-                    const creditoLabel = `R$ ${creditoValor.toFixed(2).replace(".", ",")}`;
+                    const pixValor    = valorServoPix(role);
+                    const creditoValor = comCredito(pixValor);
+                    const pixLabel    = fmtReal(pixValor);
+                    const creditoLabel = fmtReal(creditoValor);
 
                     return (
                       <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
@@ -4377,27 +4255,15 @@ function ServoRestV({ user, encH, encM, t }) {
                         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
                         <button onClick={async () => {
                           vibrar(50);
-                          try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                              method: 'POST', headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_pix', valor: pixValor })
-                            });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                          try { await irParaPagamento(user.id, 'servo_pix', { email: user.email || '' }, true); }
+                          catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>
                           PIX ou Boleto — {pixLabel}
                         </button>
                         <button onClick={async () => {
                           vibrar(50);
-                          try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', {
-                              method: 'POST', headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'servo_credito', valor: creditoValor })
-                            });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                          try { await irParaPagamento(user.id, 'servo_credito', { email: user.email || '' }, true); }
+                          catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>
                           Cartão de Crédito — {creditoLabel}
                         </button>
@@ -4697,11 +4563,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const META_ENC = 140;
   const todosEnc = [...encH, ...encM];
-  const VALOR_ENC = 360;
-  const VALOR_ENC_ITAJAI = 200;
+  const VALOR_ENC = VALORES.encontrista;
+  const VALOR_ENC_ITAJAI = VALORES.encontristaItajai;
   const getValorEnc = (e) => {
     if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);
-    return (e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina') ? VALOR_ENC_ITAJAI : VALOR_ENC;
+    return valorEncPix(e);
   };
   const encPagosLista = todosEnc.filter(e => e.pago);
   const encPendentesLista = todosEnc.filter(e => !e.pago && !e.desistiu);
@@ -4735,21 +4601,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     u.perfil !== 'admin'
   );
 
-  // Data de corte para valor do servo (meia-noite Brasília = 03:00 UTC)
-  const depoisCorte = new Date() > new Date("2026-06-01T03:00:00");
-  const valorServoPix      = depoisCorte ? 220 : 200;
-  const valorServoCreditoM = depoisCorte ? 231 : 210; // médio: média pix+credito p/ projeção
-  const valorCozinhaPix    = depoisCorte ? 100 : 80;
-
-  const CORTE = new Date("2026-06-01T03:00:00");
-  const getValorServo = (u) => {
-    // Usa pagoEm se disponível, senão assume que pagou depois do corte
-    const pagoEm = u.pagoEm ? new Date(u.pagoEm) : null;
-    const antesDoCorte = pagoEm ? pagoEm < CORTE : false;
-    if (u.perfil === 'cozinha') return antesDoCorte ? 80 : 100;
-    // servo, staff, líderes (exceto geral/pastor) → mesmo valor
-    return antesDoCorte ? 200 : 220;
-  };
+  // servo, staff, líderes (exceto geral/pastor) → mesmo valor; cozinha tem o seu
+  const getValorServo = (u) => valorServoPix(u.perfil);
 
   const servosPagos     = servos.filter(u => !isAbonadoPorPerfilDash(u) && u.pago === true);
   const servosAbonados  = servos.filter(u => isAbonadoPorPerfilDash(u) || u.pago === 'abonado');
@@ -5009,7 +4862,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   </div>
                 )}
                 <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
-                  * R${valorServoPix}/servo·staff·líder e R${valorCozinhaPix}/cozinha (PIX). Abonados não contabilizados.
+                  * R${VALORES.servo}/servo·staff·líder e R${VALORES.cozinha}/cozinha (PIX). Abonados não contabilizados.
                 </div>
               </div>
             </div>
@@ -5815,11 +5668,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               );
                               try {
                                 await fetch(
-                                  "https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio",
+                                  `${FN_URL}/notificarMinisterio`,
                                   {
                                     method: "POST",
                                     headers: {
                                       "Content-Type": "application/json",
+                                      ...(await authHeaders()),
                                     },
                                     body: JSON.stringify({
                                       titulo: `🙏 ${m.nome}`,
@@ -6559,15 +6413,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         onClick={async () => {
                           if (st === "pendente") {
                             try {
-                              const res = await fetch(
-                                "https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento",
-                                {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ encontristaId: e.id, nome: e.nome, email: "" }),
-                                },
-                              );
-                              const data = await res.json();
+                              const data = await chamarFn("criarPagamento", { encontristaId: e.id, tipo: "pix" }, true);
                               if (data.init_point) {
                                 const msg = `${msgPendente(e.nome)}\n\npara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}`;
                                 window.location.href = `${wa}?text=${encodeURIComponent(msg)}`;
@@ -9007,10 +8853,10 @@ function CozinhaV({ edit, t, users }) {
       try {
         const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
         const res = await fetch(
-          "https://us-central1-servos-peniel.cloudfunctions.net/criarServo",
+          `${FN_URL}/criarServo`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...(await authHeaders()) },
             body: JSON.stringify({
               email: f.email.trim(),
               nome: nm,
@@ -10584,22 +10430,17 @@ function CozinhaV({ edit, t, users }) {
                         <button onClick={async () => {
                           vibrar(50);
                           try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_pix', valor: totalPedido() * 0.5, descricao: 'Uniforme Servo — Restante 50%' }) });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                            await irParaPagamento(user.id, 'uniforme_integral_pix', { email: user.email || '' }, true);
+                          } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Pagar restante — R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
                         </button>
                         <div style={{ color: G.tm, fontSize: 11, textAlign: "center" }}>Cartão de Crédito (+5%)</div>
                         <button onClick={async () => {
                           vibrar(50);
-                          const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
                           try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_credito', valor: valorCartao, descricao: 'Uniforme Servo — Restante 50% Crédito' }) });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                            await irParaPagamento(user.id, 'uniforme_integral_credito', { email: user.email || '' }, true);
+                          } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Pagar restante — R$ {(Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
                         </button>
@@ -10612,43 +10453,33 @@ function CozinhaV({ edit, t, users }) {
                         <button onClick={async () => {
                           vibrar(50);
                           try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_sinal_pix', valor: totalPedido() * 0.5, descricao: 'Uniforme Servo — Sinal 50%' }) });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                            await irParaPagamento(user.id, 'uniforme_sinal_pix', { email: user.email || '' }, true);
+                          } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Sinal — R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
                         </button>
                         <button onClick={async () => {
                           vibrar(50);
                           try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_pix', valor: totalPedido(), descricao: 'Uniforme Servo — Pagamento Integral' }) });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                            await irParaPagamento(user.id, 'uniforme_integral_pix', { email: user.email || '' }, true);
+                          } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Integral — R$ {totalPedido().toFixed(2).replace(".", ",")}
                         </button>
                         <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 4, marginBottom: 4 }}>Cartão de Crédito (+5%)</div>
                         <button onClick={async () => {
                           vibrar(50);
-                          const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
                           try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_sinal_credito', valor: valorCartao, descricao: 'Uniforme Servo — Sinal 50% Crédito' }) });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                            await irParaPagamento(user.id, 'uniforme_sinal_credito', { email: user.email || '' }, true);
+                          } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Sinal — R$ {(Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
                         </button>
                         <button onClick={async () => {
                           vibrar(50);
-                          const valorCartao = Math.ceil(totalPedido() / 0.9501 * 100) / 100;
                           try {
-                            const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_credito', valor: valorCartao, descricao: 'Uniforme Servo — Pagamento Integral Crédito' }) });
-                            const data = await res.json();
-                            if (data.init_point) window.location.href = data.init_point;
-                          } catch { alert('Erro ao gerar pagamento.'); }
+                            await irParaPagamento(user.id, 'uniforme_integral_credito', { email: user.email || '' }, true);
+                          } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                         }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                           Integral — R$ {(Math.ceil(totalPedido() / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
                         </button>
@@ -10688,22 +10519,17 @@ function CozinhaV({ edit, t, users }) {
                     <button onClick={async () => {
                       vibrar(50);
                       try {
-                        const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_pix', valor: totalPedido() * 0.5, descricao: 'Uniforme Servo — Restante 50%' }) });
-                        const data = await res.json();
-                        if (data.init_point) window.location.href = data.init_point;
-                      } catch { alert('Erro ao gerar pagamento.'); }
+                        await irParaPagamento(user.id, 'uniforme_integral_pix', { email: user.email || '' }, true);
+                      } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                     }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                       Pagar restante — R$ {(totalPedido() * 0.5).toFixed(2).replace(".", ",")}
                     </button>
                     <div style={{ color: G.tm, fontSize: 11, textAlign: "center" }}>Cartão de Crédito (+5%)</div>
                     <button onClick={async () => {
                       vibrar(50);
-                      const valorCartao = Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100;
                       try {
-                        const res = await fetch('https://us-central1-servos-peniel.cloudfunctions.net/criarPagamento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ encontristaId: user.id, nome: user.nome, email: user.email || '', tipo: 'uniforme_integral_credito', valor: valorCartao, descricao: 'Uniforme Servo — Restante 50% Crédito' }) });
-                        const data = await res.json();
-                        if (data.init_point) window.location.href = data.init_point;
-                      } catch { alert('Erro ao gerar pagamento.'); }
+                        await irParaPagamento(user.id, 'uniforme_integral_credito', { email: user.email || '' }, true);
+                      } catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
                     }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 12 }), background: "#009ee3" }}>
                       Pagar restante — R$ {(Math.ceil((totalPedido() * 0.5) / 0.9501 * 100) / 100).toFixed(2).replace(".", ",")}
                     </button>
@@ -11968,7 +11794,6 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    console.log("URL params:", window.location.search);
     // Termo digital
     const termo = params.get("termo");
     const cpf = params.get("cpf");
@@ -11990,8 +11815,8 @@ export default function App() {
     const pago = params.get("pago");
     const id = params.get("id");
     const statusMP = params.get("status");
-    console.log('URL params:', window.location.search);
-    const externalRef = params.get("external_reference");
+    // external_reference vem como "<tipo>||<id>||<valor>" — só o id interessa aqui
+    const externalRef = (params.get("external_reference") || "").split("||")[1] || params.get("external_reference");
 
     if (pago === "true" && id) {
       setScr("pagamento_confirmado");
@@ -12257,14 +12082,7 @@ export default function App() {
     enviando.current = true;
     showT(msg, "n");
     try {
-      await fetch(
-        "https://us-central1-servos-peniel.cloudfunctions.net/notificarMinisterio",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ titulo: msg, horario: "", publico }),
-        },
-      );
+      await chamarFn("notificarMinisterio", { titulo: msg, horario: "", publico }, true);
     } catch (err) {
       console.error("Erro ao notificar:", err);
     }

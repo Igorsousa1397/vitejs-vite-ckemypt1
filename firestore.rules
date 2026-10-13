@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function logado() {
+      return request.auth != null;
+    }
+    function meuDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function ativo() {
+      return logado() && meuDoc().ativo != false;
+    }
+    function perfil() {
+      return meuDoc().perfil;
+    }
+    function isAdmin() {
+      return ativo() && perfil() in ['admin', 'lider_geral'];
+    }
+    // Lideranças que editam dados do evento (encontristas, quartos, ônibus, check-in...)
+    function isLider() {
+      return ativo() && (
+        perfil() in ['admin', 'lider_geral', 'pastor', 'pastor_auxiliar']
+        || perfil().matches('lider_.*')
+      );
+    }
+    // Telas extras liberadas individualmente pelo admin (users.telasExtra)
+    function temTelaExtra(tela) {
+      return ativo() && tela in meuDoc().get('telasExtra', []);
+    }
+    function mudouAlgum(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
+    }
+    function soMudou(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
+    }
+
+    // ── users ────────────────────────────────────────────────────────────────
+    // Todo servo logado lê a lista (o app monta equipes, quartos e líderes com ela).
+    // O próprio usuário só altera campos de perfil; status de pagamento, perfil,
+    // ativo e telas extras são só do admin (o webhook grava via Admin SDK).
+    match /users/{uid} {
+      allow read: if ativo();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || (ativo() && request.auth.uid == uid
+            && soMudou(['primeiro', 'restricoes', 'cpf', 'nascimento', 'sexo', 'telefone', 'whatsapp', 'foto']));
+      allow delete: if isAdmin();
+    }
+
+    // ── encontristas ─────────────────────────────────────────────────────────
+    // Fluxos públicos (inscrição, consulta, termo, QR) passam pelas Cloud
+    // Functions. Aqui só a liderança logada. Dinheiro e status só pelo admin.
+    match /encontristas/{id} {
+      allow read: if ativo();
+      allow create: if isAdmin() || temTelaExtra('enc');
+      allow update: if (isLider() || temTelaExtra('enc') || temTelaExtra('checkin')
+                        || temTelaExtra('quartos') || temTelaExtra('onibus'))
+        && (isAdmin() || !mudouAlgum(['pago', 'pagamentoId', 'pagoEm', 'pagoValor', 'acordo', 'valorAcordado', 'desistiu', 'pagarDepois', 'pagarDepoisData']));
+      allow delete: if isAdmin();
+    }
+
+    // Termos assinados são criados pelas functions.
+    match /termos/{id} {
+      allow read: if isLider() || temTelaExtra('enc') || temTelaExtra('checkin');
+      allow write: if false;
+    }
+    // Fichas de saúde: a inscrição pública cria via function; a tela Saúde
+    // (liderança ou tela extra 'saude') cria, edita e remove pelo app.
+    match /saude/{id} {
+      allow read: if ativo();
+      allow create, update, delete: if isLider() || temTelaExtra('saude');
+    }
+
+    // ── uniformes ────────────────────────────────────────────────────────────
+    // Cada servo mexe no próprio pedido; pago/sinal só pelo webhook ou admin.
+    match /uniformes/{uid} {
+      allow read: if ativo();
+      allow create, delete: if isAdmin() || (ativo() && request.auth.uid == uid);
+      allow update: if isAdmin()
+        || (ativo() && request.auth.uid == uid && !mudouAlgum(['pagoSinal', 'pagoIntegral', 'pagamentoSinalId', 'pagamentoIntegralId']));
+    }
+
+    // Token de push: cada um grava só o seu; ninguém lê pelo cliente.
+    match /tokens/{uid} {
+      allow read: if false;
+      allow write: if ativo() && request.auth.uid == uid;
+    }
+
+    // ── config ───────────────────────────────────────────────────────────────
+    // Leitura pública: a tela de inscrição precisa saber se está bloqueada.
+    match /config/{doc} {
+      allow read: if true;
+      // o app cria config/agenda com a lista padrão no primeiro acesso de qualquer servo
+      allow create: if ativo();
+      allow update, delete: if isLider();
+    }
+    match /permissoes/{perfil} {
+      allow read: if ativo();
+      allow write: if ativo() && perfil() == 'admin';
+    }
+
+    // ── operação do evento (qualquer servo ativo) ─────────────────────────────
+    match /avisos/{id}            { allow read, write: if ativo(); }
+    match /cartas/{id}            { allow read, write: if ativo(); }
+    match /cozinha/{id}           { allow read, write: if ativo(); }
+    match /cozinha_cardapio/{id}  { allow read, write: if ativo(); }
+    match /cozinha_estoque/{id}   { allow read, write: if ativo(); }
+    match /ocorrencias/{id}       { allow read, write: if ativo(); }
+    match /testemunhos/{id}       { allow read, write: if ativo(); }
+    match /onibus/{id}            { allow read: if ativo(); allow write: if isLider() || temTelaExtra('onibus'); }
+    match /quartos_h/{id}         { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
+    match /quartos_m/{id}         { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
+
+    // pagamentos (log do webhook) e _notif_dedupe: só Admin SDK.
+    // Qualquer coleção não listada acima fica negada.
+  }
+}
