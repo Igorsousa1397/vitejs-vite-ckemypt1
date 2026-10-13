@@ -8147,11 +8147,49 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     );
   }
   // ── SAÚDE ────────────────────────────────────────────────────────────────────
-  function SauV({ sau, setSau, edit, t }) {
+  function SauV({ sau, edit, t }) {
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({ nome: "", quarto: "", cond: "", obs: "" });
+    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+
+    const adicionar = async () => {
+      if (!f.nome.trim() || !f.cond.trim()) return;
+      try {
+        await addDoc(collection(db, "saude"), {
+          nome: f.nome.trim(),
+          quarto: f.quarto.trim(),
+          cond: f.cond.trim(),
+          obs: f.obs.trim(),
+          criadoEm: new Date().toLocaleString("pt-BR"),
+        });
+        setF({ nome: "", quarto: "", cond: "", obs: "" });
+        setSh(false);
+        t("Registrado!");
+      } catch (err) {
+        console.error("Erro ao registrar ficha de saúde:", err);
+        t(
+          err?.code === "permission-denied"
+            ? "Sem permissão para registrar."
+            : `Erro ao salvar: ${err?.code || err?.message || "desconhecido"}`,
+          "w",
+        );
+      }
+    };
+
+    const remover = async (s) => {
+      if (!(await pedirConfirmacao(`Excluir o registro de ${s.nome}?`))) return;
+      try {
+        await deleteDoc(doc(db, "saude", s.id));
+        t("Removido.");
+      } catch (err) {
+        console.error("Erro ao remover ficha de saúde:", err);
+        t(msgErroExclusao(err), "w");
+      }
+    };
+
     return (
       <div>
+        {dialogoConfirmacao}
         <div
           style={{
             background: "rgba(255,59,48,.07)",
@@ -8229,13 +8267,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
               onChange={(e) => setF({ ...f, obs: e.target.value })}
             />
             <button
-              onClick={() => {
-                if (!f.nome || !f.cond) return;
-                setSau([...sau, { id: Date.now(), ...f }]);
-                setF({ nome: "", quarto: "", cond: "", obs: "" });
-                setSh(false);
-                t("Registrado!");
-              }}
+              onClick={adicionar}
               style={BG({ padding: 12, borderRadius: 12 })}
             >
               Salvar
@@ -8308,9 +8340,9 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                   </div>
                 )}
               </div>
-              {/* {edit && (
+              {edit && (
                 <span
-                  onClick={() => setSau(sau.filter((x) => x.id !== s.id))}
+                  onClick={() => remover(s)}
                   style={{
                     color: "rgba(255,59,48,.4)",
                     cursor: "pointer",
@@ -8320,7 +8352,7 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
                 >
                   ×
                 </span>
-              )} */}
+              )}
             </div>
           </div>
         ))}
@@ -12844,7 +12876,7 @@ export default function App() {
             temPermissao("cozinha") ? <CozinhaV edit={isAdm || canExtra("cozinha")} t={showT} users={users} /> : <TelaRestrita />
           )}
           {pg === "ssaude" && (
-            <SauV sau={sau} setSau={setSau} edit={isAdm || canExtra("saude")} t={showT} />
+            <SauV sau={sau} edit={isAdm || canExtra("saude")} t={showT} />
           )}
         </div>
       </div>
@@ -13120,7 +13152,7 @@ export default function App() {
         )}
         {pg === "termo" && <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} />}
         {pg === "saude" && (
-          <SauV sau={sau} setSau={setSau} edit={canG(role)} t={showT} />
+          <SauV sau={sau} edit={canG(role)} t={showT} />
         )}
         {pg === "cozinha" && (
           <CozinhaV edit={canC(role)} t={showT} users={users} />
