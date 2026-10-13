@@ -479,12 +479,33 @@ Por fim, declara que toda participação foi voluntária, em conformidade com a 
 
 const urlStorageValida = (u) => typeof u === 'string' && /^https:\/\/firebasestorage\.googleapis\.com\//.test(u);
 
+const BUCKET = 'servos-peniel.firebasestorage.app';
+const FOTOS_TERMO = ['documento_frente', 'documento_verso', 'documento', 'selfie'];
+
+// O encontrista sobe a foto direto no Storage (sem login) e manda só o caminho.
+// A leitura das fotos é restrita à liderança, então quem monta a URL com token
+// é a function, pelo Admin SDK — getDownloadURL no cliente dava "unauthorized".
+// Só aceita caminhos dentro da pasta da própria inscrição.
+async function urlDaFoto(id, caminho) {
+  if (!caminho) return null;
+  if (!FOTOS_TERMO.some((n) => caminho === `termos/${id}/${n}`)) throw new Error('caminho inválido');
+  const file = admin.storage().bucket(BUCKET).file(caminho);
+  const [existe] = await file.exists();
+  if (!existe) throw new Error('arquivo não encontrado');
+  const [meta] = await file.getMetadata();
+  let token = String((meta.metadata && meta.metadata.firebaseStorageDownloadTokens) || '').split(',')[0];
+  if (!token) {
+    token = crypto.randomUUID();
+    await file.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } });
+  }
+  return `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(caminho)}?alt=media&token=${token}`;
+}
+
 exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-  const { id, rg, endereco, fotoDocumento, fotoDocumentoVerso, fotoRosto } = req.body || {};
-  if (!id || !texto(endereco) || !urlStorageValida(fotoDocumento) || !urlStorageValida(fotoRosto)) {
-    return res.status(400).json({ error: 'Dados do termo incompletos.' });
-  }
+  const b = req.body || {};
+  const { id, rg, endereco } = b;
+  if (!id || !texto(endereco)) return res.status(400).json({ error: 'Dados do termo incompletos.' });
   try {
     const ref = db.collection('encontristas').doc(texto(id, 64));
     const snap = await ref.get();
@@ -492,13 +513,25 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
     const e = snap.data();
     if (e.termoAssinado) return res.status(400).json({ error: 'Termo já assinado.' });
 
+    // fotos: o front manda caminhos (`...Path`); uma URL do Storage já pronta também vale
+    const foto = (url, caminho) => (urlStorageValida(url) ? Promise.resolve(url) : urlDaFoto(ref.id, caminho));
+    let fotoDocumento, fotoDocumentoVerso, fotoRosto;
+    try {
+      fotoDocumento = await foto(b.fotoDocumento, b.fotoDocumentoPath);
+      fotoDocumentoVerso = await foto(b.fotoDocumentoVerso, b.fotoDocumentoVersoPath);
+      fotoRosto = await foto(b.fotoRosto, b.fotoRostoPath);
+    } catch (err) {
+      return res.status(400).json({ error: `Foto do termo: ${err.message}` });
+    }
+    if (!fotoDocumento || !fotoRosto) return res.status(400).json({ error: 'Envie a foto do documento e a selfie.' });
+
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo' });
     const upd = {
       endereco: texto(endereco, 300),
       termoAssinado: true,
       termoAssinadoEm: agora,
       fotoDocumento,
-      fotoDocumentoVerso: urlStorageValida(fotoDocumentoVerso) ? fotoDocumentoVerso : null,
+      fotoDocumentoVerso: fotoDocumentoVerso || null,
       fotoRosto,
     };
     if (texto(rg)) upd.rg = texto(rg, 30);

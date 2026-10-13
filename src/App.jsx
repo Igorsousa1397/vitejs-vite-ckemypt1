@@ -31,7 +31,7 @@ const carregarExcelJS = () => import("exceljs").then((m) => m.default ?? m);
 const carregarJsPDF = () => import("jspdf").then((m) => m.default ?? m);
 const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrcode);
 import ReactDOM from "react-dom";
-import { storage, ref, uploadBytes, getDownloadURL } from "./firebase";
+import { storage, ref, uploadBytes } from "./firebase";
 import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
 
 const vibrar = (ms = 50) => {
@@ -258,6 +258,9 @@ const tipoArquivo = (f) => {
   if (nome.endsWith(".heic") || nome.endsWith(".heif")) return "image/heic";
   return "image/jpeg";
 };
+// PDF não passa pela compressão de imagem. Decidido pelo tipo OU pela extensão,
+// porque o iOS às vezes entrega o File com `type` vazio.
+const ehPdf = (f) => f?.type === "application/pdf" || (f?.name || "").toLowerCase().endsWith(".pdf");
 
 // Check desenhado em traço (círculo, depois o tique) para as telas de "deu
 // certo": pagamento confirmado e termo assinado.
@@ -2527,7 +2530,9 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
 
   const comprimirImagem = (file) =>
     new Promise((resolve) => {
-      if (!file.type.startsWith("image/") || file.size < 1.5 * 1024 * 1024) { resolve(file); return; }
+      // tenta comprimir tudo que não é PDF (type vazio no iOS não pode pular a
+      // compressão: a foto crua estourava o limite do Storage); se não decodificar, vai cru
+      if (ehPdf(file) || file.size < 1.5 * 1024 * 1024) { resolve(file); return; }
       const img = document.createElement("img");
       const url = URL.createObjectURL(file);
       img.onload = () => {
@@ -2545,11 +2550,13 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
       img.src = url;
     });
 
+  // Sobe a foto e devolve o caminho no Storage. A URL com token é montada pela
+  // function assinarTermo: a leitura das fotos é só da liderança, então um
+  // getDownloadURL aqui (sem login) dava "unauthorized".
   const uploadFoto = async (file, caminho) => {
     const arq = await comprimirImagem(file);
-    const r = ref(storage, caminho);
-    await uploadBytes(r, arq, { contentType: tipoArquivo(arq) });
-    return await getDownloadURL(r);
+    await uploadBytes(ref(storage, caminho), arq, { contentType: tipoArquivo(arq) });
+    return caminho;
   };
 
   const buscarCep = async (valor) => {
@@ -2594,23 +2601,23 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
     setSaving(true);
     const endCompleto = `${end}, ${num}, ${comp}`;
 
-    let urlDoc = null, urlVerso = null, urlRosto = null;
-    try { urlDoc = await uploadFoto(fotoFrente, `termos/${encId}/documento_frente`); }
+    let docPath = null, versoPath = null, rostoPath = null;
+    try { docPath = await uploadFoto(fotoFrente, `termos/${encId}/documento_frente`); }
     catch (err) { setSaving(false); alert("Erro ao enviar foto do documento: " + err.message); return; }
 
     if (precisaVerso && fotoVerso) {
-      try { urlVerso = await uploadFoto(fotoVerso, `termos/${encId}/documento_verso`); }
+      try { versoPath = await uploadFoto(fotoVerso, `termos/${encId}/documento_verso`); }
       catch (err) { setSaving(false); alert("Erro ao enviar verso do documento: " + err.message); return; }
     }
 
-    try { urlRosto = await uploadFoto(fotoRosto, `termos/${encId}/selfie`); }
+    try { rostoPath = await uploadFoto(fotoRosto, `termos/${encId}/selfie`); }
     catch (err) { setSaving(false); alert("Erro ao enviar selfie: " + err.message); return; }
 
-    // a function grava o termo no encontrista e na coleção `termos`
+    // a function confere as fotos no Storage, monta as URLs e grava o termo
     try {
       await chamarFn("assinarTermo", {
         id: encId, endereco: endCompleto,
-        fotoDocumento: urlDoc, fotoDocumentoVerso: urlVerso || null, fotoRosto: urlRosto,
+        fotoDocumentoPath: docPath, fotoDocumentoVersoPath: versoPath, fotoRostoPath: rostoPath,
       });
     } catch (err) { setSaving(false); alert("Erro ao salvar seus dados: " + err.message); return; }
 
@@ -2824,17 +2831,19 @@ function Termo({ cpf, onVoltar }) {
   const [previewDoc, setPreviewDoc] = useState(null);
   const [previewRosto, setPreviewRosto] = useState(null);
 
+  // Sobe a foto e devolve o caminho no Storage; a URL com token é montada pela
+  // function assinarTermo (a leitura das fotos é só da liderança).
   const uploadFoto = async (file, caminho) => {
     const arquivo = await comprimirImagemSeNecessario(file);
-    const storageRef = ref(storage, caminho);
-    await uploadBytes(storageRef, arquivo, { contentType: tipoArquivo(arquivo) });
-    return await getDownloadURL(storageRef);
+    await uploadBytes(ref(storage, caminho), arquivo, { contentType: tipoArquivo(arquivo) });
+    return caminho;
   };
 
   const comprimirImagemSeNecessario = (file) => {
     return new Promise((resolve) => {
-      // PDFs e arquivos já pequenos (<1.5MB) não precisam de compressão
-      if (!file.type.startsWith("image/") || file.size < 1.5 * 1024 * 1024) {
+      // PDFs e arquivos já pequenos (<1.5MB) não precisam de compressão. Não
+      // decide pelo `type` (no iOS pode vir vazio); se não decodificar, vai cru.
+      if (ehPdf(file) || file.size < 1.5 * 1024 * 1024) {
         resolve(file);
         return;
       }
@@ -2928,11 +2937,11 @@ function Termo({ cpf, onVoltar }) {
     
     const endCompleto = `${end}, ${num}, ${comp}`;
 
-    let urlDoc = null;
-    let urlRosto = null;
+    let docPath = null;
+    let rostoPath = null;
 
     try {
-      urlDoc = await uploadFoto(fotoDoc, `termos/${enc.id}/documento`);
+      docPath = await uploadFoto(fotoDoc, `termos/${enc.id}/documento`);
     } catch (err) {
       console.error("Erro ao enviar foto do documento:", err);
       setSaving(false);
@@ -2941,7 +2950,7 @@ function Termo({ cpf, onVoltar }) {
     }
 
     try {
-      urlRosto = await uploadFoto(fotoRosto, `termos/${enc.id}/selfie`);
+      rostoPath = await uploadFoto(fotoRosto, `termos/${enc.id}/selfie`);
     } catch (err) {
       console.error("Erro ao enviar selfie:", err);
       setSaving(false);
@@ -2954,7 +2963,7 @@ function Termo({ cpf, onVoltar }) {
     try {
       const data = await chamarFn("assinarTermo", {
         id: enc.id, rg, endereco: endCompleto,
-        fotoDocumento: urlDoc, fotoRosto: urlRosto,
+        fotoDocumentoPath: docPath, fotoRostoPath: rostoPath,
       });
       setTermoSalvo(data.termo || null);
     } catch (err) {
