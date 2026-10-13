@@ -251,7 +251,7 @@ const BK = (x = {}) => ({
 // com `type` vazio e aí o Storage recebia o arquivo sem contentType (a rule
 // barrava e a foto não abria no painel). Cai para jpeg/pdf pela extensão.
 const tipoArquivo = (f) => {
-  if (f?.type) return f.type;
+  if (f?.type && f.type !== "application/octet-stream") return f.type;
   const nome = (f?.name || "").toLowerCase();
   if (nome.endsWith(".pdf")) return "application/pdf";
   if (nome.endsWith(".png")) return "image/png";

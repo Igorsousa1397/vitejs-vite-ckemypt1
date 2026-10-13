@@ -1,6 +1,11 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
+// Assume na hora: sem isso a versão nova só entrava quando todas as abas/PWA
+// fechassem, e o celular seguia com o SW antigo (que duplicava a notificação).
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 firebase.initializeApp({
   apiKey: "AIzaSyCC5a-yhc0myEnlhcs5pgCXOSx1h6b5CmU",
   authDomain: "servos-peniel.firebaseapp.com",
@@ -10,30 +15,24 @@ firebase.initializeApp({
   appId: "1:743267134560:web:b3a1b2282eb3970f856705"
 });
 
-const messaging = firebase.messaging();
+// Só inicializar o messaging já registra o listener de push do SDK, que exibe
+// a notificação sozinho quando o payload traz `notification` (ícone e link de
+// abertura vêm do servidor — functions/index.js, enviarPush).
+//
+// NÃO registrar onBackgroundMessage com showNotification aqui: o SDK exibe a
+// notificação E depois chama esse handler, então cada aviso chegava duas
+// vezes no celular.
+firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification;
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-  });
-});
-
+// Clique: para notificações do FCM o SDK trata (foca o app aberto ou abre o
+// link) e barra os outros listeners. Este fallback vale só para notificações
+// que não vieram do FCM.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
-});
-
-self.addEventListener('push', (event) => {
-  // Se o app está em foreground (cliente focado), não mostra a notificação do SW
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      const focused = clientList.some((c) => c.focused);
-      if (focused) return; // app aberto e focado — FCM já entrega direto
-      // se não está focado, deixa o onBackgroundMessage cuidar
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
+      const aberta = lista.find((c) => 'focus' in c);
+      return aberta ? aberta.focus() : clients.openWindow('/');
     })
   );
 });

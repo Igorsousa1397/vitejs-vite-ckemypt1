@@ -1,7 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const VERSION = 'v1.0.2';
+const VERSION = 'v1.0.3';
 
 // Força atualização ao instalar nova versão
 self.addEventListener('install', (event) => {
@@ -31,13 +31,9 @@ firebase.initializeApp({
   appId: "1:743267134560:web:b3a1b2282eb3970f856705"
 });
 
-const messaging = firebase.messaging();
-messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification;
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-  });
-});
+// O push normalmente chega no /firebase-messaging-sw.js (é ele que o getToken
+// registra). Inicializar o messaging aqui só garante que, se alguma assinatura
+// antiga estiver presa a este SW, o SDK exiba a notificação do mesmo jeito.
+// Sem onBackgroundMessage + showNotification: o SDK já exibe o payload
+// `notification` sozinho, e o handler manual fazia a notificação chegar em dobro.
+firebase.messaging();

@@ -112,6 +112,47 @@ function mpRequest(options, body) {
   });
 }
 
+// Envia push para uma lista de { uid, token }. O mesmo celular pode estar salvo
+// em mais de um usuário (admin e pastor no mesmo aparelho, por exemplo), então
+// o envio é por token único. Tokens que o FCM devolve como mortos são apagados
+// para a coleção não acumular lixo.
+//
+// Vai só `notification` (+ ícone e link em webpush): o SDK no service worker
+// exibe a notificação sozinho. O SW não pode chamar showNotification também,
+// senão cada aviso chega duas vezes.
+async function enviarPush(destinos, titulo, corpo) {
+  const porToken = new Map();
+  destinos.forEach(({ uid, token }) => {
+    if (!token) return;
+    if (!porToken.has(token)) porToken.set(token, []);
+    porToken.get(token).push(uid);
+  });
+  const tokens = [...porToken.keys()];
+  if (!tokens.length) return 0;
+
+  const resp = await admin.messaging().sendEachForMulticast({
+    tokens,
+    notification: { title: titulo, body: corpo },
+    webpush: {
+      notification: { icon: `${APP_URL}/icon-192.png`, badge: `${APP_URL}/icon-192.png`, vibrate: [200, 100, 200] },
+      fcmOptions: { link: APP_URL }, // toque abre/foca o app (o SDK cuida)
+    },
+  });
+
+  const mortos = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'];
+  const apagar = [];
+  resp.responses.forEach((r, i) => {
+    if (!r.success && mortos.includes(r.error?.code)) {
+      porToken.get(tokens[i]).forEach((uid) => apagar.push(db.collection('tokens').doc(uid).delete()));
+    }
+  });
+  if (apagar.length) await Promise.allSettled(apagar);
+  if (tokens.length !== destinos.length) {
+    console.log(`push: ${destinos.length} destinos, ${tokens.length} aparelhos únicos`);
+  }
+  return resp.successCount;
+}
+
 async function notificarAdminsNovaInscricao(encontristaId, nome) {
   // Idempotência: se já notificamos esse encontrista, não envia de novo
   const dedupeRef = db.collection('_notif_dedupe').doc(encontristaId);
@@ -123,17 +164,10 @@ async function notificarAdminsNovaInscricao(encontristaId, nome) {
     usersSnap.docs.filter((d) => ['admin', 'pastor'].includes(d.data().perfil)).map((d) => d.id),
   );
   const tokensSnap = await db.collection('tokens').get();
-  const tokens = tokensSnap.docs
+  const destinos = tokensSnap.docs
     .filter((d) => adminPastorIds.has(d.id))
-    .map((d) => d.data().token)
-    .filter(Boolean);
-  if (!tokens.length) return 0;
-
-  const response = await admin.messaging().sendEachForMulticast({
-    notification: { title: '🙏 Nova inscrição!', body: `${nome} acabou de se inscrever no Encontro com Deus.` },
-    tokens,
-  });
-  return response.successCount;
+    .map((d) => ({ uid: d.id, token: d.data().token }));
+  return enviarPush(destinos, '🙏 Nova inscrição!', `${nome} acabou de se inscrever no Encontro com Deus.`);
 }
 
 // ── CRIAR PAGAMENTO MERCADO PAGO ─────────────────────────────────────────────
@@ -506,9 +540,9 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
     if (!titulo) return res.status(400).json({ error: 'titulo obrigatório' });
 
     const tokensSnap = await db.collection('tokens').get();
-    // 1 token por documento (ID do doc = userId), sem duplicatas
-    let pares = tokensSnap.docs
-      .map((d) => ({ userId: d.id, token: d.data().token }))
+    // 1 documento por usuário (ID do doc = userId); enviarPush deduplica por aparelho
+    let destinos = tokensSnap.docs
+      .map((d) => ({ uid: d.id, token: d.data().token }))
       .filter((p) => p.token);
 
     if (publico === 'homens' || publico === 'mulheres') {
@@ -516,18 +550,14 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
       const usersSnap = await db.collection('users').get();
       const sexoPorId = {};
       usersSnap.docs.forEach((d) => { sexoPorId[d.id] = d.data().sexo; });
-      pares = pares.filter((p) => sexoPorId[p.userId] === sexoAlvo);
+      destinos = destinos.filter((p) => sexoPorId[p.uid] === sexoAlvo);
     }
 
-    const tokens = pares.map((p) => p.token);
-    if (!tokens.length) return res.json({ enviadas: 0 });
+    if (!destinos.length) return res.json({ enviadas: 0 });
 
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: { title: titulo, body: horario ? `Começa às ${horario}` : 'Toque para ver detalhes.' },
-      tokens,
-    });
-    console.log(`${response.successCount} notificações enviadas por ${u.uid} (${u.perfil}) — público: ${publico || 'todos'}`);
-    res.json({ enviadas: response.successCount });
+    const enviadas = await enviarPush(destinos, titulo, horario ? `Começa às ${horario}` : 'Toque para ver detalhes.');
+    console.log(`${enviadas} notificações enviadas por ${u.uid} (${u.perfil}) — público: ${publico || 'todos'}`);
+    res.json({ enviadas });
   } catch (err) {
     console.error('Erro notificarMinisterio:', err.message);
     res.status(500).json({ error: err.message });
