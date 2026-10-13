@@ -2,10 +2,13 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Fotos do termo (documento + selfie) são enviadas sem login pelo próprio
-    // encontrista; só a liderança logada consegue abrir.
+    // encontrista; só a liderança logada consegue abrir. O iOS às vezes manda
+    // o arquivo sem contentType, então tipo ausente também passa — o app
+    // define o tipo explicitamente no upload, e o limite de tamanho segura o resto.
     match /termos/{encId}/{arquivo} {
       allow write: if request.resource.size < 8 * 1024 * 1024
-                   && (request.resource.contentType.matches('image/.*')
+                   && (request.resource.contentType == null
+                       || request.resource.contentType.matches('image/.*')
                        || request.resource.contentType == 'application/pdf');
       allow read: if request.auth != null;
     }

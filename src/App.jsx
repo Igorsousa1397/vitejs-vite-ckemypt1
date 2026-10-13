@@ -247,6 +247,18 @@ const BK = (x = {}) => ({
   ...x,
 });
 
+// Tipo MIME para o upload das fotos do termo. O iOS às vezes entrega o File
+// com `type` vazio e aí o Storage recebia o arquivo sem contentType (a rule
+// barrava e a foto não abria no painel). Cai para jpeg/pdf pela extensão.
+const tipoArquivo = (f) => {
+  if (f?.type) return f.type;
+  const nome = (f?.name || "").toLowerCase();
+  if (nome.endsWith(".pdf")) return "application/pdf";
+  if (nome.endsWith(".png")) return "image/png";
+  if (nome.endsWith(".heic") || nome.endsWith(".heif")) return "image/heic";
+  return "image/jpeg";
+};
+
 // Check desenhado em traço (círculo, depois o tique) para as telas de "deu
 // certo": pagamento confirmado e termo assinado.
 const CheckAnimado = ({ size = 56, color = G.green, style }) => (
@@ -1594,7 +1606,7 @@ return (
       <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
     </div>
 
-    <div style={{ maxWidth: 400, margin: '0 auto', padding: '40px 20px 80px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+    <div style={{ maxWidth: 400, margin: '0 auto', padding: '40px 20px 236px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 160, mixBlendMode: 'screen', display: 'block', margin: '0 auto 16px' }} />
 
       {/* TÍTULO: muda quando encontrista é encontrado */}
@@ -2192,7 +2204,8 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           Inscrição — Encontro com Deus
         </span>
       </div>
-      <div style={{ padding: "20px 20px 0", maxWidth: 480, margin: "0 auto" }}>
+      {/* folga embaixo: os botões flutuantes (ajuda/insta/faq) não cobrem o CTA no fim do scroll */}
+      <div style={{ padding: "20px 20px 236px", maxWidth: 480, margin: "0 auto" }}>
         <div
           style={{
             background: "rgba(0,200,81,.08)",
@@ -2535,7 +2548,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
   const uploadFoto = async (file, caminho) => {
     const arq = await comprimirImagem(file);
     const r = ref(storage, caminho);
-    await uploadBytes(r, arq);
+    await uploadBytes(r, arq, { contentType: tipoArquivo(arq) });
     return await getDownloadURL(r);
   };
 
@@ -2654,7 +2667,8 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, textAlign: "center", flex: 1 }}>Termo de Concordância</div>
         <div style={{ width: 39, flexShrink: 0 }} aria-hidden="true" />
       </div>
-      <div style={{ padding: "24px 20px", maxWidth: 480, margin: "0 auto" }}>
+      {/* folga embaixo: os botões flutuantes não cobrem o CTA no fim do scroll */}
+      <div style={{ padding: "24px 20px 236px", maxWidth: 480, margin: "0 auto" }}>
         <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: "center" }}>
           Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
         </div>
@@ -2813,7 +2827,7 @@ function Termo({ cpf, onVoltar }) {
   const uploadFoto = async (file, caminho) => {
     const arquivo = await comprimirImagemSeNecessario(file);
     const storageRef = ref(storage, caminho);
-    await uploadBytes(storageRef, arquivo);
+    await uploadBytes(storageRef, arquivo, { contentType: tipoArquivo(arquivo) });
     return await getDownloadURL(storageRef);
   };
 
