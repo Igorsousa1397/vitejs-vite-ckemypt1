@@ -157,10 +157,38 @@ button,.press-sc{transition:transform var(--d-fast) var(--e-out)}
 .press:active,button.press:active{transform:none;opacity:.55}
 .press{transition:opacity var(--d-fast) var(--e-out)}
 
+/* ── TEMA: luz, respiro e chegada ────────────────────────────────────────────
+   Loops lentos e discretos (campo da tela inicial, logo da splash, luz atrás
+   do logo) e o check desenhado em traço nas telas de "deu certo". Nada
+   chamativo: o app é de retiro, não de promoção. Só transform e opacity, e
+   nenhum loop em container de tela (ver nota sobre containing block acima). */
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
+@keyframes flutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes luz{0%,100%{opacity:.35}50%{opacity:.8}}
+@keyframes respira{0%,100%{opacity:1}50%{opacity:.72}}
+@keyframes alerta{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes cresce{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes traco{to{stroke-dashoffset:0}}
+/* campo ao fundo num zoom de quase meio minuto — só se percebe parado olhando */
+.hero-bg{animation:kb 28s ease-in-out infinite alternate}
+.hero-luz{animation:luz 7s ease-in-out infinite}
+.hero-logo{animation:fu .6s var(--e-out) backwards,flutua 7s ease-in-out 1s infinite}
+/* a splash pode ficar até 6s na tela: o logo "respira" enquanto o auth responde */
+.splash-logo{animation:pop .5s var(--e-out) backwards,respira 2.8s ease-in-out .6s infinite}
+.alerta{animation:alerta 2.8s ease-in-out infinite}
+/* barras de progresso crescem da esquerda ao montar; depois a largura transiciona */
+.bar{transform-origin:left;animation:cresce .7s var(--e-out) backwards}
+/* check em traço: primeiro o círculo, depois o tique */
+.check-anim{animation:pop .4s var(--e-out) backwards}
+.check-anim circle{stroke-dasharray:166;stroke-dashoffset:166;animation:traco .6s var(--e-out) .1s forwards}
+.check-anim path{stroke-dasharray:40;stroke-dashoffset:40;animation:traco .35s var(--e-out) .55s forwards}
+
 @media (prefers-reduced-motion:reduce){
   :root{--d-fast:.01s;--d-base:.01s;--d-slow:.01s;--d-out:.01s}
   /* animation:none (e não .01s): com fill both o toast pararia em opacity 0 */
-  .fu,.pg,.scr,.tt,.rv,.empty,.pop,.tick,.toast,.scrim,.sheet,.drawer,.splash{animation:none}
+  .fu,.pg,.scr,.tt,.rv,.empty,.pop,.tick,.toast,.scrim,.sheet,.drawer,.splash,.splash-logo,
+  .hero-bg,.hero-luz,.hero-logo,.alerta,.bar,.check-anim{animation:none}
+  .check-anim circle,.check-anim path{animation:none;stroke-dashoffset:0}
   .toast.out,.scrim.out,.sheet.out,.drawer.out{animation:none;opacity:0}
   button:not(:disabled):active,.press-sc:active{transform:none}
 }`;
@@ -218,6 +246,23 @@ const BK = (x = {}) => ({
   cursor: "pointer",
   ...x,
 });
+
+// Check desenhado em traço (círculo, depois o tique) para as telas de "deu
+// certo": pagamento confirmado e termo assinado.
+const CheckAnimado = ({ size = 56, color = G.green, style }) => (
+  <svg className="check-anim" width={size} height={size} viewBox="0 0 56 56" fill="none" aria-hidden="true" style={{ display: "block", margin: "0 auto", ...style }}>
+    <circle cx="28" cy="28" r="26" stroke={color} strokeWidth="3" />
+    <path d="M17 29l8 8 15-16" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// Barra de progresso do painel. Fica no módulo (e não dentro do HomeV) para o
+// React não remontá-la a cada snapshot — senão a animação de entrada replayava.
+const BarPct = ({ val, max, color }) => (
+  <div style={{ background: '#1a1a1a', borderRadius: 4, height: 6, flex: 1 }}>
+    <div className="bar" style={{ background: color, borderRadius: 4, height: 6, width: `${Math.min(100, (val / max) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
+  </div>
+);
 
 const LIDER_MAP_DEFAULT = {
   // Líder Geral (só)
@@ -1151,6 +1196,7 @@ function Login({ onLogin, onVoltar }) {
       <div style={{ width: "100%", maxWidth: 360 }}>
         <div style={{ marginBottom: 36, textAlign: "center" }}>
           <img
+            className="pop"
             src="/IMG_2408.PNG"
             alt="Encontro com Deus"
             style={{
@@ -1418,21 +1464,23 @@ function ConfirmadoV({ encId, onVoltar }) {
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
         <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
 
+        <CheckAnimado style={{ marginBottom: 14 }} />
         {nome ? (
-          <div style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 20 }}>
+          <div className="fu" style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 20, animationDelay: ".3s" }}>
             Olá, {nome.split(' ')[0]} 👋
           </div>
         ) : (
-          <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 20 }}>
+          <div className="fu" style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 20, animationDelay: ".3s" }}>
             Pagamento confirmado!
           </div>
         )}
 
-        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+        <div className="fu" style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24, animationDelay: ".4s" }}>
           Sua vaga está garantida. 🙏
         </div>
 
-        <div style={{ background: "#fff", borderRadius: 20, padding: 20, display: "inline-block", marginBottom: 16 }}>
+        {/* o QR aparece depois do check terminar de desenhar */}
+        <div className="pop" style={{ background: "#fff", borderRadius: 20, padding: 20, display: "inline-block", marginBottom: 16, animationDelay: ".7s" }}>
           <QRCodeCanvas value={encId || "sem-id"} size={200} />
         </div>
 
@@ -1736,9 +1784,11 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
         justifyContent: "center",
         padding: 32,
         paddingBottom: 48,
+        overflow: "hidden", // o campo ao fundo cresce um pouco no zoom lento
       }}
     >
       <img
+        className="hero-bg"
         src="/campo.jpg"
         alt=""
         style={{
@@ -1759,6 +1809,24 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
           zIndex: 1,
         }}
       />
+      {/* luz suave atrás do logo, respirando devagar */}
+      <div
+        className="hero-luz"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "36%",
+          width: 460,
+          height: 460,
+          marginLeft: -230,
+          marginTop: -230,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(255,236,190,.26) 0%, rgba(255,236,190,0) 62%)",
+          zIndex: 1,
+          pointerEvents: "none",
+        }}
+      />
       <div
         style={{
           position: "relative",
@@ -1769,6 +1837,7 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
         }}
       >
         <img
+          className="hero-logo"
           src="/IMG_2408.PNG"
           alt="Encontro com Deus"
           style={{
@@ -1787,6 +1856,7 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
           }}
         >
           <button
+            className="fu"
             onClick={bloqueadas ? undefined : onEncontrista}
             disabled={bloqueadas}
             style={{
@@ -1797,11 +1867,13 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
                 fontSize: 16,
               }),
               ...(bloqueadas ? { background: "#3a3a3a", color: "#888", cursor: "not-allowed" } : {}),
+              animationDelay: ".2s",
             }}
           >
             {bloqueadas ? "Inscrições encerradas" : "Inscrições"}
           </button>
           <button
+            className="fu"
             onClick={onJaInscrito}
             style={{
               ...BK({
@@ -1812,11 +1884,13 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
               }),
               borderColor: "rgba(255,255,255,.3)",
               color: "#fff",
+              animationDelay: ".28s",
             }}
           >
             Já se inscreveu?
           </button>
           <button
+            className="fu"
             onClick={onServos}
             style={{
               ...BK({
@@ -1827,12 +1901,14 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
               }),
               borderColor: "rgba(255,255,255,.3)",
               color: "#fff",
+              animationDelay: ".36s",
             }}
           >
             Servo
           </button>
         </div>
         <img
+          className="fu"
           src="/IMG_2409.PNG"
           alt="Fonte - Comunidade Peniel"
           style={{
@@ -1840,6 +1916,7 @@ function Welcome({ onServos, onEncontrista, onFaq, onJaInscrito, bloqueadas }) {
             mixBlendMode: "screen",
             opacity: 0.8,
             margin: "0 auto",
+            animationDelay: ".48s",
           }}
         />
       </div>
@@ -2952,8 +3029,8 @@ function Termo({ cpf, onVoltar }) {
       <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
           <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 140, mixBlendMode: "screen", display: "block", margin: "0 auto 20px" }} />
-          <CheckCircle2 size={48} color={G.green} style={{ marginBottom: 12 }} />
-          <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Termo assinado!</div>
+          <CheckAnimado style={{ marginBottom: 12 }} />
+          <div className="fu" style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginBottom: 8, animationDelay: ".3s" }}>Termo assinado!</div>
           <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
             Seu termo foi registrado com sucesso.
           </div>
@@ -4164,7 +4241,7 @@ function ServoRestV({ user, encH, encM, t }) {
         <div style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-              Shalom, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
+              Shalom, {user.nome.split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
             </div>
           </div>
 
@@ -4235,6 +4312,8 @@ function ServoRestV({ user, encH, encM, t }) {
                         ))}
                       </div>
                     )}
+                    {/* keyed no índice: trocar de slide (toque ou swipe) refaz a entrada */}
+                    <div key={slide} className="fu">
                     {slideAtual?.tipo === "min" && (
                       <div style={{ background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.2)", borderRadius: 14, padding: "13px 14px" }}>
                         <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Próxima</div>
@@ -4250,7 +4329,7 @@ function ServoRestV({ user, encH, encM, t }) {
 
                     return (
                       <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
-                        <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
+                        <div className="alerta" style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
                         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>{pixLabel}</strong></div>
                         <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
                         <button onClick={async () => {
@@ -4368,6 +4447,7 @@ function ServoRestV({ user, encH, encM, t }) {
                         </div>
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
                 {mins.map((m) => (
@@ -4643,18 +4723,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
 
-  const BarPct = ({ val, max, color }) => (
-    <div style={{ background: '#1a1a1a', borderRadius: 4, height: 6, flex: 1 }}>
-      <div style={{ background: color, borderRadius: 4, height: 6, width: `${Math.min(100, (val / max) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
-    </div>
-  );
-
   return (
     <div>
       {/* Saudação */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-          Shalom, {user.nome.split(" ")[0]}<span style={{ color: G.green }}>.</span>
+          Shalom, {user.nome.split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
         </div>
       </div>
       {/* Cards operacionais */}
@@ -4695,7 +4769,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   <span style={{ color: G.tm, fontSize: 11 }}>{Math.round((todosEnc.length / META_ENC) * 100)}% preenchido</span>
                 </div>
                 <div style={{ background: '#1a1a1a', borderRadius: 6, height: 8 }}>
-                  <div style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (todosEnc.length / META_ENC) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
+                  <div className="bar" style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (todosEnc.length / META_ENC) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
                 </div>
               </div>
 
