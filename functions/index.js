@@ -746,7 +746,7 @@ exports.cadastrarServo = onRequest({ cors: true }, async (req, res) => {
 
 // Recusa um auto-cadastro: apaga a conta inteira. Só admin, e só para quem
 // ainda não foi aprovado (servo aprovado se desativa, não se apaga).
-exports.recusarServo = onRequest({ cors: true }, async (req, res) => {
+exports.recusarServo = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   const u = await usuarioLogado(req);
   if (!u) return res.status(401).json({ error: 'Faça login novamente' });
