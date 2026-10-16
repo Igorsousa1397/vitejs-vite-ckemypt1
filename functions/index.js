@@ -620,6 +620,7 @@ exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIE
       perfil: perfil || 'servo',
       funcoes: Array.isArray(funcoes) ? funcoes : [],
       ativo: true,
+      aprovado: true, // criado pelo admin: já entra liberado
       pago: false,
       primeiro: true,
     });
@@ -668,5 +669,103 @@ exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIE
     } else if (!res.headersSent) {
       res.status(500).json({ error: err.message });
     }
+  }
+});
+
+// ── AUTO-CADASTRO DE SERVO ───────────────────────────────────────────────────
+// O servo se cadastra sozinho (dados + senha própria) e fica bloqueado até o
+// admin aprovar: `aprovado: false` faz as rules negarem tudo e o app mostrar a
+// tela de espera. Perfil é sempre 'servo' — nada do formulário define acesso.
+exports.cadastrarServo = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  const b = req.body || {};
+  const nome = texto(b.nome, 120).replace(/\s+/g, ' ');
+  const email = texto(b.email, 160).toLowerCase();
+  const cpf = soDigitos(b.cpf);
+  const nascimento = String(b.nascimento || '');
+  const sexo = String(b.sexo || '');
+  const senha = String(b.senha || '');
+
+  if (nome.split(' ').length < 2) return res.status(400).json({ error: 'Informe seu nome completo.' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'E-mail inválido.' });
+  if (cpf.length !== 11) return res.status(400).json({ error: 'CPF inválido — precisa ter 11 dígitos.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nascimento)) return res.status(400).json({ error: 'Informe a data de nascimento.' });
+  if (!['Masculino', 'Feminino'].includes(sexo)) return res.status(400).json({ error: 'Selecione o sexo.' });
+  if (senha.length < 6) return res.status(400).json({ error: 'A senha precisa ter ao menos 6 caracteres.' });
+
+  try {
+    const dup = await db.collection('users').where('cpf', '==', cpf).limit(1).get();
+    if (!dup.empty) return res.status(400).json({ error: 'Já existe um servo com este CPF. Use "Esqueci minha senha" ou fale com a liderança.' });
+
+    let userRecord;
+    try {
+      userRecord = await admin.auth().createUser({ email, password: senha, displayName: nome });
+    } catch (err) {
+      if (err.code === 'auth/email-already-exists') return res.status(400).json({ error: 'Já existe uma conta com este e-mail.' });
+      if (err.code === 'auth/invalid-password') return res.status(400).json({ error: 'Senha inválida — use ao menos 6 caracteres.' });
+      throw err;
+    }
+
+    try {
+      await db.collection('users').doc(userRecord.uid).set({
+        nome,
+        email,
+        cpf,
+        nascimento,
+        sexo,
+        perfil: 'servo',
+        funcoes: [],
+        ativo: true,
+        aprovado: false,
+        autoCadastro: true,
+        pago: false,
+        primeiro: false, // a senha já é do próprio servo
+        criadoEm: new Date().toISOString(),
+      });
+    } catch (err) {
+      // sem o perfil a conta ficaria órfã (e o e-mail preso): desfaz
+      await admin.auth().deleteUser(userRecord.uid).catch(() => {});
+      throw err;
+    }
+
+    // avisa quem pode aprovar
+    try {
+      const usersSnap = await db.collection('users').get();
+      const aprovadores = new Set(usersSnap.docs.filter((d) => PERFIS_ADMIN.includes(d.data().perfil)).map((d) => d.id));
+      const tokensSnap = await db.collection('tokens').get();
+      const destinos = tokensSnap.docs.filter((d) => aprovadores.has(d.id)).map((d) => ({ uid: d.id, token: d.data().token }));
+      await enviarPush(destinos, '🙋 Novo servo aguardando aprovação', `${nome} se cadastrou. Aprove em Servos.`);
+    } catch (e) { console.error('Erro push cadastro servo:', e.message); }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro cadastrarServo:', e.code, e.message);
+    return res.status(500).json({ error: 'Não foi possível concluir o cadastro. Tente novamente.' });
+  }
+});
+
+// Recusa um auto-cadastro: apaga a conta inteira. Só admin, e só para quem
+// ainda não foi aprovado (servo aprovado se desativa, não se apaga).
+exports.recusarServo = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  const u = await usuarioLogado(req);
+  if (!u) return res.status(401).json({ error: 'Faça login novamente' });
+  if (!PERFIS_ADMIN.includes(u.perfil)) return res.status(403).json({ error: 'Sem permissão' });
+
+  const id = texto(req.body?.id, 128);
+  if (!id) return res.status(400).json({ error: 'id obrigatório' });
+  try {
+    const ref = db.collection('users').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Cadastro não encontrado.' });
+    if (snap.data().aprovado !== false) return res.status(400).json({ error: 'Este servo já foi aprovado — desative-o em vez de remover.' });
+
+    await admin.auth().deleteUser(id).catch((err) => { if (err.code !== 'auth/user-not-found') throw err; });
+    await ref.delete();
+    await db.collection('tokens').doc(id).delete().catch(() => {});
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro recusarServo:', e.message);
+    return res.status(500).json({ error: 'Não foi possível remover.' });
   }
 });

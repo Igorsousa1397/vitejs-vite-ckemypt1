@@ -1124,7 +1124,221 @@ function Splash({ saindo }) {
 }
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
-function Login({ onLogin, onVoltar }) {
+// ── AUTO-CADASTRO DE SERVO ──────────────────────────────────────────────────
+// O servo cria a própria conta; a function `cadastrarServo` grava como perfil
+// 'servo' com aprovado: false, e o admin libera na tela de Servos.
+const mascaraCpf = (v) =>
+  v.replace(/\D/g, "").slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+const mascaraDataBr = (v) =>
+  v.replace(/\D/g, "").slice(0, 8)
+    .replace(/(\d{2})(\d)/, "$1/$2")
+    .replace(/(\d{2})(\d)/, "$1/$2");
+const dataBrParaIso = (v) => {
+  const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, d, mo, y] = m;
+  const dia = +d, mes = +mo, ano = +y;
+  if (dia < 1 || dia > 31 || mes < 1 || mes > 12 || ano < 1900 || ano > new Date().getFullYear()) return null;
+  return `${y}-${mo}-${d}`;
+};
+
+// layout comum das telas fora do app (cadastro e espera): fundo preto, voltar, logo
+function TelaPublicaServo({ onVoltar, children }) {
+  return (
+    <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: "72px 24px 40px" }}>
+      {onVoltar && (
+        <button onClick={onVoltar} style={{ position: "fixed", top: 16, left: 16, ...BK({ padding: "8px 13px", borderRadius: 10, fontWeight: 700 }), color: "rgba(255,255,255,.6)", zIndex: 10, background: "#000" }}>
+          ←
+        </button>
+      )}
+      <div style={{ width: "100%", maxWidth: 360 }}>
+        <img className="pop" src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 150, mixBlendMode: "screen", display: "block", margin: "0 auto 24px" }} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CadastroServoV({ onVoltar, onIrLogin }) {
+  const [f, setF] = useState({ nome: "", email: "", cpf: "", nascimento: "", sexo: "", senha: "", confirma: "" });
+  const [erro, setErro] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const set = (k) => (e) => setF((v) => ({ ...v, [k]: e.target.value }));
+
+  const enviar = async () => {
+    setErro("");
+    const nome = f.nome.trim().replace(/\s+/g, " ");
+    const nascimento = dataBrParaIso(f.nascimento);
+    if (nome.split(" ").length < 2) return setErro("Informe seu nome completo.");
+    if (!f.email.includes("@")) return setErro("E-mail inválido.");
+    if (f.cpf.replace(/\D/g, "").length !== 11) return setErro("CPF inválido — precisa ter 11 dígitos.");
+    if (!nascimento) return setErro("Informe a data de nascimento (DD/MM/AAAA).");
+    if (!f.sexo) return setErro("Selecione o sexo.");
+    if (f.senha.length < 6) return setErro("A senha precisa ter ao menos 6 caracteres.");
+    if (f.senha !== f.confirma) return setErro("As senhas não coincidem.");
+    setEnviando(true);
+    try {
+      await chamarFn("cadastrarServo", { nome, email: f.email.trim(), cpf: f.cpf, nascimento, sexo: f.sexo, senha: f.senha });
+      setEnviado(true);
+    } catch (err) {
+      setErro(err.message || "Não foi possível concluir o cadastro.");
+    }
+    setEnviando(false);
+  };
+
+  if (enviado)
+    return (
+      <TelaPublicaServo>
+        <div style={{ textAlign: "center" }}>
+          <CheckAnimado style={{ marginBottom: 16 }} />
+          <div className="fu" style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 10, animationDelay: ".3s" }}>Cadastro recebido!</div>
+          <div className="fu" style={{ color: G.td, fontSize: 14, lineHeight: 1.6, marginBottom: 24, animationDelay: ".4s" }}>
+            Agora é só aguardar: a liderança vai <strong style={{ color: "#fff" }}>aprovar seu acesso</strong> como servo. Assim que for liberado, entre com o e-mail e a senha que você acabou de criar.
+          </div>
+          <button onClick={onIrLogin} style={BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 10 })}>Ir para o login</button>
+        </div>
+      </TelaPublicaServo>
+    );
+
+  return (
+    <TelaPublicaServo onVoltar={onVoltar}>
+      <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, textAlign: "center", marginBottom: 20 }}>Cadastro de Servo</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <input placeholder="Nome completo" value={f.nome} onChange={set("nome")} autoComplete="name" style={I} />
+        <input placeholder="E-mail (será seu login)" type="email" value={f.email} onChange={set("email")} autoComplete="email" style={I} />
+        <input placeholder="CPF" inputMode="numeric" value={f.cpf} onChange={(e) => setF((v) => ({ ...v, cpf: mascaraCpf(e.target.value) }))} style={I} />
+        <input placeholder="Data de nascimento (DD/MM/AAAA)" inputMode="numeric" value={f.nascimento} onChange={(e) => setF((v) => ({ ...v, nascimento: mascaraDataBr(e.target.value) }))} style={I} />
+        <div style={{ display: "flex", gap: 8 }}>
+          {["Masculino", "Feminino"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setF((v) => ({ ...v, sexo: s }))}
+              style={BK({
+                flex: 1, padding: 13, borderRadius: 12, fontSize: 14,
+                ...(f.sexo === s ? { borderColor: "rgba(0,200,81,.6)", color: G.green, background: "rgba(0,200,81,.08)" } : {}),
+              })}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <input placeholder="Crie sua senha (mín. 6 caracteres)" type="password" value={f.senha} onChange={set("senha")} autoComplete="new-password" style={I} />
+        <input placeholder="Confirme a senha" type="password" value={f.confirma} onChange={set("confirma")} onKeyDown={(e) => e.key === "Enter" && enviar()} autoComplete="new-password" style={I} />
+        {erro && (
+          <div style={{ color: "#ff3b30", fontSize: 12, background: "rgba(255,59,48,.1)", borderRadius: 10, padding: "10px 14px" }}>{erro}</div>
+        )}
+        <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, textAlign: "center" }}>
+          Após o cadastro, seu acesso passa pela <strong style={{ color: G.td }}>aprovação da liderança</strong>.
+        </div>
+        <button onClick={() => { vibrar(); enviar(); }} disabled={enviando} style={BG({ width: "100%", padding: 14, borderRadius: 14, opacity: enviando ? 0.7 : 1 })}>
+          {enviando ? "Enviando..." : "Cadastrar"}
+        </button>
+      </div>
+    </TelaPublicaServo>
+  );
+}
+
+// Card da tela de Servos (só admin): auto-cadastros esperando liberação.
+// Aprovar grava aprovado: true (+ o perfil escolhido); recusar apaga a conta
+// pela function `recusarServo` (Admin SDK).
+function PendentesAprovacao({ pendentes, t }) {
+  const [aberto, setAberto] = useState(false);
+  const [perfilDe, setPerfilDe] = useState({});
+  const [ocupado, setOcupado] = useState(null);
+  if (!pendentes.length) return null;
+
+  const aprovar = async (u) => {
+    setOcupado(u.id);
+    try {
+      await setDoc(doc(db, "users", u.id), { aprovado: true, perfil: perfilDe[u.id] || "servo", aprovadoEm: new Date().toISOString() }, { merge: true });
+      t(`${u.nome.split(" ")[0]} aprovado(a)!`);
+    } catch (err) { t("Erro ao aprovar: " + err.message, "w"); }
+    setOcupado(null);
+  };
+  const recusar = async (u) => {
+    if (!window.confirm(`Recusar o cadastro de ${u.nome}? A conta será apagada.`)) return;
+    setOcupado(u.id);
+    try {
+      await chamarFn("recusarServo", { id: u.id }, true);
+      t("Cadastro recusado.");
+    } catch (err) { t("Erro ao recusar: " + err.message, "w"); }
+    setOcupado(null);
+  };
+
+  return (
+    <div style={{ border: "1px solid rgba(255,159,10,.45)", background: "rgba(255,159,10,.08)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
+      <button onClick={() => setAberto((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+        <div>
+          <div className="alerta" style={{ color: "#ff9f0a", fontWeight: 800, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" }}>⏳ Aguardando aprovação</div>
+          <div style={{ color: G.td, fontSize: 12, marginTop: 2 }}>{aberto ? "Toque para recolher" : "Toque para ver os cadastros"}</div>
+        </div>
+        <div style={{ color: "#ff9f0a", fontWeight: 800, fontSize: 24 }}>{pendentes.length}</div>
+      </button>
+      {aberto && (
+        <div className="rv" style={{ padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {pendentes.map((u) => (
+            <div key={u.id} style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 12, padding: 12 }}>
+              <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>{u.nome}</div>
+              <div style={{ color: G.td, fontSize: 12, marginTop: 4, lineHeight: 1.6 }}>
+                {u.email}<br />
+                CPF {fmtCPF(u.cpf)} · {u.nascimento ? u.nascimento.split("-").reverse().join("/") : "—"} · {u.sexo || "—"}
+                {u.criadoEm && <><br />Cadastro em {new Date(u.criadoEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</>}
+              </div>
+              <div style={{ display: "flex", gap: 6, margin: "10px 0" }}>
+                {["servo", "cozinha", "staff"].map((p) => {
+                  const sel = (perfilDe[u.id] || "servo") === p;
+                  return (
+                    <button key={p} onClick={() => setPerfilDe((v) => ({ ...v, [u.id]: p }))} style={BK({ flex: 1, padding: 8, borderRadius: 10, fontSize: 12, ...(sel ? { borderColor: "rgba(0,200,81,.6)", color: G.green, background: "rgba(0,200,81,.08)" } : {}) })}>
+                      {PERFIS[p]?.l || p}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button disabled={ocupado === u.id} onClick={() => aprovar(u)} style={BG({ flex: 1, padding: 11, borderRadius: 10, fontSize: 13, opacity: ocupado === u.id ? 0.6 : 1 })}>Aprovar</button>
+                <button disabled={ocupado === u.id} onClick={() => recusar(u)} style={BK({ flex: 1, padding: 11, borderRadius: 10, fontSize: 13, borderColor: "rgba(255,59,48,.5)", color: "#ff3b30" })}>Recusar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Servo que se cadastrou mas ainda não foi aprovado: fica retido aqui (as
+// rules também negam tudo enquanto aprovado: false).
+function AguardandoAprovacaoV({ user, onSair }) {
+  const [msg, setMsg] = useState("");
+  const verificar = async () => {
+    setMsg("");
+    try {
+      const snap = await getDoc(doc(db, "users", user.id));
+      if (snap.exists() && snap.data().aprovado !== false) window.location.reload();
+      else setMsg("Ainda aguardando. Você também recebe a liberação ao entrar de novo mais tarde.");
+    } catch { setMsg("Não foi possível verificar agora. Tente novamente."); }
+  };
+  return (
+    <TelaPublicaServo>
+      <div style={{ textAlign: "center" }}>
+        <div className="alerta" style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
+        <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Quase lá, {(user.nome || "servo").split(" ")[0]}!</div>
+        <div style={{ color: G.td, fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          Seu cadastro foi recebido e está <strong style={{ color: "#fff" }}>aguardando a aprovação</strong> da liderança. Assim que seu acesso for liberado, é só entrar novamente.
+        </div>
+        <button onClick={verificar} style={BG({ width: "100%", padding: 14, borderRadius: 14, marginBottom: 10 })}>Verificar aprovação</button>
+        <button onClick={onSair} style={BK({ width: "100%", padding: 14, borderRadius: 14 })}>Sair</button>
+        {msg && <div style={{ color: G.tm, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{msg}</div>}
+      </div>
+    </TelaPublicaServo>
+  );
+}
+
+function Login({ onLogin, onVoltar, onCadastro }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [showSenha, setShowSenha] = useState(false);
@@ -1158,17 +1372,19 @@ function Login({ onLogin, onVoltar }) {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, senha);
       const snap = await getDoc(doc(db, "users", cred.user.uid));
+      if (!snap.exists()) {
+        await signOut(auth);
+        setE("Usuário não encontrado no sistema.");
+        setLoad(false);
+        return;
+      }
       if (snap.data().ativo === false) {
         await signOut(auth);
         setE("Seu acesso está desativado. Fale com o administrador.");
         setLoad(false);
         return;
       }
-      if (!snap.exists()) {
-        setE("Usuário não encontrado no sistema.");
-        setLoad(false);
-        return;
-      }
+      // aprovado === false segue: o App mostra a tela de espera
       onLogin({ id: cred.user.uid, ...snap.data() });
     } catch (err) {
       setE('Email ou senha incorretos.');
@@ -1324,6 +1540,14 @@ function Login({ onLogin, onVoltar }) {
             >
               {resetMsg}
             </div>
+          )}
+          {onCadastro && (
+            <button
+              onClick={onCadastro}
+              style={{ background: "none", border: "none", color: G.green, fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", padding: 4 }}
+            >
+              Fazer meu cadastro como servo
+            </button>
           )}
           <div style={{ color: G.tm, fontSize: 12, textAlign: "center" }}>
             Solicite acesso ao administrador
@@ -8864,7 +9088,7 @@ function CozinhaV({ edit, t, users }) {
       </>
     );
   }
-  function SvV({ users, setUsers, edit, t, dataLimitePagamento }) {
+  function SvV({ users, pendentes = [], setUsers, edit, t, dataLimitePagamento }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
     const [filtroSexo, setFiltroSexo] = useState("todos");
@@ -9083,6 +9307,8 @@ function CozinhaV({ edit, t, users }) {
             + Adicionar Servo
           </button>
         )}
+
+        {edit && <PendentesAprovacao pendentes={pendentes} t={t} />}
 
         {edit && (
           <div
@@ -11722,6 +11948,9 @@ export default function App() {
   const [encId, setEncId] = useState(null);
   const [termoCpf, setTermoCpf] = useState(null);
   const [users, setUsers] = useState([]);
+  // auto-cadastros esperando aprovação: ficam fora de `users` (não entram em
+  // listas, equipes nem no financeiro) até o admin aprovar na tela de Servos
+  const [pendentes, setPendentes] = useState([]);
   const [faqOpen, setFaqOpen] = useState(false);
   const [fns, setFns] = useState(FUNCOES_INIT);
   const [perfisExtra, setPerfisExtra] = useState([]);
@@ -11947,6 +12176,15 @@ export default function App() {
             return;
           }
 
+          // auto-cadastro ainda não aprovado: só a tela de espera, sem assinar
+          // nenhuma coleção (as rules negariam tudo)
+          if (data.aprovado === false) {
+            setUser({ id: firebaseUser.uid, ...data });
+            setScr("app");
+            fecharSplash();
+            return;
+          }
+
           setUser({ id: firebaseUser.uid, ...data });
           setScr("app");
           if (data.perfil === "servo") setPg("smins");
@@ -11961,7 +12199,7 @@ export default function App() {
           });
 
           unsubUsersRef.current = onSnapshot(collection(db, "users"), (s) => {
-            setUsers(s.docs.map((d) => {
+            const todos = s.docs.map((d) => {
               const data = d.data();
               const tipo = data.tipo || (
                 data.perfil === "staff" ? "staff" :
@@ -11969,7 +12207,9 @@ export default function App() {
                 "servo"
               );
               return { id: d.id, ...data, tipo };
-            }));
+            });
+            setUsers(todos.filter((u) => u.aprovado !== false));
+            setPendentes(todos.filter((u) => u.aprovado === false));
           });
 
           unsubUniRef.current = onSnapshot(collection(db, "uniformes"), (s) => {
@@ -12309,6 +12549,11 @@ export default function App() {
   if (scr === 'ja_inscrito')
     return <JaInscritoV onVoltar={() => setScr('welcome')} bloqueadas={inscricoesBloqueadas} />;
 
+  if (scr === "cadastro_servo")
+    return <CadastroServoV onVoltar={() => setScr("login")} onIrLogin={() => setScr("login")} />;
+
+  if (user?.aprovado === false) return <AguardandoAprovacaoV user={user} onSair={logout} />;
+
   if (user?.primeiro) return (
     <PrimeiroAcessoV 
       user={user} 
@@ -12321,6 +12566,7 @@ export default function App() {
       <Login
         onLogin={login}
         onVoltar={() => setScr("welcome")}
+        onCadastro={() => setScr("cadastro_servo")}
         users={users}
         setUsers={setUsers}
       />
@@ -13058,6 +13304,7 @@ export default function App() {
         {pg === "servos" && (
           <SvV
             users={users}
+            pendentes={pendentes}
             setUsers={setUsers}
             edit={isAdm}
             t={showT}

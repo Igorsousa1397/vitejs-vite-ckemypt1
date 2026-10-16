@@ -9,11 +9,16 @@ service cloud.firestore {
     function meuDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
+    // Campo ausente conta como true: ler `meuDoc().ativo` direto dava erro (=
+    // acesso negado) em contas antigas criadas sem o campo. `aprovado: false`
+    // é o auto-cadastro esperando o admin — não acessa nada até ser liberado.
     function ativo() {
-      return logado() && meuDoc().ativo != false;
+      return logado()
+        && meuDoc().get('ativo', true) != false
+        && meuDoc().get('aprovado', true) != false;
     }
     function perfil() {
-      return meuDoc().perfil;
+      return meuDoc().get('perfil', '');
     }
     function isAdmin() {
       return ativo() && perfil() in ['admin', 'lider_geral'];
@@ -41,7 +46,8 @@ service cloud.firestore {
     // O próprio usuário só altera campos de perfil; status de pagamento, perfil,
     // ativo e telas extras são só do admin (o webhook grava via Admin SDK).
     match /users/{uid} {
-      allow read: if ativo();
+      // o próprio doc sempre: quem está aguardando aprovação precisa ler o status
+      allow read: if ativo() || (logado() && request.auth.uid == uid);
       allow create: if isAdmin();
       allow update: if isAdmin()
         || (ativo() && request.auth.uid == uid
