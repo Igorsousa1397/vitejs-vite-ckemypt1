@@ -971,7 +971,9 @@ const VALORES = {
   cozinha: 150,
 };
 const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
-const isEncItajai = (e) => e?.igreja === "Fonte Itajaí" || e?.celula === "Peniel - Santa Catarina";
+// Igrejas com valor reduzido (o mesmo de Itajaí). Manter igual em functions/index.js.
+const IGREJAS_VALOR_REDUZIDO = ["Fonte Itajaí", "Paraná"];
+const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e?.igreja) || e?.celula === "Peniel - Santa Catarina";
 const valorEncPix = (e) => (isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista);
 const valorServoPix = (perfil) => (perfil === "cozinha" ? VALORES.cozinha : VALORES.servo);
 const fmtReal = (v) => `R$ ${v.toFixed(2).replace(".", ",")}`;
@@ -2493,7 +2495,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         <Radio
           val={form.igreja}
           set={(v) => setForm({ ...form, igreja: v })}
-          opts={["Fonte Cajamar", "Fonte Itajaí", "Fonte Barueri", "Outra"]}
+          opts={["Fonte Cajamar", "Fonte Itajaí", "Fonte Barueri", "Paraná", "Outra"]}
         />
         {form.igreja === "Outra" && (
           <input
@@ -5081,7 +5083,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </div>
                 <div style={{ color: G.tm, fontSize: 10, marginTop: -2 }}>* {todosEnc.length} cadastrados (arrecadado + a receber)</div>
                 {(() => {
-                  const qtdItajai = todosEnc.filter(e => e.igreja === 'Fonte Itajaí' || e.celula === 'Peniel - Santa Catarina').length;
+                  const qtdItajai = todosEnc.filter(isEncItajai).length;
                   const qtdPadrao = Math.max(META_ENC - qtdItajai, 0);
                   const previsaoTotal = qtdPadrao * VALOR_ENC + qtdItajai * VALOR_ENC_ITAJAI;
                   return (
@@ -5093,7 +5095,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         </span>
                       </div>
                       <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
-                        * {qtdPadrao} × R$ {VALOR_ENC} + {qtdItajai} (Itajaí) × R$ {VALOR_ENC_ITAJAI}
+                        * {qtdPadrao} × R$ {VALOR_ENC} + {qtdItajai} (Itajaí/Paraná) × R$ {VALOR_ENC_ITAJAI}
                       </div>
                     </>
                   );
