@@ -1,17 +1,19 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Fotos do termo (documento + selfie) são enviadas sem login pelo próprio
-    // encontrista; só a liderança logada consegue abrir.
-    // Sem checar contentType: o iOS às vezes entrega o arquivo sem tipo e o SDK
-    // manda "application/octet-stream" — barrar por tipo derrubava o envio.
-    // O app define o tipo pela extensão, e o limite de tamanho segura o resto.
+    // Fotos do termo (documento + selfie): o encontrista envia sem login, e
+    // ninguém lê nem apaga pelo app. A exibição usa a URL com token que a
+    // function assinarTermo grava no Firestore (protegida pelas rules de lá),
+    // e o servidor usa o Admin SDK, que não passa por estas regras.
+    // Sem checar contentType: o iOS às vezes manda "application/octet-stream".
     match /termos/{encId}/{arquivo} {
-      allow write: if request.resource.size < 8 * 1024 * 1024;
-      allow read: if request.auth != null;
+      allow create, update: if request.resource.size < 8 * 1024 * 1024;
+      allow read, delete: if false;
     }
+    // Antes havia aqui um "qualquer logado lê/grava/apaga tudo" — com o
+    // auto-cadastro, isso abria documentos e selfies a contas não aprovadas.
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }
