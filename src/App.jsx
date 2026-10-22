@@ -18,6 +18,7 @@ import {
   query,
   where,
   limit,
+  arrayUnion,
 } from "./firebase";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
@@ -51,11 +52,13 @@ const iniciarNotificacoes = async (userId = null) => {
     if (permission !== "granted") return null;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
     if (token && userId) {
-      // salva sempre com userId como ID — sobrescreve automaticamente
+      // Um doc por usuário, com TODOS os aparelhos em `lista`. Antes o doc era
+      // sobrescrito a cada login: abrir o app no computador fazia o celular
+      // parar de receber. Tokens mortos a function tira da lista sozinha.
       await setDoc(
         doc(db, "tokens", userId),
-        { token, userId, data: new Date().toISOString() },
-        { merge: false } // ← substitui completamente, não faz merge
+        { token, userId, data: new Date().toISOString(), lista: arrayUnion(token) },
+        { merge: true }
       );
     }
     return token;
@@ -12358,6 +12361,17 @@ export default function App() {
       setTimeout(() => setToast(null), 2500 + durMs(220)),
     );
   };
+
+  // Com o app aberto e visível, o Firebase entrega o push para a página em vez
+  // de mostrar a notificação do sistema — sem isto, a mensagem sumia.
+  useEffect(() => {
+    if (!messaging) return;
+    return onMessage(messaging, (p) => {
+      const n = p.notification || {};
+      showT([n.title, n.body].filter(Boolean).join(" — "), "n");
+      vibrar(200);
+    });
+  }, []);
   const nav = (p) => {
     setPg(p);
     setMenu(false);

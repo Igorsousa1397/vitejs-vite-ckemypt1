@@ -122,6 +122,14 @@ function mpRequest(options, body) {
 // Vai só `notification` (+ ícone e link em webpush): o SDK no service worker
 // exibe a notificação sozinho. O SW não pode chamar showNotification também,
 // senão cada aviso chega duas vezes.
+// Um doc por usuário em tokens/{uid}; cada aparelho em que ele ativou as
+// notificações fica em `lista` (`token` guarda o último, formato antigo).
+const aparelhosDoDoc = (d) => {
+  const x = d.data() || {};
+  const tokens = Array.isArray(x.lista) ? x.lista : [x.token]; // doc antigo: só `token`
+  return [...new Set(tokens.filter(Boolean))].map((token) => ({ uid: d.id, token }));
+};
+
 async function enviarPush(destinos, titulo, corpo) {
   const porToken = new Map();
   destinos.forEach(({ uid, token }) => {
@@ -130,7 +138,10 @@ async function enviarPush(destinos, titulo, corpo) {
     porToken.get(token).push(uid);
   });
   const tokens = [...porToken.keys()];
-  if (!tokens.length) return 0;
+  if (!tokens.length) {
+    console.log(`push "${titulo}": nenhum aparelho cadastrado entre ${destinos.length} destinos`);
+    return 0;
+  }
 
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
@@ -145,13 +156,18 @@ async function enviarPush(destinos, titulo, corpo) {
   const apagar = [];
   resp.responses.forEach((r, i) => {
     if (!r.success && mortos.includes(r.error?.code)) {
-      porToken.get(tokens[i]).forEach((uid) => apagar.push(db.collection('tokens').doc(uid).delete()));
+      // tira só esse aparelho; os outros do mesmo usuário continuam
+      porToken.get(tokens[i]).forEach((uid) => apagar.push(
+        db.collection('tokens').doc(uid).update({
+          lista: admin.firestore.FieldValue.arrayRemove(tokens[i]),
+          token: admin.firestore.FieldValue.delete(), // legado; com `lista` não é mais lido
+        }),
+      ));
     }
   });
   if (apagar.length) await Promise.allSettled(apagar);
-  if (tokens.length !== destinos.length) {
-    console.log(`push: ${destinos.length} destinos, ${tokens.length} aparelhos únicos`);
-  }
+  const falhas = resp.responses.filter((r) => !r.success).map((r) => r.error?.code);
+  console.log(`push "${titulo}": ${tokens.length} aparelhos, ${resp.successCount} ok${falhas.length ? `, falhas: ${falhas.join(", ")}` : ""}`);
   return resp.successCount;
 }
 
@@ -168,7 +184,7 @@ async function notificarAdminsNovaInscricao(encontristaId, nome) {
   const tokensSnap = await db.collection('tokens').get();
   const destinos = tokensSnap.docs
     .filter((d) => adminPastorIds.has(d.id))
-    .map((d) => ({ uid: d.id, token: d.data().token }));
+    .flatMap(aparelhosDoDoc);
   return enviarPush(destinos, '🙏 Nova inscrição!', `${nome} acabou de se inscrever no Encontro com Deus.`);
 }
 
@@ -576,9 +592,7 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
 
     const tokensSnap = await db.collection('tokens').get();
     // 1 documento por usuário (ID do doc = userId); enviarPush deduplica por aparelho
-    let destinos = tokensSnap.docs
-      .map((d) => ({ uid: d.id, token: d.data().token }))
-      .filter((p) => p.token);
+    let destinos = tokensSnap.docs.flatMap(aparelhosDoDoc);
 
     if (publico === 'homens' || publico === 'mulheres') {
       const sexoAlvo = publico === 'homens' ? 'Masculino' : 'Feminino';
@@ -735,7 +749,7 @@ exports.cadastrarServo = onRequest({ cors: true }, async (req, res) => {
       const usersSnap = await db.collection('users').get();
       const aprovadores = new Set(usersSnap.docs.filter((d) => PERFIS_ADMIN.includes(d.data().perfil)).map((d) => d.id));
       const tokensSnap = await db.collection('tokens').get();
-      const destinos = tokensSnap.docs.filter((d) => aprovadores.has(d.id)).map((d) => ({ uid: d.id, token: d.data().token }));
+      const destinos = tokensSnap.docs.filter((d) => aprovadores.has(d.id)).flatMap(aparelhosDoDoc);
       await enviarPush(destinos, '🙋 Novo servo aguardando aprovação', `${nome} se cadastrou. Aprove em Servos.`);
     } catch (e) { console.error('Erro push cadastro servo:', e.message); }
 
