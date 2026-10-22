@@ -12363,13 +12363,21 @@ export default function App() {
   };
 
   // Com o app aberto e visível, o Firebase entrega o push para a página em vez
-  // de mostrar a notificação do sistema — sem isto, a mensagem sumia.
+  // de mostrar a notificação do sistema — sem isto, a mensagem sumia. Mostra a
+  // notificação do sistema mesmo assim (vale em qualquer tela, inclusive as
+  // públicas, onde não há toast) e o toast quando o painel está na tela.
   useEffect(() => {
     if (!messaging) return;
-    return onMessage(messaging, (p) => {
+    return onMessage(messaging, async (p) => {
       const n = p.notification || {};
       showT([n.title, n.body].filter(Boolean).join(" — "), "n");
       vibrar(200);
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(n.title || "Encontro com Deus", { body: n.body || "", icon: "/icon-192.png", badge: "/icon-192.png" });
+      } catch (err) {
+        console.error("Erro ao mostrar notificação:", err);
+      }
     });
   }, []);
   const nav = (p) => {

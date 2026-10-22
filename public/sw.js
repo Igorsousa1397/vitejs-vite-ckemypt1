@@ -1,7 +1,19 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const VERSION = 'v1.0.3';
+const VERSION = 'v1.0.4';
+
+// Toque na notificação mostrada com o app aberto (reg.showNotification no
+// onMessage do App): foca a janela do app ou abre uma nova.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
+      const aberta = lista.find((c) => 'focus' in c);
+      return aberta ? aberta.focus() : clients.openWindow('/');
+    })
+  );
+});
 
 // Força atualização ao instalar nova versão
 self.addEventListener('install', (event) => {

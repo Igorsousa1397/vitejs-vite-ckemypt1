@@ -167,7 +167,11 @@ async function enviarPush(destinos, titulo, corpo) {
   });
   if (apagar.length) await Promise.allSettled(apagar);
   const falhas = resp.responses.filter((r) => !r.success).map((r) => r.error?.code);
-  console.log(`push "${titulo}": ${tokens.length} aparelhos, ${resp.successCount} ok${falhas.length ? `, falhas: ${falhas.join(", ")}` : ""}`);
+  // por usuário: quantos aparelhos cada um tem cadastrados (ajuda a ver quem não recebe)
+  const porUid = {};
+  destinos.forEach(({ uid, token }) => { if (token) porUid[uid] = (porUid[uid] || 0) + 1; });
+  const para = Object.entries(porUid).map(([uid, n]) => `${uid}(${n})`).join(" ");
+  console.log(`push "${titulo}": ${tokens.length} aparelhos, ${resp.successCount} ok — para: ${para}${falhas.length ? `, falhas: ${falhas.join(", ")}` : ""}`);
   return resp.successCount;
 }
 
