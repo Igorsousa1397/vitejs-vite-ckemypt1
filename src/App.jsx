@@ -157,6 +157,12 @@ button,.press-sc{transition:transform var(--d-fast) var(--e-out)}
 .press:active,button.press:active{transform:none;opacity:.55}
 .press{transition:opacity var(--d-fast) var(--e-out)}
 
+/* Folga no fim das telas públicas com CTA embaixo: no celular os botões
+   flutuantes (ajuda/insta/faq, empilhados até ~212px do rodapé) ficariam por
+   cima do botão principal. Em tela larga eles ficam fora da coluna (máx. 480px). */
+:root{--folga-fab:48px}
+@media (max-width:700px){:root{--folga-fab:236px}}
+
 /* ── TEMA: luz, respiro e chegada ────────────────────────────────────────────
    Loops lentos e discretos (campo da tela inicial, logo da splash, luz atrás
    do logo) e o check desenhado em traço nas telas de "deu certo". Nada
@@ -1835,7 +1841,7 @@ return (
       <button onClick={onVoltar} style={BK({ padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
     </div>
 
-    <div style={{ maxWidth: 400, margin: '0 auto', padding: '40px 20px 236px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+    <div style={{ maxWidth: 400, margin: '0 auto', padding: '40px 20px var(--folga-fab)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <img src="/IMG_2408.PNG" alt="Encontro com Deus" style={{ width: 160, mixBlendMode: 'screen', display: 'block', margin: '0 auto 16px' }} />
 
       {/* TÍTULO: muda quando encontrista é encontrado */}
@@ -2434,7 +2440,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
         </span>
       </div>
       {/* folga embaixo: os botões flutuantes (ajuda/insta/faq) não cobrem o CTA no fim do scroll */}
-      <div style={{ padding: "20px 20px 236px", maxWidth: 480, margin: "0 auto" }}>
+      <div style={{ padding: "20px 20px var(--folga-fab)", maxWidth: 480, margin: "0 auto" }}>
         <div
           style={{
             background: "rgba(0,200,81,.08)",
@@ -2901,7 +2907,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         <div style={{ width: 39, flexShrink: 0 }} aria-hidden="true" />
       </div>
       {/* folga embaixo: os botões flutuantes não cobrem o CTA no fim do scroll */}
-      <div style={{ padding: "24px 20px 236px", maxWidth: 480, margin: "0 auto" }}>
+      <div style={{ padding: "24px 20px var(--folga-fab)", maxWidth: 480, margin: "0 auto" }}>
         <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginBottom: 4, textAlign: "center" }}>
           Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
         </div>
