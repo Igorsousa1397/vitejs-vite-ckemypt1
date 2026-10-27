@@ -11987,6 +11987,27 @@ function CozinhaV({ edit, t, users }) {
     );
   }
 
+// Links diretos do site da igreja: ?inscricao / ?inscrito / ?servo (ou com #).
+// A chave é o que vai na URL; o valor é o `scr` correspondente.
+const TELAS_LINK = {
+  inscricao: "inscricao",
+  inscrito: "ja_inscrito",
+  servo: "login",
+};
+
+// Lê o link de forma síncrona, para a tela já nascer certa em vez de piscar o
+// Welcome. Aceita "?inscricao", "?inscricao=1" e "#inscricao".
+const telaDoLink = () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const hash = (window.location.hash || "").replace(/^#/, "");
+    for (const chave of Object.keys(TELAS_LINK)) {
+      if (params.has(chave) || hash === chave) return TELAS_LINK[chave];
+    }
+  } catch { /* URL fora do padrão: cai na tela inicial */ }
+  return null;
+};
+
 export default function App() {
   const [sp, setSp] = useState(true);
   const [spSaindo, setSpSaindo] = useState(false);
@@ -11998,7 +12019,13 @@ export default function App() {
     setSpSaindo(true);
     setTimeout(() => setSp(false), durMs(280));
   };
-  const [scr, setScr] = useState("welcome");
+  // guardado num ref: a URL é reescrita conforme a navegação, então reler depois
+  // daria outra resposta
+  const telaDoLinkRef = useRef(telaDoLink());
+  const [scr, setScr] = useState(telaDoLinkRef.current || "welcome");
+  // o onAuthStateChanged manda para "welcome" quando não há sessão; na primeira
+  // resposta isso apagaria o link direto
+  const primeiroAuthRef = useRef(true);
   const [user, setUser] = useState(null);
   const [pg, setPg] = useState("home");
   const pgRef = useRef(pg);
@@ -12216,6 +12243,29 @@ export default function App() {
     return () => clearTimeout(spTimeout);
   }, []);
 
+  // Mantém o endereço em sincronia com a tela pública aberta, para quem copiar o
+  // link cair no mesmo lugar. Mexe só nas chaves de link: ?termo=, ?cpf=, ?id= e
+  // companhia passam intactos, e as telas internas não são tocadas.
+  useEffect(() => {
+    const chaves = Object.keys(TELAS_LINK);
+    const chave = chaves.find((k) => TELAS_LINK[k] === scr);
+    if (!chave && scr !== "welcome") return;
+    try {
+      const url = new URL(window.location.href);
+      const partes = [...url.searchParams.entries()]
+        .filter(([k]) => !chaves.includes(k))
+        .map(([k, v]) => (v === "" ? encodeURIComponent(k) : `${encodeURIComponent(k)}=${encodeURIComponent(v)}`));
+      if (chave) partes.unshift(chave);
+      const hash = chaves.includes((url.hash || "").replace(/^#/, "")) ? "" : url.hash;
+      const destino = `${url.pathname}${partes.length ? `?${partes.join("&")}` : ""}${hash}`;
+      if (destino !== `${url.pathname}${url.search}${url.hash}`) {
+        window.history.replaceState({}, "", destino);
+      }
+    } catch (err) {
+      console.warn("Não foi possível sincronizar o endereço:", err);
+    }
+  }, [scr]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     // Termo digital
@@ -12397,8 +12447,9 @@ export default function App() {
         unsubUsersRef.current?.();
         unsubSauRef.current?.();
         unsubPermRef.current?.();
-        setScr("welcome");
+        setScr(primeiroAuthRef.current && telaDoLinkRef.current ? telaDoLinkRef.current : "welcome");
       }
+      primeiroAuthRef.current = false;
       fecharSplash();
     });
 
