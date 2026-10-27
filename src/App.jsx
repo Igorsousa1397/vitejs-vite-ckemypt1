@@ -1065,6 +1065,26 @@ const waLink = (raw) => {
   const num = d.startsWith("55") && d.length >= 12 ? d : `55${d}`;
   return `https://wa.me/${num}`;
 };
+// Pílulas de escolha única. Vive no módulo: a Inscrição e o Termo usam as mesmas.
+const Radio = ({ val, set, opts }) => (
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    {opts.map((o) => (
+      <button
+        key={o}
+        onClick={() => set(o)}
+        style={{
+          ...BK({ padding: "8px 14px", borderRadius: 50, fontSize: 13 }),
+          borderColor: val === o ? "rgba(0,200,81,.5)" : "#2a2a2a",
+          color: val === o ? G.green : G.td,
+          background: val === o ? "rgba(0,200,81,.08)" : "transparent",
+        }}
+      >
+        {o}
+      </button>
+    ))}
+  </div>
+);
+
 const CampoInfo = ({ label, valor }) => (
   <div style={{ minWidth: 0 }}>
     <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>
@@ -1702,12 +1722,27 @@ function PrimeiroAcessoV({ user, onConcluido }) {
 }
 
 function ConfirmadoV({ encId, onVoltar }) {
-  const [nome, setNome] = useState('');
+  const [dados, setDados] = useState(null);
+  const [finalizando, setFinalizando] = useState(false);
 
   useEffect(() => {
     if (!encId) return;
-    chamarFn('statusInscricao', { id: encId }).then(d => setNome(d.nome || '')).catch(() => {});
+    chamarFn('statusInscricao', { id: encId }).then(setDados).catch(() => {});
   }, [encId]);
+
+  const nome = dados?.nome || '';
+  // só afirma que falta quando a resposta chegou: sem isso o aviso pisca na tela
+  const faltaTermo = !!dados && !dados.termoAssinado;
+
+  if (finalizando && dados)
+    return (
+      <TermoInscricao
+        encId={encId}
+        form={dados}
+        onAssinado={() => { setDados({ ...dados, termoAssinado: true }); setFinalizando(false); }}
+        onVoltar={() => setFinalizando(false)}
+      />
+    );
 
   return (
     <div className="scr" style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -1728,6 +1763,27 @@ function ConfirmadoV({ encId, onVoltar }) {
         <div className="fu" style={{ color: "rgba(255,255,255,.5)", fontSize: 13, lineHeight: 1.6, marginBottom: 24, animationDelay: ".4s" }}>
           Sua vaga está garantida. 🙏
         </div>
+
+        {/* Cadastro incompleto: abre a tela, acima do QR, em azul — os outros dois
+            avisos desta tela são laranja e brigariam por atenção se este também fosse. */}
+        {faltaTermo && (
+          <div className="fu" style={{ background: "rgba(10,132,255,.12)", border: "1px solid rgba(10,132,255,.45)", borderRadius: 16, padding: "16px 18px", marginBottom: 24, textAlign: "left", animationDelay: ".45s" }}>
+            <div style={{ color: "#0a84ff", fontWeight: 800, fontSize: 15, marginBottom: 8 }}>
+              AINDA FALTA 1 ETAPA
+            </div>
+            <div style={{ color: "rgba(255,255,255,.75)", fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
+              O pagamento está confirmado, mas seu cadastro ainda não terminou. Falta assinar o <strong style={{ color: "#fff" }}>termo de concordância</strong> e enviar seus documentos.
+              <br /><br />
+              Conclua <strong style={{ color: "#fff" }}>antes do dia do encontro</strong>. Quem chegar no check-in sem terminar vai ter que preencher tudo na hora e atrasa a própria entrada e a da fila.
+            </div>
+            <button
+              onClick={() => setFinalizando(true)}
+              style={{ ...BG({ width: "100%", padding: 14, borderRadius: 14, fontSize: 14 }), background: "#0a84ff" }}
+            >
+              Finalizar cadastro agora
+            </button>
+          </div>
+        )}
 
         {/* o QR aparece depois do check terminar de desenhar */}
         <div className="pop" style={{ background: "#fff", borderRadius: 20, padding: 20, display: "inline-block", marginBottom: 16, animationDelay: ".7s" }}>
@@ -1773,21 +1829,9 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
   const [encId, setEncId] = useState(null);
   const [done, setDone] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
-  const [termoPendente, setTermoPendente] = useState(false);
 
   if (confirmado && encId)
     return <ConfirmadoV encId={encId} onVoltar={onVoltar} />;
-
-  // Termo pendente: assinar antes do pagamento
-  if (termoPendente && encontrista)
-    return (
-      <TermoInscricao
-        encId={encId}
-        form={{ nome: encontrista.nome, sexo: encontrista.sexo, igreja: encontrista.igreja, cpf: encontrista.cpf, autorizaImagem: encontrista.autorizaImagem }}
-        onAssinado={() => { setTermoPendente(false); setDone(true); }}
-        onVoltar={() => { setTermoPendente(false); setEncontrista(null); setBusca(''); }}
-      />
-    );
 
   if (done && encontrista)
     return (
@@ -1796,7 +1840,7 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
         nome={encontrista.nome}
         encontrista={encontrista}
         onVoltar={() => { setDone(false); setEncontrista(null); setBusca(''); }}
-        onPago={() => setEncontrista({ ...encontrista, pago: true })}
+        onPago={() => { setDone(false); setConfirmado(true); }}
       />
     );
 
@@ -1819,12 +1863,8 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
           setEncId(data.id);
           setEncontrista(data);
           // Inscrições encerradas: mostra status, mas não libera pagamento
-        } else if (!data.termoAssinado) {
-          // Termo ainda não assinado: redireciona para assinar antes do pagamento
-          setEncId(data.id);
-          setEncontrista(data);
-          setTermoPendente(true);
         } else {
+          // quem não pagou vai direto ao pagamento; o termo virou a etapa final
           setEncId(data.id);
           setEncontrista(data);
           setDone(true);
@@ -2220,14 +2260,9 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     whatsapp: "",
     celula: "",
     camiseta: "",
-    emergencia: "",
-    medicamento: "",
-    doenca: "",
-    autorizaImagem: "",
   });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
-  const [termoAssinado, setTermoAssinado] = useState(false);
   const [encId, setEncId] = useState(null);
   const [msgPagamento, setMsgPagamento] = useState("");
   const enviandoRef = useRef(false);
@@ -2236,14 +2271,13 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   const [duplicado, setDuplicado] = useState(null); // { id, ...dados do encontrista já existente }
   const [contagem, setContagem] = useState(5);
   const [dupConfirmado, setDupConfirmado] = useState(false);
-  const [dupTermoPendente, setDupTermoPendente] = useState(false);
   const [dupPagamento, setDupPagamento] = useState(false);
 
   useEffect(() => {
     if (!duplicado) return;
     if (contagem <= 0) {
+      // o termo deixou de ser pré-requisito do pagamento: só pago ou a pagar
       if (duplicado.pago) setDupConfirmado(true);
-      else if (!duplicado.termoAssinado) setDupTermoPendente(true);
       else setDupPagamento(true);
       return;
     }
@@ -2272,13 +2306,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     if (!form.whatsapp.trim()) { alert("Informe seu WhatsApp."); setSaving(false); enviandoRef.current = false; return; }
     if (!form.celula) { alert("Selecione sua célula."); setSaving(false); enviandoRef.current = false; return; }
     if (!form.camiseta) { alert("Selecione o tamanho da camiseta."); setSaving(false); enviandoRef.current = false; return; }
-    if (!form.autorizaImagem) { alert("Responda sobre o uso de imagem."); setSaving(false); enviandoRef.current = false; return; }
-    if (!form.emergenciaNome?.trim()) { alert("Informe o nome do contato de emergência."); setSaving(false); enviandoRef.current = false; return; }
-    if (!form.emergenciaTel?.trim()) { alert("Informe o telefone do contato de emergência."); setSaving(false); enviandoRef.current = false; return; }
-    if (!form.temMedicamento) { alert("Responda sobre medicamentos."); setSaving(false); enviandoRef.current = false; return; }
-    if (form.temMedicamento === 'Sim' && !form.medicamento?.trim()) { alert("Informe qual medicamento você toma."); setSaving(false); enviandoRef.current = false; return; }
-    if (!form.temDoenca) { alert("Responda sobre doenças crônicas."); setSaving(false); enviandoRef.current = false; return; }
-    if (form.temDoenca === 'Sim' && !form.doenca?.trim()) { alert("Informe qual doença crônica você tem."); setSaving(false); enviandoRef.current = false; return; }
 
     const nascimento = new Date(form.nascimento);
     const hoje = new Date();
@@ -2313,16 +2340,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
   if (dupConfirmado && duplicado)
   return <ConfirmadoV encId={duplicado.id} onVoltar={onVoltar} />;
 
-  if (dupTermoPendente && duplicado)
-  return (
-    <TermoInscricao
-      encId={duplicado.id}
-      form={{ nome: duplicado.nome, sexo: duplicado.sexo, igreja: duplicado.igreja, cpf: duplicado.cpf, autorizaImagem: duplicado.autorizaImagem }}
-      onAssinado={() => { setDupTermoPendente(false); setDupPagamento(true); }}
-      onVoltar={onVoltar}
-    />
-  );
-
   if (dupPagamento && duplicado)
   return (
     <PagamentoV
@@ -2334,17 +2351,8 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     />
   );
 
-  if (done && !termoAssinado)
-  return (
-    <TermoInscricao
-      encId={encId}
-      form={form}
-      onAssinado={() => setTermoAssinado(true)}
-      onVoltar={onVoltar}
-    />
-  );
-
-  if (done && termoAssinado)
+  // O termo saiu daqui: virou a última etapa, depois do pagamento confirmado.
+  if (done)
   return (
     <PagamentoV
       encId={encId}
@@ -2374,35 +2382,17 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
       {c}
     </div>
   );
-  const Radio = ({ val, set, opts }) => (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {opts.map((o) => (
-        <button
-          key={o}
-          onClick={() => set(o)}
-          style={{
-            ...BK({ padding: "8px 14px", borderRadius: 50, fontSize: 13 }),
-            borderColor: val === o ? "rgba(0,200,81,.5)" : "#2a2a2a",
-            color: val === o ? G.green : G.td,
-            background: val === o ? "rgba(0,200,81,.08)" : "transparent",
-          }}
-        >
-          {o}
-        </button>
-      ))}
-    </div>
-  );
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 40 }}>
 
-      {duplicado && !dupConfirmado && !dupTermoPendente && !dupPagamento && (
+      {duplicado && !dupConfirmado && !dupPagamento && (
         <div className="scrim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>
           <div style={{ background: "#111", border: "1px solid #2a2a2a", borderRadius: 20, padding: "28px 24px", maxWidth: 340, width: "100%", textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
             <div style={{ color: "#fff", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Este CPF já está cadastrado!</div>
             <div style={{ color: "rgba(255,255,255,.6)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
-              Vamos te redirecionar para a etapa em que sua inscrição parou{duplicado.pago ? " (QR Code)" : !duplicado.termoAssinado ? " (assinatura do termo)" : " (pagamento)"}.
+              Vamos te redirecionar para a etapa em que sua inscrição parou{duplicado.pago ? " (QR Code)" : " (pagamento)"}.
             </div>
             <button
               onClick={() => setContagem(0)}
@@ -2657,71 +2647,6 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           opts={["P", "M", "G", "GG", "EXG", "G1", "G2", "G3"]}
         />
 
-      <SLi c="Autoriza uso de imagem? *" />
-      <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 12, padding: '12px 14px', marginBottom: 10, color: 'rgba(255,255,255,.7)', fontSize: 13, lineHeight: 1.6 }}>
-        Sua história pode transformar outras vidas!<br /> As imagens do evento serão usadas como testemunho do poder de Deus para alcançar pessoas que ainda precisam de um encontro com Ele.
-      </div>
-      <Radio val={form.autorizaImagem} set={v => setForm({ ...form, autorizaImagem: v })} opts={['Sim', 'Não']} />
-
-       <SLi c="Contato de Emergência *" />
-      <input 
-        placeholder="Nome do contato" 
-        value={form.emergenciaNome || ''}
-        onChange={e => setForm({ ...form, emergenciaNome: e.target.value })} 
-        style={{ ...iI, marginBottom: 8 }} 
-      />
-      
-      <input 
-        placeholder="Telefone do contato" 
-        type="tel" 
-        value={form.emergenciaTel || ''}
-        maxLength={15}
-        onChange={e => {
-          const v = e.target.value.replace(/\D/g, '').slice(0, 11);
-          const mask = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2');
-          setForm({ ...form, emergenciaTel: mask });
-        }} 
-        style={iI} 
-      />
-
-        <SLi c="Toma algum medicamento? *" />
-        <Radio
-          val={form.temMedicamento}
-          set={(v) => setForm({ ...form, temMedicamento: v, medicamento: v === 'Não' ? 'Não' : form.medicamento })}
-          opts={['Sim', 'Não']}
-        />
-        {form.temMedicamento === 'Sim' && (
-          <input
-            placeholder="Qual medicamento? *"
-            value={form.medicamento}
-            onChange={(e) => setForm({ ...form, medicamento: e.target.value })}
-            style={{ 
-              ...iI, 
-              marginTop: 8,
-              borderColor: !form.medicamento?.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a"
-            }}
-          />
-        )}
-
-        <SLi c="Tem alguma doença crônica? *" />
-        <Radio
-          val={form.temDoenca}
-          set={(v) => setForm({ ...form, temDoenca: v, doenca: v === 'Não' ? 'Não' : form.doenca })}
-          opts={['Sim', 'Não']}
-        />
-        {form.temDoenca === 'Sim' && (
-          <input
-            placeholder="Qual doença? *"
-            value={form.doenca}
-            onChange={(e) => setForm({ ...form, doenca: e.target.value })}
-            style={{ 
-              ...iI, 
-              marginTop: 8,
-              borderColor: !form.doenca?.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a"
-            }}
-          />
-        )}
-
         <button
           onClick={salvar}
           disabled={saving}
@@ -2752,6 +2677,17 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
   const [loadCep, setLoadCep] = useState(false);
   const [aceite, setAceite] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Complementares: migraram da inscrição para cá. Quem se inscreveu pelo fluxo
+  // antigo já respondeu, então nem vê as perguntas (a function também não exige).
+  const pedirComplementares = !form.complementares;
+  const [autorizaImagem, setAutorizaImagem] = useState("");
+  const [emergenciaNome, setEmergenciaNome] = useState("");
+  const [emergenciaTel, setEmergenciaTel] = useState("");
+  const [temMedicamento, setTemMedicamento] = useState("");
+  const [medicamento, setMedicamento] = useState("");
+  const [temDoenca, setTemDoenca] = useState("");
+  const [doenca, setDoenca] = useState("");
 
   // Foto do documento: frente e opcionalmente verso
   const [fotoFrente, setFotoFrente] = useState(null);
@@ -2828,7 +2764,16 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
       alert("Preencha o endereço completo (rua e número).");
       return;
     }
+    if (pedirComplementares && !autorizaImagem) { alert("Responda sobre o uso de imagem."); return; }
     if (!aceite) { alert("Você precisa aceitar os termos para assinar."); return; }
+    if (pedirComplementares) {
+      if (!emergenciaNome.trim()) { alert("Informe o nome do contato de emergência."); return; }
+      if (!emergenciaTel.trim()) { alert("Informe o telefone do contato de emergência."); return; }
+      if (!temMedicamento) { alert("Responda sobre medicamentos."); return; }
+      if (temMedicamento === "Sim" && !medicamento.trim()) { alert("Informe qual medicamento você toma."); return; }
+      if (!temDoenca) { alert("Responda sobre doenças crônicas."); return; }
+      if (temDoenca === "Sim" && !doenca.trim()) { alert("Informe qual doença crônica você tem."); return; }
+    }
     if (!fotoFrente) { alert("Envie uma foto do documento (frente)."); return; }
     if (precisaVerso && !fotoVerso) { alert("Envie a foto do verso do documento."); return; }
     if (!fotoRosto) { alert("Tire uma selfie para validar."); return; }
@@ -2853,6 +2798,11 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
       await chamarFn("assinarTermo", {
         id: encId, endereco: endCompleto,
         fotoDocumentoPath: docPath, fotoDocumentoVersoPath: versoPath, fotoRostoPath: rostoPath,
+        ...(pedirComplementares ? {
+          autorizaImagem, emergenciaNome, emergenciaTel,
+          temMedicamento, medicamento: temMedicamento === "Sim" ? medicamento : "Não",
+          temDoenca, doenca: temDoenca === "Sim" ? doenca : "Não",
+        } : {}),
       });
     } catch (err) { setSaving(false); alert("Erro ao salvar seus dados: " + err.message); return; }
 
@@ -2861,6 +2811,11 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
   };
 
   const iI = { ...I, marginBottom: 0 };
+  const LT = ({ c, mt = 20 }) => (
+    <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8, marginTop: mt }}>
+      {c}
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", paddingBottom: 60 }}>
@@ -2945,6 +2900,19 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           <p>Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.</p>
         </div>
 
+        {/* Uso de imagem: vem antes do aceite, para o "li e concordo" cobrir a resposta */}
+        {pedirComplementares && (
+          <>
+            <LT c="Autoriza uso de imagem? *" mt={0} />
+            <div style={{ background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.2)", borderRadius: 12, padding: "12px 14px", marginBottom: 10, color: "rgba(255,255,255,.7)", fontSize: 13, lineHeight: 1.6 }}>
+              Sua história pode transformar outras vidas!<br /> As imagens do evento serão usadas como testemunho do poder de Deus para alcançar pessoas que ainda precisam de um encontro com Ele.
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <Radio val={autorizaImagem} set={setAutorizaImagem} opts={["Sim", "Não"]} />
+            </div>
+          </>
+        )}
+
         {/* Aceite */}
         <div onClick={() => setAceite(!aceite)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: aceite ? "rgba(0,200,81,.08)" : "#111", border: `1px solid ${aceite ? "rgba(0,200,81,.4)" : "#2a2a2a"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
           <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${aceite ? G.green : "#444"}`, background: aceite ? G.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2952,6 +2920,53 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           </div>
           <span style={{ color: aceite ? "#fff" : "rgba(255,255,255,.6)", fontSize: 13 }}>Li e concordo com os termos acima</span>
         </div>
+
+        {/* Contato de emergência e saúde */}
+        {pedirComplementares && (
+          <>
+            <LT c="Contato de Emergência *" mt={0} />
+            <input
+              placeholder="Nome do contato"
+              value={emergenciaNome}
+              onChange={(e) => setEmergenciaNome(e.target.value)}
+              style={{ ...iI, marginBottom: 8 }}
+            />
+            <input
+              placeholder="Telefone do contato"
+              type="tel"
+              value={emergenciaTel}
+              maxLength={15}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, "").slice(0, 11);
+                setEmergenciaTel(v.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2"));
+              }}
+              style={iI}
+            />
+
+            <LT c="Toma algum medicamento? *" />
+            <Radio val={temMedicamento} set={setTemMedicamento} opts={["Sim", "Não"]} />
+            {temMedicamento === "Sim" && (
+              <input
+                placeholder="Qual medicamento? *"
+                value={medicamento}
+                onChange={(e) => setMedicamento(e.target.value)}
+                style={{ ...iI, marginTop: 8, borderColor: !medicamento.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a" }}
+              />
+            )}
+
+            <LT c="Tem alguma doença crônica? *" />
+            <Radio val={temDoenca} set={setTemDoenca} opts={["Sim", "Não"]} />
+            {temDoenca === "Sim" && (
+              <input
+                placeholder="Qual doença? *"
+                value={doenca}
+                onChange={(e) => setDoenca(e.target.value)}
+                style={{ ...iI, marginTop: 8, borderColor: !doenca.trim() ? "rgba(255,59,48,.4)" : "#2a2a2a" }}
+              />
+            )}
+            <div style={{ height: 20 }} />
+          </>
+        )}
 
         {/* Foto do documento */}
         <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Documento (frente) *</div>
@@ -3003,9 +3018,10 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         >
           <span style={{ fontSize: 15, lineHeight: 1.4, flexShrink: 0 }}>💡</span>
           <div style={{ color: "rgba(255,255,255,.75)", fontSize: 13, lineHeight: 1.6 }}>
-            Não está com os documentos agora? Sem problema — sua inscrição já está guardada.
+            Não está com os documentos agora? Sem problema — sua vaga já está garantida.
             Volte quando puder, toque em <strong style={{ color: "#fff" }}>“Já se inscreveu?”</strong> na
-            tela inicial e informe seu CPF: você cai direto aqui para enviar as fotos e seguir para o pagamento.
+            tela inicial e informe seu CPF: seu QR Code aparece com o botão para finalizar o cadastro.
+            Só conclua <strong style={{ color: "#fff" }}>antes do dia do encontro</strong>, para não atrasar seu check-in.
           </div>
         </div>
 
@@ -3014,7 +3030,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           disabled={saving}
           style={{ ...BG({ width: "100%", padding: 16, borderRadius: 14, fontSize: 15 }), opacity: saving ? 0.6 : 1 }}
         >
-          {saving ? "Enviando... aguarde" : "Assinar e ir para pagamento →"}
+          {saving ? "Enviando... aguarde" : "Assinar e concluir cadastro →"}
         </button>
       </div>
     </div>
@@ -6093,6 +6109,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [g, setG] = useState("T");
     // status: múltipla seleção — nenhum marcado = todos
     const [filtroStatus, setFiltroStatus] = useState([]);
+    // pagou mas não assinou o termo — ortogonal ao status de pagamento, por isso
+    // é um filtro à parte e não mais um item de ENC_STATUS
+    const [soCadastroPendente, setSoCadastroPendente] = useState(false);
     const [filtroCelula, setFiltroCelula] = useState("todas");
     // um card aberto por vez
     const [expandido, setExpandido] = useState(null);
@@ -6115,8 +6134,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const porBusca = (e) => !q || (e.nome || "").toLowerCase().includes(q);
     const casaStatus = (e) => filtroStatus.length === 0 || filtroStatus.includes(encStatus(e));
     const casaSexo = (e) => g === "T" || e.sexo === (g === "M" ? "Feminino" : "Masculino");
-    const baseSexo = todos.filter((e) => porCelula(e) && porBusca(e) && casaStatus(e));
-    const baseStatus = todos.filter((e) => porCelula(e) && porBusca(e) && casaSexo(e));
+    const cadastroPendente = (e) => !!e.pago && !e.termoAssinado;
+    const casaCadastro = (e) => !soCadastroPendente || cadastroPendente(e);
+    const baseSexo = todos.filter((e) => porCelula(e) && porBusca(e) && casaStatus(e) && casaCadastro(e));
+    const baseStatus = todos.filter((e) => porCelula(e) && porBusca(e) && casaSexo(e) && casaCadastro(e));
     const porSexo = {
       T: baseSexo.length,
       M: baseSexo.filter((e) => e.sexo === "Feminino").length,
@@ -6125,6 +6146,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const porStatus = Object.fromEntries(
       Object.keys(ENC_STATUS).map((st) => [st, baseStatus.filter((e) => encStatus(e) === st).length]),
     );
+    const qtdCadastroPendente = todos.filter(
+      (e) => porCelula(e) && porBusca(e) && casaSexo(e) && casaStatus(e) && cadastroPendente(e),
+    ).length;
     const lista = baseSexo.filter(casaSexo).sort((a, b) => {
       if (!a.criadoEm && !b.criadoEm) return 0;
       if (!a.criadoEm) return 1;
@@ -6136,7 +6160,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       };
       return toDate(b.criadoEm) - toDate(a.criadoEm);
     });
-    const temFiltro = g !== "T" || filtroCelula !== "todas" || filtroStatus.length > 0 || q !== "";
+    const temFiltro = g !== "T" || filtroCelula !== "todas" || filtroStatus.length > 0 || soCadastroPendente || q !== "";
     const alternarStatus = (st) =>
       setFiltroStatus((prev) => (prev.includes(st) ? prev.filter((x) => x !== st) : [...prev, st]));
 
@@ -6428,6 +6452,26 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 </button>
               );
             })}
+            <button
+              onClick={() => setSoCadastroPendente((v) => !v)}
+              aria-pressed={soCadastroPendente}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                borderRadius: 50,
+                padding: "7px 12px",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                border: `1px solid ${soCadastroPendente ? "#0a84ff" : G.cb}`,
+                background: soCadastroPendente ? "rgba(10,132,255,.1)" : "transparent",
+                color: soCadastroPendente ? "#0a84ff" : G.td,
+              }}
+            >
+              Cadastro pendente
+              <span style={{ opacity: 0.65, fontSize: 11 }}>{qtdCadastroPendente}</span>
+            </button>
           </div>
         </div>
 
@@ -6562,6 +6606,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       {e.igreja || "—"} · {e.celula || "Não tenho célula"}
                       {e.criadoEm ? ` · ${e.criadoEm.split(", ")[0]}` : ""}
                       {st === "pagar_depois" && e.pagarDepoisData ? ` · pagar até ${fmtISO(e.pagarDepoisData)}` : ""}
+                      {cadastroPendente(e) && (
+                        <span style={{ color: "#0a84ff", fontWeight: 700 }}> · cadastro pendente</span>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>

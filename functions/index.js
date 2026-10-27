@@ -70,6 +70,29 @@ async function usuarioLogado(req) {
 const soDigitos = (s) => String(s || '').replace(/\D/g, '');
 const texto = (s, max = 200) => String(s ?? '').trim().slice(0, max);
 
+// Uso de imagem, contato de emergência e saúde passaram da inscrição para o termo.
+// Inscrições do fluxo antigo já trazem tudo respondido; as novas só depois do termo.
+const temComplementares = (e) => !!(
+  texto(e.autorizaImagem) && texto(e.emergenciaNome) && texto(e.emergenciaTel) &&
+  texto(e.temMedicamento) && texto(e.temDoenca)
+);
+
+// Grava a ficha de saúde quando a pessoa declara medicamento ou doença crônica.
+async function gravarFichaSaude(encontristaId, nome, d) {
+  if (d.temMedicamento !== 'Sim' && d.temDoenca !== 'Sim') return;
+  await db.collection('saude').add({
+    encontristaId,
+    nome,
+    quarto: '',
+    cond: [
+      d.temMedicamento === 'Sim' ? `Medicamento: ${d.medicamento}` : null,
+      d.temDoenca === 'Sim' ? `Doença: ${d.doenca}` : null,
+    ].filter(Boolean).join(' | '),
+    obs: '',
+    criadoEm: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+  });
+}
+
 // Campos de um encontrista que podem ser devolvidos sem login (fluxos públicos)
 const encontristaPublico = (id, e, incluirCpf) => ({
   id,
@@ -80,6 +103,8 @@ const encontristaPublico = (id, e, incluirCpf) => ({
   autorizaImagem: e.autorizaImagem || '',
   pago: !!e.pago,
   termoAssinado: !!e.termoAssinado,
+  // booleano, não os valores: este retorno é público (busca por CPF/WhatsApp)
+  complementares: temComplementares(e),
   desistiu: !!e.desistiu,
   rg: e.rg || '',
   endereco: e.endereco || '',
@@ -390,9 +415,14 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
 // ── INSCRIÇÃO PÚBLICA ────────────────────────────────────────────────────────
 // Os fluxos sem login (inscrever, consultar, assinar termo, QR) passam por aqui
 // para a coleção `encontristas` não precisar de leitura/escrita pública.
+// Inscrição rápida: só o que identifica e aloca a pessoa.
 const CAMPOS_INSCRICAO = [
-  'igreja', 'nome', 'nascimento', 'sexo', 'whatsapp', 'celula', 'camiseta', 'autorizaImagem',
-  'emergenciaNome', 'emergenciaTel', 'temMedicamento', 'medicamento', 'temDoenca', 'doenca',
+  'igreja', 'nome', 'nascimento', 'sexo', 'whatsapp', 'celula', 'camiseta',
+];
+// Respondidos no termo, depois do pagamento.
+const CAMPOS_COMPLEMENTARES = [
+  'autorizaImagem', 'emergenciaNome', 'emergenciaTel',
+  'temMedicamento', 'medicamento', 'temDoenca', 'doenca',
 ];
 
 exports.inscrever = onRequest({ cors: true }, async (req, res) => {
@@ -432,25 +462,10 @@ exports.inscrever = onRequest({ cors: true }, async (req, res) => {
       nome,
       igreja: igrejaFinal,
       cpf,
-      emergencia: `${dados.emergenciaNome} — ${dados.emergenciaTel}`,
       pago: false,
       termoAssinado: false,
       criadoEm: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
     });
-
-    if (dados.temMedicamento === 'Sim' || dados.temDoenca === 'Sim') {
-      await db.collection('saude').add({
-        encontristaId: docRef.id,
-        nome,
-        quarto: '',
-        cond: [
-          dados.temMedicamento === 'Sim' ? `Medicamento: ${dados.medicamento}` : null,
-          dados.temDoenca === 'Sim' ? `Doença: ${dados.doenca}` : null,
-        ].filter(Boolean).join(' | '),
-        obs: '',
-        criadoEm: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      });
-    }
 
     try { await notificarAdminsNovaInscricao(docRef.id, nome); } catch (e) { console.error('Erro notificação:', e.message); }
 
@@ -484,7 +499,19 @@ exports.statusInscricao = onRequest({ cors: true }, async (req, res) => {
     const snap = await db.collection('encontristas').doc(id).get();
     if (!snap.exists) return res.status(404).json({ error: 'Inscrição não encontrada.' });
     const e = snap.data();
-    return res.json({ nome: e.nome || '', pago: !!e.pago });
+    // só o que a tela do QR precisa para montar o termo. Não devolve endereço
+    // nem RG: este endpoint é consultável com o id que viaja dentro do QR Code.
+    return res.json({
+      id: snap.id,
+      nome: e.nome || '',
+      sexo: e.sexo || '',
+      igreja: e.igreja || '',
+      celula: e.celula || '',
+      autorizaImagem: e.autorizaImagem || '',
+      pago: !!e.pago,
+      termoAssinado: !!e.termoAssinado,
+      complementares: temComplementares(e),
+    });
   } catch (e) {
     console.error('Erro statusInscricao:', e.message);
     return res.status(500).json({ error: 'Erro ao consultar.' });
@@ -535,6 +562,26 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
     const e = snap.data();
     if (e.termoAssinado) return res.status(400).json({ error: 'Termo já assinado.' });
 
+    // Complementares: o termo passou a ser a última etapa e é onde eles são
+    // respondidos. Quem se inscreveu pelo fluxo antigo já respondeu na primeira
+    // tela — o front não reexibe as perguntas e o que está gravado continua valendo.
+    const jaTinhaComplementares = temComplementares(e);
+    const comp = {};
+    if (!jaTinhaComplementares) {
+      CAMPOS_COMPLEMENTARES.forEach((k) => { comp[k] = texto(b[k], 300); });
+      if (!comp.autorizaImagem || !comp.emergenciaNome || !comp.emergenciaTel ||
+          !comp.temMedicamento || !comp.temDoenca) {
+        return res.status(400).json({ error: 'Responda o uso de imagem, o contato de emergência e as perguntas de saúde.' });
+      }
+      if (comp.temMedicamento === 'Sim' && !comp.medicamento) {
+        return res.status(400).json({ error: 'Informe qual medicamento você toma.' });
+      }
+      if (comp.temDoenca === 'Sim' && !comp.doenca) {
+        return res.status(400).json({ error: 'Informe qual doença crônica você tem.' });
+      }
+      comp.emergencia = `${comp.emergenciaNome} — ${comp.emergenciaTel}`;
+    }
+
     // fotos: o front manda caminhos (`...Path`); uma URL do Storage já pronta também vale
     const foto = (url, caminho) => (urlStorageValida(url) ? Promise.resolve(url) : urlDaFoto(ref.id, caminho));
     let fotoDocumento, fotoDocumentoVerso, fotoRosto;
@@ -549,6 +596,7 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
 
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo' });
     const upd = {
+      ...comp,
       endereco: texto(endereco, 300),
       termoAssinado: true,
       termoAssinadoEm: agora,
@@ -559,6 +607,11 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
     if (texto(rg)) upd.rg = texto(rg, 30);
     await ref.set(upd, { merge: true });
 
+    if (!jaTinhaComplementares) {
+      try { await gravarFichaSaude(ref.id, e.nome || '', comp); }
+      catch (err) { console.error('Erro ficha de saúde:', err.message); }
+    }
+
     const termo = {
       encontristaId: ref.id,
       nome: e.nome || '',
@@ -567,7 +620,7 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
       endereco: upd.endereco,
       sexo: e.sexo || '',
       igreja: e.igreja || '',
-      autorizaImagem: e.autorizaImagem || '',
+      autorizaImagem: comp.autorizaImagem || e.autorizaImagem || '',
       assinadoEm: agora,
       termoTexto: TERMO_TEXTO,
       fotoDocumento,
