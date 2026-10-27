@@ -12100,27 +12100,35 @@ export default function App() {
   const [qm, setQm] = useState(QM_INIT);
   const [on, setOn] = useState(ON_INIT);
   const [mins, setMins] = useState(MINS_INIT);
-  const minsLoadedRef = useRef(false);
+  // O que já está no servidor. Sem isto a agenda era regravada logo depois de
+  // ser lida, e essa escrita estourava "insufficient permissions" para todo
+  // mundo que não é líder — inclusive na tela pública, sem ninguém logado.
+  // `null` = ainda não carregou (ou a leitura falhou): nesses casos não grava,
+  // senão uma leitura que falhou sobrescreveria a agenda real com MINS_INIT.
+  const minsSalvasRef = useRef(null);
 
   useEffect(() => {
     (async () => {
       try {
         const snap = await getDoc(doc(db, "config", "agenda"));
         if (snap.exists() && Array.isArray(snap.data().lista)) {
+          minsSalvasRef.current = JSON.stringify(snap.data().lista);
           setMins(snap.data().lista);
         } else {
           await setDoc(doc(db, "config", "agenda"), { lista: MINS_INIT });
+          minsSalvasRef.current = JSON.stringify(MINS_INIT);
         }
       } catch (err) {
         console.error("Erro ao carregar agenda:", err);
-      } finally {
-        minsLoadedRef.current = true;
       }
     })();
   }, []);
 
   useEffect(() => {
-    if (!minsLoadedRef.current) return;
+    if (minsSalvasRef.current === null) return;
+    const atual = JSON.stringify(mins);
+    if (atual === minsSalvasRef.current) return;
+    minsSalvasRef.current = atual;
     setDoc(doc(db, "config", "agenda"), { lista: mins }).catch((err) =>
       console.error("Erro ao salvar agenda:", err),
     );
