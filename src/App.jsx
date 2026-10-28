@@ -10027,17 +10027,21 @@ function CozinhaV({ edit, t, users }) {
     const prazoDefinido = !!dataLimite;
     const prazoOk = prazoDefinido && hoje <= dataLimite;
     const meuPedido = uni.find((u) => u.userId === user.id);
-    const bloqueado =
+    // Pedido novo de quem já pagou tudo: destrava o formulário sem mexer no
+    // pedido pago, que só sai de cena quando o novo for salvo.
+    const [novoAberto, setNovoAberto] = useState(false);
+    const anteriores = meuPedido?.pedidosAnteriores || [];
+    const bloqueado = !novoAberto && (
       (meuPedido && meuPedido.status !== "aberto") ||
       (meuPedido && !meuPedido.status) ||
       meuPedido?.naoQuerUniforme ||
       meuPedido?.pagoSinal === true ||
-      meuPedido?.pagoIntegral === true;
+      meuPedido?.pagoIntegral === true);
     const [form, setForm] = useState(meuPedido || { camisa: "", qtdCamisas: "", calca: "", blusa: "", nomeCamiseta: "" });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-      if (meuPedido) {
+      if (meuPedido && !novoAberto) {
         setForm(meuPedido);
       }
     }, [meuPedido?.status]);
@@ -10077,6 +10081,7 @@ function CozinhaV({ edit, t, users }) {
         blusa: form.blusa || "",
         qtdBlusas: form.blusa ? (form.qtdBlusas || 1) : 0,
         valorTotal: totalPedido(),
+        pedidosAnteriores: anteriores,
         status: "bloqueado",
         data: new Date().toLocaleString("pt-BR"),
       };
@@ -10092,6 +10097,51 @@ function CozinhaV({ edit, t, users }) {
         { merge: true },
       );
       t("Solicitação enviada ao admin!");
+    };
+
+    const descPedido = (p) =>
+      [
+        p.camisa && `Camiseta ${p.camisa} x${p.qtdCamisas || 1}`,
+        p.calca && `Calça ${p.calca} x${p.qtdCalcas || 1}`,
+        p.blusa && `Blusa ${p.blusa} x${p.qtdBlusas || 1}`,
+      ].filter(Boolean).join(" · ");
+
+    const abrirNovoPedido = () => {
+      setNovoAberto(true);
+      setForm({ camisa: "", qtdCamisas: 0, calca: "", qtdCalcas: 0, blusa: "", qtdBlusas: 0, nomeCamiseta: meuPedido?.nomeCamiseta || "" });
+    };
+
+    const cancelarNovoPedido = () => {
+      setNovoAberto(false);
+      setForm(meuPedido || {});
+    };
+
+    const salvarNovoPedido = async () => {
+      if (!form.camisa && !form.calca && !form.blusa) {
+        t("⚠️ Escolha pelo menos uma peça.");
+        return;
+      }
+      if (form.camisa && !form.nomeCamiseta?.trim()) {
+        t("⚠️ Preencha o nome na camiseta antes de salvar.");
+        return;
+      }
+      setSaving(true);
+      try {
+        await chamarFn("novoPedidoUniforme", {
+          camisa: form.camisa || "",
+          qtdCamisas: form.qtdCamisas || 0,
+          calca: form.calca || "",
+          qtdCalcas: form.qtdCalcas || 0,
+          blusa: form.blusa || "",
+          qtdBlusas: form.qtdBlusas || 0,
+          nomeCamiseta: form.nomeCamiseta?.trim() || "",
+        }, true);
+        setNovoAberto(false);
+        t("Novo pedido salvo! Falta o pagamento ✓");
+      } catch (err) {
+        t(err.message || "Erro ao salvar o novo pedido.");
+      }
+      setSaving(false);
     };
 
     // SERVO VIEW
@@ -10744,6 +10794,47 @@ function CozinhaV({ edit, t, users }) {
                     </div>
                   )}
 
+                  {/* PEDIDOS ANTERIORES */}
+                  {anteriores.length > 0 && (
+                    <div style={{ background: "rgba(99,99,102,.1)", border: "1px solid #2a2a2a", borderRadius: 14, padding: "12px 14px" }}>
+                      <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                        Pedidos anteriores
+                      </div>
+                      {anteriores.map((p, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: i ? 8 : 0 }}>
+                          <div style={{ color: G.td, fontSize: 12 }}>{descPedido(p)}</div>
+                          <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
+                        </div>
+                      ))}
+                      <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>
+                        Continuam valendo — a entrega inclui todos eles.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* NOVO PEDIDO */}
+                  {novoAberto && (
+                    <>
+                      <button
+                        onClick={() => {
+                          vibrar(50);
+                          salvarNovoPedido();
+                        }}
+                        disabled={saving}
+                        style={BG({ width: "100%", padding: 14, borderRadius: 14, opacity: saving ? 0.7 : 1 })}
+                      >
+                        {saving ? "Salvando..." : "Salvar novo pedido"}
+                      </button>
+                      <button
+                        onClick={cancelarNovoPedido}
+                        disabled={saving}
+                        style={BK({ width: "100%", padding: 14, borderRadius: 14 })}
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  )}
+
                   {/* BOTOES */}
                   {!meuPedido && (
                     <button
@@ -10820,7 +10911,7 @@ function CozinhaV({ edit, t, users }) {
                 )}
 
                   {/* Pagamento MP */}
-                  {meuPedido && !meuPedido.naoQuerUniforme && (() => {
+                  {meuPedido && !meuPedido.naoQuerUniforme && !novoAberto && (() => {
                     const pagoSinal    = meuPedido.pagoSinal === true;
                     const pagoIntegral = meuPedido.pagoIntegral === true;
 
@@ -10828,6 +10919,18 @@ function CozinhaV({ edit, t, users }) {
                       <div style={{ background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.2)", borderRadius: 14, padding: "12px 14px", marginTop: 8, textAlign: "center" }}>
                         <div style={{ color: G.green, fontWeight: 700, fontSize: 14 }}>✓ Pagamento integral confirmado</div>
                         <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>Seu uniforme está garantido!</div>
+                        <button
+                          onClick={() => {
+                            vibrar(50);
+                            abrirNovoPedido();
+                          }}
+                          style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), marginTop: 12, borderColor: "rgba(0,200,81,.3)", color: G.green }}
+                        >
+                          Fazer novo pedido
+                        </button>
+                        <div style={{ color: G.tm, fontSize: 11, marginTop: 6 }}>
+                          Seu pedido atual continua valendo.
+                        </div>
                       </div>
                     );
 
@@ -10971,12 +11074,19 @@ function CozinhaV({ edit, t, users }) {
               : "qtdBlusas";
         return {
           ...a,
-          [tm]: uniFiltrado.filter((u) => u[key] === tm && u[key] !== "")
+          [tm]: uniPedidos.filter((u) => u[key] === tm && u[key] !== "")
            .reduce((s, u) => s + (u[qtdKey] || 1), 0),
         };
       }, {});
 
     const uniFiltrado = uni.filter(u => !u.naoQuerUniforme);
+    // Quem pediu mais de uma vez guarda os pedidos pagos em `pedidosAnteriores`.
+    // Produção, financeiro e planilha contam cada pedido, não cada servo.
+    const temItens = (p) => !!(p.camisa || p.calca || p.blusa);
+    const uniPedidos = uniFiltrado.flatMap((u) => [
+      ...(u.pedidosAnteriores || []).map((p) => ({ ...u, ...p, anterior: true })),
+      ...(temItens(u) ? [u] : []),
+    ]);
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
     const [dataTemp, setDataTemp] = useState(dataLimite);
     const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
@@ -11210,7 +11320,7 @@ function CozinhaV({ edit, t, users }) {
 
         {/* RESUMO */}
         {uniFiltrado.length > 0 && (
-            <Acc title={`Resumo (${uniFiltrado.length} pedidos)`} def={true}>
+            <Acc title={`Resumo (${uniPedidos.length} pedidos)`} def={true}>
             {[
               { key: "camisa", label: "Camisetas" },
               { key: "calca", label: "Calcas" },
@@ -11249,7 +11359,7 @@ function CozinhaV({ edit, t, users }) {
                 precoItemFn("calca", u.calca, u.qtdCalcas) +
                 precoItemFn("blusa", u.blusa, u.qtdBlusas);
 
-              const uniComPedido = uniFiltrado.filter(u => !u.naoQuerUniforme);
+              const uniComPedido = uniPedidos;
               let arrecadadoSinal = 0, arrecadadoIntegral = 0, aReceber = 0;
 
               uniComPedido.forEach(u => {
@@ -11503,8 +11613,8 @@ function CozinhaV({ edit, t, users }) {
 
               const ExcelJS = await carregarExcelJS();
               const wb = new ExcelJS.Workbook();
-              buildAba(wb, "SERVO", uni.filter((u) => (u.perfil === "servo" || u.perfil === "cozinha") && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
-              buildAba(wb, "STAFF", uni.filter((u) => u.perfil !== "servo" && u.perfil !== "cozinha" && (u.pagoSinal || u.pagoIntegral) && !u.naoQuerUniforme));
+              buildAba(wb, "SERVO", uniPedidos.filter((u) => (u.perfil === "servo" || u.perfil === "cozinha") && (u.pagoSinal || u.pagoIntegral)));
+              buildAba(wb, "STAFF", uniPedidos.filter((u) => u.perfil !== "servo" && u.perfil !== "cozinha" && (u.pagoSinal || u.pagoIntegral)));
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
@@ -11631,6 +11741,22 @@ function CozinhaV({ edit, t, users }) {
                     }
                   </div>
                 </div>
+
+                {(u.pedidosAnteriores || []).length > 0 && (
+                  <div style={{ borderTop: `1px solid ${G.cb}`, paddingTop: 8 }}>
+                    <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                      Pedidos anteriores (pagos)
+                    </div>
+                    {(u.pedidosAnteriores || []).map((p, j) => (
+                      <div key={j} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: j ? 6 : 0 }}>
+                        {p.camisa && <Pill c={`Camiseta ${p.camisa} x${p.qtdCamisas || 1}`} bg="#1e1e1e" tc={G.td} />}
+                        {p.calca && <Pill c={`Calca ${p.calca} x${p.qtdCalcas || 1}`} bg="#1e1e1e" tc={G.td} />}
+                        {p.blusa && <Pill c={`Blusa ${p.blusa} x${p.qtdBlusas || 1}`} bg="#1e1e1e" tc={G.td} />}
+                        <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div style={{ color: G.tm, fontSize: 11 }}>
                   Salvo em: {u.data}

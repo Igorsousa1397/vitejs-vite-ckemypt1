@@ -635,6 +635,85 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
   }
 });
 
+// ── NOVO PEDIDO DE UNIFORME ──────────────────────────────────────────────────
+// Quem já pagou o pedido inteiro pode pedir de novo. O pedido pago vai para
+// `pedidosAnteriores` (nada é apagado) e o novo pedido entra no lugar, zerado
+// de pagamento. Passa por aqui porque as regras não deixam o servo mexer em
+// pagoSinal/pagoIntegral pelo cliente.
+const TAMANHOS_UNIFORME = ['P', 'M', 'G', 'GG', 'G1', 'G2', 'G3', 'G4'];
+const tamanho = (v) => (TAMANHOS_UNIFORME.includes(v) ? v : '');
+const qtdPeca = (tam, v) => (tam ? Math.min(3, Math.max(1, Number(v) || 1)) : 0);
+
+exports.novoPedidoUniforme = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  const u = await usuarioLogado(req);
+  if (!u) return res.status(401).json({ error: 'Faça login novamente' });
+
+  try {
+    const camisa = tamanho(req.body.camisa);
+    const calca = tamanho(req.body.calca);
+    const blusa = tamanho(req.body.blusa);
+    if (!camisa && !calca && !blusa) return res.status(400).json({ error: 'Escolha pelo menos uma peça' });
+
+    const nomeCamiseta = texto(req.body.nomeCamiseta, 60);
+    if (camisa && !nomeCamiseta) return res.status(400).json({ error: 'Preencha o nome na camiseta' });
+
+    const ref = db.collection('uniformes').doc(u.uid);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Pedido de uniforme não encontrado' });
+
+    const p = snap.data();
+    if (p.naoQuerUniforme) return res.status(400).json({ error: 'Você não tem pedido para guardar' });
+    if (!p.pagoIntegral) return res.status(400).json({ error: 'Só dá para fazer um novo pedido depois que o atual estiver pago por completo' });
+
+    const anteriores = Array.isArray(p.pedidosAnteriores) ? p.pedidosAnteriores : [];
+    if (anteriores.length >= 10) return res.status(400).json({ error: 'Limite de pedidos atingido' });
+
+    const arquivado = {
+      nomeCamiseta: p.nomeCamiseta || '',
+      camisa: p.camisa || '',
+      qtdCamisas: p.qtdCamisas || 0,
+      calca: p.calca || '',
+      qtdCalcas: p.qtdCalcas || 0,
+      blusa: p.blusa || '',
+      qtdBlusas: p.qtdBlusas || 0,
+      valorTotal: totalUniforme(p),
+      pagoSinal: true,
+      pagoIntegral: true,
+      pagamentoSinalId: p.pagamentoSinalId || '',
+      pagamentoIntegralId: p.pagamentoIntegralId || '',
+      data: p.data || '',
+    };
+
+    const pedido = {
+      nome: p.nome || u.nome || '',
+      perfil: p.perfil || u.perfil || '',
+      nomeCamiseta,
+      camisa,
+      qtdCamisas: qtdPeca(camisa, req.body.qtdCamisas),
+      calca,
+      qtdCalcas: qtdPeca(calca, req.body.qtdCalcas),
+      blusa,
+      qtdBlusas: qtdPeca(blusa, req.body.qtdBlusas),
+      pagoSinal: false,
+      pagoIntegral: false,
+      pagamentoSinalId: '',
+      pagamentoIntegralId: '',
+      status: 'bloqueado',
+      data: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      pedidosAnteriores: [...anteriores, arquivado],
+    };
+    pedido.valorTotal = totalUniforme(pedido);
+    if (!(pedido.valorTotal > 0)) return res.status(400).json({ error: 'Pedido sem valor' });
+
+    await ref.set(pedido);
+    return res.json({ ok: true, valorTotal: pedido.valorTotal, pedidosAnteriores: anteriores.length + 1 });
+  } catch (err) {
+    console.error('Erro novoPedidoUniforme:', err.message);
+    return res.status(500).json({ error: 'Erro ao abrir um novo pedido.' });
+  }
+});
+
 // ── NOTIFICAR MINISTÉRIO ─────────────────────────────────────────────────────
 exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
