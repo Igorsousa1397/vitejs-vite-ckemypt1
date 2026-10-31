@@ -34,6 +34,13 @@ service cloud.firestore {
     function temTelaExtra(tela) {
       return ativo() && tela in meuDoc().get('telasExtra', []);
     }
+    // Telas liberadas para um perfil inteiro pelo admin (permissoes/{perfil}.telas);
+    // é o mesmo critério que o app usa em temPermissao().
+    function telaDoPerfil(tela) {
+      return ativo()
+        && exists(/databases/$(database)/documents/permissoes/$(perfil()))
+        && tela in get(/databases/$(database)/documents/permissoes/$(perfil())).data.get('telas', []);
+    }
     function mudouAlgum(campos) {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
     }
@@ -72,11 +79,12 @@ service cloud.firestore {
       allow read: if isLider() || temTelaExtra('enc') || temTelaExtra('checkin');
       allow write: if false;
     }
-    // Fichas de saúde: a inscrição pública cria via function; a tela Saúde
-    // (liderança ou tela extra 'saude') cria, edita e remove pelo app.
+    // Fichas de saúde (medicamentos, doenças): dado sensível, então a leitura
+    // é só de quem tem a tela Saúde — liderança, tela extra ou perfil liberado
+    // em permissoes — e não de todo servo ativo. A inscrição pública cria via
+    // function; a tela Saúde cria, edita e remove pelo app.
     match /saude/{id} {
-      allow read: if ativo();
-      allow create, update, delete: if isLider() || temTelaExtra('saude');
+      allow read, create, update, delete: if isLider() || temTelaExtra('saude') || telaDoPerfil('saude');
     }
 
     // ── uniformes ────────────────────────────────────────────────────────────

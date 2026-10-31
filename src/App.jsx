@@ -12553,8 +12553,12 @@ export default function App() {
             );
           });
           
+          // quem não tem a tela Saúde é barrado pelas rules — não é erro do app
           unsubSauRef.current = onSnapshot(collection(db, 'saude'), (s) => {
             setSau(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+          }, (err) => {
+            if (err.code !== 'permission-denied') console.error('Erro ao ler saúde:', err);
+            setSau([]);
           });
 
           unsubOcorrRef.current = onSnapshot(collection(db, "ocorrencias"), (s) => {
