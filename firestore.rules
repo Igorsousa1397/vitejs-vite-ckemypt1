@@ -72,6 +72,16 @@ service cloud.firestore {
                         || temTelaExtra('quartos') || temTelaExtra('onibus'))
         && (isAdmin() || !mudouAlgum(['pago', 'pagamentoId', 'pagoEm', 'pagoValor', 'acordo', 'valorAcordado', 'desistiu', 'pagarDepois', 'pagarDepoisData']));
       allow delete: if isAdmin();
+
+      // CPF, RG e endereço: fora do doc principal (que todo servo ativo lê).
+      // Só quem o app deixa abrir Encontristas ou Check-in. Gravação só pelas
+      // functions (inscrever / assinarTermo).
+      match /privado/{doc} {
+        allow read: if isLider()
+          || temTelaExtra('enc') || temTelaExtra('checkin')
+          || telaDoPerfil('enc') || telaDoPerfil('checkin');
+        allow write: if false;
+      }
     }
 
     // Termos assinados são criados pelas functions.

@@ -93,8 +93,24 @@ async function gravarFichaSaude(encontristaId, nome, d) {
   });
 }
 
-// Campos de um encontrista que podem ser devolvidos sem login (fluxos públicos)
-const encontristaPublico = (id, e, incluirCpf) => ({
+// CPF, RG e endereço do encontrista ficam em encontristas/{id}/privado/dados:
+// o doc principal é lido por todo servo ativo, a subcoleção só pela liderança
+// e por quem tem as telas Encontristas/Check-in.
+// Fase de transição: enquanto GRAVA_LEGADO for true, os três também continuam
+// no doc principal (rollback = republicar o commit anterior, sem perda) e toda
+// leitura cai para o doc principal quando a subcoleção não tem o campo.
+// Fase 2: GRAVA_LEGADO = false + script que apaga os campos do doc principal.
+const GRAVA_LEGADO = true;
+const privadoRef = (id) => db.collection('encontristas').doc(id).collection('privado').doc('dados');
+async function lerPrivado(id, e = {}) {
+  const s = await privadoRef(id).get();
+  const p = s.exists ? s.data() : {};
+  return { cpf: p.cpf || e.cpf || '', rg: p.rg || e.rg || '', endereco: p.endereco || e.endereco || '' };
+}
+
+// Campos de um encontrista que podem ser devolvidos sem login (fluxos públicos).
+// `priv` (de lerPrivado) só é passado quando a busca foi pelo CPF.
+const encontristaPublico = (id, e, priv = null) => ({
   id,
   nome: e.nome || '',
   sexo: e.sexo || '',
@@ -106,16 +122,24 @@ const encontristaPublico = (id, e, incluirCpf) => ({
   // booleano, não os valores: este retorno é público (busca por CPF/WhatsApp)
   complementares: temComplementares(e),
   desistiu: !!e.desistiu,
-  // RG e endereço seguem a regra do CPF: só voltam quando a busca foi pelo CPF.
+  // CPF, RG e endereço só voltam quando a busca foi pelo CPF.
   // Pelo WhatsApp (número fácil de saber) ficam de fora.
-  ...(incluirCpf ? { cpf: e.cpf || '', rg: e.rg || '', endereco: e.endereco || '' } : {}),
+  ...(priv ? { cpf: priv.cpf, rg: priv.rg, endereco: priv.endereco } : {}),
 });
 
 async function buscarEncontrista(busca) {
   const limpo = soDigitos(busca);
   if (!limpo) return null;
-  const porCpf = await db.collection('encontristas').where('cpf', '==', limpo).limit(1).get();
-  if (!porCpf.empty) return { doc: porCpf.docs[0], porCpf: true };
+  // CPF: varre a subcoleção privado inteira (são poucas dezenas de docs) em vez
+  // de filtrar — filtro em collectionGroup exigiria índice, e sem índice a
+  // busca pública cairia.
+  const privs = await db.collectionGroup('privado').get();
+  const hit = privs.docs.find((d) => d.id === 'dados' && soDigitos(d.data().cpf) === limpo);
+  if (hit) {
+    const doc = await hit.ref.parent.parent.get();
+    if (doc.exists) return { doc, porCpf: true };
+  }
+  // doc ainda não migrado (CPF no principal) e busca por WhatsApp
   const todos = await db.collection('encontristas').get();
   const found = todos.docs.find((d) => {
     const data = d.data();
@@ -447,7 +471,10 @@ exports.inscrever = onRequest({ cors: true }, async (req, res) => {
     if (idade < 14) return res.status(400).json({ error: 'É necessário ter pelo menos 14 anos para se inscrever.' });
 
     const existente = await buscarEncontrista(cpf);
-    if (existente) return res.json({ duplicado: encontristaPublico(existente.doc.id, existente.doc.data(), true) });
+    if (existente) {
+      const e = existente.doc.data();
+      return res.json({ duplicado: encontristaPublico(existente.doc.id, e, await lerPrivado(existente.doc.id, e)) });
+    }
 
     const todos = await db.collection('encontristas').get();
     if (todos.docs.some((d) => soDigitos(d.data().whatsapp) === whatsapp)) {
@@ -457,15 +484,20 @@ exports.inscrever = onRequest({ cors: true }, async (req, res) => {
     const dados = {};
     CAMPOS_INSCRICAO.forEach((k) => { dados[k] = texto(form[k], 300); });
     const igrejaFinal = dados.igreja === 'Outra' ? texto(form.igrejaCustom, 120) || 'Outra' : dados.igreja;
-    const docRef = await db.collection('encontristas').add({
+    // doc principal + privado no mesmo batch: nunca fica inscrição sem CPF
+    const docRef = db.collection('encontristas').doc();
+    const batch = db.batch();
+    batch.set(docRef, {
       ...dados,
       nome,
       igreja: igrejaFinal,
-      cpf,
+      ...(GRAVA_LEGADO ? { cpf } : {}),
       pago: false,
       termoAssinado: false,
       criadoEm: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
     });
+    batch.set(privadoRef(docRef.id), { cpf });
+    await batch.commit();
 
     try { await notificarAdminsNovaInscricao(docRef.id, nome); } catch (e) { console.error('Erro notificação:', e.message); }
 
@@ -483,7 +515,9 @@ exports.buscarInscricao = onRequest({ cors: true }, async (req, res) => {
   try {
     const r = await buscarEncontrista(req.body?.busca);
     if (!r) return res.status(404).json({ error: 'Inscrição não encontrada.' });
-    return res.json({ encontrista: encontristaPublico(r.doc.id, r.doc.data(), r.porCpf) });
+    const e = r.doc.data();
+    const priv = r.porCpf ? await lerPrivado(r.doc.id, e) : null;
+    return res.json({ encontrista: encontristaPublico(r.doc.id, e, priv) });
   } catch (e) {
     console.error('Erro buscarInscricao:', e.message);
     return res.status(500).json({ error: 'Erro ao buscar inscrição.' });
@@ -597,14 +631,21 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
     // As URLs das fotos ficam só em `termos`, que é restrito à liderança.
     // `encontristas` é lido por qualquer servo ativo — não pode carregar
     // links de documento e selfie.
+    const priv = await lerPrivado(ref.id, e);
+    const privUpd = { endereco: texto(endereco, 300) };
+    if (texto(rg)) privUpd.rg = texto(rg, 30);
+    // registro antigo: aproveita para levar o CPF para o privado
+    if (priv.cpf) privUpd.cpf = soDigitos(priv.cpf);
     const upd = {
       ...comp,
-      endereco: texto(endereco, 300),
+      ...(GRAVA_LEGADO ? privUpd : {}),
       termoAssinado: true,
       termoAssinadoEm: agora,
     };
-    if (texto(rg)) upd.rg = texto(rg, 30);
-    await ref.set(upd, { merge: true });
+    const batch = db.batch();
+    batch.set(ref, upd, { merge: true });
+    batch.set(privadoRef(ref.id), privUpd, { merge: true });
+    await batch.commit();
 
     if (!jaTinhaComplementares) {
       try { await gravarFichaSaude(ref.id, e.nome || '', comp); }
@@ -614,9 +655,9 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
     const termo = {
       encontristaId: ref.id,
       nome: e.nome || '',
-      cpf: e.cpf || '',
-      rg: upd.rg || e.rg || '',
-      endereco: upd.endereco,
+      cpf: priv.cpf,
+      rg: privUpd.rg || priv.rg,
+      endereco: privUpd.endereco,
       sexo: e.sexo || '',
       igreja: e.igreja || '',
       autorizaImagem: comp.autorizaImagem || e.autorizaImagem || '',

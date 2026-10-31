@@ -1095,6 +1095,32 @@ const CampoInfo = ({ label, valor }) => (
   </div>
 );
 
+// CPF, RG e endereço do encontrista ficam em encontristas/{id}/privado/dados,
+// que só a liderança e as telas Encontristas/Check-in leem. Registro ainda não
+// migrado tem os campos no doc principal: cai para eles.
+const lerPrivadoEnc = async (id) => {
+  try {
+    const s = await getDoc(doc(db, "encontristas", id, "privado", "dados"));
+    return s.exists() ? s.data() : {};
+  } catch {
+    return {};
+  }
+};
+// id -> CPF de uma lista de encontristas (para as exportações)
+const lerCpfsEnc = async (lista) =>
+  new Map(await Promise.all(lista.map(async (e) => [e.id, (await lerPrivadoEnc(e.id)).cpf || e.cpf || ""])));
+
+// Busca o CPF só quando o card abre, em vez de carregar o de todo mundo.
+const CampoCpfEnc = ({ enc }) => {
+  const [cpf, setCpf] = useState(enc.cpf || null);
+  useEffect(() => {
+    let vivo = true;
+    lerPrivadoEnc(enc.id).then((p) => { if (vivo && p.cpf) setCpf(p.cpf); });
+    return () => { vivo = false; };
+  }, [enc.id]);
+  return <CampoInfo label="CPF" valor={fmtCPF(cpf)} />;
+};
+
 // ── SPLASH ───────────────────────────────────────────────────────────────────
 const BotaoAjuda = () => (
   <a
@@ -5551,13 +5577,14 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             ];
             ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
             ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+            const cpfs = await lerCpfsEnc(confirmados);
             confirmados
               .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""))
               .forEach((c) => {
                 ws.addRow({
                   nome: c.nome || "",
                   sexo: c.gen === "M" ? "Feminino" : "Masculino",
-                  cpf: c.cpf || "",
+                  cpf: cpfs.get(c.id) || "",
                   whatsapp: c.whatsapp || "",
                   onibus: c.on || "",
                 });
@@ -6304,11 +6331,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
       ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
       // exporta o que está filtrado na tela (sem filtro = todos)
+      const cpfs = await lerCpfsEnc(lista);
       [...lista].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach((e) => {
         ws.addRow({
           nome: e.nome || "",
           sexo: e.sexo || "",
-          cpf: e.cpf || "",
+          cpf: cpfs.get(e.id) || "",
           nascimento: e.nascimento ? fmtISO(e.nascimento) : "",
           igreja: e.igreja === "Outra" ? (e.igrejaCustom || "Outra") : (e.igreja || ""),
           celula: e.celula || "",
@@ -6633,7 +6661,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 {aberto && (
                   <div style={{ borderTop: "1px solid #1e1e1e", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <CampoInfo label="CPF" valor={fmtCPF(e.cpf)} />
+                      <CampoCpfEnc enc={e} />
                       <CampoInfo label="Nascimento" valor={fmtISO(e.nascimento)} />
                       <CampoInfo label="Camiseta" valor={e.camiseta || "—"} />
                       <CampoInfo label="Emergência" valor={e.emergencia || "—"} />
