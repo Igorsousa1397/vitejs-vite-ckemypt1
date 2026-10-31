@@ -1957,33 +1957,12 @@ return (
         </div>
       )}
 
+      {/* Quem já pagou nunca chega aqui: buscar() manda direto para o
+          ConfirmadoV (QR Code + aviso de cadastro pendente). */}
       {encontrista && (
         <div style={{ textAlign: 'center', width: '100%' }}>
 
-          {encontrista.pago ? (
-            <>
-              <div style={{ background: 'rgba(0,200,81,.08)', border: '1px solid rgba(0,200,81,.2)', borderRadius: 14, padding: '12px 14px', marginBottom: 20, color: G.green, fontWeight: 700, fontSize: 14 }}>
-                ✓ Pagamento confirmado
-              </div>
-              <div style={{ background: '#fff', borderRadius: 20, padding: 20, display: 'inline-block', marginBottom: 16 }}>
-                <QRCodeCanvas value={encontrista.id} size={200} />
-              </div>
-              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, marginBottom: 16 }}>
-                Apresente este QR Code no check-in
-              </div>
-              <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6, marginBottom: 10 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
-              <a
-                href="https://chat.whatsapp.com/GxUlwcNxBmOCXRtvotRmZ7?mode=gi_t"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: "block", textDecoration: "none", marginBottom: 8 }}
-              >
-                <button style={{ ...BG({ width: "100%", padding: 13, borderRadius: 14, fontSize: 14 }), background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                  Entrar no Grupo
-                </button>
-              </a>
-            </>
-          ) : bloqueadas ? (
+          {bloqueadas ? (
             <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '14px 16px', color: '#ff6b6b', fontSize: 14, lineHeight: 1.7 }}>
               As inscrições estão encerradas no momento. Não é possível gerar um novo pagamento agora. Entre em contato com a liderança para mais informações.
             </div>
