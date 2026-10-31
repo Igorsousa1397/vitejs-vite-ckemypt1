@@ -9,10 +9,12 @@ service firebase.storage {
     // Só os nomes que assinarTermo aceita, e só enquanto o termo não foi
     // assinado: depois disso a pasta congela, senão quem tem o id (ele viaja
     // no link do QR) trocaria o documento e a selfie que servem de prova.
+    // `get` com padrão: inscrições antigas não têm o campo termoAssinado, e
+    // ler campo ausente direto dá erro (= acesso negado).
     match /termos/{encId}/{arquivo} {
       allow create, update: if request.resource.size < 8 * 1024 * 1024
         && arquivo in ['documento_frente', 'documento_verso', 'documento', 'selfie']
-        && firestore.get(/databases/(default)/documents/encontristas/$(encId)).data.termoAssinado != true;
+        && firestore.get(/databases/(default)/documents/encontristas/$(encId)).data.get('termoAssinado', false) != true;
       allow read, delete: if false;
     }
     // Antes havia aqui um "qualquer logado lê/grava/apaga tudo" — com o
