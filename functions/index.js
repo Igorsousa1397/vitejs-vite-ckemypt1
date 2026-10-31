@@ -265,7 +265,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       valor = isCredito ? comCredito(base) : base;
       nome = e.nome;
       titulo = 'Inscrição — Encontro com Deus';
-      descricao = 'Encontro com Deus · Itaquaquecetuba';
+      descricao = 'Encontro com Deus · Mauá';
       external = `enc||${encontristaId}||${valor}`;
     } else if (tipo === 'servo_pix' || tipo === 'servo_credito') {
       const u = await usuarioLogado(req);
@@ -284,7 +284,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       valor = isCredito ? comCredito(base) : base;
       nome = alvo.nome;
       titulo = 'Taxa de Servo — Encontro com Deus';
-      descricao = 'Encontro com Deus · Itaquaquecetuba';
+      descricao = 'Encontro com Deus · Mauá';
       external = `servo||${encontristaId}||${valor}`;
     } else if (tipo.startsWith('uniforme_')) {
       const u = await usuarioLogado(req);

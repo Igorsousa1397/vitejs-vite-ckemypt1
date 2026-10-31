@@ -2510,9 +2510,9 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             <strong style={{ color: G.green }}>Dias 20, 21 e 22 de Novembro</strong>
             <br />
             
-          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Endereço: Estrada do Tronco 485, Itaquaquecetuba</span>
+          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Chácara Maranata — Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP</span>
           <a
-          href="https://cemine.wixsite.com/world"
+          href="https://www.google.com/maps/search/?api=1&query=Ch%C3%A1cara%20Maranata%2C%20Estrada%20de%20Sapopemba%20km%2035%2C5%2C%20Mau%C3%A1%20-%20SP"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -2527,7 +2527,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             marginBottom: 8,
           }}
           >
-            Conheça o sítio</a>
+            Ver no mapa</a>
           </div>
       </div>
 
@@ -12446,11 +12446,13 @@ export default function App() {
 
   // Mantém o endereço em sincronia com a tela pública aberta, para quem copiar o
   // link cair no mesmo lugar. Mexe só nas chaves de link: ?termo=, ?cpf=, ?id= e
-  // companhia passam intactos, e as telas internas não são tocadas.
+  // companhia passam intactos. Quem já está logado vai direto para o app mesmo
+  // abrindo ?inscricao ou ?servo — aí as chaves de link saem da barra. As demais
+  // telas internas (pagamento, termo) não são tocadas.
   useEffect(() => {
     const chaves = Object.keys(TELAS_LINK);
     const chave = chaves.find((k) => TELAS_LINK[k] === scr);
-    if (!chave && scr !== "welcome") return;
+    if (!chave && scr !== "welcome" && scr !== "app") return;
     try {
       const url = new URL(window.location.href);
       const partes = [...url.searchParams.entries()]
