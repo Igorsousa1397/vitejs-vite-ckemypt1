@@ -912,6 +912,7 @@ const AVISOS_TEMPLATES = [
   { txt: "☕ Café da tarde às 16h40." },
   { txt: "🍽️ Jantar às 20h." },
   { txt: "🍽️ Almoço às 13h30. Retorno às 15h." },
+  { txt: "📢 Atenção servos! Reunião hoje, logo após o culto." },
   { txt: "📢 Recados pós encontro. Obrigado por servir!" },
   { txt: "🙏 Jejum - Lembre-se: retire ao menos 1 refeição por dia e mantenha 6h de jejum. Deus honra cada sacrifício! 💚" },
 ];
@@ -6281,6 +6282,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const msgPagarDepois = (nome, data) =>
       `Olá, ${nome.split(" ")[0]}! 🙏\n\nPassando para lembrar do nosso combinado sobre a sua inscrição no *Encontro com Deus*: ficou de acertar o pagamento ${data ? `até *${fmtISO(data)}*` : "nos próximos dias"}.\n\nA sua vaga está reservada até lá — assim que o pagamento entrar, ela fica confirmada de vez. 💚\n\nSe alguma coisa mudou e você não puder ir, é só responder esta mensagem que a gente ajusta o seu cadastro.`;
 
+    // pagou mas não assinou o termo: lembra de fechar o cadastro antes do dia
+    const msgCadastroPendente = (nome, id) =>
+      `Olá, ${nome.split(" ")[0]}! 🙏\n\nSua vaga no *Encontro com Deus* já está confirmada — mas ainda falta a última etapa do seu cadastro.\n\nÉ rapidinho: abra o link abaixo e toque em *Finalizar cadastro agora* para assinar o termo e completar os seus dados.\n\nhttps://servos-peniel.vercel.app?qr=true&id=${id}\n\nFaça isso antes do dia do encontro para não atrasar o seu check-in. 💚`;
+
     const exportarPlanilha = async () => {
       const ExcelJS = await carregarExcelJS();
               const wb = new ExcelJS.Workbook();
@@ -6599,16 +6604,21 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: G.t, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {e.nome}
+                    {/* a tag fica junto do nome: na linha de baixo ela era cortada no celular */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <div style={{ color: G.t, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {e.nome}
+                      </div>
+                      {cadastroPendente(e) && (
+                        <span style={{ flexShrink: 0 }}>
+                          <Pill c="Cadastro pendente" bg="rgba(10,132,255,.12)" tc="#0a84ff" />
+                        </span>
+                      )}
                     </div>
                     <div style={{ color: G.tm, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {e.igreja || "—"} · {e.celula || "Não tenho célula"}
                       {e.criadoEm ? ` · ${e.criadoEm.split(", ")[0]}` : ""}
                       {st === "pagar_depois" && e.pagarDepoisData ? ` · pagar até ${fmtISO(e.pagarDepoisData)}` : ""}
-                      {cadastroPendente(e) && (
-                        <span style={{ color: "#0a84ff", fontWeight: 700 }}> · cadastro pendente</span>
-                      )}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -6786,7 +6796,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
                     {/* entrar em contato (WhatsApp) — mensagem conforme o status:
                         pendente gera link de pagamento do Mercado Pago, pagar depois
-                        lembra do prazo combinado, pago/desistiu abre a conversa limpa */}
+                        lembra do prazo combinado, quem pagou e não fechou o cadastro recebe
+                        o lembrete do termo, e o resto abre a conversa limpa */}
                     {wa && (
                       <button
                         onClick={async () => {
@@ -6804,6 +6815,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             }
                           } else if (st === "pagar_depois") {
                             window.location.href = `${wa}?text=${encodeURIComponent(msgPagarDepois(e.nome, e.pagarDepoisData))}`;
+                          } else if (cadastroPendente(e)) {
+                            window.location.href = `${wa}?text=${encodeURIComponent(msgCadastroPendente(e.nome, e.id))}`;
                           } else {
                             window.location.href = wa;
                           }
