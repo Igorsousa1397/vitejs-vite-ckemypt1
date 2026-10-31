@@ -26,9 +26,11 @@ const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
 // uniforme usa a conta antiga do front (repassa a taxa do MP)
 const creditoUniforme = (v) => Math.ceil(v / 0.9501 * 100) / 100;
 const centavos = (v) => Math.round(v * 100) / 100;
-// Igrejas com valor reduzido (o mesmo de Itajaí). Manter igual em src/App.jsx.
+// Igrejas e células com valor reduzido (o mesmo de Itajaí). Manter igual em src/App.jsx.
+// Peniel é a célula de Santa Catarina; o nome antigo fica para inscrições já feitas.
 const IGREJAS_VALOR_REDUZIDO = ['Fonte Itajaí', 'Paraná'];
-const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e.igreja) || e.celula === 'Peniel - Santa Catarina';
+const CELULAS_VALOR_REDUZIDO = ['Peniel', 'Peniel - Santa Catarina'];
+const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e.igreja) || CELULAS_VALOR_REDUZIDO.includes(e.celula);
 
 const valorEncontrista = (e) => {
   if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);

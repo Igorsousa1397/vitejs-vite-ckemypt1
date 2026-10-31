@@ -984,9 +984,11 @@ const VALORES = {
   cozinha: 150,
 };
 const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
-// Igrejas com valor reduzido (o mesmo de Itajaí). Manter igual em functions/index.js.
+// Igrejas e células com valor reduzido (o mesmo de Itajaí). Manter igual em functions/index.js.
+// Peniel é a célula de Santa Catarina; o nome antigo fica para inscrições já feitas.
 const IGREJAS_VALOR_REDUZIDO = ["Fonte Itajaí", "Paraná"];
-const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e?.igreja) || e?.celula === "Peniel - Santa Catarina";
+const CELULAS_VALOR_REDUZIDO = ["Peniel", "Peniel - Santa Catarina"];
+const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e?.igreja) || CELULAS_VALOR_REDUZIDO.includes(e?.celula);
 const valorEncPix = (e) => (isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista);
 const valorServoPix = (perfil) => (perfil === "cozinha" ? VALORES.cozinha : VALORES.servo);
 const fmtReal = (v) => `R$ ${v.toFixed(2).replace(".", ",")}`;
@@ -2305,7 +2307,6 @@ const CELULAS = [
   "Renovo",
   "Siloé",
   "Transbordo",
-  "Outra",
   "Não tenho célula",
 ];
 
