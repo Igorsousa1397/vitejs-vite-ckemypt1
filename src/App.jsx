@@ -12557,7 +12557,6 @@ export default function App() {
                     ok: e.chegou || false,
                     on: e.onibus || null,
                     whatsapp: e.whatsapp || null,
-                    cpf: e.cpf || null,
                   })),
               );
             },

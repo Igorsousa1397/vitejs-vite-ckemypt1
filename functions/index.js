@@ -96,11 +96,10 @@ async function gravarFichaSaude(encontristaId, nome, d) {
 // CPF, RG e endereço do encontrista ficam em encontristas/{id}/privado/dados:
 // o doc principal é lido por todo servo ativo, a subcoleção só pela liderança
 // e por quem tem as telas Encontristas/Check-in.
-// Fase de transição: enquanto GRAVA_LEGADO for true, os três também continuam
-// no doc principal (rollback = republicar o commit anterior, sem perda) e toda
-// leitura cai para o doc principal quando a subcoleção não tem o campo.
-// Fase 2: GRAVA_LEGADO = false + script que apaga os campos do doc principal.
-const GRAVA_LEGADO = true;
+// Fase 2 (31/10/2026): os três não são mais gravados no doc principal e foram
+// apagados de lá. A leitura ainda cai para o doc principal quando a subcoleção
+// não tem o campo — só por segurança, não deve mais acontecer.
+const GRAVA_LEGADO = false;
 const privadoRef = (id) => db.collection('encontristas').doc(id).collection('privado').doc('dados');
 async function lerPrivado(id, e = {}) {
   const s = await privadoRef(id).get();
