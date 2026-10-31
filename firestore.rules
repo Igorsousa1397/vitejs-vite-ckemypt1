@@ -135,6 +135,8 @@ service cloud.firestore {
     match /testemunhos/{id}       { allow read, write: if ativo(); }
     match /onibus/{id}            { allow read: if ativo(); allow write: if isLider() || temTelaExtra('onibus'); }
     match /quartos_h/{id}         { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
+    // planta dos quartos (mapas/h e mapas/m): quem edita quartos monta o mapa
+    match /mapas/{id}             { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
     match /quartos_m/{id}         { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
 
     // pagamentos (log do webhook) e _notif_dedupe: só Admin SDK.

@@ -806,6 +806,315 @@ function Sheet({ open, onClose, title, children }) {
   );
 }
 
+// ── MAPA DOS QUARTOS ─────────────────────────────────────────────────────────
+// Planta em grade, uma por sexo, guardada em mapas/{h|m}: blocos de quarto
+// (ligados ao número do quarto) e áreas (banheiros, cozinha...). Quem edita
+// quartos monta a planta no próprio app, com setas; quem só vê toca num quarto
+// e vê quem está nele. Mudou de chácara, refaz-se aqui, sem mexer em código.
+const MAPA_VAZIO = { cols: 8, blocos: [] };
+const MAPA_MAX_LINHAS = 40;
+const AREAS_SUGERIDAS = ["Banheiros", "Cozinha", "Refeitório", "Sala Kids", "Templo", "Entrada", "Estacionamento"];
+const corOcupacao = (oc, lim) => {
+  const pct = lim > 0 ? (oc / lim) * 100 : 0;
+  return pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
+};
+
+function MapaQuartos({ aberto, onFechar, sexo, quartos, edit, onAbrirQuarto, t }) {
+  const { montado, saindo } = usePresenca(aberto, 220);
+  const [mapa, setMapa] = useState(null); // null = carregando
+  const [sel, setSel] = useState(null);
+  const [editando, setEditando] = useState(false);
+  const [addAberto, setAddAberto] = useState(false);
+  const [novaArea, setNovaArea] = useState("");
+  const [confirmaGerar, setConfirmaGerar] = useState(false);
+
+  useEffect(() => {
+    if (!montado) return;
+    const unsub = onSnapshot(
+      doc(db, "mapas", sexo),
+      (sn) => setMapa(sn.exists() ? { ...MAPA_VAZIO, ...sn.data() } : MAPA_VAZIO),
+      (err) => { console.error("Erro ao ler o mapa:", err); setMapa(MAPA_VAZIO); },
+    );
+    return unsub;
+  }, [montado, sexo]);
+
+  useEffect(() => {
+    if (!aberto) { setSel(null); setEditando(false); setAddAberto(false); setConfirmaGerar(false); }
+  }, [aberto]);
+
+  if (!montado) return null;
+
+  const blocos = mapa?.blocos || [];
+  const cols = mapa?.cols || MAPA_VAZIO.cols;
+  const porNum = new Map(quartos.map((q) => [q.num, q]));
+  const rotulo = (q) => (q.maes ? "Quarto Mães" : `Quarto ${q.num}`);
+  const ocupacao = (q) => (q.servos?.length || 0) + (q.enc?.length || 0);
+
+  const colide = (b, outros) =>
+    outros.some((o) => o.id !== b.id && b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h);
+  // o estado vai na frente: a tela responde na hora e o Firestore confirma depois
+  const salvar = async (novo) => {
+    setMapa(novo);
+    try { await setDoc(doc(db, "mapas", sexo), novo); }
+    catch (err) { console.error("Erro ao salvar o mapa:", err); t("Erro ao salvar o mapa", "w"); }
+  };
+  const alterar = (id, fn) => {
+    const b = blocos.find((x) => x.id === id);
+    if (!b) return;
+    const nb = fn(b);
+    if (nb.x < 0 || nb.y < 0 || nb.w < 1 || nb.h < 1 || nb.x + nb.w > cols || nb.y + nb.h > MAPA_MAX_LINHAS) return;
+    if (colide(nb, blocos)) { t("Já tem um bloco aí", "w"); return; }
+    salvar({ ...mapa, blocos: blocos.map((x) => (x.id === id ? nb : x)) });
+  };
+  const remover = (id) => { salvar({ ...mapa, blocos: blocos.filter((x) => x.id !== id) }); setSel(null); };
+  const posicaoLivre = (w, h) => {
+    for (let y = 0; y + h <= MAPA_MAX_LINHAS; y++)
+      for (let x = 0; x + w <= cols; x++)
+        if (!colide({ id: "_", x, y, w, h }, blocos)) return { x, y };
+    return null;
+  };
+  const adicionar = (dados) => {
+    const w = dados.w || 2, h = dados.h || 2;
+    const pos = posicaoLivre(w, h);
+    if (!pos) { t("O mapa está cheio", "w"); return; }
+    const b = { id: `b${Date.now().toString(36)}`, ...dados, w, h, ...pos };
+    salvar({ ...mapa, blocos: [...blocos, b] });
+    setSel(b.id); setAddAberto(false); setNovaArea("");
+  };
+  // ponto de partida: todos os quartos em ordem, 2×2, lado a lado
+  const gerar = () => {
+    const novos = [];
+    let x = 0, y = 0;
+    [...quartos].sort((a, b) => a.num - b.num).forEach((q) => {
+      if (x + 2 > cols) { x = 0; y += 2; }
+      novos.push({ id: `q${q.num}`, tipo: "quarto", num: q.num, x, y, w: 2, h: 2 });
+      x += 2;
+    });
+    salvar({ ...mapa, blocos: novos });
+    setConfirmaGerar(false); setSel(null);
+  };
+
+  const naoColocados = quartos.filter((q) => !blocos.some((b) => b.tipo === "quarto" && b.num === q.num));
+  const blocoSel = blocos.find((b) => b.id === sel) || null;
+  const quartoSel = blocoSel?.tipo === "quarto" ? porNum.get(blocoSel.num) : null;
+  const larg = Math.min(typeof window !== "undefined" ? window.innerWidth : 480, 480) - 32;
+  const gap = 6;
+  const cel = Math.max(28, Math.floor((larg - gap * (cols - 1)) / cols));
+  const painelAberto = editando || (blocoSel && blocoSel.tipo === "quarto");
+
+  const legenda = [[G.green, "com vagas"], ["#ff9f0a", "quase cheio"], ["#ff3b30", "lotado"], ["#636366", "área"]];
+  const ctl = (txt, onClick, extra = {}) => (
+    <button onClick={onClick} style={{ ...BK({ padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 700 }), ...extra }}>{txt}</button>
+  );
+
+  return (
+    <div
+      className={`scrim${saindo ? " out" : ""}`}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0a0a0a", display: "flex", flexDirection: "column" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "1px solid #1a1a1a", flexShrink: 0 }}>
+        <button onClick={onFechar} style={BK({ padding: "8px 13px", borderRadius: 10, fontSize: 13, fontWeight: 700 })}>←</button>
+        <div style={{ flex: 1, color: G.t, fontWeight: 800, fontSize: 16 }}>Mapa · {sexo === "h" ? "Homens" : "Mulheres"}</div>
+        {edit && (
+          <button
+            onClick={() => { setEditando((v) => !v); setSel(null); setAddAberto(false); setConfirmaGerar(false); }}
+            style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 12, borderColor: editando ? "rgba(255,159,10,.5)" : "#2a2a2a", color: editando ? "#ff9f0a" : G.td })}
+          >
+            {editando ? "Concluir" : "Editar"}
+          </button>
+        )}
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: `16px 16px ${painelAberto ? 300 : 40}px` }}>
+        {mapa === null ? (
+          <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 40, fontSize: 13 }}>Carregando…</div>
+        ) : blocos.length === 0 ? (
+          <div className="empty" style={{ color: G.tm, textAlign: "center", padding: "40px 20px", fontSize: 13, lineHeight: 1.7 }}>
+            O mapa ainda não foi montado.{edit && !editando && <><br />Toque em <strong style={{ color: G.td }}>Editar</strong> para montar.</>}
+          </div>
+        ) : (
+          <div
+            style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${cel}px)`, gridAutoRows: `${cel}px`, gap, justifyContent: "center", margin: "0 auto" }}
+          >
+            {blocos.map((b, i) => {
+              const q = b.tipo === "quarto" ? porNum.get(b.num) : null;
+              const oc = q ? ocupacao(q) : 0;
+              const cor = b.tipo === "quarto" ? (q ? corOcupacao(oc, q.lim) : "#636366") : "#636366";
+              const ativo = sel === b.id;
+              const clicavel = editando || b.tipo === "quarto";
+              return (
+                <button
+                  key={b.id}
+                  className="pop"
+                  onClick={() => { if (!clicavel) return; vibrar(30); setSel(ativo ? null : b.id); setAddAberto(false); }}
+                  style={{
+                    gridColumn: `${b.x + 1} / span ${b.w}`, gridRow: `${b.y + 1} / span ${b.h}`,
+                    animationDelay: `${Math.min(i, 14) * 35}ms`,
+                    background: b.tipo === "quarto" ? `${cor}1f` : "#141414",
+                    border: `1px solid ${ativo ? cor : b.tipo === "quarto" ? `${cor}66` : "#2a2a2a"}`,
+                    boxShadow: ativo ? `0 0 0 3px ${cor}44` : "none",
+                    borderRadius: 10, padding: 4, cursor: clicavel ? "pointer" : "default", color: G.t,
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, overflow: "hidden", minWidth: 0,
+                    transform: ativo ? "scale(1.05)" : "scale(1)", zIndex: ativo ? 2 : 1,
+                    transition: "transform var(--d-fast) var(--e-out), box-shadow var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out)",
+                  }}
+                >
+                  {b.tipo === "quarto" ? (
+                    <>
+                      <div style={{ fontWeight: 800, fontSize: b.w >= 2 ? 16 : 12, lineHeight: 1 }}>{q?.maes ? "Mães" : b.num}</div>
+                      {q ? (
+                        <>
+                          <div style={{ color: cor, fontSize: 10, fontWeight: 700 }}>{oc}/{q.lim}</div>
+                          {b.h >= 2 && (
+                            <div style={{ width: "70%", height: 3, background: "#1e1e1e", borderRadius: 3, overflow: "hidden" }}>
+                              <div className="bar" style={{ width: `${Math.min(100, Math.round((oc / (q.lim || 1)) * 100))}%`, height: "100%", background: cor }} />
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ color: G.tm, fontSize: 9 }}>sem quarto</div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ color: G.td, fontSize: b.w >= 2 ? 10 : 8, fontWeight: 700, textAlign: "center", lineHeight: 1.2, textTransform: "uppercase", letterSpacing: 0.5, wordBreak: "break-word" }}>
+                      {b.label}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {blocos.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, marginTop: 18 }}>
+            {legenda.map(([c, l]) => (
+              <div key={l} style={{ display: "flex", alignItems: "center", gap: 5, color: G.tm, fontSize: 11 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: c }} /> {l}
+              </div>
+            ))}
+          </div>
+        )}
+        {blocos.length > 0 && !editando && (
+          <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 10 }}>Toque num quarto para ver quem está nele.</div>
+        )}
+      </div>
+
+      {/* painel: quem está no quarto (ver) ou controles do bloco (editar) */}
+      {painelAberto && (
+        <div
+          key={editando ? "edit" : blocoSel.id}
+          className="sheet"
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#141414", borderTop: "1px solid #1e1e1e", borderRadius: "20px 20px 0 0", padding: "14px 20px 28px", maxHeight: "55vh", overflowY: "auto" }}
+        >
+          {!editando && blocoSel && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, color: G.t, fontWeight: 800, fontSize: 16 }}>{quartoSel ? rotulo(quartoSel) : `Quarto ${blocoSel.num}`}</div>
+                {quartoSel && <Pill c={`${ocupacao(quartoSel)}/${quartoSel.lim}`} bg={`${corOcupacao(ocupacao(quartoSel), quartoSel.lim)}18`} tc={corOcupacao(ocupacao(quartoSel), quartoSel.lim)} />}
+                <button onClick={() => setSel(null)} style={BK({ padding: "6px 12px", borderRadius: 10, fontSize: 13 })}>✕</button>
+              </div>
+              {quartoSel ? (
+                <>
+                  <SL c={`Servos (${quartoSel.servos?.length || 0})`} mt={0} />
+                  {(quartoSel.servos || []).length ? <Tags items={quartoSel.servos} ax={G.green} /> : <div style={{ color: G.tm, fontSize: 12 }}>Nenhum servo</div>}
+                  <SL c={`Encontristas (${quartoSel.enc?.length || 0})`} />
+                  {(quartoSel.enc || []).length ? <Tags items={quartoSel.enc} /> : <div style={{ color: G.tm, fontSize: 12 }}>Ninguém ainda</div>}
+                  <button onClick={() => { vibrar(30); onAbrirQuarto(quartoSel); }} style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, marginTop: 16 })}>
+                    Abrir na lista →
+                  </button>
+                </>
+              ) : (
+                <div style={{ color: G.tm, fontSize: 13 }}>Este quarto não existe mais na lista. {edit && "Em Editar, remova o bloco."}</div>
+              )}
+            </>
+          )}
+
+          {editando && blocoSel && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, color: G.t, fontWeight: 800, fontSize: 15 }}>
+                  {blocoSel.tipo === "quarto" ? (quartoSel ? rotulo(quartoSel) : `Quarto ${blocoSel.num}`) : blocoSel.label}
+                </div>
+                <button onClick={() => remover(blocoSel.id)} style={{ ...BK({ padding: "6px 12px", borderRadius: 10, fontSize: 12 }), borderColor: "rgba(255,59,48,.4)", color: "#ff6b6b" }}>
+                  Tirar do mapa
+                </button>
+                <button onClick={() => setSel(null)} style={BK({ padding: "6px 12px", borderRadius: 10, fontSize: 13 })}>✕</button>
+              </div>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Mover</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
+                {ctl("←", () => alterar(sel, (b) => ({ ...b, x: b.x - 1 })))}
+                {ctl("↑", () => alterar(sel, (b) => ({ ...b, y: b.y - 1 })))}
+                {ctl("↓", () => alterar(sel, (b) => ({ ...b, y: b.y + 1 })))}
+                {ctl("→", () => alterar(sel, (b) => ({ ...b, x: b.x + 1 })))}
+              </div>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Tamanho</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                {ctl("Larg −", () => alterar(sel, (b) => ({ ...b, w: b.w - 1 })))}
+                {ctl("Larg +", () => alterar(sel, (b) => ({ ...b, w: b.w + 1 })))}
+                {ctl("Alt −", () => alterar(sel, (b) => ({ ...b, h: b.h - 1 })))}
+                {ctl("Alt +", () => alterar(sel, (b) => ({ ...b, h: b.h + 1 })))}
+              </div>
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 10 }}>Toque em outro bloco para selecioná-lo.</div>
+            </>
+          )}
+
+          {editando && !blocoSel && addAberto && (
+            <>
+              <SL c={`Quartos fora do mapa (${naoColocados.length})`} mt={0} />
+              {naoColocados.length ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {[...naoColocados].sort((a, b) => a.num - b.num).map((q) => (
+                    <button key={q.num} onClick={() => adicionar({ tipo: "quarto", num: q.num })} style={{ ...BK({ padding: "8px 14px", borderRadius: 50, fontSize: 13 }), borderColor: "rgba(0,200,81,.4)", color: G.green }}>
+                      + {rotulo(q)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: G.tm, fontSize: 12 }}>Todos os quartos já estão no mapa.</div>
+              )}
+              <SL c="Área (banheiro, cozinha, templo…)" />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {AREAS_SUGERIDAS.map((a) => (
+                  <button key={a} onClick={() => setNovaArea(a)} style={BK({ padding: "6px 12px", borderRadius: 50, fontSize: 12, borderColor: novaArea === a ? "rgba(255,255,255,.4)" : "#2a2a2a", color: novaArea === a ? G.t : G.td })}>{a}</button>
+                ))}
+              </div>
+              <input value={novaArea} onChange={(e) => setNovaArea(e.target.value)} placeholder="Ou escreva o nome da área" style={{ ...I, fontSize: 14, padding: "10px 14px", marginBottom: 10 }} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button disabled={!novaArea.trim()} onClick={() => adicionar({ tipo: "area", label: novaArea.trim(), w: 2, h: 1 })} style={BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14, opacity: novaArea.trim() ? 1 : 0.5 })}>
+                  Adicionar área
+                </button>
+                <button onClick={() => setAddAberto(false)} style={BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>Voltar</button>
+              </div>
+            </>
+          )}
+
+          {editando && !blocoSel && !addAberto && (
+            <>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setAddAberto(true)} style={BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>+ Adicionar</button>
+                {quartos.length > 0 && (
+                  <button
+                    onClick={() => { if (blocos.length && !confirmaGerar) { setConfirmaGerar(true); return; } gerar(); }}
+                    style={BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14, borderColor: confirmaGerar ? "rgba(255,159,10,.5)" : "#2a2a2a", color: confirmaGerar ? "#ff9f0a" : G.td })}
+                  >
+                    {confirmaGerar ? "Confirmar: refazer tudo" : blocos.length ? "Refazer com os quartos" : "Gerar com os quartos"}
+                  </button>
+                )}
+              </div>
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 10, lineHeight: 1.6 }}>
+                {confirmaGerar
+                  ? "Isso apaga o mapa atual e coloca todos os quartos em ordem. Toque de novo para confirmar."
+                  : "Toque num bloco para mover, redimensionar ou tirar do mapa."}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
 const FUNCOES_INIT = [
@@ -13831,6 +14140,7 @@ export default function App() {
   }) {
     // const [tab, setTab] = useState("M");
     const [shN, setShN] = useState(false);
+    const [mapaAberto, setMapaAberto] = useState(false);
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
     const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
@@ -14178,6 +14488,28 @@ export default function App() {
           );
         })()}
 
+        <button
+          onClick={() => { vibrar(30); setMapaAberto(true); }}
+          style={{ ...BK({ width: "100%", padding: 12, borderRadius: 13, marginBottom: 10, fontSize: 13 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderColor: "rgba(0,200,81,.3)", color: G.green }}
+        >
+          <Grid size={16} /> Ver mapa dos quartos
+        </button>
+        <MapaQuartos
+          aberto={mapaAberto}
+          onFechar={() => setMapaAberto(false)}
+          sexo={isH ? "h" : "m"}
+          quartos={isH ? qh : qm}
+          edit={edit}
+          t={t}
+          onAbrirQuarto={(q) => {
+            setMapaAberto(false);
+            const chave = q.maes ? "maes" : q.num;
+            setAbertos((prev) => ({ ...prev, [chave]: true }));
+            // espera o mapa sair e o accordion abrir antes de rolar até ele
+            setTimeout(() => document.getElementById(`quarto-${chave}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 280);
+          }}
+        />
+
         {edit && (
           <button
             onClick={async () => {
@@ -14335,6 +14667,7 @@ export default function App() {
             const oc = m.servos.length + m.enc.length;
             const pct = Math.min(100, Math.round((oc / m.lim) * 100));
             return (
+              <div id="quarto-maes">
               <QuartoMaes
                 m={m}
                 oc={oc}
@@ -14351,6 +14684,7 @@ export default function App() {
                 upd={upd}
                 t={t}
               />
+              </div>
             );
           })()}
 
@@ -14361,8 +14695,8 @@ export default function App() {
           const lv = q.lim - oc;
           const bc = pct >= 100 ? "#ff3b30" : pct >= 80 ? "#ff9f0a" : G.green;
           return (
+            <div key={q.num} id={`quarto-${q.num}`}>
             <Acc
-              key={q.num}
               title={`Quarto ${q.num}`}
               right={<Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />}
               onDel={edit ? () => delQuarto(q.num) : undefined}
@@ -14449,6 +14783,7 @@ export default function App() {
               )}
               <AddEncAutocomplete quarto={q} />
             </Acc>
+            </div>
           );
         })}
       </div>
