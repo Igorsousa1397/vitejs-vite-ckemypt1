@@ -106,9 +106,9 @@ const encontristaPublico = (id, e, incluirCpf) => ({
   // booleano, não os valores: este retorno é público (busca por CPF/WhatsApp)
   complementares: temComplementares(e),
   desistiu: !!e.desistiu,
-  rg: e.rg || '',
-  endereco: e.endereco || '',
-  ...(incluirCpf ? { cpf: e.cpf || '' } : {}),
+  // RG e endereço seguem a regra do CPF: só voltam quando a busca foi pelo CPF.
+  // Pelo WhatsApp (número fácil de saber) ficam de fora.
+  ...(incluirCpf ? { cpf: e.cpf || '', rg: e.rg || '', endereco: e.endereco || '' } : {}),
 });
 
 async function buscarEncontrista(busca) {
@@ -526,8 +526,6 @@ Também concorda com as regras do evento, destacando que não é permitido nenhu
 
 Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.`;
 
-const urlStorageValida = (u) => typeof u === 'string' && /^https:\/\/firebasestorage\.googleapis\.com\//.test(u);
-
 const BUCKET = 'servos-peniel.firebasestorage.app';
 const FOTOS_TERMO = ['documento_frente', 'documento_verso', 'documento', 'selfie'];
 
@@ -582,27 +580,28 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
       comp.emergencia = `${comp.emergenciaNome} — ${comp.emergenciaTel}`;
     }
 
-    // fotos: o front manda caminhos (`...Path`); uma URL do Storage já pronta também vale
-    const foto = (url, caminho) => (urlStorageValida(url) ? Promise.resolve(url) : urlDaFoto(ref.id, caminho));
+    // fotos: o front manda só os caminhos (`...Path`), e urlDaFoto exige que
+    // estejam na pasta desta inscrição. URL pronta não é aceita: deixaria
+    // apontar o termo para um arquivo fora do nosso bucket.
     let fotoDocumento, fotoDocumentoVerso, fotoRosto;
     try {
-      fotoDocumento = await foto(b.fotoDocumento, b.fotoDocumentoPath);
-      fotoDocumentoVerso = await foto(b.fotoDocumentoVerso, b.fotoDocumentoVersoPath);
-      fotoRosto = await foto(b.fotoRosto, b.fotoRostoPath);
+      fotoDocumento = await urlDaFoto(ref.id, b.fotoDocumentoPath);
+      fotoDocumentoVerso = await urlDaFoto(ref.id, b.fotoDocumentoVersoPath);
+      fotoRosto = await urlDaFoto(ref.id, b.fotoRostoPath);
     } catch (err) {
       return res.status(400).json({ error: `Foto do termo: ${err.message}` });
     }
     if (!fotoDocumento || !fotoRosto) return res.status(400).json({ error: 'Envie a foto do documento e a selfie.' });
 
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo' });
+    // As URLs das fotos ficam só em `termos`, que é restrito à liderança.
+    // `encontristas` é lido por qualquer servo ativo — não pode carregar
+    // links de documento e selfie.
     const upd = {
       ...comp,
       endereco: texto(endereco, 300),
       termoAssinado: true,
       termoAssinadoEm: agora,
-      fotoDocumento,
-      fotoDocumentoVerso: fotoDocumentoVerso || null,
-      fotoRosto,
     };
     if (texto(rg)) upd.rg = texto(rg, 30);
     await ref.set(upd, { merge: true });
@@ -624,7 +623,7 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
       assinadoEm: agora,
       termoTexto: TERMO_TEXTO,
       fotoDocumento,
-      fotoDocumentoVerso: upd.fotoDocumentoVerso,
+      fotoDocumentoVerso: fotoDocumentoVerso || null,
       fotoRosto,
     };
     const termoRef = await db.collection('termos').add(termo);

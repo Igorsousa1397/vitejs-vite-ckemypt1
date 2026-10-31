@@ -2998,7 +2998,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           <input type="file" accept="image/*" capture="user" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; if (f) { setFotoRosto(f); setPreviewRosto(URL.createObjectURL(f)); } }} />
           {previewRosto
             ? <img src={previewRosto} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} alt="selfie" />
-            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><UserSquare size={18} /> Tire uma selfie segurando seu documento</div>
+            : <div style={{ color: "rgba(255,255,255,.4)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><UserSquare size={18} /> Tire uma selfie do seu rosto</div>
           }
         </label>
 

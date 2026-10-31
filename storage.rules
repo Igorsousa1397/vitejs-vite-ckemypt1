@@ -3,11 +3,16 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Fotos do termo (documento + selfie): o encontrista envia sem login, e
     // ninguém lê nem apaga pelo app. A exibição usa a URL com token que a
-    // function assinarTermo grava no Firestore (protegida pelas rules de lá),
-    // e o servidor usa o Admin SDK, que não passa por estas regras.
+    // function assinarTermo grava em `termos` (restrito à liderança nas rules
+    // do Firestore), e o servidor usa o Admin SDK, que não passa por aqui.
     // Sem checar contentType: o iOS às vezes manda "application/octet-stream".
+    // Só os nomes que assinarTermo aceita, e só enquanto o termo não foi
+    // assinado: depois disso a pasta congela, senão quem tem o id (ele viaja
+    // no link do QR) trocaria o documento e a selfie que servem de prova.
     match /termos/{encId}/{arquivo} {
-      allow create, update: if request.resource.size < 8 * 1024 * 1024;
+      allow create, update: if request.resource.size < 8 * 1024 * 1024
+        && arquivo in ['documento_frente', 'documento_verso', 'documento', 'selfie']
+        && firestore.get(/databases/(default)/documents/encontristas/$(encId)).data.termoAssinado != true;
       allow read, delete: if false;
     }
     // Antes havia aqui um "qualquer logado lê/grava/apaga tudo" — com o
