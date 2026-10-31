@@ -1661,9 +1661,6 @@ function Login({ onLogin, onVoltar, onCadastro }) {
               Fazer meu cadastro como servo
             </button>
           )}
-          <div style={{ color: G.tm, fontSize: 12, textAlign: "center" }}>
-            Solicite acesso ao administrador
-          </div>
         </div>
         <div style={{ textAlign: "center", marginTop: 40 }}>
           <img
