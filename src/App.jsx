@@ -7176,7 +7176,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             try {
                               const data = await chamarFn("criarPagamento", { encontristaId: e.id, tipo: "pix" }, true);
                               if (data.init_point) {
-                                const msg = `${msgPendente(e.nome)}\n\npara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}`;
+                                const msg = `${msgPendente(e.nome)}\n\nPara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}\n\nVocê ainda deseja participar deste encontro? Responda *Sim* ou *Não*. 🙏\n\nAguardamos uma breve resposta, para a melhor organização do evento.`;
                                 window.location.href = `${wa}?text=${encodeURIComponent(msg)}`;
                               } else {
                                 t("Erro ao gerar link de pagamento", "w");
