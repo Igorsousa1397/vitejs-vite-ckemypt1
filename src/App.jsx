@@ -9914,7 +9914,7 @@ function CozinhaV({ edit, t, users }) {
           <Seg
             opts={[["ativos", `Ativos (${statsAtivos})`], ["inativos", `Inativos (${statsInativos})`]]}
             val={aba}
-            set={setAba}
+            set={(k) => { setAba(k); if (k === "inativos") setFiltroStatus("todos"); }}
           />
         </div>
 
@@ -10032,7 +10032,8 @@ function CozinhaV({ edit, t, users }) {
               </div>
             </div>
 
-            {/* Status */}
+            {/* Status: só na aba Ativos (inativo não tem status de pagamento) */}
+            {aba === "ativos" && (
             <div>
               <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Status</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -10060,6 +10061,7 @@ function CozinhaV({ edit, t, users }) {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Sexo */}
             <div>
@@ -10107,7 +10109,7 @@ function CozinhaV({ edit, t, users }) {
             padding: "12px 8px",
             textAlign: "center",
             borderTop: "2px solid #636366",
-            marginBottom: 8,
+            marginBottom: aba === "ativos" ? 8 : 14,
           }}
         >
           <div key={aba} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{statsTotal}</div>
@@ -10115,6 +10117,8 @@ function CozinhaV({ edit, t, users }) {
             {aba === "inativos" ? "Servos inativos" : "Servos ativos"}
           </div>
         </div>
+        {/* inativo não tem status de pagamento: os cards só fazem sentido na aba Ativos */}
+        {aba === "ativos" && (
         <div
           style={{
             display: "grid",
@@ -10157,6 +10161,8 @@ function CozinhaV({ edit, t, users }) {
             </div>
           ))}
         </div>
+        )}
+
         {(() => {
           const partes = [];
           const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", staff: "Staff", lider: "Líderes", pastor: "Pastores" };
