@@ -9569,6 +9569,7 @@ function CozinhaV({ edit, t, users }) {
     // ativos e inativos ficam em sub-telas separadas; os cards de totais seguem a aba
     const [aba, setAba] = useState("ativos");
     const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+    const [excluindo, setExcluindo] = useState(null);
     const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({
@@ -10264,6 +10265,35 @@ function CozinhaV({ edit, t, users }) {
                   labelOff="Inativo"
                 />
               </div>
+
+              {/* Excluir: só para inativo (a function confere de novo e só aceita admin) */}
+              {u.ativo === false && edit && (
+                <button
+                  disabled={excluindo === u.id}
+                  onClick={async () => {
+                    const ok = await pedirConfirmacao(`Excluir ${u.nome}? A conta de acesso e o cadastro serão apagados.`, "Excluir");
+                    if (!ok) return;
+                    setExcluindo(u.id);
+                    try {
+                      await chamarFn("excluirServo", { id: u.id }, true);
+                      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+                      t("Servo excluído.");
+                    } catch (err) {
+                      t(err?.message || "Erro ao excluir.", "w");
+                    }
+                    setExcluindo(null);
+                  }}
+                  style={{
+                    ...BK({ width: "100%", padding: "10px 12px", borderRadius: 12, fontSize: 13, fontWeight: 700 }),
+                    borderColor: "rgba(255,59,48,.35)",
+                    color: "#ff6b6b",
+                    background: "rgba(255,59,48,.06)",
+                    opacity: excluindo === u.id ? 0.6 : 1,
+                  }}
+                >
+                  {excluindo === u.id ? "Excluindo..." : "Excluir servo"}
+                </button>
+              )}
 
               {/* Pagamento */}
               {u.ativo !== false && u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && u.perfil !== "lider_geral" && (

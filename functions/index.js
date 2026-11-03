@@ -962,3 +962,33 @@ exports.recusarServo = onRequest({ cors: true, invoker: 'public' }, async (req, 
     return res.status(500).json({ error: 'Não foi possível remover.' });
   }
 });
+
+// Exclui um servo inativo: conta de login, cadastro e token de push. Só admin,
+// só quem já está inativo (o ativo se inativa primeiro) e nunca a própria conta.
+// O pedido de uniforme e o log de pagamentos ficam como histórico.
+exports.excluirServo = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  const u = await usuarioLogado(req);
+  if (!u) return res.status(401).json({ error: 'Faça login novamente' });
+  if (!PERFIS_ADMIN.includes(u.perfil)) return res.status(403).json({ error: 'Sem permissão' });
+
+  const id = texto(req.body?.id, 128);
+  if (!id) return res.status(400).json({ error: 'id obrigatório' });
+  if (id === u.uid) return res.status(400).json({ error: 'Você não pode excluir a própria conta.' });
+  try {
+    const ref = db.collection('users').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Servo não encontrado.' });
+    const alvo = snap.data();
+    if (alvo.ativo !== false) return res.status(400).json({ error: 'Inative o servo antes de excluir.' });
+    if (alvo.perfil === 'admin') return res.status(400).json({ error: 'Conta de administrador não pode ser excluída.' });
+
+    await admin.auth().deleteUser(id).catch((err) => { if (err.code !== 'auth/user-not-found') throw err; });
+    await ref.delete();
+    await db.collection('tokens').doc(id).delete().catch(() => {});
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro excluirServo:', e.message);
+    return res.status(500).json({ error: 'Não foi possível excluir.' });
+  }
+});
