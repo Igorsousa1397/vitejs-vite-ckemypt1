@@ -9568,6 +9568,7 @@ function CozinhaV({ edit, t, users }) {
     const [filtroSexo, setFiltroSexo] = useState("todos");
     // ativos e inativos ficam em sub-telas separadas; os cards de totais seguem a aba
     const [aba, setAba] = useState("ativos");
+    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
     const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({
@@ -10193,6 +10194,7 @@ function CozinhaV({ edit, t, users }) {
               u.perfil === "pastor" ? (u.pago ? "#bf5af2" : "#bf5af2") :
               u.perfil === "pastor_auxiliar" ? "#9b59b6" :
               u.perfil === "lider_geral" ? (u.pago ? "#0a84ff" : "#0a84ff") :
+              u.ativo === false ? "#636366" :
               u.perfil?.startsWith("lider_") ? (PERFIS[u.perfil]?.c || "#ff9f0a") :
               u.pago === true ? G.green : u.pago === 'abonado' ? "#636366" : u.pago === 'pagar_depois' ? "#0a84ff" : "#ff3b30"
             }
@@ -10207,13 +10209,13 @@ function CozinhaV({ edit, t, users }) {
                 {!u.ativo && (
                   <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
                 )}
-                {u.pago === true && (
+                {u.ativo !== false && u.pago === true && (
                   <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />
                 )}
-                {u.pago === 'abonado' && (
+                {u.ativo !== false && u.pago === 'abonado' && (
                   <Pill c="Abonado" bg="rgba(99,99,102,.2)" tc="#aaa" />
                 )}
-                {u.pago === 'pagar_depois' && (
+                {u.ativo !== false && u.pago === 'pagar_depois' && (
                   <Pill c="Pagar depois" bg="rgba(10,132,255,.12)" tc="#0a84ff" />
                 )}
                 <Pill
@@ -10236,8 +10238,27 @@ function CozinhaV({ edit, t, users }) {
                 <Toggle
                   val={u.ativo !== false}
                   onToggle={async () => {
-                    await setDoc(doc(db, "users", u.id), { ativo: !u.ativo }, { merge: true });
-                    upd(u.id, (x) => ({ ...x, ativo: !x.ativo }));
+                    // campo ausente conta como ativo, então o próximo estado sai de "=== false"
+                    const ativar = u.ativo === false;
+                    // inativo perde o perfil (líder, staff, cozinha...) e fica só como Servo;
+                    // o perfil antigo fica guardado em perfilAnterior, só como registro
+                    if (!ativar && u.perfil !== "servo") {
+                      const ok = await pedirConfirmacao(
+                        `Inativar ${(u.nome || "").split(" ")[0]}? O perfil ${PERFIS[u.perfil]?.l || u.perfil} passa a ser Servo.`,
+                        "Inativar",
+                      );
+                      if (!ok) return;
+                    }
+                    const dados = ativar
+                      ? { ativo: true }
+                      : { ativo: false, perfil: "servo", ...(u.perfil !== "servo" ? { perfilAnterior: u.perfil } : {}) };
+                    try {
+                      await setDoc(doc(db, "users", u.id), dados, { merge: true });
+                      upd(u.id, (x) => ({ ...x, ...dados }));
+                      t(ativar ? "Servo reativado." : "Servo inativado.");
+                    } catch {
+                      t("Erro ao salvar.", "w");
+                    }
                   }}
                   labelOn="Ativo"
                   labelOff="Inativo"
@@ -10245,7 +10266,7 @@ function CozinhaV({ edit, t, users }) {
               </div>
 
               {/* Pagamento */}
-              {u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && u.perfil !== "lider_geral" && (
+              {u.ativo !== false && u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && u.perfil !== "lider_geral" && (
               <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
                 <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
                 {/* Status atual */}
@@ -10306,6 +10327,8 @@ function CozinhaV({ edit, t, users }) {
             </div>
           </Acc>
         ))}
+
+        {dialogoConfirmacao}
 
         <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Servo">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
