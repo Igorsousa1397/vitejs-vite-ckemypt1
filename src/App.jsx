@@ -345,8 +345,8 @@ const PERFIS = {
   pastor: { l: "Pastor", c: "#bf5af2" },
   pastor_auxiliar: { l: "Pastor Auxiliar", c: "#bf5af2" },
   cozinha: { l: "Cozinha", c: "#ff6b35" },
-  // servos que cuidam dos filhos dos encontristas (nome provisório: troque só o `l`)
-  infantil: { l: "Infantil", c: "#5ac8fa" },
+  // servos que cuidam dos filhos dos encontristas; o nome exibido vem só daqui
+  infantil: { l: "Servo Infantil", c: "#5ac8fa" },
   servo: { l: "Servo", c: "#636366" },
   staff: { l: "Staff", c: "#ff9f0a" },
   lider_som: { l: "Líder Som", c: "#30d158" },
