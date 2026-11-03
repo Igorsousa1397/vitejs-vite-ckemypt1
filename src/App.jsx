@@ -1311,6 +1311,17 @@ const authHeaders = async () => {
     return tk ? { Authorization: `Bearer ${tk}` } : {};
   } catch { return {}; }
 };
+// "03/11/2026 às 11:19 · hoje" para o último contato com o encontrista
+const fmtUltimoContato = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const dia = d.toLocaleDateString("pt-BR");
+  const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const zero = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const dias = Math.round((zero(new Date()) - zero(d)) / 86400000);
+  const rel = dias <= 0 ? "hoje" : dias === 1 ? "ontem" : `há ${dias} dias`;
+  return `${dia} às ${hora} · ${rel}`;
+};
 const chamarFn = async (nome, body, comAuth = false) => {
   const res = await fetch(`${FN_URL}/${nome}`, {
     method: "POST",
@@ -6578,6 +6589,24 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       }
     };
 
+    // grava quando alguém abriu o WhatsApp do encontrista. Espera no máximo 1,5s
+    // (a conversa abre na mesma aba e descarregaria a página) e não avisa erro:
+    // quem não pode editar só não fica registrado
+    const registrarContato = async (enc) => {
+      const upd = { ultimoContato: new Date().toISOString() };
+      try {
+        await Promise.race([
+          setDoc(doc(db, "encontristas", enc.id), upd, { merge: true }),
+          new Promise((r) => setTimeout(r, 1500)),
+        ]);
+        const apply = (arr) => arr.map((x) => (x.id === enc.id ? { ...x, ...upd } : x));
+        setEncH((prev) => apply(prev));
+        setEncM((prev) => apply(prev));
+      } catch (err) {
+        console.warn("Contato não registrado:", err?.code || err?.message);
+      }
+    };
+
     // descarta os rascunhos de "pagar depois" quando a data deixa de existir no banco,
     // senão a caixa reabre com a data antiga travada em modo leitura
     const limparDraftPd = (id) => {
@@ -7176,6 +7205,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             try {
                               const data = await chamarFn("criarPagamento", { encontristaId: e.id, tipo: "pix" }, true);
                               if (data.init_point) {
+                                await registrarContato(e);
                                 const msg = `${msgPendente(e.nome)}\n\nPara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}\n\nVocê ainda deseja participar deste encontro? Responda *Sim* ou *Não*. 🙏\n\nAguardamos uma breve resposta, para a melhor organização do evento.`;
                                 window.location.href = `${wa}?text=${encodeURIComponent(msg)}`;
                               } else {
@@ -7185,10 +7215,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               t("Erro ao gerar link de pagamento", "w");
                             }
                           } else if (st === "pagar_depois") {
+                            await registrarContato(e);
                             window.location.href = `${wa}?text=${encodeURIComponent(msgPagarDepois(e.nome, e.pagarDepoisData))}`;
                           } else if (cadastroPendente(e)) {
+                            await registrarContato(e);
                             window.location.href = `${wa}?text=${encodeURIComponent(msgCadastroPendente(e.nome, e.id))}`;
                           } else {
+                            await registrarContato(e);
                             window.location.href = wa;
                           }
                         }}
@@ -7200,6 +7233,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       >
                         Entrar em contato — {e.whatsapp}
                       </button>
+                    )}
+                    {wa && (
+                      <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: -2 }}>
+                        {e.ultimoContato
+                          ? <>Último contato: <strong style={{ color: G.td }}>{fmtUltimoContato(e.ultimoContato)}</strong></>
+                          : "Nenhum contato registrado"}
+                      </div>
                     )}
                   </div>
                 )}
