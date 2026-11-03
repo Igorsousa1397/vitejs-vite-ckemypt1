@@ -9566,6 +9566,8 @@ function CozinhaV({ edit, t, users }) {
     const [filtroPerfil, setFiltroPerfil] = useState("todos");
     const [filtroStatus, setFiltroStatus] = useState("todos");
     const [filtroSexo, setFiltroSexo] = useState("todos");
+    // ativos e inativos ficam em sub-telas separadas; os cards de totais seguem a aba
+    const [aba, setAba] = useState("ativos");
     const [shFiltro, setShFiltro] = useState(false);
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({
@@ -9722,10 +9724,8 @@ function CozinhaV({ edit, t, users }) {
   const filtroStatusFn = (u) => {
     if (filtroStatus === "todos") return true;
     if (filtroStatus === "pagos") return u.pago === true;
-    if (filtroStatus === "pendentes") return !u.pago && !isExentoPagamento(u) && u.ativo !== false;
+    if (filtroStatus === "pendentes") return !u.pago && !isExentoPagamento(u);
     if (filtroStatus === "abonados") return u.pago === "abonado" || isExentoPagamento(u);
-    if (filtroStatus === "ativos") return u.ativo !== false;
-    if (filtroStatus === "inativos") return u.ativo === false;
     if (filtroStatus === "primeiro_acesso") return u.primeiro === true;
     return true;
   };
@@ -9737,10 +9737,13 @@ function CozinhaV({ edit, t, users }) {
 
   const filtrosAtivos = (filtroPerfil !== "todos" ? 1 : 0) + (filtroStatus !== "todos" ? 1 : 0) + (filtroSexo !== "todos" ? 1 : 0);
 
+  const daAba = (u) => (aba === "inativos" ? u.ativo === false : u.ativo !== false);
+
   const lista = users.filter(
     (u) =>
       u.perfil !== "admin" &&
       u.nome &&
+      daAba(u) &&
       filtroPerfilFn(u) &&
       filtroStatusFn(u) &&
       filtroSexoFn(u) &&
@@ -9759,12 +9762,14 @@ function CozinhaV({ edit, t, users }) {
   const isAbonadoPorPerfil = (u) => PERFIS_ABONADOS.includes(u.perfil);
   const statsBaseTodos = users.filter((u) => u.nome && u.perfil !== "admin");
   const statsInativos = statsBaseTodos.filter((u) => u.ativo === false).length;
-  const statsBase = statsBaseTodos.filter((u) => u.ativo !== false);
+  const statsAtivos = statsBaseTodos.length - statsInativos;
+  // só o que a aba atual exibe
+  const statsBase = statsBaseTodos.filter(daAba);
   const statsPagos = statsBase.filter((u) => !isAbonadoPorPerfil(u) && u.pago === true).length;
   const statsAbonados = statsBase.filter((u) => isAbonadoPorPerfil(u) || u.pago === "abonado").length;
   const statsPagarDepois = statsBase.filter((u) => !isAbonadoPorPerfil(u) && u.pago === "pagar_depois").length;
   const statsPendentes = statsBase.length - statsPagos - statsAbonados - statsPagarDepois;
-  const statsTotal = statsBaseTodos.length;
+  const statsTotal = statsBase.length;
 
     return (
       <div>
@@ -9904,6 +9909,15 @@ function CozinhaV({ edit, t, users }) {
           </div>
         )}
 
+        {/* ATIVOS / INATIVOS */}
+        <div style={{ marginBottom: 12 }}>
+          <Seg
+            opts={[["ativos", `Ativos (${statsAtivos})`], ["inativos", `Inativos (${statsInativos})`]]}
+            val={aba}
+            set={setAba}
+          />
+        </div>
+
         {/* BUSCA + FUNIL */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           <div style={{ position: "relative", flex: 1 }}>
@@ -10027,8 +10041,6 @@ function CozinhaV({ edit, t, users }) {
                   ["pagos", "Pagos"],
                   ["pendentes", "Pendentes"],
                   ["abonados", "Abonados"],
-                  ["ativos", "Ativos"],
-                  ["inativos", "Inativos"],
                   ["primeiro_acesso", "1º Acesso"],
                 ].map(([val, label]) => (
                   <button
@@ -10098,9 +10110,9 @@ function CozinhaV({ edit, t, users }) {
             marginBottom: 8,
           }}
         >
-          <div style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{statsTotal}</div>
+          <div key={aba} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{statsTotal}</div>
           <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-            Total de Servos
+            {aba === "inativos" ? "Servos inativos" : "Servos ativos"}
           </div>
         </div>
         <div
@@ -10108,7 +10120,7 @@ function CozinhaV({ edit, t, users }) {
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: 8,
-            marginBottom: 8,
+            marginBottom: 14,
           }}
         >
           {[
@@ -10127,7 +10139,7 @@ function CozinhaV({ edit, t, users }) {
                 borderTop: `2px solid ${c}`,
               }}
             >
-              <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>
+              <div key={aba} className="pop" style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>
                 {n}
               </div>
               <div
@@ -10145,26 +10157,10 @@ function CozinhaV({ edit, t, users }) {
             </div>
           ))}
         </div>
-        <div
-          style={{
-            background: "#111",
-            borderRadius: 12,
-            padding: "10px 8px",
-            textAlign: "center",
-            borderTop: "2px solid #8e8e93",
-            marginBottom: 14,
-          }}
-        >
-          <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>{statsInativos}</div>
-          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-            Inativos
-          </div>
-        </div>
-
         {(() => {
           const partes = [];
           const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", staff: "Staff", lider: "Líderes", pastor: "Pastores" };
-          const labelsStatus = { pagos: "Pagos", pendentes: "Pendentes", abonados: "Abonados", ativos: "Ativos", inativos: "Inativos", primeiro_acesso: "1º Acesso" };
+          const labelsStatus = { pagos: "Pagos", pendentes: "Pendentes", abonados: "Abonados", primeiro_acesso: "1º Acesso" };
           if (filtroPerfil !== "todos") partes.push(labelsPerfil[filtroPerfil] || filtroPerfil);
           if (filtroStatus !== "todos") partes.push(labelsStatus[filtroStatus] || filtroStatus);
           if (filtroSexo !== "todos") partes.push(filtroSexo);
@@ -10176,6 +10172,12 @@ function CozinhaV({ edit, t, users }) {
             </div>
           );
         })()}
+
+        {lista.length === 0 && (
+          <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: "center", padding: "28px 0" }}>
+            {aba === "inativos" ? "Nenhum servo inativo." : "Nenhum servo encontrado."}
+          </div>
+        )}
 
         {lista.map((u, i) => (
           <Acc
