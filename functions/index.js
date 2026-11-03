@@ -18,6 +18,7 @@ const VALORES = {
   encontristaItajai: 200,
   servo: 250, // servo, staff e líderes
   cozinha: 150,
+  infantil: 180, // servos que cuidam das crianças
 };
 const PERFIS_ISENTOS = ['pastor', 'pastor_auxiliar', 'lider_geral'];
 const PERFIS_ADMIN = ['admin', 'lider_geral'];
@@ -36,7 +37,8 @@ const valorEncontrista = (e) => {
   if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);
   return isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista;
 };
-const valorServo = (u) => (u.perfil === 'cozinha' ? VALORES.cozinha : VALORES.servo);
+// cozinha e infantil têm valor próprio; os demais perfis pagam o valor de servo
+const valorServo = (u) => ({ cozinha: VALORES.cozinha, infantil: VALORES.infantil })[u.perfil] ?? VALORES.servo;
 
 const precoItemUniforme = (item, tam) => {
   if (!tam) return 0;

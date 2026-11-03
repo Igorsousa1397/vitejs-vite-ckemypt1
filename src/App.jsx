@@ -345,6 +345,8 @@ const PERFIS = {
   pastor: { l: "Pastor", c: "#bf5af2" },
   pastor_auxiliar: { l: "Pastor Auxiliar", c: "#bf5af2" },
   cozinha: { l: "Cozinha", c: "#ff6b35" },
+  // servos que cuidam dos filhos dos encontristas (nome provisório: troque só o `l`)
+  infantil: { l: "Infantil", c: "#5ac8fa" },
   servo: { l: "Servo", c: "#636366" },
   staff: { l: "Staff", c: "#ff9f0a" },
   lider_som: { l: "Líder Som", c: "#30d158" },
@@ -1291,6 +1293,7 @@ const VALORES = {
   encontristaItajai: 200,
   servo: 250, // servo, staff e líderes (exceto pastor/pastor auxiliar/líder geral, que são isentos)
   cozinha: 150,
+  infantil: 180, // servos que cuidam das crianças
 };
 const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
 // Igrejas e células com valor reduzido (o mesmo de Itajaí). Manter igual em functions/index.js.
@@ -1299,7 +1302,8 @@ const IGREJAS_VALOR_REDUZIDO = ["Fonte Itajaí", "Paraná"];
 const CELULAS_VALOR_REDUZIDO = ["Peniel", "Peniel - Santa Catarina"];
 const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e?.igreja) || CELULAS_VALOR_REDUZIDO.includes(e?.celula);
 const valorEncPix = (e) => (isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista);
-const valorServoPix = (perfil) => (perfil === "cozinha" ? VALORES.cozinha : VALORES.servo);
+// cozinha e infantil têm valor próprio; os demais perfis pagam o valor de servo
+const valorServoPix = (perfil) => ({ cozinha: VALORES.cozinha, infantil: VALORES.infantil })[perfil] ?? VALORES.servo;
 const fmtReal = (v) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
 // Cloud Functions. `comAuth` manda o ID token do usuário logado — as functions
@@ -1723,7 +1727,7 @@ function PendentesAprovacao({ pendentes, t }) {
                 {u.criadoEm && <><br />Cadastro em {new Date(u.criadoEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</>}
               </div>
               <div style={{ display: "flex", gap: 6, margin: "10px 0" }}>
-                {["servo", "cozinha", "staff"].map((p) => {
+                {["servo", "cozinha", "infantil", "staff"].map((p) => {
                   const sel = (perfilDe[u.id] || "servo") === p;
                   return (
                     <button key={p} onClick={() => setPerfilDe((v) => ({ ...v, [u.id]: p }))} style={BK({ flex: 1, padding: 8, borderRadius: 10, fontSize: 12, ...(sel ? { borderColor: "rgba(0,200,81,.6)", color: G.green, background: "rgba(0,200,81,.08)" } : {}) })}>
@@ -5336,7 +5340,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     u.perfil !== 'admin'
   );
 
-  // servo, staff, líderes (exceto geral/pastor) → mesmo valor; cozinha tem o seu
+  // servo, staff, líderes (exceto geral/pastor) → mesmo valor; cozinha e infantil têm o seu
   const getValorServo = (u) => valorServoPix(u.perfil);
 
   const servosPagos     = servos.filter(u => !isAbonadoPorPerfilDash(u) && u.pago === true);
@@ -5591,7 +5595,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   </div>
                 )}
                 <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
-                  * R${VALORES.servo}/servo·staff·líder e R${VALORES.cozinha}/cozinha (PIX). Abonados não contabilizados.
+                  * R${VALORES.servo}/servo·staff·líder, R${VALORES.cozinha}/cozinha e R${VALORES.infantil}/{PERFIS.infantil.l.toLowerCase()} (PIX). Abonados não contabilizados.
                 </div>
               </div>
             </div>
@@ -9748,13 +9752,15 @@ function CozinhaV({ edit, t, users }) {
     if (perfil === "staff") return 5;
     if (perfil === "servo") return 6;
     if (perfil === "cozinha") return 7;
-    return 8;
+    if (perfil === "infantil") return 8;
+    return 9;
   };
 
   const filtroPerfilFn = (u) => {
     if (filtroPerfil === "todos") return true;
     if (filtroPerfil === "servo") return u.perfil === "servo";
     if (filtroPerfil === "cozinha") return u.perfil === "cozinha";
+    if (filtroPerfil === "infantil") return u.perfil === "infantil";
     if (filtroPerfil === "staff") return u.perfil === "staff";
     if (filtroPerfil === "lider") return u.perfil?.startsWith("lider_");
     if (filtroPerfil === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
@@ -10052,6 +10058,7 @@ function CozinhaV({ edit, t, users }) {
                   ["todos", "Todos os perfis"],
                   ["servo", "Servo"],
                   ["cozinha", "Cozinha"],
+                  ["infantil", PERFIS.infantil.l],
                   ["staff", "Staff"],
                   ["lider", "Líderes"],
                   ["pastor", "Pastores"],
@@ -10207,7 +10214,7 @@ function CozinhaV({ edit, t, users }) {
 
         {(() => {
           const partes = [];
-          const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", staff: "Staff", lider: "Líderes", pastor: "Pastores" };
+          const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", infantil: PERFIS.infantil.l, staff: "Staff", lider: "Líderes", pastor: "Pastores" };
           const labelsStatus = { pagos: "Pagos", pendentes: "Pendentes", abonados: "Abonados", primeiro_acesso: "1º Acesso" };
           if (filtroPerfil !== "todos") partes.push(labelsPerfil[filtroPerfil] || filtroPerfil);
           if (filtroStatus !== "todos") partes.push(labelsStatus[filtroStatus] || filtroStatus);
@@ -10484,6 +10491,7 @@ function CozinhaV({ edit, t, users }) {
                 <option value="pastor">Pastor</option>
                 <option value="pastor_auxiliar">Pastor Auxiliar</option>
                 <option value="cozinha">Cozinha</option>
+                <option value="infantil">{PERFIS.infantil.l}</option>
                 <option value="staff">Staff</option>
                 <option value="servo">Servo</option>
               </select>
@@ -12098,8 +12106,9 @@ function CozinhaV({ edit, t, users }) {
 
               const ExcelJS = await carregarExcelJS();
               const wb = new ExcelJS.Workbook();
-              buildAba(wb, "SERVO", uniPedidos.filter((u) => (u.perfil === "servo" || u.perfil === "cozinha") && (u.pagoSinal || u.pagoIntegral)));
-              buildAba(wb, "STAFF", uniPedidos.filter((u) => u.perfil !== "servo" && u.perfil !== "cozinha" && (u.pagoSinal || u.pagoIntegral)));
+              const abaServo = (u) => ["servo", "cozinha", "infantil"].includes(u.perfil);
+              buildAba(wb, "SERVO", uniPedidos.filter((u) => abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
+              buildAba(wb, "STAFF", uniPedidos.filter((u) => !abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
@@ -12948,7 +12957,7 @@ export default function App() {
 
           setUser({ id: firebaseUser.uid, ...data });
           setScr("app");
-          if (data.perfil === "servo") setPg("smins");
+          if (data.perfil === "servo" || data.perfil === "infantil") setPg("smins");
 
           unsubConfigRef.current = onSnapshot(doc(db, "config", "uniformes"), (s) => {
             if (s.exists()) {
@@ -14906,6 +14915,7 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
       if (filtroPerfilBack === "todos") return true;
       if (filtroPerfilBack === "servo") return u.perfil === "servo";
       if (filtroPerfilBack === "cozinha") return u.perfil === "cozinha";
+      if (filtroPerfilBack === "infantil") return u.perfil === "infantil";
       if (filtroPerfilBack === "staff") return u.perfil === "staff";
       if (filtroPerfilBack === "lider") return u.perfil?.startsWith("lider_");
       if (filtroPerfilBack === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
@@ -15133,6 +15143,7 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                     ["lider", "Líderes"],
                     ["servo", "Servos"],
                     ["cozinha", "Cozinha"],
+                    ["infantil", PERFIS.infantil.l],
                     ["staff", "Staff"],
                   ].map(([val, label]) => (
                     <button
@@ -15169,8 +15180,9 @@ function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, per
                     if (p?.startsWith("lider_")) return 3;
                     if (p === "servo") return 4;
                     if (p === "cozinha") return 5;
-                    if (p === "staff") return 6;
-                    return 7;
+                    if (p === "infantil") return 6;
+                    if (p === "staff") return 7;
+                    return 8;
                   };
                   const diff = ORDEM(a.perfil) - ORDEM(b.perfil);
                   if (diff !== 0) return diff;
