@@ -11876,16 +11876,54 @@ function CozinhaV({ edit, t, users }) {
               const abaServo = (u) => ["servo", "cozinha", "infantil"].includes(u.perfil);
               buildAba(wb, "SERVO", uniPedidos.filter((u) => abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
               buildAba(wb, "STAFF", uniPedidos.filter((u) => !abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
-              if (emprestados.length) {
-                const wsE = wb.addWorksheet("EMPRESTADOS");
-                wsE.columns = [
-                  { header: "Nome", key: "nome", width: 40 },
-                  { header: "Perfil", key: "perfil", width: 18 },
-                  { header: "Tamanho", key: "tamanho", width: 12 },
-                ];
-                wsE.getRow(1).font = { bold: true };
-                [...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"))
-                  .forEach((u) => wsE.addRow({ nome: u.nome || "", perfil: PERFIS[u.perfil]?.l || u.perfil || "", tamanho: u.tamanho || "" }));
+              // aba própria dos emprestados (staff), no mesmo visual das outras: agrupada por tamanho
+              {
+                const wsE = wb.addWorksheet("EMPRESTADO");
+                const borda = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } };
+                const cinza = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+                const cel = (r, c, v, { bold = false, size = 9, fill, align = "left" } = {}) => {
+                  const x = wsE.getCell(r, c);
+                  x.value = v;
+                  x.font = { name: "Arial", bold, size };
+                  if (fill) x.fill = fill;
+                  x.alignment = { horizontal: align, vertical: "middle" };
+                  x.border = borda;
+                  return x;
+                };
+                [32, 18].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
+                wsE.mergeCells("A1:B1");
+                const tit = wsE.getCell("A1");
+                tit.value = "UNIFORMES EMPRESTADOS — ENCONTRO COM DEUS 2026";
+                tit.font = { name: "Arial", bold: true, size: 12 };
+                tit.alignment = { horizontal: "center", vertical: "middle" };
+                wsE.getRow(1).height = 24;
+                cel(2, 1, "NOME", { bold: true, align: "center" });
+                cel(2, 2, "PERFIL", { bold: true, align: "center" });
+                let r = 3;
+                const ordenados = [...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+                TAMANHOS.forEach((tm) => {
+                  const doTam = ordenados.filter((u) => u.tamanho === tm);
+                  if (!doTam.length) return;
+                  wsE.mergeCells(r, 1, r, 2);
+                  cel(r, 1, `TAMANHO ${tm}`, { bold: true, fill: cinza("FFEEEEEE"), align: "center" });
+                  r++;
+                  doTam.forEach((u) => {
+                    cel(r, 1, u.nome || "");
+                    cel(r, 2, PERFIS[u.perfil]?.l || u.perfil || "", { align: "center" });
+                    r++;
+                  });
+                  cel(r, 1, `TOTAL ${tm}`, { bold: true, fill: cinza("FFDDDDDD") });
+                  cel(r, 2, doTam.length, { bold: true, fill: cinza("FFDDDDDD"), align: "center" });
+                  r += 2;
+                });
+                if (!emprestados.length) {
+                  wsE.mergeCells(r, 1, r, 2);
+                  cel(r, 1, "Nenhum uniforme emprestado", { align: "center" });
+                  r += 2;
+                }
+                cel(r, 1, "TOTAL EMPRESTADOS", { bold: true, size: 11, fill: cinza("FFBBBBBB") });
+                cel(r, 2, emprestados.length, { bold: true, size: 11, fill: cinza("FFBBBBBB"), align: "center" });
+                wsE.getRow(r).height = 20;
               }
 
               wb.xlsx.writeBuffer().then((buffer) => {
