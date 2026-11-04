@@ -1116,6 +1116,92 @@ function MapaQuartos({ aberto, onFechar, sexo, quartos, edit, onAbrirQuarto, t }
   );
 }
 
+// ── DATAS ────────────────────────────────────────────────────────────────────
+// Prazos do encontro num lugar só (config/uniformes). O pedido de uniforme grava
+// dataLimite (o que abre/fecha o pedido) e dataLimitePedido (o que aparece nas
+// condições) juntos, para os dois nunca ficarem diferentes.
+const fmtDataBR = (iso) => (iso ? new Date(iso + "T12:00:00").toLocaleDateString("pt-BR") : "");
+function prazoInfo(iso) {
+  if (!iso) return { txt: "Sem data definida", cor: G.tm, bg: "rgba(99,99,102,.15)" };
+  const hoje = new Date().toISOString().split("T")[0];
+  const dias = Math.round((new Date(iso + "T12:00:00") - new Date(hoje + "T12:00:00")) / 86400000);
+  if (dias < 0) return { txt: "Encerrado", cor: "#ff6b6b", bg: "rgba(255,59,48,.12)" };
+  if (dias === 0) return { txt: "Último dia", cor: "#ff9f0a", bg: "rgba(255,159,10,.12)" };
+  return { txt: `Aberto · ${dias === 1 ? "falta 1 dia" : `faltam ${dias} dias`}`, cor: G.green, bg: "rgba(0,200,81,.12)" };
+}
+function CampoPrazo({ titulo, desc, valor, onSalvar, t, i }) {
+  const [v, setV] = useState(valor || "");
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => { setV(valor || ""); }, [valor]);
+  const mudou = v !== (valor || "");
+  const info = prazoInfo(valor);
+  const salvar = async () => {
+    if (!v) { t("Escolha uma data.", "w"); return; }
+    setSalvando(true);
+    try {
+      await onSalvar(v);
+      t("Data salva!");
+    } catch {
+      t("Erro ao salvar a data.", "w");
+    }
+    setSalvando(false);
+  };
+  return (
+    <div className="fu" style={{ animationDelay: `${i * 60}ms`, background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>{titulo}</div>
+        <span style={{ flexShrink: 0, background: info.bg, color: info.cor, fontSize: 11, fontWeight: 700, borderRadius: 999, padding: "3px 9px" }}>{info.txt}</span>
+      </div>
+      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>{desc}</div>
+      {valor && <div style={{ color: G.td, fontSize: 13, marginBottom: 10 }}>Data atual: <strong style={{ color: G.t }}>{fmtDataBR(valor)}</strong></div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <input type="date" value={v} onChange={(e) => setV(e.target.value)} style={{ ...I, flex: 1, marginBottom: 0, colorScheme: "dark" }} />
+        <button
+          onClick={salvar}
+          disabled={!mudou || salvando}
+          style={BG({ padding: "0 18px", borderRadius: 12, fontSize: 14, opacity: !mudou || salvando ? 0.4 : 1, cursor: !mudou || salvando ? "default" : "pointer" })}
+        >
+          {salvando ? "Salvando..." : "Salvar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+function DatasV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t }) {
+  const gravar = (campos) => setDoc(doc(db, "config", "uniformes"), campos, { merge: true });
+  return (
+    <div>
+      <div style={{ color: G.tm, fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
+        Os prazos valem para todos os servos assim que forem salvos.
+      </div>
+      <CampoPrazo
+        i={0}
+        titulo="Pagamento da inscrição do servo"
+        desc="Último dia para o servo pagar a inscrição. Aparece no lembrete de pagamento da tela inicial."
+        valor={dataLimitePagamento}
+        onSalvar={(v) => gravar({ dataLimitePagamento: v })}
+        t={t}
+      />
+      <CampoPrazo
+        i={1}
+        titulo="Pedido de uniforme"
+        desc="Último dia para fazer ou alterar o pedido de uniforme. Depois dessa data o pedido fecha."
+        valor={dataLimiteUni}
+        onSalvar={(v) => gravar({ dataLimite: v, dataLimitePedido: v })}
+        t={t}
+      />
+      <CampoPrazo
+        i={2}
+        titulo="Pagamento do uniforme (restante)"
+        desc="Último dia para pagar os 50% restantes do uniforme. O sinal é pago no momento do pedido."
+        valor={dataLimiteRestante}
+        onSalvar={(v) => gravar({ dataLimiteRestante: v })}
+        t={t}
+      />
+    </div>
+  );
+}
+
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
 const FUNCOES_INIT = [
@@ -1363,6 +1449,7 @@ const LABELS = {
   saude: "Saúde",
   cozinha: "Cozinha",
   back: "Back Office",
+  datas: "Datas",
   uniformes: "Uniformes",
   termo: "Termo",
   test: "Testemunhos",
@@ -9619,23 +9706,6 @@ function CozinhaV({ edit, t, users }) {
     const [busca, setBusca] = useState("");
     const upd = (id, fn) =>
       setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
-    const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento || "");
-    const [savingDataPag, setSavingDataPag] = useState(false);
-
-    const salvarDataPag = async () => {
-      if (!dataTempPag) {
-        t("Selecione uma data", "w");
-        return;
-      }
-      setSavingDataPag(true);
-      await setDoc(
-        doc(db, "config", "uniformes"),
-        { dataLimitePagamento: dataTempPag },
-        { merge: true },
-      );
-      setSavingDataPag(false);
-      t("Data limite salva!");
-    };
 
   const ORDEM_PERFIL = (perfil) => {
     if (perfil === "pastor") return 0;
@@ -9716,126 +9786,6 @@ function CozinhaV({ edit, t, users }) {
     return (
       <div>
         {edit && <PendentesAprovacao pendentes={pendentes} t={t} />}
-
-        {edit && (
-          <div
-            style={{
-              background: G.card,
-              border: `1px solid ${G.cb}`,
-              borderRadius: 14,
-              padding: 14,
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                color: G.t,
-                fontWeight: 700,
-                fontSize: 16,
-                marginBottom: 10,
-              }}
-            >
-              Data Limite — Pagamento do Servo
-            </div>
-            {!!dataLimitePagamento && dataTempPag === dataLimitePagamento ? (
-              <>
-                <div
-                  style={{
-                    color: G.td,
-                    fontSize: 16,
-                    padding: "10px 0",
-                    marginBottom: 10,
-                  }}
-                >
-                  {new Date(
-                    dataLimitePagamento + "T12:00:00",
-                  ).toLocaleDateString("pt-BR")}
-                </div>
-                <button
-                  onClick={() => setDataTempPag("")}
-                  style={BK({ width: "100%", padding: 12, borderRadius: 12 })}
-                >
-                  Alterar Data
-                </button>
-              </>
-            ) : (
-              <>
-                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                  <select
-                    value={dataTempPag?.split("-")[2] || ""}
-                    onChange={(e) => {
-                      const p = dataTempPag?.split("-") || ["", "", ""];
-                      setDataTempPag(`${p[0]}-${p[1]}-${e.target.value}`);
-                    }}
-                    style={{ ...I, flex: 1, marginBottom: 0 }}
-                  >
-                    <option value="">Dia</option>
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={String(d).padStart(2, "0")}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={dataTempPag?.split("-")[1] || ""}
-                    onChange={(e) => {
-                      const p = dataTempPag?.split("-") || ["", "", ""];
-                      setDataTempPag(`${p[0]}-${e.target.value}-${p[2]}`);
-                    }}
-                    style={{ ...I, flex: 1, marginBottom: 0 }}
-                  >
-                    <option value="">Mês</option>
-                    {[
-                      "Jan",
-                      "Fev",
-                      "Mar",
-                      "Abr",
-                      "Mai",
-                      "Jun",
-                      "Jul",
-                      "Ago",
-                      "Set",
-                      "Out",
-                      "Nov",
-                      "Dez",
-                    ].map((m, i) => (
-                      <option key={m} value={String(i + 1).padStart(2, "0")}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={dataTempPag?.split("-")[0] || ""}
-                    onChange={(e) => {
-                      const p = dataTempPag?.split("-") || ["", "", ""];
-                      setDataTempPag(`${e.target.value}-${p[1]}-${p[2]}`);
-                    }}
-                    style={{ ...I, flex: 1, marginBottom: 0 }}
-                  >
-                    <option value="">Ano</option>
-                    {[2025, 2026, 2027].map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={salvarDataPag}
-                  disabled={savingDataPag}
-                  style={BG({
-                    width: "100%",
-                    padding: 12,
-                    borderRadius: 12,
-                    opacity: savingDataPag ? 0.7 : 1,
-                  })}
-                >
-                  {savingDataPag ? "Salvando..." : "Salvar Data"}
-                </button>
-              </>
-            )}
-          </div>
-        )}
 
         {/* ATIVOS / INATIVOS */}
         <div style={{ marginBottom: 12 }}>
@@ -11356,25 +11306,6 @@ function CozinhaV({ edit, t, users }) {
       ...(temItens(u) ? [u] : []),
     ]);
     const pendentes = uni.filter((u) => u.status === "pendente" && !u.naoQuerUniforme).length;
-    const [dataTemp, setDataTemp] = useState(dataLimite);
-    const [dataTempPag, setDataTempPag] = useState(dataLimitePagamento);
-    const [savingData, setSavingData] = useState(false);
-    const [dataLimitePedidoLocal, setDataLimitePedidoLocal] = useState(dataLimitePedido || "");
-    const [dataLimiteRestanteLocal, setDataLimiteRestanteLocal] = useState(dataLimiteRestante || "");
-    const [editPedido, setEditPedido] = useState(false);
-    const [editRestante, setEditRestante] = useState(false);
-
-    useEffect(() => { setDataLimitePedidoLocal(dataLimitePedido || ""); }, [dataLimitePedido]);
-    useEffect(() => { setDataLimiteRestanteLocal(dataLimiteRestante || ""); }, [dataLimiteRestante]);
-
-    const salvarData = async () => {
-      if (!dataTemp) return;
-      setSavingData(true);
-      setDataLimite(dataTemp);
-      await setDoc(doc(db, "config", "uniformes"), { dataLimite: dataTemp }, { merge: true });
-      setSavingData(false);
-    };
-
     const aprovar = async (userId) => {
       await setDoc(
         doc(db, "uniformes", userId),
@@ -11395,127 +11326,11 @@ function CozinhaV({ edit, t, users }) {
 
     return (
       <div>
-        {/* DATA LIMITE */}
-        <div
-          style={{
-            background: G.card,
-            border: `1px solid ${G.cb}`,
-            borderRadius: 14,
-            padding: 14,
-            marginBottom: 14,
-          }}
-        >
-          <div
-            style={{
-              color: G.t,
-              fontWeight: 700,
-              fontSize: 16,
-              marginBottom: 10,
-            }}
-          >
-            Data Limite para Solicitacoes
-          </div>
-
-          {!!dataLimite && dataTemp === dataLimite ? (
-            <>
-              <div
-                style={{
-                  color: G.td,
-                  fontSize: 16,
-                  padding: "10px 0",
-                  marginBottom: 10,
-                }}
-              >
-                {new Date(dataLimite + "T12:00:00").toLocaleDateString("pt-BR")}
-              </div>
-              <button
-                onClick={() => setDataTemp("")}
-                style={BK({ width: "100%", padding: 12, borderRadius: 12 })}
-              >
-                Alterar Data
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <select
-                  value={dataTemp?.split("-")[2] || ""}
-                  onChange={(e) => {
-                    const parts = dataTemp?.split("-") || ["", "", ""];
-                    setDataTemp(`${parts[0]}-${parts[1]}-${e.target.value}`);
-                  }}
-                  style={{ ...I, flex: 1, marginBottom: 0 }}
-                >
-                  <option value="">Dia</option>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                    <option key={d} value={String(d).padStart(2, "0")}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={dataTemp?.split("-")[1] || ""}
-                  onChange={(e) => {
-                    const parts = dataTemp?.split("-") || ["", "", ""];
-                    setDataTemp(`${parts[0]}-${e.target.value}-${parts[2]}`);
-                  }}
-                  style={{ ...I, flex: 1, marginBottom: 0 }}
-                >
-                  <option value="">Mês</option>
-                  {[
-                    "Jan",
-                    "Fev",
-                    "Mar",
-                    "Abr",
-                    "Mai",
-                    "Jun",
-                    "Jul",
-                    "Ago",
-                    "Set",
-                    "Out",
-                    "Nov",
-                    "Dez",
-                  ].map((m, i) => (
-                    <option key={m} value={String(i + 1).padStart(2, "0")}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={dataTemp?.split("-")[0] || ""}
-                  onChange={(e) => {
-                    const parts = dataTemp?.split("-") || ["", "", ""];
-                    setDataTemp(`${e.target.value}-${parts[1]}-${parts[2]}`);
-                  }}
-                  style={{ ...I, flex: 1, marginBottom: 0 }}
-                >
-                  <option value="">Ano</option>
-                  {[2025, 2026, 2027].map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={salvarData}
-                disabled={savingData}
-                style={BG({
-                  width: "100%",
-                  padding: 12,
-                  borderRadius: 12,
-                  opacity: savingData ? 0.7 : 1,
-                })}
-              >
-                {savingData ? "Salvando..." : "Salvar Data"}
-              </button>
-            </>
-          )}
-          {!dataTemp && (
-            <div style={{ color: "#ff9f0a", fontSize: 12, marginTop: 8 }}>
-              Defina uma data para liberar solicitacoes aos servos.
-            </div>
-          )}
+        {/* PRAZOS: editados na tela Datas */}
+        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: "12px 14px", marginBottom: 14, color: G.td, fontSize: 13, lineHeight: 1.8 }}>
+          <div>Pedido até <strong style={{ color: G.t }}>{dataLimite ? fmtDataBR(dataLimite) : "sem data"}</strong>{dataLimite && <span style={{ color: hoje <= dataLimite ? G.green : "#ff6b6b", fontWeight: 700 }}> · {hoje <= dataLimite ? "aberto" : "encerrado"}</span>}</div>
+          <div>Restante (50%) até <strong style={{ color: G.t }}>{dataLimiteRestante ? fmtDataBR(dataLimiteRestante) : "sem data"}</strong></div>
+          <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>Para alterar os prazos, use o menu Datas.</div>
         </div>
 
         {/* ALERTA PENDENTES */}
@@ -11536,55 +11351,6 @@ function CozinhaV({ edit, t, users }) {
             pendente{pendentes > 1 ? "s" : ""}
           </div>
         )}
-
-        {/* DATAS DE PAGAMENTO UNIFORME */}
-        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
-          <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Condições de Pagamento</div>
-
-          {/* Prazo para Pedido */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Pedido</div>
-            {dataLimitePedidoLocal && !editPedido ? (
-              <>
-                <div style={{ color: G.td, fontSize: 16, padding: "10px 0", marginBottom: 10 }}>
-                  {new Date(dataLimitePedidoLocal + "T12:00:00").toLocaleDateString("pt-BR")}
-                </div>
-                <button onClick={() => setEditPedido(true)} style={BK({ width: "100%", padding: 12, borderRadius: 12 })}>Alterar Data</button>
-              </>
-            ) : (
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="date" value={dataLimitePedidoLocal} onChange={e => setDataLimitePedidoLocal(e.target.value)} style={{ ...I, flex: 1, marginBottom: 0 }} />
-                <button onClick={async () => {
-                  await setDoc(doc(db, "config", "uniformes"), { dataLimitePedido: dataLimitePedidoLocal }, { merge: true });
-                  setEditPedido(false);
-                  t("Salvo!");
-                }} style={BG({ padding: "12px 16px", borderRadius: 12 })}>✓</button>
-              </div>
-            )}
-          </div>
-
-          {/* Prazo para Restante */}
-          <div>
-            <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Prazo para Restante (50%)</div>
-            {dataLimiteRestanteLocal && !editRestante ? (
-              <>
-                <div style={{ color: G.td, fontSize: 16, padding: "10px 0", marginBottom: 10 }}>
-                  {new Date(dataLimiteRestanteLocal + "T12:00:00").toLocaleDateString("pt-BR")}
-                </div>
-                <button onClick={() => setEditRestante(true)} style={BK({ width: "100%", padding: 12, borderRadius: 12 })}>Alterar Data</button>
-              </>
-            ) : (
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="date" value={dataLimiteRestanteLocal} onChange={e => setDataLimiteRestanteLocal(e.target.value)} style={{ ...I, flex: 1, marginBottom: 0 }} />
-                <button onClick={async () => {
-                  await setDoc(doc(db, "config", "uniformes"), { dataLimiteRestante: dataLimiteRestanteLocal }, { merge: true });
-                  setEditRestante(false);
-                  t("Salvo!");
-                }} style={BG({ padding: "12px 16px", borderRadius: 12 })}>✓</button>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* RESUMO */}
         {uniFiltrado.length > 0 && (
@@ -13160,6 +12926,7 @@ export default function App() {
     ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
     ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
     ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
+    ...(isAdm ? [[Calendar, "datas"]] : []),
     ...(isAdm ? [[Settings, "back"]] : []),
   ];
 
@@ -13883,6 +13650,14 @@ export default function App() {
           ["admin", "lider_geral", "lider_templo", "pastor"].includes(role) && (
             <TestV encH={encH} encM={encM} t={showT} />
           )}
+        {pg === "datas" && isAdm && (
+          <DatasV
+            dataLimitePagamento={dataLimitePagamento}
+            dataLimiteUni={dataLimiteUni}
+            dataLimiteRestante={dataLimiteRestante}
+            t={showT}
+          />
+        )}
         {pg === "back" && isAdm && (
           <BackV
             users={users}
