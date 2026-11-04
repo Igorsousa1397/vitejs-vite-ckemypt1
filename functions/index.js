@@ -568,9 +568,32 @@ exports.statusInscricao = onRequest({ cors: true }, async (req, res) => {
   }
 });
 
-const TERMO_TEXTO = `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
+// Datas do encontro (config/encontro). Manter igual ao ENCONTRO_PADRAO de src/App.jsx.
+const ENCONTRO_PADRAO = { inicio: '2026-11-20', fim: '2026-11-22' };
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const listaPt = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} e ${xs[xs.length - 1]}`);
+function fmtDiasEncontro(enc) {
+  const ini = new Date(`${enc.inicio}T12:00:00Z`);
+  const fim = new Date(`${enc.fim}T12:00:00Z`);
+  const grupos = [];
+  for (let d = new Date(ini); d <= fim && grupos.length < 3; d.setUTCDate(d.getUTCDate() + 1)) {
+    const m = d.getUTCMonth();
+    if (!grupos.length || grupos[grupos.length - 1].m !== m) grupos.push({ m, dias: [] });
+    grupos[grupos.length - 1].dias.push(d.getUTCDate());
+  }
+  const partes = grupos.map((g) => `${listaPt(g.dias.map(String))} de ${MESES_PT[g.m]}`);
+  const txt = partes.length > 1 && grupos[grupos.length - 1].dias.length > 1 ? partes.join(', ') : partes.join(' e ');
+  return `${txt} de ${fim.getUTCFullYear()}`;
+}
+async function lerEncontro() {
+  const s = await db.collection('config').doc('encontro').get().catch(() => null);
+  const d = s && s.exists ? s.data() : {};
+  return d.inicio && d.fim ? { inicio: d.inicio, fim: d.fim } : ENCONTRO_PADRAO;
+}
 
-A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias 20, 21 e 22 de novembro de 2026.
+const termoTexto = (dias) => `O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da Igreja Apostólica Fonte (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.
+
+A autorização é referente a imagens e vídeos do evento "Encontro com Deus", nos dias ${dias}.
 
 Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.
 
@@ -678,7 +701,7 @@ exports.assinarTermo = onRequest({ cors: true }, async (req, res) => {
       igreja: e.igreja || '',
       autorizaImagem: comp.autorizaImagem || e.autorizaImagem || '',
       assinadoEm: agora,
-      termoTexto: TERMO_TEXTO,
+      termoTexto: termoTexto(fmtDiasEncontro(await lerEncontro())),
       fotoDocumento,
       fotoDocumentoVerso: fotoDocumentoVerso || null,
       fotoRosto,

@@ -23,7 +23,7 @@
   <div class="card">
     <img src="/IMG_2408.PNG" alt="Encontro com Deus" />
     <h1>Encontro com Deus</h1>
-    <p>Dias 20, 21 e 22 de Novembro</p>
+    <p id="diasEncontro">Dias 20, 21 e 22 de novembro</p>
 
     <a class="btn" id="btnAbrir" href="https://encontrocomdeus-fonte.vercel.app">
       Abrir inscrições
@@ -73,5 +73,25 @@
       });
     }
   </script>
+<script>
+  // datas do encontro vêm de config/encontro (leitura pública); sem resposta fica o texto padrão
+  (function () {
+    var MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+    function lista(xs) { return xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1]; }
+    fetch("https://firestore.googleapis.com/v1/projects/servos-peniel/databases/(default)/documents/config/encontro")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var f = d && d.fields; if (!f || !f.inicio || !f.fim) return;
+        var ini = new Date(f.inicio.stringValue + "T12:00:00"), fim = new Date(f.fim.stringValue + "T12:00:00"), grupos = [];
+        for (var x = new Date(ini); x <= fim && grupos.length < 3; x.setDate(x.getDate() + 1)) {
+          if (!grupos.length || grupos[grupos.length - 1].m !== x.getMonth()) grupos.push({ m: x.getMonth(), dias: [] });
+          grupos[grupos.length - 1].dias.push(String(x.getDate()));
+        }
+        var partes = grupos.map(function (g) { return lista(g.dias) + " de " + MESES[g.m]; });
+        document.getElementById("diasEncontro").textContent = "Dias " + (partes.length > 1 && grupos[grupos.length - 1].dias.length > 1 ? partes.join(", ") : partes.join(" e "));
+      })
+      .catch(function () {});
+  })();
+</script>
 </body>
 </html>

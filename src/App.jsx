@@ -1117,6 +1117,107 @@ function MapaQuartos({ aberto, onFechar, sexo, quartos, edit, onAbrirQuarto, t }
 }
 
 // ── DATAS ────────────────────────────────────────────────────────────────────
+// Datas do encontro (config/encontro: { inicio, fim } em AAAA-MM-DD). Inscrição,
+// termos, lembrete de jejum e o termo gravado pela function leem daqui. Sem o
+// documento vale o padrão abaixo. Manter igual em functions/index.js.
+const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22" };
+const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} e ${xs[xs.length - 1]}`);
+// "20, 21 e 22 de novembro de 2026" (atravessando o mês: "30 de novembro e 1 de dezembro de 2026")
+function fmtDiasEncontro(enc, { ano = true } = {}) {
+  const ini = new Date((enc?.inicio || ENCONTRO_PADRAO.inicio) + "T12:00:00");
+  const fim = new Date((enc?.fim || ENCONTRO_PADRAO.fim) + "T12:00:00");
+  const grupos = [];
+  for (let d = new Date(ini); d <= fim && grupos.length < 3; d.setDate(d.getDate() + 1)) {
+    const m = d.getMonth();
+    if (!grupos.length || grupos[grupos.length - 1].m !== m) grupos.push({ m, dias: [] });
+    grupos[grupos.length - 1].dias.push(d.getDate());
+  }
+  // entre meses: "30 de novembro, 1 e 2 de dezembro" / "30 de novembro e 1 de dezembro"
+  const partes = grupos.map((g) => `${listaPt(g.dias.map(String))} de ${MESES_PT[g.m]}`);
+  const txt = partes.length > 1 && grupos[grupos.length - 1].dias.length > 1 ? partes.join(", ") : partes.join(" e ");
+  return ano ? `${txt} de ${fim.getFullYear()}` : txt;
+}
+function useEncontro() {
+  const [enc, setEnc] = useState(ENCONTRO_PADRAO);
+  useEffect(
+    () =>
+      onSnapshot(
+        doc(db, "config", "encontro"),
+        (s) => {
+          const d = s.data();
+          if (d?.inicio && d?.fim) setEnc({ inicio: d.inicio, fim: d.fim });
+        },
+        () => {},
+      ),
+    [],
+  );
+  return enc;
+}
+function CampoEncontro({ t }) {
+  const enc = useEncontro();
+  const [ini, setIni] = useState(enc.inicio);
+  const [fim, setFim] = useState(enc.fim);
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => { setIni(enc.inicio); setFim(enc.fim); }, [enc.inicio, enc.fim]);
+  const mudou = ini !== enc.inicio || fim !== enc.fim;
+  // contagem até o primeiro dia; entre o primeiro e o último está acontecendo
+  const info = (() => {
+    const hoje = new Date().toISOString().split("T")[0];
+    if (hoje > enc.fim) return { txt: "Já aconteceu", cor: G.tm, bg: "rgba(99,99,102,.15)" };
+    if (hoje >= enc.inicio) return { txt: "Acontecendo", cor: "#ff9f0a", bg: "rgba(255,159,10,.12)" };
+    const dias = Math.round((new Date(enc.inicio + "T12:00:00") - new Date(hoje + "T12:00:00")) / 86400000);
+    return { txt: `Em breve · ${dias === 1 ? "falta 1 dia" : `faltam ${dias} dias`}`, cor: G.green, bg: "rgba(0,200,81,.12)" };
+  })();
+  const salvar = async () => {
+    if (!ini || !fim) { t("Escolha o primeiro e o último dia.", "w"); return; }
+    if (fim < ini) { t("O último dia não pode ser antes do primeiro.", "w"); return; }
+    if ((new Date(fim) - new Date(ini)) / 86400000 > 6) { t("O encontro pode ter no máximo 7 dias.", "w"); return; }
+    setSalvando(true);
+    try {
+      await setDoc(doc(db, "config", "encontro"), { inicio: ini, fim }, { merge: true });
+      t("Datas do encontro salvas!");
+    } catch {
+      t("Erro ao salvar as datas.", "w");
+    }
+    setSalvando(false);
+  };
+  return (
+    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Datas do encontro</div>
+        <span style={{ flexShrink: 0, background: info.bg, color: info.cor, fontSize: 11, fontWeight: 700, borderRadius: 999, padding: "3px 9px" }}>
+          {info.txt}
+        </span>
+      </div>
+      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
+        Aparece na inscrição e nos termos, e define o lembrete de jejum (40 dias antes).
+      </div>
+      <div style={{ color: G.td, fontSize: 13, marginBottom: 10 }}>
+        {ini && fim && fim < ini
+          ? <span style={{ color: "#ff6b6b" }}>O último dia está antes do primeiro.</span>
+          : <>{mudou ? "Vai aparecer como" : "Aparece como"}: <strong style={{ color: G.t }}>{fmtDiasEncontro({ inicio: ini || enc.inicio, fim: fim || enc.fim })}</strong></>}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <label style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Primeiro dia</div>
+          <input type="date" value={ini} onChange={(e) => setIni(e.target.value)} style={{ ...I, marginBottom: 0, colorScheme: "dark" }} />
+        </label>
+        <label style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Último dia</div>
+          <input type="date" value={fim} onChange={(e) => setFim(e.target.value)} style={{ ...I, marginBottom: 0, colorScheme: "dark" }} />
+        </label>
+      </div>
+      <button
+        onClick={salvar}
+        disabled={!mudou || salvando}
+        style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, opacity: !mudou || salvando ? 0.4 : 1, cursor: !mudou || salvando ? "default" : "pointer" })}
+      >
+        {salvando ? "Salvando..." : "Salvar datas do encontro"}
+      </button>
+    </div>
+  );
+}
 // Prazos do encontro num lugar só (config/uniformes). O pedido de uniforme grava
 // dataLimite (o que abre/fecha o pedido) e dataLimitePedido (o que aparece nas
 // condições) juntos, para os dois nunca ficarem diferentes.
@@ -1174,8 +1275,9 @@ function DatasV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t }) {
       <div style={{ color: G.tm, fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
         Os prazos valem para todos os servos assim que forem salvos.
       </div>
+      <CampoEncontro t={t} />
       <CampoPrazo
-        i={0}
+        i={1}
         titulo="Pagamento da inscrição do servo"
         desc="Último dia para o servo pagar a inscrição. Aparece no lembrete de pagamento da tela inicial."
         valor={dataLimitePagamento}
@@ -1183,7 +1285,7 @@ function DatasV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t }) {
         t={t}
       />
       <CampoPrazo
-        i={1}
+        i={2}
         titulo="Pedido de uniforme"
         desc="Último dia para fazer ou alterar o pedido de uniforme. Depois dessa data o pedido fecha."
         valor={dataLimiteUni}
@@ -1191,7 +1293,7 @@ function DatasV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t }) {
         t={t}
       />
       <CampoPrazo
-        i={2}
+        i={3}
         titulo="Pagamento do uniforme (restante)"
         desc="Último dia para pagar os 50% restantes do uniforme. O sinal é pago no momento do pedido."
         valor={dataLimiteRestante}
@@ -2722,6 +2824,7 @@ const CELULAS = [
 ];
 
 function Inscricao({ onVoltar, onPago, onFaq }) {
+  const encontro = useEncontro();
   const [form, setForm] = useState({
     igreja: "",
     nome: "",
@@ -2918,7 +3021,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
           }}
          > 
           <div>
-            <strong style={{ color: G.green }}>Dias 20, 21 e 22 de Novembro</strong>
+            <strong style={{ color: G.green }}>Dias {fmtDiasEncontro(encontro, { ano: false })}</strong>
             <br />
             
           <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Chácara Maranata — Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP</span>
@@ -3142,6 +3245,7 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
 }
 
 function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
+  const encontro = useEncontro();
   const [cep, setCep] = useState("");
   const [num, setNum] = useState("");
   const [comp, setComp] = useState("");
@@ -3342,7 +3446,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
           Termo de Concordância com as Ministrações e Autorização de Uso de Imagem
         </div>
         <div style={{ color: "rgba(255,255,255,.3)", fontSize: 11, textAlign: "center", marginBottom: 24 }}>
-          Encontro com Deus — 20, 21 e 22 de novembro de 2026
+          Encontro com Deus — {fmtDiasEncontro(encontro)}
         </div>
 
         {/* Dados do encontrista (pré-preenchidos) */}
@@ -3367,7 +3471,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
         {/* Texto do termo */}
         <div style={{ background: "#111", borderRadius: 14, padding: "14px 16px", marginBottom: 20, color: "rgba(255,255,255,.7)", fontSize: 13, lineHeight: 1.7 }}>
           <p>O(a) signatário(a) manifesta concordância com o registro, utilização e divulgação de sua imagem em mídias sociais da <strong style={{ color: "#fff" }}>Igreja Apostólica Fonte</strong> (CNPJ 52.268.825/0001-95), localizada à Rua Catiguá nº 130, Ipês (Polvilho), Cajamar/SP, CEP 07750-000.</p>
-          <p>A autorização é referente a imagens e vídeos do evento <strong style={{ color: "#fff" }}>"Encontro com Deus"</strong>, nos dias 20, 21 e 22 de novembro de 2026.</p>
+          <p>A autorização é referente a imagens e vídeos do evento <strong style={{ color: "#fff" }}>"Encontro com Deus"</strong>, nos dias {fmtDiasEncontro(encontro)}.</p>
           <p>Também concorda com as regras do evento, destacando que não é permitido nenhum tipo de registro e/ou gravação pelos inscritos — apenas pela organização.</p>
           <p>Por fim, declara que toda participação foi voluntária, em conformidade com a legislação vigente, não infringindo o art. 208 do Código Penal.</p>
         </div>
@@ -3510,6 +3614,7 @@ function TermoInscricao({ encId, form, onAssinado, onVoltar }) {
 }
 
 function Termo({ cpf, onVoltar }) {
+  const encontro = useEncontro();
   const [enc, setEnc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -3844,7 +3949,7 @@ function Termo({ cpf, onVoltar }) {
             marginBottom: 24,
           }}
         >
-          Encontro com Deus — 20, 21 e 22 de novembro de 2026
+          Encontro com Deus — {fmtDiasEncontro(encontro)}
         </div>
 
         <div
@@ -4019,7 +4124,7 @@ function Termo({ cpf, onVoltar }) {
             <p style={{ marginBottom: 12 }}>
               A autorização é referente a imagens e vídeos do evento{" "}
               <strong style={{ color: "#fff" }}>"Encontro com Deus"</strong>,
-              nos dias 20, 21 e 22 de novembro de 2026.
+              nos dias {fmtDiasEncontro(encontro)}.
             </p>
             <p style={{ marginBottom: 12 }}>
               Também concorda com as regras do evento, destacando que{" "}
@@ -4905,6 +5010,7 @@ function ServoRestV({ user, encH, encM, t }) {
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
   function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, users, qh, qm, on, liderMapOverrides }) {
+    const encontro = useEncontro();
     const [cartasGlobais, setCartasGlobais] = useState([]);
     useEffect(() => {
       const unsub = onSnapshot(collection(db, "cartas"), (snap) => {
@@ -4948,8 +5054,8 @@ function ServoRestV({ user, encH, encM, t }) {
     const meuUniPagoIntegral = meuPedido?.pagoIntegral === true;
 
     const hoje2 = new Date();
-    const dataEvento = new Date("2026-11-20");
-    const dataInicioJejum = new Date("2026-11-20");
+    const dataEvento = new Date(encontro.inicio + "T00:00:00");
+    const dataInicioJejum = new Date(encontro.inicio + "T00:00:00");
     dataInicioJejum.setDate(dataInicioJejum.getDate() - 40);
 
     const slides = [];
