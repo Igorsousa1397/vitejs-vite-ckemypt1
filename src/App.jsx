@@ -5064,7 +5064,7 @@ function ServoRestV({ user, encH, encM, t }) {
     if (!pago && dataLimitePagamento && role !== "pastor_auxiliar") slides.push({ tipo: "pagamento" });
     if (meuPedido?.status === "aberto" && prazoUniOk) slides.push({ tipo: "uniforme" });
     if (!meuPedido && prazoUniOk) slides.push({ tipo: "uniforme_sem_pedido" });
-    if (meuPedido && !meuPedido.naoQuerUniforme && !meuUniPagoSinal && !meuUniPagoIntegral && prazoUniOk) slides.push({ tipo: "uniforme_pagamento" });
+    if (meuPedido && !meuPedido.naoQuerUniforme && meuPedido.modalidade !== "emprestimo" && !meuUniPagoSinal && !meuUniPagoIntegral && prazoUniOk) slides.push({ tipo: "uniforme_pagamento" });
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
     if (hoje2 >= dataInicioJejum && hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
     if (minhasCartasTotal > 0) slides.push({ tipo: "cartas" });
@@ -10363,6 +10363,12 @@ function CozinhaV({ edit, t, users }) {
       meuPedido?.pagoIntegral === true);
     const [form, setForm] = useState(meuPedido || { camisa: "", qtdCamisas: "", calca: "", blusa: "", nomeCamiseta: "" });
     const [saving, setSaving] = useState(false);
+    // Staff escolhe se compra ou pega o uniforme emprestado. Emprestado só informa o
+    // tamanho: não tem peças, valor nem pagamento. Pedido antigo com peças conta como compra.
+    const ehStaff = ["staff", "lider_staff"].includes(user.perfil);
+    const modalidade = form.modalidade || ((form.camisa || form.calca || form.blusa) ? "compra" : "");
+    const emprestado = ehStaff && !novoAberto && modalidade === "emprestimo";
+    const mostraCompra = !ehStaff || novoAberto || modalidade === "compra";
 
     useEffect(() => {
       if (meuPedido && !novoAberto) {
@@ -10389,6 +10395,32 @@ function CozinhaV({ edit, t, users }) {
     };
 
     const salvarPedido = async () => {
+      if (ehStaff && !modalidade) {
+        t("⚠️ Escolha se vai comprar ou pegar emprestado.");
+        return;
+      }
+      if (emprestado) {
+        if (!form.tamanho) {
+          t("⚠️ Escolha o tamanho do uniforme.");
+          return;
+        }
+        setSaving(true);
+        await setDoc(doc(db, "uniformes", user.id), {
+          nome: user.nome,
+          perfil: user.perfil,
+          modalidade: "emprestimo",
+          tamanho: form.tamanho,
+          camisa: "", qtdCamisas: 0, calca: "", qtdCalcas: 0, blusa: "", qtdBlusas: 0,
+          nomeCamiseta: "",
+          valorTotal: 0,
+          pedidosAnteriores: anteriores,
+          status: "bloqueado",
+          data: new Date().toLocaleString("pt-BR"),
+        });
+        setSaving(false);
+        t("Uniforme emprestado registrado! ✓");
+        return;
+      }
       if (form.camisa && !form.nomeCamiseta?.trim()) {
         t("⚠️ Preencha o nome na camiseta antes de salvar.");
         return;
@@ -10397,6 +10429,7 @@ function CozinhaV({ edit, t, users }) {
       const pedido = {
         nome: user.nome,
         perfil: user.perfil,
+        ...(ehStaff ? { modalidade: "compra" } : {}),
         nomeCamiseta: form.nomeCamiseta?.trim() || "",
         camisa: form.camisa,
         qtdCamisas: form.camisa ? (form.qtdCamisas || 1) : 0,
@@ -10564,6 +10597,57 @@ function CozinhaV({ edit, t, users }) {
                       </div>
                     </div>
                   )}
+                  {/* COMPRAR OU EMPRESTADO (staff) */}
+                  {ehStaff && !novoAberto && (
+                    <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
+                      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Seu uniforme</div>
+                      <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>Você vai comprar ou pegar emprestado?</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {[["compra", "Comprar"], ["emprestimo", "Emprestado"]].map(([k, l]) => (
+                          <button
+                            key={k}
+                            onClick={() => !bloqueado && setForm({ ...form, modalidade: k })}
+                            style={{
+                              ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14, fontWeight: 700 }),
+                              borderColor: modalidade === k ? "rgba(0,200,81,.5)" : "#2a2a2a",
+                              color: modalidade === k ? G.green : G.td,
+                              background: modalidade === k ? "rgba(0,200,81,.08)" : "transparent",
+                              cursor: bloqueado ? "default" : "pointer",
+                            }}
+                          >
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* EMPRESTADO: só o tamanho */}
+                  {emprestado && (
+                    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
+                      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Tamanho do uniforme</div>
+                      <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>Uniforme emprestado: não tem pagamento.</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                        {TAMANHOS.map((tm) => (
+                          <button
+                            key={tm}
+                            onClick={() => !bloqueado && setForm({ ...form, tamanho: tm })}
+                            style={{
+                              ...BK({ padding: "7px 13px", borderRadius: 50, fontSize: 12, fontWeight: 700 }),
+                              borderColor: form.tamanho === tm ? "rgba(0,200,81,.5)" : "#2a2a2a",
+                              color: form.tamanho === tm ? G.green : G.td,
+                              background: form.tamanho === tm ? "rgba(0,200,81,.08)" : "transparent",
+                              cursor: bloqueado ? "default" : "pointer",
+                            }}
+                          >
+                            {tm}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mostraCompra && (<>
                   {/* CAMISETA */}
                   <div
                     style={{
@@ -11117,6 +11201,7 @@ function CozinhaV({ edit, t, users }) {
                     </div>
                     </div>
                   )}
+                  </>)}
 
                   {/* PEDIDOS ANTERIORES */}
                   {anteriores.length > 0 && (
@@ -11234,8 +11319,16 @@ function CozinhaV({ edit, t, users }) {
                   </button>
                 )}
 
+                  {/* Emprestado salvo: confirmação, sem pagamento */}
+                  {meuPedido?.modalidade === "emprestimo" && !novoAberto && meuPedido.status !== "aberto" && (
+                    <div style={{ background: "rgba(10,132,255,.08)", border: "1px solid rgba(10,132,255,.25)", borderRadius: 14, padding: "12px 14px", textAlign: "center" }}>
+                      <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 14 }}>✓ Uniforme emprestado · tamanho {meuPedido.tamanho}</div>
+                      <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>Não há pagamento para uniforme emprestado.</div>
+                    </div>
+                  )}
+
                   {/* Pagamento MP */}
-                  {meuPedido && !meuPedido.naoQuerUniforme && !novoAberto && (() => {
+                  {meuPedido && !meuPedido.naoQuerUniforme && meuPedido.modalidade !== "emprestimo" && !novoAberto && (() => {
                     const pagoSinal    = meuPedido.pagoSinal === true;
                     const pagoIntegral = meuPedido.pagoIntegral === true;
 
@@ -11334,6 +11427,13 @@ function CozinhaV({ edit, t, users }) {
                 const pagoIntegral = meuPedido?.pagoIntegral === true;
                 const temPedido    = meuPedido && !meuPedido.naoQuerUniforme;
 
+                if (meuPedido?.modalidade === "emprestimo") return (
+                  <div style={{ background: "rgba(10,132,255,.08)", border: "1px solid rgba(10,132,255,.25)", borderRadius: 14, padding: 16, textAlign: "center", marginTop: 8 }}>
+                    <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 15 }}>✓ Uniforme emprestado · tamanho {meuPedido.tamanho}</div>
+                    <div style={{ color: G.tm, fontSize: 13, marginTop: 6 }}>Não há pagamento para uniforme emprestado.</div>
+                  </div>
+                );
+
                 if (pagoIntegral) return (
                   <div style={{ background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.2)", borderRadius: 14, padding: 16, textAlign: "center", marginTop: 8 }}>
                     <div style={{ color: G.green, fontWeight: 700, fontSize: 15 }}>✓ Pagamento integral confirmado</div>
@@ -11404,6 +11504,9 @@ function CozinhaV({ edit, t, users }) {
       }, {});
 
     const uniFiltrado = uni.filter(u => !u.naoQuerUniforme);
+    // staff com uniforme emprestado: fora da produção e do financeiro, contado por tamanho
+    const emprestados = uniFiltrado.filter((u) => u.modalidade === "emprestimo");
+    const resumoEmprestados = TAMANHOS.map((tm) => [tm, emprestados.filter((u) => u.tamanho === tm).length]).filter(([, n]) => n > 0);
     // Quem pediu mais de uma vez guarda os pedidos pagos em `pedidosAnteriores`.
     // Produção, financeiro e planilha contam cada pedido, não cada servo.
     const temItens = (p) => !!(p.camisa || p.calca || p.blusa);
@@ -11456,6 +11559,23 @@ function CozinhaV({ edit, t, users }) {
             {pendentes} solicitacao{pendentes > 1 ? "oes" : ""} de alteracao
             pendente{pendentes > 1 ? "s" : ""}
           </div>
+        )}
+
+        {/* EMPRESTADOS */}
+        {emprestados.length > 0 && (
+          <Acc title={`Emprestados (${emprestados.length})`} def={false}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+              {resumoEmprestados.map(([tm, n]) => (
+                <Pill key={tm} c={`${tm}: ${n}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />
+              ))}
+            </div>
+            {[...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map((u) => (
+              <div key={u.userId || u.nome} style={{ display: "flex", justifyContent: "space-between", color: G.td, fontSize: 13, padding: "4px 0" }}>
+                <span>{u.nome}</span>
+                <strong style={{ color: G.t }}>{u.tamanho || "—"}</strong>
+              </div>
+            ))}
+          </Acc>
         )}
 
         {/* RESUMO */}
@@ -11756,6 +11876,17 @@ function CozinhaV({ edit, t, users }) {
               const abaServo = (u) => ["servo", "cozinha", "infantil"].includes(u.perfil);
               buildAba(wb, "SERVO", uniPedidos.filter((u) => abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
               buildAba(wb, "STAFF", uniPedidos.filter((u) => !abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
+              if (emprestados.length) {
+                const wsE = wb.addWorksheet("EMPRESTADOS");
+                wsE.columns = [
+                  { header: "Nome", key: "nome", width: 40 },
+                  { header: "Perfil", key: "perfil", width: 18 },
+                  { header: "Tamanho", key: "tamanho", width: 12 },
+                ];
+                wsE.getRow(1).font = { bold: true };
+                [...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"))
+                  .forEach((u) => wsE.addRow({ nome: u.nome || "", perfil: PERFIS[u.perfil]?.l || u.perfil || "", tamanho: u.tamanho || "" }));
+              }
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
@@ -11801,8 +11932,10 @@ function CozinhaV({ edit, t, users }) {
         {uni.filter(u => !u.naoQuerUniforme).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map((u, i) => {
           const pagoIntegral = u.pagoIntegral === true;
           const pagoSinal    = u.pagoSinal === true || pagoIntegral;
+          const ehEmprestado = u.modalidade === "emprestimo";
 
           const borderColor =
+            ehEmprestado ? "#0a84ff" :
             pagoIntegral ? G.green :
             pagoSinal    ? "#ff9f0a" :
                           "#ff3b30";
@@ -11835,6 +11968,11 @@ function CozinhaV({ edit, t, users }) {
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
               >
+                {ehEmprestado ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <Pill c={`Emprestado · tamanho ${u.tamanho || "—"}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />
+                  </div>
+                ) : (<>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   <Pill
                     c={`Camiseta ${u.camisa} x${u.qtdCamisas || 1}`}
@@ -11882,6 +12020,7 @@ function CozinhaV({ edit, t, users }) {
                     }
                   </div>
                 </div>
+                </>)}
 
                 {(u.pedidosAnteriores || []).length > 0 && (
                   <div style={{ borderTop: `1px solid ${G.cb}`, paddingTop: 8 }}>
