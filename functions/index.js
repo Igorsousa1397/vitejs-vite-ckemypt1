@@ -10,6 +10,19 @@ const db = admin.firestore();
 const APP_URL = 'https://encontrocomdeus-fonte.vercel.app';
 const WEBHOOK_URL = 'https://us-central1-servos-peniel.cloudfunctions.net/webhookPagamento';
 
+// Gmail via OAuth2 (secrets GMAIL_*). Usado nas boas-vindas e na redefinição de senha.
+const SECRETS_GMAIL = ['GMAIL_USER', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'];
+const transporterGmail = () => nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    type: 'OAuth2',
+    user: process.env.GMAIL_USER,
+    clientId: process.env.GMAIL_CLIENT_ID,
+    clientSecret: process.env.GMAIL_CLIENT_SECRET,
+    refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+  },
+});
+
 // ── VALORES ──────────────────────────────────────────────────────────────────
 // Fonte da verdade dos valores cobrados. O front (VALORES em src/App.jsx) só
 // mostra os rótulos — o valor enviado ao Mercado Pago é sempre calculado aqui.
@@ -821,17 +834,7 @@ exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIE
     });
 
     try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          type: 'OAuth2',
-          user: process.env.GMAIL_USER,
-          clientId: process.env.GMAIL_CLIENT_ID,
-          clientSecret: process.env.GMAIL_CLIENT_SECRET,
-          refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-        },
-      });
-      await transporter.sendMail({
+      await transporterGmail().sendMail({
         from: `"Encontro com Deus" <${process.env.GMAIL_USER}>`,
         to: email,
         subject: 'Bem-vindo ao Portal do Encontro com Deus!',
@@ -962,6 +965,70 @@ exports.recusarServo = onRequest({ cors: true, invoker: 'public' }, async (req, 
   } catch (e) {
     console.error('Erro recusarServo:', e.message);
     return res.status(500).json({ error: 'Não foi possível remover.' });
+  }
+});
+
+// "Esqueci minha senha": gera o link no Firebase e envia pelo Gmail OAuth2, no
+// lugar do SMTP com senha de app que o Firebase usava (falhava sem avisar).
+// Responde sempre igual, cadastrado ou não, para não revelar quem tem conta.
+// Um envio por e-mail a cada 60s; contas inativas não recebem.
+const ESPERA_RESET_MS = 60 * 1000;
+exports.redefinirSenha = onRequest({ cors: true, invoker: 'public', secrets: SECRETS_GMAIL }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  const email = texto(req.body?.email, 200).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Informe um email válido.' });
+
+  const travaRef = db.collection('_reset_senha').doc(crypto.createHash('sha256').update(email).digest('hex'));
+  try {
+    const podeEnviar = await db.runTransaction(async (tx) => {
+      const t = await tx.get(travaRef);
+      const agora = Date.now();
+      if (t.exists && agora - (t.data().ultimo || 0) < ESPERA_RESET_MS) return false;
+      tx.set(travaRef, { ultimo: agora });
+      return true;
+    });
+    if (!podeEnviar) return res.status(429).json({ error: 'Aguarde um minuto antes de pedir outro email.' });
+
+    let usuario;
+    try {
+      usuario = await admin.auth().getUserByEmail(email);
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') return res.json({ ok: true });
+      throw err;
+    }
+    const perfil = await db.collection('users').doc(usuario.uid).get();
+    if (perfil.exists && perfil.data().ativo === false) return res.json({ ok: true });
+
+    const link = await admin.auth().generatePasswordResetLink(email, { url: APP_URL });
+    const nome = perfil.exists ? String(perfil.data().nome || '').split(' ')[0] : '';
+    await transporterGmail().sendMail({
+      from: `"Encontro com Deus" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: 'Redefinir sua senha — Encontro com Deus',
+      text: `Olá${nome ? `, ${nome}` : ''}! Para criar uma nova senha, abra este link: ${link}\n\nO link vale por 1 hora. Se você não pediu, ignore este email.`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#ffffff;padding:32px;border-radius:16px;">
+          <h2 style="color:#000;text-align:center;">Olá${nome ? `, ${nome}` : ''}!</h2>
+          <p style="color:#333;text-align:center;line-height:1.6;">
+            Recebemos um pedido para redefinir a senha do seu acesso ao Portal do Encontro com Deus.<br/>
+            Toque no botão abaixo para criar uma nova senha.
+          </p>
+          <a href="${link}" target="_blank" rel="noopener noreferrer"
+            style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
+            Criar nova senha
+          </a>
+          <p style="color:#888;text-align:center;font-size:12px;line-height:1.6;">
+            O link vale por 1 hora. Se você não pediu, pode ignorar este email: sua senha continua a mesma.
+          </p>
+        </div>
+      `,
+    });
+    return res.json({ ok: true });
+  } catch (e) {
+    // sem o e-mail no log: só o código do erro
+    console.error('Erro redefinirSenha:', e.code || '', e.message);
+    await travaRef.delete().catch(() => {});
+    return res.status(500).json({ error: 'Não foi possível enviar agora. Tente novamente em instantes.' });
   }
 });
 

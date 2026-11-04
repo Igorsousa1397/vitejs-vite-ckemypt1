@@ -14,7 +14,6 @@ import {
   addDoc,
   deleteDoc,
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
   query,
   where,
   limit,
@@ -1789,13 +1788,14 @@ function Login({ onLogin, onVoltar, onCadastro }) {
   const resetSenha = async () => {
     if (!email.trim()) { setE('Informe seu email para redefinir a senha.'); return; }
     setResetLoad(true);
+    // a function responde igual para email cadastrado ou não (não revela quem tem conta)
     try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setResetMsg('Email enviado! Verifique sua caixa de entrada.');
-      setTimeout(() => setResetMsg(''), 4000);
+      await chamarFn("redefinirSenha", { email: email.trim() });
+      setResetMsg('Se este email estiver cadastrado, o link para criar uma nova senha chega em instantes. Confira também o spam.');
+      setTimeout(() => setResetMsg(''), 8000);
     } catch (err) {
-      setE('Email não encontrado.');
-      setTimeout(() => setE(''), 4000);
+      setE(err?.message && !/^Erro \d+$/.test(err.message) ? err.message : 'Não foi possível enviar agora. Tente novamente.');
+      setTimeout(() => setE(''), 6000);
     }
     setResetLoad(false);
   };
