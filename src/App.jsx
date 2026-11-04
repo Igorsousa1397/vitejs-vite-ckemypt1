@@ -1791,7 +1791,7 @@ function Login({ onLogin, onVoltar, onCadastro }) {
     // a function responde igual para email cadastrado ou não (não revela quem tem conta)
     try {
       await chamarFn("redefinirSenha", { email: email.trim() });
-      setResetMsg('Se este email estiver cadastrado, o link para criar uma nova senha chega em instantes. Confira também o spam.');
+      setResetMsg('Foi enviado o email de redefinição de senha. Confira também a caixa de spam.');
       setTimeout(() => setResetMsg(''), 8000);
     } catch (err) {
       setE(err?.message && !/^Erro \d+$/.test(err.message) ? err.message : 'Não foi possível enviar agora. Tente novamente.');
