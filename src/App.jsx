@@ -9615,19 +9615,7 @@ function CozinhaV({ edit, t, users }) {
     const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
     const [excluindo, setExcluindo] = useState(null);
     const [shFiltro, setShFiltro] = useState(false);
-    const [sh, setSh] = useState(false);
-    const [f, setF] = useState({
-      nome: "",
-      sob: "",
-      email: "",
-      perfil: "servo",
-      fn: "",
-      cpf: "",
-      nascimento: "",
-      sexo: "",
-    });
     const [filtro, setFiltro] = useState("todos"); // mantido por compatibilidade
-    const [loading, setLoading] = useState(false);
     const [busca, setBusca] = useState("");
     const upd = (id, fn) =>
       setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
@@ -9647,100 +9635,6 @@ function CozinhaV({ edit, t, users }) {
       );
       setSavingDataPag(false);
       t("Data limite salva!");
-    };
-
-    const formatCpfSvV = (v) =>
-      v.replace(/\D/g, "").slice(0, 11)
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-
-    const formatDataSvV = (v) =>
-      v.replace(/\D/g, "").slice(0, 8)
-        .replace(/(\d{2})(\d)/, "$1/$2")
-        .replace(/(\d{2})(\d)/, "$1/$2");
-
-    const brParaIsoSvV = (v) => {
-      const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (!m) return null;
-      const [, d, mo, y] = m;
-      const dia = parseInt(d, 10), mes = parseInt(mo, 10), ano = parseInt(y, 10);
-      if (dia < 1 || dia > 31 || mes < 1 || mes > 12 || ano < 1900 || ano > new Date().getFullYear()) return null;
-      return `${y}-${mo}-${d}`;
-    };
-
-    const add = async () => {
-      if (!f.nome.trim()) {
-        t("Nome obrigatório", "w");
-        return;
-      }
-      if (!f.email.trim() || !f.email.includes("@")) {
-        t("Email inválido", "w");
-        return;
-      }
-      const cpfLimpo = f.cpf.replace(/\D/g, "");
-      if (!cpfLimpo || cpfLimpo.length !== 11) {
-        t("CPF inválido", "w");
-        return;
-      }
-      const nascimentoIso = brParaIsoSvV(f.nascimento);
-      if (!nascimentoIso) {
-        t("Data de nascimento inválida (DD/MM/AAAA)", "w");
-        return;
-      }
-      if (!f.sexo) {
-        t("Selecione o sexo", "w");
-        return;
-      }
-      setLoading(true);
-      try {
-        const nm = `${f.nome.trim()} ${f.sob.trim()}`.trim();
-        const res = await fetch(
-          `${FN_URL}/criarServo`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-            body: JSON.stringify({
-              email: f.email.trim(),
-              nome: nm,
-              perfil: f.perfil,
-              tipo: f.perfil,
-              funcoes: f.fn ? [f.fn] : [],
-            }),
-          },
-        );
-        const data = await res.json();
-        if (data.result?.uid) {
-          await setDoc(
-            doc(db, "users", data.result.uid),
-            { cpf: cpfLimpo, nascimento: nascimentoIso, sexo: f.sexo },
-            { merge: true },
-          );
-          setUsers([
-            ...users,
-            {
-              id: data.result.uid,
-              nome: nm,
-              email: f.email.trim(),
-              perfil: f.perfil,
-              funcoes: f.fn ? [f.fn] : [],
-              ativo: true,
-              pago: false,
-              cpf: cpfLimpo,
-              nascimento: nascimentoIso,
-              sexo: f.sexo,
-            },
-          ]);
-          setF({ nome: "", sob: "", email: "", perfil: "servo", fn: "", cpf: "", nascimento: "", sexo: "" });
-          setSh(false);
-          t("Servo adicionado! Email de acesso enviado ✉️");
-        } else {
-          t(data.error || "Erro ao criar servo", "w");
-        }
-      } catch (err) {
-        t("Erro: " + err.message, "w");
-      }
-      setLoading(false);
     };
 
   const ORDEM_PERFIL = (perfil) => {
@@ -9821,20 +9715,6 @@ function CozinhaV({ edit, t, users }) {
 
     return (
       <div>
-        {edit && (
-          <button
-            onClick={() => setSh(true)}
-            style={BG({
-              width: "100%",
-              padding: 13,
-              marginBottom: 12,
-              borderRadius: 14,
-            })}
-          >
-            + Adicionar Servo
-          </button>
-        )}
-
         {edit && <PendentesAprovacao pendentes={pendentes} t={t} />}
 
         {edit && (
@@ -10406,111 +10286,6 @@ function CozinhaV({ edit, t, users }) {
         ))}
 
         {dialogoConfirmacao}
-
-        <Sheet open={sh} onClose={() => setSh(false)} title="Adicionar Servo">
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div
-              style={{
-                background: "rgba(0,200,81,.08)",
-                border: "1px solid rgba(0,200,81,.2)",
-                borderRadius: 10,
-                padding: "10px 13px",
-                color: G.green,
-                fontSize: 12,
-              }}
-            >
-              ✉️ O servo receberá um email para criar a própria senha.
-            </div>
-            <input
-              placeholder="Nome completo *"
-              value={f.nome}
-              onChange={(e) => setF({ ...f, nome: e.target.value })}
-              style={I}
-            />
-            <input
-              placeholder="Email * (será usado para login)"
-              type="email"
-              value={f.email}
-              onChange={(e) => setF({ ...f, email: e.target.value })}
-              style={{
-                ...I,
-                borderColor:
-                  f.email && !f.email.includes("@")
-                    ? "rgba(255,59,48,.4)"
-                    : "#2a2a2a",
-              }}
-            />
-            <input
-              placeholder="CPF *"
-              value={f.cpf}
-              onChange={(e) => setF({ ...f, cpf: formatCpfSvV(e.target.value) })}
-              style={I}
-            />
-            <input
-              placeholder="Data de nascimento * (DD/MM/AAAA)"
-              value={f.nascimento}
-              onChange={(e) => setF({ ...f, nascimento: formatDataSvV(e.target.value) })}
-              maxLength={10}
-              style={I}
-            />
-            <div>
-              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                Sexo
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {["Masculino", "Feminino"].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setF({ ...f, sexo: opt })}
-                    style={{
-                      flex: 1,
-                      padding: "12px 10px",
-                      borderRadius: 10,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      border: `1px solid ${f.sexo === opt ? G.green : "#2a2a2a"}`,
-                      background: f.sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a",
-                      color: f.sexo === opt ? G.green : G.td,
-                    }}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                Perfil
-              </div>
-              <select
-                value={f.perfil}
-                onChange={(e) => setF({ ...f, perfil: e.target.value })}
-                style={{ ...I, marginBottom: 0 }}
-              >
-                <option value="pastor">Pastor</option>
-                <option value="pastor_auxiliar">Pastor Auxiliar</option>
-                <option value="cozinha">Cozinha</option>
-                <option value="infantil">{PERFIS.infantil.l}</option>
-                <option value="staff">Staff</option>
-                <option value="servo">Servo</option>
-              </select>
-            </div>
-           <button
-              onClick={add}
-              disabled={loading}
-              style={BG({
-                width: "100%",
-                padding: 14,
-                borderRadius: 14,
-                marginTop: 4,
-                opacity: loading ? 0.7 : 1,
-              })}
-              >
-              {loading ? "Cadastrando..." : "Confirmar e Enviar Email"}
-            </button>
-          </div>
-        </Sheet>
       </div>
     );
   }
