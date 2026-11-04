@@ -10365,7 +10365,7 @@ function CozinhaV({ edit, t, users }) {
     const [saving, setSaving] = useState(false);
     // Staff escolhe se compra ou pega o uniforme emprestado. Emprestado só informa o
     // tamanho: não tem peças, valor nem pagamento. Pedido antigo com peças conta como compra.
-    const ehStaff = ["staff", "lider_staff"].includes(user.perfil);
+    const ehStaff = user.perfil === "staff";
     const modalidade = form.modalidade || ((form.camisa || form.calca || form.blusa) ? "compra" : "");
     const emprestado = ehStaff && !novoAberto && modalidade === "emprestimo";
     const mostraCompra = !ehStaff || novoAberto || modalidade === "compra";
