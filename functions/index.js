@@ -1022,7 +1022,9 @@ exports.redefinirSenha = onRequest({ cors: true, invoker: 'public', secrets: SEC
     const perfil = await db.collection('users').doc(usuario.uid).get();
     if (perfil.exists && perfil.data().ativo === false) return res.json({ ok: true });
 
-    const link = await admin.auth().generatePasswordResetLink(email, { url: APP_URL });
+    // o Firebase devolve o link já escapado para HTML (&amp;): o texto puro precisa de &
+    const link = (await admin.auth().generatePasswordResetLink(email, { url: APP_URL })).replace(/&amp;/g, '&');
+    const linkHtml = link.replace(/&/g, '&amp;');
     const nome = perfil.exists ? String(perfil.data().nome || '').split(' ')[0] : '';
     await transporterGmail().sendMail({
       from: `"Encontro com Deus" <${process.env.GMAIL_USER}>`,
@@ -1036,7 +1038,7 @@ exports.redefinirSenha = onRequest({ cors: true, invoker: 'public', secrets: SEC
             Recebemos um pedido para redefinir a senha do seu acesso ao Portal do Encontro com Deus.<br/>
             Toque no botão abaixo para criar uma nova senha.
           </p>
-          <a href="${link}" target="_blank" rel="noopener noreferrer"
+          <a href="${linkHtml}" target="_blank" rel="noopener noreferrer"
             style="display:block;background:#00c851;color:#000;text-align:center;padding:16px;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin:24px 0;">
             Criar nova senha
           </a>
