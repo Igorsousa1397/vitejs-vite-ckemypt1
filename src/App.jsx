@@ -5267,6 +5267,28 @@ function ServoRestV({ user, encH, encM, t }) {
 
             {tab === "atr" && (
               <div>
+                {temEscala && (() => {
+                  const totalFns = DIAS.reduce((a, d) => a + (escala[d] || []).length, 0);
+                  const diasComFn = DIAS.filter((d) => (escala[d] || []).length > 0);
+                  return (
+                    <div className="fu" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: G.t, fontWeight: 800, fontSize: 18 }}>{totalFns} {totalFns === 1 ? "função" : "funções"}</div>
+                        <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>em {diasComFn.length} {diasComFn.length === 1 ? "dia" : "dias"} do encontro</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        {DIAS.map((d) => {
+                          const tem = (escala[d] || []).length > 0;
+                          return (
+                            <div key={d} onClick={() => tem && setDiasAbertos((prev) => ({ ...prev, [d]: true }))} title={d} style={{ width: 28, height: 28, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, background: tem ? `${dC[d]}22` : "#161616", color: tem ? dC[d] : "#3a3a3c", border: `1px solid ${tem ? `${dC[d]}44` : "#1f1f1f"}`, cursor: tem ? "pointer" : "default" }}>
+                              {d[0]}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {!temEscala ? (
                   <div className="fu" style={{ background: G.card, border: `1px dashed ${G.cb}`, borderRadius: 16, padding: "28px 16px", textAlign: "center" }}>
                     <Users size={26} color={G.tm} style={{ marginBottom: 8 }} />
@@ -5316,39 +5338,34 @@ function ServoRestV({ user, encH, encM, t }) {
                                 ? [...(qh || []), ...(qm || [])].find((q) => (q.servos || []).includes(user.nome))
                                 : null;
 
+                              // quem já aparece como líder não repete na equipe
+                              const idsLideres = new Set(lideres.map((l) => l.id));
+                              const equipe = colegas.filter((c) => !idsLideres.has(c.id));
+                              const total = new Set([...lideres, ...colegas].map((x) => x.id)).size;
                               return (
-                                <div key={i} style={{ background: "#111", border: "1px solid #1c1c1c", borderRadius: 12, padding: "11px 12px" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: lideres.length > 0 || colegas.length > 0 ? 8 : 0 }}>
-                                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{fn}</span>
+                                <div key={i} style={{ background: "#111", border: "1px solid #1c1c1c", borderRadius: 12, padding: "12px 12px 12px", borderLeft: `3px solid ${dC[dia]}` }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14, flex: 1, minWidth: 0 }}>{fn}</span>
                                     {meuQuarto && <Pill c={`Quarto ${meuQuarto.num}`} bg={`${dC[dia]}1f`} tc={dC[dia]} />}
+                                    {total > 1 && <Pill c={`${total} na equipe`} bg="rgba(255,255,255,.06)" tc={G.td} />}
                                   </div>
 
                                   {lideres.length > 0 && (
-                                    <>
-                                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Líder</div>
-                                      {lideres.map((l, j) => (
-                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: j === lideres.length - 1 && colegas.length > 0 ? 8 : 3 }}>
-                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
-                                          <span style={{ color: G.td, fontSize: 13, fontWeight: l.id === user.id ? 700 : 400 }}>
-                                            {l.nome}{l.id === user.id ? " (você)" : ""}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </>
+                                    <div style={{ marginBottom: equipe.length > 0 ? 10 : 0 }}>
+                                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{lideres.length > 1 ? "Líderes" : "Líder"}</div>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                        {lideres.map((l) => <PessoaChip key={l.id} pessoa={l} eu={l.id === user.id} />)}
+                                      </div>
+                                    </div>
                                   )}
 
-                                  {colegas.length > 0 && (
-                                    <>
-                                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Equipe</div>
-                                      {colegas.map((c, j) => (
-                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: G.td }} />
-                                          <span style={{ color: G.td, fontSize: 13, fontWeight: c.id === user.id ? 700 : 400 }}>
-                                            {c.nome}{c.id === user.id ? " (você)" : ""}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </>
+                                  {equipe.length > 0 && (
+                                    <div>
+                                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Equipe</div>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                        {[...equipe].sort((a, b) => (a.id === user.id ? -1 : b.id === user.id ? 1 : 0)).map((c) => <PessoaChip key={c.id} pessoa={c} eu={c.id === user.id} />)}
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               );
@@ -5829,6 +5846,30 @@ const SlideAviso = ({ Ic, cor, rotulo, titulo, desc, pill, onClick, children }) 
     {children && <div style={{ marginTop: 12 }}>{children}</div>}
   </div>
 );
+
+// "Igor Oliveira de Sousa" → "Igor Sousa"
+const nomeCurto = (nome = "") => {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length <= 1) return nome.trim();
+  const cap = (x) => x[0].toUpperCase() + x.slice(1);
+  return `${cap(partes[0])} ${cap(partes[partes.length - 1])}`;
+};
+
+// Pessoa numa escala: bolinha com iniciais na cor do perfil + nome curto.
+// Quem está logado aparece em verde com "(você)".
+const PessoaChip = ({ pessoa, eu }) => {
+  const cor = eu ? G.green : (PERFIS[pessoa.perfil]?.c || "#8e8e93");
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: eu ? "rgba(0,200,81,.1)" : "#1c1c1c", border: `1px solid ${eu ? "rgba(0,200,81,.35)" : "#262626"}`, borderRadius: 999, padding: "4px 10px 4px 4px", maxWidth: "100%" }}>
+      <div style={{ width: 22, height: 22, borderRadius: "50%", background: `${cor}26`, color: cor, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {iniciais(pessoa.nome)}
+      </div>
+      <span style={{ color: eu ? G.green : G.td, fontSize: 12, fontWeight: eu ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {nomeCurto(pessoa.nome)}{eu ? " (você)" : ""}
+      </span>
+    </div>
+  );
+};
 
 // ── AGENDA (home do admin): resumo + linha do tempo por dia
 const DIAS_ENCONTRO = ["Quinta", "Sexta", "Sábado", "Domingo"];
