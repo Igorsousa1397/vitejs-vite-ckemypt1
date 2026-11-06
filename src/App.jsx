@@ -11526,9 +11526,9 @@ function CozinhaV({ edit, t, users }) {
     const emprestados = uniFiltrado
       .map((u) => {
         const emp = emprestadaDe(u);
-        if (emp) return { nome: u.nome || "", tam: emp, origem: "Emprestada" };
+        if (emp) return { nome: u.nome || "", tam: emp };
         const tc = tamCompraStaff(u);
-        if (tc) return { nome: u.nome || "", tam: tc, origem: u.pagoSinal || u.pagoIntegral ? "Compra" : "Compra (pagamento pendente)" };
+        if (tc) return { nome: u.nome || "", tam: tc };
         return null;
       })
       .filter(Boolean)
@@ -11550,7 +11550,7 @@ function CozinhaV({ edit, t, users }) {
         x.border = borda;
         return x;
       };
-      [32, 28].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
+      [32, 12].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
       wsE.mergeCells("A1:B1");
       const tit = wsE.getCell("A1");
       tit.value = "CAMISETAS EMPRESTADAS — ENCONTRO COM DEUS 2026";
@@ -11558,7 +11558,7 @@ function CozinhaV({ edit, t, users }) {
       tit.alignment = { horizontal: "center", vertical: "middle" };
       wsE.getRow(1).height = 24;
       cel(2, 1, "NOME", { bold: true, align: "center" });
-      cel(2, 2, "ORIGEM", { bold: true, align: "center" });
+      cel(2, 2, "TAMANHO", { bold: true, align: "center" });
       let r = 3;
       TAMANHOS.forEach((tm) => {
         const doTam = emprestados.filter((e) => e.tam === tm);
@@ -11568,7 +11568,7 @@ function CozinhaV({ edit, t, users }) {
         r++;
         doTam.forEach((e) => {
           cel(r, 1, e.nome);
-          cel(r, 2, e.origem, { align: "center" });
+          cel(r, 2, e.tam, { align: "center" });
           r++;
         });
         cel(r, 1, `TOTAL ${tm}`, { bold: true, fill: cinza("FFDDDDDD") });
@@ -11655,10 +11655,7 @@ function CozinhaV({ edit, t, users }) {
             </div>
             {emprestados.map((e, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: G.td, fontSize: 13, padding: "4px 0" }}>
-                <span style={{ minWidth: 0 }}>
-                  {e.nome}
-                  <span style={{ color: e.origem === "Emprestada" ? "#64b5f6" : e.origem === "Compra" ? G.green : "#ff9f0a", fontSize: 11, marginLeft: 6 }}>{e.origem}</span>
-                </span>
+                <span style={{ minWidth: 0 }}>{e.nome}</span>
                 <strong style={{ color: G.t, flexShrink: 0 }}>{e.tam}</strong>
               </div>
             ))}
