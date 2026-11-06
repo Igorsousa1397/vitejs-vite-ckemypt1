@@ -76,7 +76,7 @@ const G = {
   td: "rgba(255,255,255,.55)",
   tm: "rgba(255,255,255,.28)",
 };
-const css = `*{box-sizing:border-box;margin:0;padding:0;}html,body{background:#0a0a0a;font-family:'Inter',sans-serif;}
+const css = `*{box-sizing:border-box;margin:0;padding:0;}input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:block;min-height:48px;}input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0;}html,body{background:#0a0a0a;font-family:'Inter',sans-serif;}
 input,select,button,textarea{font-family:'Inter',sans-serif;}
 input::placeholder,textarea::placeholder{color:rgba(255,255,255,.25);}
 input:focus,select:focus,textarea:focus{outline:none!important;border-color:rgba(0,200,81,.6)!important;}
@@ -1206,12 +1206,12 @@ function CampoEncontro({ t }) {
           ? <span style={{ color: "#ff6b6b" }}>O último dia está antes do primeiro.</span>
           : <>{mudou ? "Vai aparecer como" : "Aparece como"}: <strong style={{ color: G.t }}>{fmtDiasEncontro({ inicio: ini || enc.inicio, fim: fim || enc.fim })}</strong></>}
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <label style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+        <label style={{ display: "block", minWidth: 0 }}>
           <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Primeiro dia</div>
           <input type="date" value={ini} onChange={(e) => setIni(e.target.value)} style={{ ...I, marginBottom: 0, colorScheme: "dark" }} />
         </label>
-        <label style={{ flex: 1, minWidth: 0 }}>
+        <label style={{ display: "block", minWidth: 0 }}>
           <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Último dia</div>
           <input type="date" value={fim} onChange={(e) => setFim(e.target.value)} style={{ ...I, marginBottom: 0, colorScheme: "dark" }} />
         </label>
@@ -1264,7 +1264,7 @@ function CampoPrazo({ titulo, desc, valor, onSalvar, t, i }) {
       <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>{desc}</div>
       {valor && <div style={{ color: G.td, fontSize: 13, marginBottom: 10 }}>Data atual: <strong style={{ color: G.t }}>{fmtDataBR(valor)}</strong></div>}
       <div style={{ display: "flex", gap: 8 }}>
-        <input type="date" value={v} onChange={(e) => setV(e.target.value)} style={{ ...I, flex: 1, marginBottom: 0, colorScheme: "dark" }} />
+        <input type="date" value={v} onChange={(e) => setV(e.target.value)} style={{ ...I, flex: 1, minWidth: 0, marginBottom: 0, colorScheme: "dark" }} />
         <button
           onClick={salvar}
           disabled={!mudou || salvando}
