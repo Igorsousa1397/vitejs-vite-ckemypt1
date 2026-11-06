@@ -13863,7 +13863,7 @@ export default function App() {
           className="pg"
           style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}
         >
-          {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} />}
+          {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} onSair={logout} />}
           {pg === "savs" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {canAvisos(role) && (
@@ -15744,14 +15744,20 @@ function LideresEditor({ fn, liderMapOverrides, setLiderMapOverrides, t }) {
   );
 }
 
-function PerfilV({ user, setUser, t }) {
+function PerfilV({ user, setUser, t, onSair }) {
   const [cpf, setCpf] = useState(user.cpf || "");
   const isoParaBr = (v) =>
     v && v.includes("-") && v.length === 10 ? v.split("-").reverse().join("/") : v || "";
   const [nascimentoBr, setNascimentoBr] = useState(isoParaBr(user.nascimento));
   const [sexo, setSexo] = useState(user.sexo || "");
   const [salvando, setSalvando] = useState(false);
+  const [enviandoSenha, setEnviandoSenha] = useState(false);
+  const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
   const bloqueado = !!(user.cpf && user.nascimento && user.sexo);
+  const perfil = PERFIS[user.perfil] || PERFIS.servo;
+  const funcoes = Array.isArray(user.funcoes) ? user.funcoes : [];
+  const diasEscala = ["Quinta", "Sexta", "Sábado", "Domingo"].filter((d) => (user.escala?.[d] || []).length > 0);
+  const valorInscricao = valorServoPix(user.perfil);
 
   const formatCpf = (v) =>
     v
@@ -15776,6 +15782,15 @@ function PerfilV({ user, setUser, t }) {
     if (dia < 1 || dia > 31 || mes < 1 || mes > 12 || ano < 1900 || ano > new Date().getFullYear()) return null;
     return `${y}-${mo}-${d}`;
   };
+
+  const idade = (() => {
+    if (!user.nascimento || !/^\d{4}-\d{2}-\d{2}$/.test(user.nascimento)) return null;
+    const n = new Date(user.nascimento + "T12:00:00");
+    const h = new Date();
+    let a = h.getFullYear() - n.getFullYear();
+    if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) a -= 1;
+    return a >= 0 && a < 120 ? a : null;
+  })();
 
   const salvar = async () => {
     const cpfLimpo = cpf.replace(/\D/g, "");
@@ -15805,92 +15820,149 @@ function PerfilV({ user, setUser, t }) {
     }
   };
 
+  const redefinirSenha = async () => {
+    if (enviandoSenha || !user.email) return;
+    const ok = await pedirConfirmacao(`Enviar um e-mail para ${user.email} com o link para trocar a senha?`, "Enviar");
+    if (!ok) return;
+    setEnviandoSenha(true);
+    try {
+      await chamarFn("redefinirSenha", { email: user.email });
+      t("E-mail enviado. Confira também o spam.");
+    } catch (err) {
+      console.error("Erro redefinirSenha:", err);
+      t("Não foi possível enviar o e-mail.", "w");
+    } finally {
+      setEnviandoSenha(false);
+    }
+  };
+
+  const sair = async () => {
+    if (!onSair) return;
+    const ok = await pedirConfirmacao("Sair da sua conta neste aparelho?", "Sair");
+    if (ok) onSair();
+  };
+
+  // linha "ícone · rótulo · valor" dos cartões de leitura
+  const Linha = ({ Ic, l, v, ultimo }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: ultimo ? "none" : "1px solid #1f1f1f" }}>
+      <div style={{ width: 32, height: 32, borderRadius: 10, background: "#1c1c1c", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Ic size={15} color={G.td} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{l}</div>
+        <div style={{ color: G.t, fontSize: 14, fontWeight: 600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v || "—"}</div>
+      </div>
+    </div>
+  );
+  const Rot = ({ c }) => (
+    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{c}</div>
+  );
+
   return (
-    <div>
-      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
-        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-          Nome
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* cabeçalho: avatar, nome, perfil, e-mail */}
+      <div className="fu" style={{ background: `linear-gradient(135deg, ${perfil.c}1f 0%, ${G.card} 70%)`, border: `1px solid ${perfil.c}40`, borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: `${perfil.c}26`, color: perfil.c, fontSize: 18, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `2px solid ${perfil.c}55` }}>
+          {iniciais(user.nome)}
         </div>
-        <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{user.nome}</div>
-        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-          Email
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: G.t, fontSize: 17, fontWeight: 800, lineHeight: 1.2 }}>{user.nome}</div>
+          <div style={{ color: G.tm, fontSize: 12, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+            <Pill c={perfil.l} bg={`${perfil.c}1f`} tc={perfil.c} />
+            {user.pago
+              ? <Pill c="Inscrição paga ✓" bg="rgba(0,200,81,.12)" tc={G.green} />
+              : user.pagarDepois
+                ? <Pill c="Pagar depois" bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
+                : <Pill c={`Inscrição pendente · ${fmtReal(valorInscricao)}`} bg="rgba(255,59,48,.12)" tc="#ff6b6b" />}
+          </div>
         </div>
-        <div style={{ color: G.t, fontSize: 15, fontWeight: 600 }}>{user.email}</div>
       </div>
-      <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16 }}>
-        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-          CPF
-        </div>
+
+      {/* no encontro: funções e dias de escala */}
+      {(funcoes.length > 0 || diasEscala.length > 0) && (
+        <Cartao i={1} titulo="No encontro" sub={`${funcoes.length ? `${funcoes.length} ${funcoes.length === 1 ? "função" : "funções"}` : "Sem função definida"}${diasEscala.length ? ` · escala em ${diasEscala.length} ${diasEscala.length === 1 ? "dia" : "dias"}` : ""}`}>
+          {funcoes.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {funcoes.map((f) => <Pill key={f} c={f} bg="rgba(255,255,255,.06)" tc={G.td} />)}
+            </div>
+          )}
+          {diasEscala.length > 0 && (
+            <div style={{ display: "flex", gap: 6, marginTop: funcoes.length ? 10 : 0 }}>
+              {["Quinta", "Sexta", "Sábado", "Domingo"].map((d) => {
+                const cor = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" }[d];
+                const tem = diasEscala.includes(d);
+                return (
+                  <div key={d} style={{ flex: 1, textAlign: "center", padding: "7px 0", borderRadius: 9, fontSize: 11, fontWeight: 700, background: tem ? `${cor}22` : "#161616", color: tem ? cor : "#3a3a3c", border: `1px solid ${tem ? `${cor}44` : "#1f1f1f"}` }}>
+                    {d.slice(0, 3)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Cartao>
+      )}
+
+      {/* dados pessoais */}
+      <Cartao i={2} titulo="Dados pessoais" sub={bloqueado ? "Para corrigir algo, procure a liderança" : "Precisamos destes dados para o encontro"}>
         {bloqueado ? (
-          <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{formatCpf(user.cpf)}</div>
-        ) : (
-          <input
-            value={cpf}
-            onChange={(e) => setCpf(formatCpf(e.target.value))}
-            placeholder="000.000.000-00"
-            style={{ ...I, marginBottom: 14 }}
-          />
-        )}
-        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-          Data de Nascimento
-        </div>
-        {bloqueado ? (
-          <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>
-            {isoParaBr(user.nascimento)}
+          <div style={{ marginTop: -6 }}>
+            <Linha Ic={UserSquare} l="CPF" v={formatCpf(user.cpf)} />
+            <Linha Ic={Calendar} l="Nascimento" v={`${isoParaBr(user.nascimento)}${idade != null ? ` · ${idade} anos` : ""}`} />
+            <Linha Ic={User} l="Sexo" v={user.sexo} ultimo />
           </div>
         ) : (
-          <input
-            type="text"
-            inputMode="numeric"
-            value={nascimentoBr}
-            onChange={(e) => setNascimentoBr(formatDataBr(e.target.value))}
-            placeholder="DD/MM/AAAA"
-            maxLength={10}
-            style={{ ...I, marginBottom: 14 }}
-          />
-        )}
-        <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-          Sexo
-        </div>
-        {bloqueado ? (
-          <div style={{ color: G.t, fontSize: 15, fontWeight: 600, marginBottom: 14 }}>{user.sexo}</div>
-        ) : (
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            {["Masculino", "Feminino"].map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setSexo(opt)}
-                style={{
-                  flex: 1,
-                  padding: "12px 10px",
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  border: `1px solid ${sexo === opt ? G.green : "#2a2a2a"}`,
-                  background: sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a",
-                  color: sexo === opt ? G.green : G.td,
-                }}
-              >
-                {opt}
-              </button>
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <Rot c="CPF" />
+              <input value={cpf} onChange={(e) => setCpf(formatCpf(e.target.value))} inputMode="numeric" placeholder="000.000.000-00" style={I} />
+            </div>
+            <div>
+              <Rot c="Data de nascimento" />
+              <input type="text" inputMode="numeric" value={nascimentoBr} onChange={(e) => setNascimentoBr(formatDataBr(e.target.value))} placeholder="DD/MM/AAAA" maxLength={10} style={I} />
+            </div>
+            <div>
+              <Rot c="Sexo" />
+              <div style={{ display: "flex", gap: 8 }}>
+                {["Masculino", "Feminino"].map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setSexo(opt)}
+                    style={{ flex: 1, padding: "12px 10px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", border: `1px solid ${sexo === opt ? G.green : "#2a2a2a"}`, background: sexo === opt ? "rgba(0,200,81,.12)" : "#1a1a1a", color: sexo === opt ? G.green : G.td }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button onClick={salvar} disabled={salvando} style={BG({ width: "100%", padding: 13, borderRadius: 12, opacity: salvando ? 0.7 : 1 })}>
+              {salvando ? "Salvando..." : "Salvar"}
+            </button>
           </div>
         )}
-        {bloqueado ? (
-          <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", textAlign: "center" }}>
-            Dados salvos. Para corrigir algo, procure a liderança.
-          </div>
-        ) : (
+      </Cartao>
+
+      {/* conta */}
+      <Cartao i={3} titulo="Conta">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <button
-            onClick={salvar}
-            disabled={salvando}
-            style={BG({ width: "100%", padding: 13, borderRadius: 12, opacity: salvando ? 0.7 : 1 })}
+            onClick={redefinirSenha}
+            disabled={enviandoSenha}
+            style={{ ...BK({ width: "100%", padding: 13, borderRadius: 12 }), color: G.t, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: enviandoSenha ? 0.6 : 1 }}
           >
-            {salvando ? "Salvando..." : "Salvar"}
+            <Settings size={15} /> {enviandoSenha ? "Enviando..." : "Trocar senha por e-mail"}
           </button>
-        )}
-      </div>
+          {onSair && (
+            <button
+              onClick={sair}
+              style={{ ...BK({ width: "100%", padding: 13, borderRadius: 12 }), color: "#ff6b6b", borderColor: "rgba(255,59,48,.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <LogOut size={15} /> Sair da conta
+            </button>
+          )}
+        </div>
+      </Cartao>
+      {dialogoConfirmacao}
     </div>
   );
 }
