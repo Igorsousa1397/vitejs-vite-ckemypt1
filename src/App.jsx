@@ -13964,6 +13964,9 @@ export default function App() {
             setUni={setUni}
             dataLimite={dataLimiteUni}
             setDataLimite={salvarDataLimite}
+            dataLimitePagamento={dataLimitePagamento}
+            dataLimitePedido={dataLimitePedido}
+            dataLimiteRestante={dataLimiteRestante}
             user={user}
             role={role}
             edit={isAdm}
