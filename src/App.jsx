@@ -6738,260 +6738,200 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   }
   // ── MINISTRAÇÕES ─────────────────────────────────────────────────────────────
   function MinsV({ mins, setMins, edit, role, t, sN, autoAgenda }) {
-    const [sh, setSh] = useState(false);
-    const [f, setF] = useState({ dia: "Sexta", nome: "", hora: "" });
-    const [highlightId, setHighlightId] = useState(null);
-    const highlightRef = useRef(null);
+    // form: null = fechado; { id?, dia, nome, hora } = novo (sem id) ou editando
+    const [form, setForm] = useState(null);
+    const [enviando, setEnviando] = useState(null);
+    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+    const encontro = useEncontro();
+    const podeNotificar = canN(role);
+    const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
 
-    const dC = {
-      Quinta: "#ff6b35",
-      Sexta: "#bf5af2",
-      Sábado: G.green,
-      Domingo: "#ff9f0a",
+    // "Quinta" → "19 de novembro", pelo mesmo critério da function lembretesAgenda
+    const dataDoDia = (dia) => {
+      const nomes = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+      const fimT = new Date(`${encontro.fim}T12:00:00Z`).getTime();
+      for (let x = new Date(`${encontro.inicio}T12:00:00Z`).getTime() - 86400000; x <= fimT; x += 86400000) {
+        const d = new Date(x);
+        if (nomes[d.getUTCDay()] === dia) return `${d.getUTCDate()} de ${MESES_PT[d.getUTCMonth()]}`;
+      }
+      return "";
     };
+    const menos15 = (hora) => {
+      const [h, m] = (hora || "").split(":").map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) return "";
+      const tot = (h * 60 + m - 15 + 1440) % 1440;
+      return `${String(Math.floor(tot / 60)).padStart(2, "0")}:${String(tot % 60).padStart(2, "0")}`;
+    };
+    const enviados = mins.filter((m) => m.sent).length;
+
+    const salvar = () => {
+      if (!form?.nome?.trim() || !form.hora) return;
+      const item = { dia: form.dia, nome: form.nome.trim(), hora: form.hora };
+      if (form.id != null) {
+        setMins(mins.map((x) => (x.id === form.id ? { ...x, ...item } : x)));
+        t("Atualizado!");
+      } else {
+        const id = Math.max(...mins.map((m) => m.id), 0) + 1;
+        setMins([...mins, { id, ...item, sent: false }]);
+        t("Adicionado!");
+      }
+      setForm(null);
+    };
+    const excluir = async () => {
+      const alvo = form;
+      if (!(await pedirConfirmacao(`Excluir "${alvo.nome}" da agenda?`))) return;
+      setMins(mins.filter((x) => x.id !== alvo.id));
+      setForm(null);
+      t("Excluído");
+    };
+    const notificar = async (m) => {
+      if (enviando) return;
+      if (!(await pedirConfirmacao(`Enviar agora a notificação de "${m.nome}" para todos os servos?`, "Enviar"))) return;
+      vibrar(50);
+      setEnviando(m.id);
+      setMins(mins.map((x) => (x.id === m.id ? { ...x, sent: true } : x)));
+      try {
+        await chamarFn("notificarMinisterio", { titulo: `🙏 ${m.nome}`, horario: m.hora }, true);
+        t("Notificação enviada! 🔔");
+      } catch (err) {
+        console.error("Erro notificarMinisterio:", err);
+        t("Erro ao notificar: " + err.message, "w");
+        sN(m.nome, m.hora);
+      } finally {
+        setEnviando(null);
+      }
+    };
+    const desfazer = (m) => setMins(mins.map((x) => (x.id === m.id ? { ...x, sent: false } : x)));
+
     return (
       <div>
         <LembretesAgenda ligado={autoAgenda} podeAlterar={edit} t={t} />
-        {edit && (
-          <>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: G.t, fontWeight: 800, fontSize: 18 }}>{mins.length} momentos</div>
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{enviados} com aviso enviado · {fmtDiasEncontro(encontro, { ano: false })}</div>
+          </div>
+          {edit && (
             <button
-              onClick={() => setSh(!sh)}
-              style={
-                sh
-                  ? {
-                      ...BK({
-                        width: "100%",
-                        padding: 12,
-                        marginBottom: 14,
-                        borderRadius: 14,
-                      }),
-                    }
-                  : {
-                      ...BG({
-                        width: "100%",
-                        padding: 12,
-                        marginBottom: 14,
-                        borderRadius: 14,
-                      }),
-                    }
-              }
+              onClick={() => setForm({ dia: "Sexta", nome: "", hora: "" })}
+              style={{ ...BG({ padding: "10px 14px", borderRadius: 12, fontSize: 13 }), display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
             >
-              {sh ? "Cancelar" : "+ Nova Ministração / Ato"}
+              <Plus size={16} /> Novo
             </button>
-            {sh && (
-              <div
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 14,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {DIAS_ENCONTRO.map((dia, di) => {
+            const lista = mins.filter((m) => m.dia === dia).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+            if (!lista.length) return null;
+            const cor = dC[dia];
+            const data = dataDoDia(dia);
+            return (
+              <Cartao
+                key={dia}
+                i={di}
+                titulo={dia}
+                sub={`${data ? `${data} · ` : ""}${lista.length} ${lista.length === 1 ? "momento" : "momentos"}`}
+                direita={<div style={{ width: 10, height: 10, borderRadius: "50%", background: cor, boxShadow: `0 0 0 4px ${cor}22`, marginRight: 4 }} />}
               >
-                <select
-                  style={I}
-                  value={f.dia}
-                  onChange={(e) => setF({ ...f, dia: e.target.value })}
-                >
-                  {["Quinta", "Sexta", "Sábado", "Domingo"].map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-                <input
-                  style={I}
-                  placeholder="Nome (ex: 2ª Ministração ou Ato — 2ª Min.) *"
-                  value={f.nome}
-                  onChange={(e) => setF({ ...f, nome: e.target.value })}
-                />
-                <div>
-                  <div
-                    style={{
-                      color: G.tm,
-                      fontSize: 11,
-                      marginBottom: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Horário
-                  </div>
-                  <input
-                    style={I}
-                    type="time"
-                    value={f.hora}
-                    onChange={(e) => setF({ ...f, hora: e.target.value })}
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    if (!f.nome || !f.hora) return;
-                    const id = Math.max(...mins.map((m) => m.id), 0) + 1;
-                    setMins([...mins, { id, ...f, sent: false }]);
-                    setF({ dia: "Sexta", nome: "", hora: "" });
-                    setSh(false);
-                    t("Adicionado!");
-                  }}
-                  style={BG({ padding: 12, borderRadius: 12 })}
-                >
-                  Adicionar
-                </button>
-              </div>
-            )}
-          </>
-        )}
-        {["Quinta", "Sexta", "Sábado", "Domingo"].map((dia) => {
-          const list = mins.filter((m) => m.dia === dia);
-          if (!list.length) return null;
-          return (
-            <div key={dia} style={{ marginBottom: 18 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: dC[dia],
-                  }}
-                />
-                <span
-                  style={{
-                    color: G.td,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {dia}
-                </span>
-              </div>
-              {list.map((m) => (
-                <div
-                  key={m.id}
-                  className="fu"
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${m.sent ? G.green : dC[dia]}`,
-                    borderRadius: 13,
-                    padding: "12px 14px",
-                    marginBottom: 7,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
+                {lista.map((m, mi) => {
+                  const ultimo = mi === lista.length - 1;
+                  return (
+                    <div key={m.id} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+                      <div style={{ width: 40, flexShrink: 0, color: m.sent ? G.tm : G.t, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", paddingTop: 2 }}>{m.hora}</div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12, flexShrink: 0 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.sent ? G.green : G.card, border: `2px solid ${m.sent ? G.green : cor}`, boxSizing: "border-box", marginTop: 5, flexShrink: 0 }} />
+                        {!ultimo && <div style={{ flex: 1, width: 2, background: "#262626", margin: "4px 0" }} />}
+                      </div>
                       <div
-                        style={{ color: G.t, fontWeight: 600, fontSize: 13 }}
+                        onClick={edit ? () => setForm({ id: m.id, dia: m.dia, nome: m.nome, hora: m.hora }) : undefined}
+                        style={{ flex: 1, minWidth: 0, paddingBottom: ultimo ? 0 : 16, cursor: edit ? "pointer" : "default" }}
                       >
-                        {m.nome}
+                        <div style={{ color: m.sent ? G.td : G.t, fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>{m.nome}</div>
+                        <div style={{ fontSize: 11, marginTop: 3, color: m.sent ? G.green : G.tm, fontWeight: m.sent ? 600 : 400 }}>
+                          {m.sent ? "✓ Aviso enviado" : autoAgenda ? `🔔 Lembretes às ${menos15(m.hora)} e ${m.hora}` : "Sem aviso enviado"}
+                        </div>
                       </div>
-                      <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                        {m.hora}
-                        {m.sent ? " · ✓" : ""}
-                      </div>
-                    </div>
-                    <div
-                      style={{ display: "flex", gap: 8, alignItems: "center" }}
-                    >
-                      {canN(role) &&
-                        (!m.sent ? (
-                          <button
-                            onClick={async () => {
-                              vibrar(50);
-                              setMins(
-                                mins.map((x) =>
-                                  x.id === m.id ? { ...x, sent: true } : x,
-                                ),
-                              );
-                              try {
-                                await fetch(
-                                  `${FN_URL}/notificarMinisterio`,
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                      ...(await authHeaders()),
-                                    },
-                                    body: JSON.stringify({
-                                      titulo: `🙏 ${m.nome}`,
-                                      horario: m.hora,
-                                    }),
-                                  },
-                                );
-                                t("Notificação enviada! 🔔");
-                              } catch (err) {
-                                console.error("Erro notificarMinisterio:", err);
-                                t("Erro ao notificar: " + err.message, "w");
-                                sN(m.nome, m.hora);
-                              }
-                            }}
-                            style={{
-                              background: "rgba(10,132,255,.15)",
-                              border: "1px solid rgba(10,132,255,.3)",
-                              color: "#64b5f6",
-                              borderRadius: 9,
-                              padding: "6px 11px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Bell size={14} />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              setMins(
-                                mins.map((x) =>
-                                  x.id === m.id ? { ...x, sent: false } : x,
-                                ),
-                              )
-                            }
-                            style={BK({
-                              padding: "6px 10px",
-                              borderRadius: 9,
-                              fontSize: 11,
-                            })}
-                          >
-                            <RotateCcw size={14} />
-                          </button>
-                        ))}
-                      {edit && (
-                        <span
-                          onClick={() =>
-                            setMins(mins.filter((x) => x.id !== m.id))
-                          }
+                      {podeNotificar && (
+                        <button
+                          onClick={() => (m.sent ? desfazer(m) : notificar(m))}
+                          disabled={enviando === m.id}
+                          aria-label={m.sent ? "Marcar como não enviado" : "Enviar notificação agora"}
                           style={{
-                            color: "rgba(255,59,48,.4)",
-                            cursor: "pointer",
-                            fontSize: 13,
+                            width: 34, height: 34, borderRadius: 10, flexShrink: 0, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            background: m.sent ? "#1c1c1c" : "rgba(10,132,255,.14)",
+                            border: `1px solid ${m.sent ? "#262626" : "rgba(10,132,255,.3)"}`,
+                            color: m.sent ? G.tm : "#64b5f6",
+                            opacity: enviando === m.id ? 0.5 : 1,
                           }}
                         >
-                          <Trash2 size={14} />
-                        </span>
+                          {m.sent ? <RotateCcw size={14} /> : <Bell size={15} />}
+                        </button>
                       )}
                     </div>
-                  </div>
+                  );
+                })}
+              </Cartao>
+            );
+          })}
+          {!mins.length && (
+            <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 40, fontSize: 13 }}>Nenhum item na agenda.</div>
+          )}
+        </div>
+        {edit && (
+          <div style={{ color: G.tm, fontSize: 11, textAlign: "center", marginTop: 12 }}>Toque num item para editar ou excluir.</div>
+        )}
+
+        <Sheet open={!!form} onClose={() => setForm(null)} title={form?.id != null ? "Editar item" : "Novo item da agenda"}>
+          {form && (
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <Rotulo c="Dia" />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                  {DIAS_ENCONTRO.map((d) => {
+                    const sel = form.dia === d;
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => setForm({ ...form, dia: d })}
+                        style={{ padding: "10px 4px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${sel ? dC[d] : "#262626"}`, background: sel ? `${dC[d]}22` : "#1c1c1c", color: sel ? dC[d] : G.td }}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+              <div>
+                <Rotulo c="Nome" />
+                <input style={I} placeholder="Ex.: Ministração Peniel" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              </div>
+              <div>
+                <Rotulo c="Horário" />
+                <input style={I} type="time" value={form.hora} onChange={(e) => setForm({ ...form, hora: e.target.value })} />
+              </div>
+              <button
+                onClick={salvar}
+                disabled={!form.nome?.trim() || !form.hora}
+                style={{ ...BG({ padding: 14, borderRadius: 12 }), opacity: form.nome?.trim() && form.hora ? 1 : 0.4 }}
+              >
+                {form.id != null ? "Salvar" : "Adicionar"}
+              </button>
+              {form.id != null && (
+                <button
+                  onClick={excluir}
+                  style={{ ...BK({ padding: 13, borderRadius: 12 }), color: "#ff453a", borderColor: "rgba(255,59,48,.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                >
+                  <Trash2 size={15} /> Excluir da agenda
+                </button>
+              )}
             </div>
-          );
-        })}
+          )}
+        </Sheet>
+        {dialogoConfirmacao}
       </div>
     );
   }
