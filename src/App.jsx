@@ -12611,6 +12611,14 @@ const telaDoLink = () => {
   return null;
 };
 
+// iPhone/iPad, inclusive o iPad que se apresenta como Mac
+const EH_IOS = (() => {
+  try {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  } catch { return false; }
+})();
+
 export default function App() {
   const [sp, setSp] = useState(true);
   const [spSaindo, setSpSaindo] = useState(false);
@@ -12636,6 +12644,12 @@ export default function App() {
   const menuRef = useRef(false);
 
   useEffect(() => {
+    // No iPhone o "voltar" é o deslize da borda esquerda. O Safari anima esse
+    // gesto com uma foto da entrada anterior do histórico e, quando a entrada é
+    // a nossa de buffer (pushState) e o popstate empurra outra, a foto fica
+    // presa na tela: fica tudo branco. Lá a navegação por histórico fica de
+    // fora; o truque segue só para o botão voltar do Android.
+    if (EH_IOS) return;
     const safePush = () => {
       try {
         history.pushState({ marker: "buffer" }, "");
