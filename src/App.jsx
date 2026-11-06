@@ -5099,51 +5099,35 @@ function ServoRestV({ user, encH, encM, t }) {
     return (
       <div>
         <div style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-              Shalom, {user.nome.split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
-            </div>
-          </div>
+          <SaudacaoEncontro nome={user.nome} encontro={encontro} />
 
-          {/* quick cards */}
+          {/* cartões de acesso rápido */}
           {(() => {
             const temQuartos = (user?.telasExtra || []).includes("quartos") || role === "lider_quartos";
             const temOnibus = (user?.telasExtra || []).includes("onibus");
-            // Com dados reais para quartos e onibus
             const quartosTot = (qh?.length || 0) + (qm?.length || 0);
             const onibusTot = on?.reduce((a, o) => a + (o.poltronas || 40), 0) || 0;
-            const CARD_ICONS = { savs: Megaphone, scartas: FileText, sinfo: AlertTriangle, squartos: BedDouble, sonibus: Bus };
-            const cardsComValor = [
-              [avsNaoVistos > 0 ? avsNaoVistos : null, "Avisos", "savs"],
-              [minhasCartasTotal > 0 ? minhasCartasTotal : null, "Cartas", "scartas"],
-              [(ocorr || []).filter(o => !o.res).length, "Ocorrências", "sinfo"],
-              ...(temQuartos ? [[quartosTot, "Quartos", "squartos"]] : []),
-              ...(temOnibus ? [[onibusTot, "Ônibus", "sonibus"]] : []),
+            const ocorrAbertas = (ocorr || []).filter((o) => !o.res).length;
+            const abrirAvisos = () => {
+              setPg("savs");
+              const todos = avs.map((a) => a.id);
+              setAvsVistos(todos);
+              try { localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos)); } catch { /* sem storage */ }
+            };
+            const cards = [
+              { k: "savs", n: avs.length, l: "Avisos", Ic: Megaphone, cor: "#ff9f0a", badge: avsNaoVistos, onClick: abrirAvisos },
+              { k: "scartas", n: minhasCartasTotal, l: "Cartas", Ic: FileText, cor: G.green, badge: minhasCartasTotal, onClick: () => setPg("scartas") },
+              { k: "sinfo", n: ocorrAbertas, l: "Ocorrências", Ic: AlertTriangle, cor: ocorrAbertas > 0 ? "#ff3b30" : "#ff9f0a", alerta: ocorrAbertas > 0, onClick: () => setPg("sinfo") },
+              ...(temQuartos ? [{ k: "squartos", n: quartosTot, l: "Quartos", Ic: BedDouble, cor: "#bf5af2", onClick: () => setPg("squartos") }] : []),
+              ...(temOnibus ? [{ k: "sonibus", n: onibusTot, l: "Ônibus", Ic: Bus, cor: "#0a84ff", onClick: () => setPg("sonibus") }] : []),
             ];
-            const SEM_BADGE = ["squartos"];
-            const cols = cardsComValor.length > 3 ? "1fr 1fr" : "1fr 1fr 1fr";
             return (
-              <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: 16 }}>
-                {cardsComValor.map(([n, l, p]) => {
-                  const Icon = CARD_ICONS[p];
-                  return (
-                    <div key={p} onClick={() => {
-                      setPg(p);
-                      if (p === "savs") {
-                        const todos = avs.map(a => a.id);
-                        setAvsVistos(todos);
-                        localStorage.setItem(`avs_vistos_${user.id}`, JSON.stringify(todos));
-                      }
-                    }} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "16px 14px", cursor: "pointer", position: "relative" }}>
-                      {n !== null && n > 0 && !SEM_BADGE.includes(p) && (
-                        <div style={{ position: "absolute", top: 8, right: 8, background: "#ff3b30", borderRadius: 50, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", padding: "0 4px" }}>{n}</div>
-                      )}
-                      <Icon size={22} color={G.tm} style={{ marginBottom: 8 }} />
-                      <div style={{ color: G.t, fontWeight: 800, fontSize: n !== null ? 22 : 13, letterSpacing: n !== null ? -0.5 : 0 }}>{n !== null ? n : ""}</div>
-                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: n !== null ? 2 : 0 }}>{l}</div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                {cards.map((c, i) => (
+                  <div key={c.k} style={{ gridColumn: cards.length % 2 === 1 && i === cards.length - 1 ? "1 / -1" : "auto" }}>
+                    <StatTile i={i} n={c.n} l={c.l} Ic={c.Ic} cor={c.cor} badge={c.badge} alerta={c.alerta} onClick={c.onClick} />
+                  </div>
+                ))}
               </div>
             );
           })()}
@@ -5311,45 +5295,45 @@ function ServoRestV({ user, encH, encM, t }) {
                     </div>
                   </div>
                 )}
-                {mins.map((m) => (
-                  <div key={m.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[m.dia]}`, borderRadius: 14, padding: "12px 14px", marginBottom: 8 }}>
-                    <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>{m.nome}</div>
-                    <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>{m.dia} · {m.hora}</div>
-                  </div>
-                ))}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <CartoesAgendaDia mins={mins} dC={dC} encontro={encontro} proxId={prox?.id} rodape={() => null} />
+                </div>
               </div>
             )}
 
             {tab === "atr" && (
               <div>
                 {!temEscala ? (
-                  <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
-                    Sem atribuições. Aguarde.
+                  <div className="fu" style={{ background: G.card, border: `1px dashed ${G.cb}`, borderRadius: 16, padding: "28px 16px", textAlign: "center" }}>
+                    <Users size={26} color={G.tm} style={{ marginBottom: 8 }} />
+                    <div style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>Sem atribuições por enquanto</div>
+                    <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Suas funções aparecem aqui assim que a escala for montada.</div>
                   </div>
                 ) : (
-                  DIAS.map(dia => {
+                  DIAS.map((dia, di) => {
                     const fns = escala[dia] || [];
                     if (fns.length === 0) return null;
                     const aberto = diasAbertos[dia] !== false;
+                    const data = dataDiaAgenda(encontro, dia);
 
                     return (
-                      <div key={dia} style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${dC[dia]}`, borderRadius: 14, marginBottom: 8 }}>
+                      <div key={dia} className="fu" style={{ animationDelay: `${di * 60}ms`, background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
                         <div
                           onClick={() => toggleDia(dia)}
-                          style={{ padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
+                          style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, cursor: "pointer", userSelect: "none" }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: dC[dia] }} />
-                            <span style={{ color: G.td, fontWeight: 700, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>{dia}</span>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>{dia}</div>
+                            <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{data ? `${data} · ` : ""}{fns.length} funç{fns.length > 1 ? "ões" : "ão"}</div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <Pill c={`${fns.length} funç${fns.length > 1 ? 'ões' : 'ão'}`} bg={`${dC[dia]}18`} tc={dC[dia]} />
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: dC[dia], boxShadow: `0 0 0 4px ${dC[dia]}22` }} />
                             <span style={{ color: G.tm, fontSize: 12, transition: "transform var(--d-fast) var(--e-out)", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
                           </div>
                         </div>
 
                         {aberto && (
-                          <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                             {fns.map((fn, i) => {
                               const fnBase = fn.replace(/ - (Almoço|Jantar)$/, "");
                               const perfisLider = user.perfil === "lider_staff"
@@ -5369,12 +5353,10 @@ function ServoRestV({ user, encH, encM, t }) {
                                 : null;
 
                               return (
-                                <div key={i} style={{ background: "#111", borderRadius: 12, padding: "10px 12px" }}>
-                                  <div style={{ color: G.t, fontWeight: 700, fontSize: 14, marginBottom: lideres.length > 0 || colegas.length > 0 ? 8 : 0 }}>
-                                    {fn}
-                                    {meuQuarto && (
-                                      <span style={{ color: dC[dia] }}> (Quarto {meuQuarto.num})</span>
-                                    )}
+                                <div key={i} style={{ background: "#111", border: "1px solid #1c1c1c", borderRadius: 12, padding: "11px 12px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: lideres.length > 0 || colegas.length > 0 ? 8 : 0 }}>
+                                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>{fn}</span>
+                                    {meuQuarto && <Pill c={`Quarto ${meuQuarto.num}`} bg={`${dC[dia]}1f`} tc={dC[dia]} />}
                                   </div>
 
                                   {lideres.length > 0 && (
@@ -5492,7 +5474,7 @@ function ServoRestV({ user, encH, encM, t }) {
 const fmtBRL = (v) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
 // cartão operacional (check-in, ônibus...): número, ícone e barra fina de progresso
-const StatTile = ({ n, l, Ic, cor, pct, alerta, onClick, i = 0 }) => (
+const StatTile = ({ n, l, Ic, cor, pct, alerta, badge, onClick, i = 0 }) => (
   <div
     onClick={onClick}
     className="press-sc fu"
@@ -5509,8 +5491,13 @@ const StatTile = ({ n, l, Ic, cor, pct, alerta, onClick, i = 0 }) => (
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
       <div style={{ color: alerta ? "#ff6b6b" : G.t, fontWeight: 800, fontSize: String(n).length > 5 ? 20 : 26, letterSpacing: -1, lineHeight: 1, marginTop: 2 }}>{n}</div>
-      <div style={{ width: 30, height: 30, borderRadius: 10, background: `${cor}1f`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <Ic size={15} color={cor} />
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 10, background: `${cor}1f`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Ic size={15} color={cor} />
+        </div>
+        {badge > 0 && (
+          <div className="pop" style={{ position: "absolute", top: -6, right: -6, background: "#ff3b30", color: "#fff", borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #111" }}>{badge}</div>
+        )}
       </div>
     </div>
     <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 8 }}>{l}</div>
@@ -5837,7 +5824,98 @@ const LembretesAgenda = ({ ligado, podeAlterar, t }) => {
 
 // ── AGENDA (home do admin): resumo + linha do tempo por dia
 const DIAS_ENCONTRO = ["Quinta", "Sexta", "Sábado", "Domingo"];
-const AgendaResumo = ({ mins, dC, nav, autoAgenda }) => {
+const NOMES_DIA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+// "Quinta" → "19 de novembro": o dia com esse nome entre a véspera e o fim do
+// encontro (mesmo critério da function lembretesAgenda)
+const dataDiaAgenda = (enc, dia) => {
+  if (!enc?.inicio || !enc?.fim) return "";
+  const fimT = new Date(`${enc.fim}T12:00:00Z`).getTime();
+  for (let x = new Date(`${enc.inicio}T12:00:00Z`).getTime() - 86400000; x <= fimT; x += 86400000) {
+    const d = new Date(x);
+    if (NOMES_DIA_SEMANA[d.getUTCDay()] === dia) return `${d.getUTCDate()} de ${MESES_PT[d.getUTCMonth()]}`;
+  }
+  return "";
+};
+
+// Saudação + "Encontro em …" + contagem regressiva (home do admin e do servo)
+const SaudacaoEncontro = ({ nome, encontro }) => {
+  const hojeISO = new Date().toISOString().split("T")[0];
+  const dias = Math.round((new Date(encontro.inicio + "T12:00:00") - new Date(hojeISO + "T12:00:00")) / 86400000);
+  const txt = fmtDiasEncontro(encontro, { ano: false });
+  const sub =
+    hojeISO > encontro.fim ? `Encontro realizado em ${txt}`
+    : dias <= 0 ? "O encontro está acontecendo"
+    : dias === 1 ? `É amanhã · ${txt}`
+    : `Encontro em ${txt}`;
+  return (
+    <div style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: G.t, lineHeight: 1.15 }}>
+          Shalom, {(nome || "").split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
+        </div>
+        <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>{sub}</div>
+      </div>
+      {dias > 0 && hojeISO <= encontro.fim && (
+        <div className="pop" style={{ animationDelay: ".2s", background: "rgba(0,200,81,.1)", border: "1px solid rgba(0,200,81,.25)", borderRadius: 12, padding: "7px 12px", textAlign: "center", flexShrink: 0 }}>
+          <div style={{ color: G.green, fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{dias}</div>
+          <div style={{ color: "rgba(0,200,81,.7)", fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>{dias === 1 ? "dia" : "dias"}</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Um cartão por dia com a linha do tempo dos itens da agenda, ordenada por hora.
+// `rodape(m)` é a linha pequena sob o nome; `direita(m)` um botão à direita;
+// `onItem(m)` torna a linha clicável; `proxId` destaca o próximo item.
+const CartoesAgendaDia = ({ mins, dC, encontro, i0 = 0, proxId, rodape, direita, onItem }) => (
+  <>
+    {DIAS_ENCONTRO.map((dia, di) => {
+      const lista = mins.filter((m) => m.dia === dia).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+      if (!lista.length) return null;
+      const cor = dC[dia] || G.green;
+      const data = dataDiaAgenda(encontro, dia);
+      return (
+        <Cartao
+          key={dia}
+          i={i0 + di}
+          titulo={dia}
+          sub={`${data ? `${data} · ` : ""}${lista.length} ${lista.length === 1 ? "momento" : "momentos"}`}
+          direita={<div style={{ width: 10, height: 10, borderRadius: "50%", background: cor, boxShadow: `0 0 0 4px ${cor}22`, marginRight: 4 }} />}
+        >
+          {lista.map((m, mi) => {
+            const ultimo = mi === lista.length - 1;
+            const prox = proxId != null && m.id === proxId;
+            const linha = rodape ? rodape(m) : (m.sent ? "✓ Aviso enviado" : null);
+            return (
+              <div key={m.id} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+                <div style={{ width: 40, flexShrink: 0, color: m.sent ? G.tm : G.t, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", paddingTop: 2 }}>{m.hora}</div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12, flexShrink: 0 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.sent ? G.green : G.card, border: `2px solid ${m.sent ? G.green : cor}`, boxShadow: prox ? `0 0 0 4px ${cor}33` : "none", boxSizing: "border-box", marginTop: 5, flexShrink: 0 }} />
+                  {!ultimo && <div style={{ flex: 1, width: 2, background: "#262626", margin: "4px 0" }} />}
+                </div>
+                <div
+                  onClick={onItem ? () => onItem(m) : undefined}
+                  style={{ flex: 1, minWidth: 0, paddingBottom: ultimo ? 0 : 16, cursor: onItem ? "pointer" : "default" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ color: m.sent ? G.td : G.t, fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>{m.nome}</span>
+                    {prox && <Pill c="Próxima" bg={`${cor}1f`} tc={cor} />}
+                  </div>
+                  {linha && (
+                    <div style={{ fontSize: 11, marginTop: 3, color: m.sent ? G.green : G.tm, fontWeight: m.sent ? 600 : 400 }}>{linha}</div>
+                  )}
+                </div>
+                {direita && direita(m)}
+              </div>
+            );
+          })}
+        </Cartao>
+      );
+    })}
+  </>
+);
+const AgendaResumo = ({ mins, dC, nav, autoAgenda, encontro }) => {
   const enviadas = mins.filter((m) => m.sent).length;
   const prox = mins.find((m) => !m.sent);
   const pct = mins.length ? Math.round((enviadas / mins.length) * 100) : 0;
@@ -5876,38 +5954,7 @@ const AgendaResumo = ({ mins, dC, nav, autoAgenda }) => {
         </div>
       </Cartao>
 
-      {DIAS_ENCONTRO.map((dia, di) => {
-        const doDia = mins.filter((m) => m.dia === dia);
-        if (!doDia.length) return null;
-        const cor = dC[dia] || G.green;
-        const env = doDia.filter((m) => m.sent).length;
-        return (
-          <Cartao
-            key={dia}
-            i={di + 1}
-            titulo={dia}
-            sub={`${doDia.length} ${doDia.length === 1 ? "momento" : "momentos"}${env ? ` · ${env} ${env === 1 ? "aviso enviado" : "avisos enviados"}` : ""}`}
-            direita={<div style={{ width: 10, height: 10, borderRadius: "50%", background: cor, boxShadow: `0 0 0 4px ${cor}22`, marginRight: 4 }} />}
-          >
-            {doDia.map((m, mi) => {
-              const ultimo = mi === doDia.length - 1;
-              return (
-                <div key={m.id} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
-                  <div style={{ width: 40, flexShrink: 0, color: m.sent ? G.tm : G.t, fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums", paddingTop: 1 }}>{m.hora}</div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12, flexShrink: 0 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.sent ? G.green : G.card, border: `2px solid ${m.sent ? G.green : cor}`, boxSizing: "border-box", marginTop: 3, flexShrink: 0 }} />
-                    {!ultimo && <div style={{ flex: 1, width: 2, background: "#262626", margin: "4px 0" }} />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0, paddingBottom: ultimo ? 0 : 14 }}>
-                    <div style={{ color: m.sent ? G.td : G.t, fontSize: 13, fontWeight: 600, lineHeight: 1.35 }}>{m.nome}</div>
-                    {m.sent && <div style={{ color: G.green, fontSize: 11, marginTop: 3, fontWeight: 600 }}>✓ Aviso enviado</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </Cartao>
-        );
-      })}
+      <CartoesAgendaDia mins={mins} dC={dC} encontro={encontro} i0={1} proxId={prox?.id} />
     </div>
   );
 };
@@ -6033,21 +6080,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   return (
     <div>
-      {/* Saudação + contagem regressiva */}
-      <div style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: G.t, lineHeight: 1.15 }}>
-            Shalom, {user.nome.split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
-          </div>
-          <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>{subtituloEncontro}</div>
-        </div>
-        {diasParaEncontro > 0 && hojeISO <= encontro.fim && (
-          <div className="pop" style={{ animationDelay: ".2s", background: "rgba(0,200,81,.1)", border: "1px solid rgba(0,200,81,.25)", borderRadius: 12, padding: "7px 12px", textAlign: "center", flexShrink: 0 }}>
-            <div style={{ color: G.green, fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{diasParaEncontro}</div>
-            <div style={{ color: "rgba(0,200,81,.7)", fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>{diasParaEncontro === 1 ? "dia" : "dias"}</div>
-          </div>
-        )}
-      </div>
+      <SaudacaoEncontro nome={user.nome} encontro={encontro} />
 
       {/* Cards operacionais */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
@@ -6232,7 +6265,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           </div>
         )}
 
-        {tab === "mins" && <AgendaResumo mins={mins} dC={dC} nav={nav} autoAgenda={autoAgenda} />}
+        {tab === "mins" && <AgendaResumo mins={mins} dC={dC} nav={nav} autoAgenda={autoAgenda} encontro={encontro} />}
 
         {tab === "avs" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -6746,16 +6779,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const podeNotificar = canN(role);
     const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
 
-    // "Quinta" → "19 de novembro", pelo mesmo critério da function lembretesAgenda
-    const dataDoDia = (dia) => {
-      const nomes = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-      const fimT = new Date(`${encontro.fim}T12:00:00Z`).getTime();
-      for (let x = new Date(`${encontro.inicio}T12:00:00Z`).getTime() - 86400000; x <= fimT; x += 86400000) {
-        const d = new Date(x);
-        if (nomes[d.getUTCDay()] === dia) return `${d.getUTCDate()} de ${MESES_PT[d.getUTCMonth()]}`;
-      }
-      return "";
-    };
     const menos15 = (hora) => {
       const [h, m] = (hora || "").split(":").map(Number);
       if (Number.isNaN(h) || Number.isNaN(m)) return "";
@@ -6823,60 +6846,30 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {DIAS_ENCONTRO.map((dia, di) => {
-            const lista = mins.filter((m) => m.dia === dia).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
-            if (!lista.length) return null;
-            const cor = dC[dia];
-            const data = dataDoDia(dia);
-            return (
-              <Cartao
-                key={dia}
-                i={di}
-                titulo={dia}
-                sub={`${data ? `${data} · ` : ""}${lista.length} ${lista.length === 1 ? "momento" : "momentos"}`}
-                direita={<div style={{ width: 10, height: 10, borderRadius: "50%", background: cor, boxShadow: `0 0 0 4px ${cor}22`, marginRight: 4 }} />}
+          <CartoesAgendaDia
+            mins={mins}
+            dC={dC}
+            encontro={encontro}
+            onItem={edit ? (m) => setForm({ id: m.id, dia: m.dia, nome: m.nome, hora: m.hora }) : undefined}
+            rodape={(m) => (m.sent ? "✓ Aviso enviado" : autoAgenda ? `🔔 Lembretes às ${menos15(m.hora)} e ${m.hora}` : "Sem aviso enviado")}
+            direita={podeNotificar ? (m) => (
+              <button
+                onClick={() => (m.sent ? desfazer(m) : notificar(m))}
+                disabled={enviando === m.id}
+                aria-label={m.sent ? "Marcar como não enviado" : "Enviar notificação agora"}
+                style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: m.sent ? "#1c1c1c" : "rgba(10,132,255,.14)",
+                  border: `1px solid ${m.sent ? "#262626" : "rgba(10,132,255,.3)"}`,
+                  color: m.sent ? G.tm : "#64b5f6",
+                  opacity: enviando === m.id ? 0.5 : 1,
+                }}
               >
-                {lista.map((m, mi) => {
-                  const ultimo = mi === lista.length - 1;
-                  return (
-                    <div key={m.id} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
-                      <div style={{ width: 40, flexShrink: 0, color: m.sent ? G.tm : G.t, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", paddingTop: 2 }}>{m.hora}</div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12, flexShrink: 0 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.sent ? G.green : G.card, border: `2px solid ${m.sent ? G.green : cor}`, boxSizing: "border-box", marginTop: 5, flexShrink: 0 }} />
-                        {!ultimo && <div style={{ flex: 1, width: 2, background: "#262626", margin: "4px 0" }} />}
-                      </div>
-                      <div
-                        onClick={edit ? () => setForm({ id: m.id, dia: m.dia, nome: m.nome, hora: m.hora }) : undefined}
-                        style={{ flex: 1, minWidth: 0, paddingBottom: ultimo ? 0 : 16, cursor: edit ? "pointer" : "default" }}
-                      >
-                        <div style={{ color: m.sent ? G.td : G.t, fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>{m.nome}</div>
-                        <div style={{ fontSize: 11, marginTop: 3, color: m.sent ? G.green : G.tm, fontWeight: m.sent ? 600 : 400 }}>
-                          {m.sent ? "✓ Aviso enviado" : autoAgenda ? `🔔 Lembretes às ${menos15(m.hora)} e ${m.hora}` : "Sem aviso enviado"}
-                        </div>
-                      </div>
-                      {podeNotificar && (
-                        <button
-                          onClick={() => (m.sent ? desfazer(m) : notificar(m))}
-                          disabled={enviando === m.id}
-                          aria-label={m.sent ? "Marcar como não enviado" : "Enviar notificação agora"}
-                          style={{
-                            width: 34, height: 34, borderRadius: 10, flexShrink: 0, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            background: m.sent ? "#1c1c1c" : "rgba(10,132,255,.14)",
-                            border: `1px solid ${m.sent ? "#262626" : "rgba(10,132,255,.3)"}`,
-                            color: m.sent ? G.tm : "#64b5f6",
-                            opacity: enviando === m.id ? 0.5 : 1,
-                          }}
-                        >
-                          {m.sent ? <RotateCcw size={14} /> : <Bell size={15} />}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </Cartao>
-            );
-          })}
+                {m.sent ? <RotateCcw size={14} /> : <Bell size={15} />}
+              </button>
+            ) : undefined}
+          />
           {!mins.length && (
             <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 40, fontSize: 13 }}>Nenhum item na agenda.</div>
           )}
