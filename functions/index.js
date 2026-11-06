@@ -781,6 +781,8 @@ exports.novoPedidoUniforme = onRequest({ cors: true }, async (req, res) => {
       status: 'bloqueado',
       data: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
       pedidosAnteriores: [...anteriores, arquivado],
+      // camiseta emprestada do staff não é comprada nem arquivada: continua valendo
+      camisaEmprestada: p.camisaEmprestada || (p.modalidade === 'emprestimo' ? p.tamanho || '' : ''),
     };
     pedido.valorTotal = totalUniforme(pedido);
     if (!(pedido.valorTotal > 0)) return res.status(400).json({ error: 'Pedido sem valor' });
