@@ -1117,8 +1117,8 @@ function MapaQuartos({ aberto, onFechar, sexo, quartos, edit, onAbrirQuarto, t }
 }
 
 // ── UNIFORME: peças compradas e camiseta emprestada (staff) ──────────────────
-// O staff pode comprar e também pedir uma camiseta emprestada (só o tamanho, sem
-// pagamento). Pedidos do formato anterior guardavam o empréstimo em modalidade/tamanho.
+// O staff escolhe: comprar OU pegar a camiseta emprestada (só o tamanho, sem pagamento).
+// Quem compra não pega emprestada. Pedidos antigos guardavam o empréstimo em modalidade/tamanho.
 const temPecasUni = (p) => !!(p?.camisa || p?.calca || p?.blusa);
 const emprestadaDe = (p) => p?.camisaEmprestada || (p?.modalidade === "emprestimo" ? p?.tamanho || "" : "");
 
@@ -10369,9 +10369,12 @@ function CozinhaV({ edit, t, users }) {
       meuPedido?.pagoIntegral === true);
     const [form, setForm] = useState(meuPedido || { camisa: "", qtdCamisas: "", calca: "", blusa: "", nomeCamiseta: "" });
     const [saving, setSaving] = useState(false);
-    // Staff: além da compra, pode pedir uma camiseta emprestada (só o tamanho, sem pagamento)
+    // Staff escolhe comprar OU camiseta emprestada (quem compra já fica com a sua)
     const ehStaff = user.perfil === "staff";
     const tamEmprestada = emprestadaDe(form);
+    const modalidade = form.modalidade || (tamEmprestada ? "emprestimo" : temPecasUni(form) ? "compra" : "");
+    const emprestado = ehStaff && !novoAberto && modalidade === "emprestimo";
+    const mostraCompra = !ehStaff || novoAberto || modalidade === "compra";
 
     useEffect(() => {
       if (meuPedido && !novoAberto) {
@@ -10398,8 +10401,29 @@ function CozinhaV({ edit, t, users }) {
     };
 
     const salvarPedido = async () => {
-      if (ehStaff && !temPecasUni(form) && !tamEmprestada) {
-        t("⚠️ Escolha ao menos uma peça para comprar ou o tamanho da camiseta emprestada.");
+      if (ehStaff && !modalidade) {
+        t("⚠️ Escolha se vai comprar ou pegar a camiseta emprestada.");
+        return;
+      }
+      if (emprestado) {
+        if (!tamEmprestada) {
+          t("⚠️ Escolha o tamanho da camiseta emprestada.");
+          return;
+        }
+        setSaving(true);
+        await setDoc(doc(db, "uniformes", user.id), {
+          nome: user.nome,
+          perfil: user.perfil,
+          camisaEmprestada: tamEmprestada,
+          camisa: "", qtdCamisas: 0, calca: "", qtdCalcas: 0, blusa: "", qtdBlusas: 0,
+          nomeCamiseta: "",
+          valorTotal: 0,
+          pedidosAnteriores: anteriores,
+          status: "bloqueado",
+          data: new Date().toLocaleString("pt-BR"),
+        });
+        setSaving(false);
+        t("Camiseta emprestada registrada! ✓");
         return;
       }
       if (form.camisa && !form.nomeCamiseta?.trim()) {
@@ -10410,7 +10434,7 @@ function CozinhaV({ edit, t, users }) {
       const pedido = {
         nome: user.nome,
         perfil: user.perfil,
-        ...(ehStaff ? { camisaEmprestada: tamEmprestada } : {}),
+        ...(ehStaff ? { camisaEmprestada: "" } : {}),
         nomeCamiseta: form.nomeCamiseta?.trim() || "",
         camisa: form.camisa,
         qtdCamisas: form.camisa ? (form.qtdCamisas || 1) : 0,
@@ -10579,6 +10603,62 @@ function CozinhaV({ edit, t, users }) {
                       </div>
                     </div>
                   )}
+                  {/* COMPRAR OU EMPRESTADA (staff) */}
+                  {ehStaff && !novoAberto && (
+                    <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
+                      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Seu uniforme</div>
+                      <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>Você vai comprar ou pegar a camiseta emprestada?</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {[["compra", "Comprar"], ["emprestimo", "Emprestada"]].map(([k, l]) => (
+                          <button
+                            key={k}
+                            onClick={() => !bloqueado && setForm({ ...form, modalidade: k })}
+                            style={{
+                              ...BK({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14, fontWeight: 700 }),
+                              borderColor: modalidade === k ? "rgba(0,200,81,.5)" : "#2a2a2a",
+                              color: modalidade === k ? G.green : G.td,
+                              background: modalidade === k ? "rgba(0,200,81,.08)" : "transparent",
+                              cursor: bloqueado ? "default" : "pointer",
+                            }}
+                          >
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                      {modalidade === "compra" && (
+                        <div className="fu" style={{ background: "rgba(10,132,255,.08)", border: "1px solid rgba(10,132,255,.25)", borderRadius: 10, padding: "10px 12px", marginTop: 10, color: "#64b5f6", fontSize: 12, lineHeight: 1.5 }}>
+                          🎽 Comprando, você também recebe <strong>uma camiseta a mais de empréstimo</strong>. Não precisa pedir a emprestada.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* EMPRESTADA: só o tamanho */}
+                  {emprestado && (
+                    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
+                      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Tamanho da camiseta</div>
+                      <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>Camiseta emprestada: não tem pagamento.</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                        {TAMANHOS.map((tm) => (
+                          <button
+                            key={tm}
+                            onClick={() => !bloqueado && setForm({ ...form, camisaEmprestada: tm })}
+                            style={{
+                              ...BK({ padding: "7px 13px", borderRadius: 50, fontSize: 12, fontWeight: 700 }),
+                              borderColor: tamEmprestada === tm ? "rgba(10,132,255,.6)" : "#2a2a2a",
+                              color: tamEmprestada === tm ? "#64b5f6" : G.td,
+                              background: tamEmprestada === tm ? "rgba(10,132,255,.1)" : "transparent",
+                              cursor: bloqueado ? "default" : "pointer",
+                            }}
+                          >
+                            {tm}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mostraCompra && (<>
                   {/* CAMISETA */}
                   <div
                     style={{
@@ -11133,41 +11213,7 @@ function CozinhaV({ edit, t, users }) {
                     </div>
                   )}
 
-                  {/* CAMISETA EMPRESTADA (staff, além da compra) */}
-                  {ehStaff && !novoAberto && (
-                    <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, opacity: bloqueado ? 0.6 : 1 }}>
-                      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Camiseta emprestada</div>
-                      <div style={{ color: G.tm, fontSize: 11, marginBottom: 10 }}>Além da compra, você pode pegar uma camiseta emprestada. Não tem pagamento.</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                        <button
-                          onClick={() => !bloqueado && setForm({ ...form, camisaEmprestada: "", modalidade: "", tamanho: "" })}
-                          style={{
-                            ...BK({ padding: "7px 13px", borderRadius: 50, fontSize: 12 }),
-                            borderColor: !tamEmprestada ? "rgba(255,59,48,.5)" : "#2a2a2a",
-                            color: !tamEmprestada ? "#ff6b6b" : G.td,
-                            cursor: bloqueado ? "default" : "pointer",
-                          }}
-                        >
-                          Não preciso
-                        </button>
-                        {TAMANHOS.map((tm) => (
-                          <button
-                            key={tm}
-                            onClick={() => !bloqueado && setForm({ ...form, camisaEmprestada: tm })}
-                            style={{
-                              ...BK({ padding: "7px 13px", borderRadius: 50, fontSize: 12, fontWeight: 700 }),
-                              borderColor: tamEmprestada === tm ? "rgba(10,132,255,.6)" : "#2a2a2a",
-                              color: tamEmprestada === tm ? "#64b5f6" : G.td,
-                              background: tamEmprestada === tm ? "rgba(10,132,255,.1)" : "transparent",
-                              cursor: bloqueado ? "default" : "pointer",
-                            }}
-                          >
-                            {tm}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  </>)}
 
                   {/* PEDIDOS ANTERIORES */}
                   {anteriores.length > 0 && (
@@ -11473,6 +11519,64 @@ function CozinhaV({ edit, t, users }) {
     // camisetas emprestadas (staff): fora da produção e do financeiro, contadas por tamanho
     const emprestados = uniFiltrado.filter((u) => emprestadaDe(u));
     const resumoEmprestados = TAMANHOS.map((tm) => [tm, emprestados.filter((u) => emprestadaDe(u) === tm).length]).filter(([, n]) => n > 0);
+    // Planilha só das camisetas emprestadas (staff). Fica fora da planilha do fornecedor.
+    const exportarEmprestimos = async () => {
+      const ExcelJS = await carregarExcelJS();
+      const wb = new ExcelJS.Workbook();
+      const wsE = wb.addWorksheet("EMPRESTADO");
+      const borda = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } };
+      const cinza = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+      const cel = (r, c, v, { bold = false, size = 9, fill, align = "left" } = {}) => {
+        const x = wsE.getCell(r, c);
+        x.value = v;
+        x.font = { name: "Arial", bold, size };
+        if (fill) x.fill = fill;
+        x.alignment = { horizontal: align, vertical: "middle" };
+        x.border = borda;
+        return x;
+      };
+      [32, 18].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
+      wsE.mergeCells("A1:B1");
+      const tit = wsE.getCell("A1");
+      tit.value = "CAMISETAS EMPRESTADAS — ENCONTRO COM DEUS 2026";
+      tit.font = { name: "Arial", bold: true, size: 12 };
+      tit.alignment = { horizontal: "center", vertical: "middle" };
+      wsE.getRow(1).height = 24;
+      cel(2, 1, "NOME", { bold: true, align: "center" });
+      cel(2, 2, "PERFIL", { bold: true, align: "center" });
+      let r = 3;
+      const ordenados = [...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+      TAMANHOS.forEach((tm) => {
+        const doTam = ordenados.filter((u) => emprestadaDe(u) === tm);
+        if (!doTam.length) return;
+        wsE.mergeCells(r, 1, r, 2);
+        cel(r, 1, `TAMANHO ${tm}`, { bold: true, fill: cinza("FFEEEEEE"), align: "center" });
+        r++;
+        doTam.forEach((u) => {
+          cel(r, 1, u.nome || "");
+          cel(r, 2, PERFIS[u.perfil]?.l || u.perfil || "", { align: "center" });
+          r++;
+        });
+        cel(r, 1, `TOTAL ${tm}`, { bold: true, fill: cinza("FFDDDDDD") });
+        cel(r, 2, doTam.length, { bold: true, fill: cinza("FFDDDDDD"), align: "center" });
+        r += 2;
+      });
+      if (!emprestados.length) {
+        wsE.mergeCells(r, 1, r, 2);
+        cel(r, 1, "Nenhuma camiseta emprestada", { align: "center" });
+        r += 2;
+      }
+      cel(r, 1, "TOTAL EMPRESTADOS", { bold: true, size: 11, fill: cinza("FFBBBBBB") });
+      cel(r, 2, emprestados.length, { bold: true, size: 11, fill: cinza("FFBBBBBB"), align: "center" });
+      wsE.getRow(r).height = 20;
+      const buffer = await wb.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "camisetas-emprestadas.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
     // Quem pediu mais de uma vez guarda os pedidos pagos em `pedidosAnteriores`.
     // Produção, financeiro e planilha contam cada pedido, não cada servo.
     const temItens = (p) => !!(p.camisa || p.calca || p.blusa);
@@ -11842,55 +11946,6 @@ function CozinhaV({ edit, t, users }) {
               const abaServo = (u) => ["servo", "cozinha", "infantil"].includes(u.perfil);
               buildAba(wb, "SERVO", uniPedidos.filter((u) => abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
               buildAba(wb, "STAFF", uniPedidos.filter((u) => !abaServo(u) && (u.pagoSinal || u.pagoIntegral)));
-              // aba própria dos emprestados (staff), no mesmo visual das outras: agrupada por tamanho
-              {
-                const wsE = wb.addWorksheet("EMPRESTADO");
-                const borda = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } };
-                const cinza = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
-                const cel = (r, c, v, { bold = false, size = 9, fill, align = "left" } = {}) => {
-                  const x = wsE.getCell(r, c);
-                  x.value = v;
-                  x.font = { name: "Arial", bold, size };
-                  if (fill) x.fill = fill;
-                  x.alignment = { horizontal: align, vertical: "middle" };
-                  x.border = borda;
-                  return x;
-                };
-                [32, 18].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
-                wsE.mergeCells("A1:B1");
-                const tit = wsE.getCell("A1");
-                tit.value = "CAMISETAS EMPRESTADAS — ENCONTRO COM DEUS 2026";
-                tit.font = { name: "Arial", bold: true, size: 12 };
-                tit.alignment = { horizontal: "center", vertical: "middle" };
-                wsE.getRow(1).height = 24;
-                cel(2, 1, "NOME", { bold: true, align: "center" });
-                cel(2, 2, "PERFIL", { bold: true, align: "center" });
-                let r = 3;
-                const ordenados = [...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
-                TAMANHOS.forEach((tm) => {
-                  const doTam = ordenados.filter((u) => emprestadaDe(u) === tm);
-                  if (!doTam.length) return;
-                  wsE.mergeCells(r, 1, r, 2);
-                  cel(r, 1, `TAMANHO ${tm}`, { bold: true, fill: cinza("FFEEEEEE"), align: "center" });
-                  r++;
-                  doTam.forEach((u) => {
-                    cel(r, 1, u.nome || "");
-                    cel(r, 2, PERFIS[u.perfil]?.l || u.perfil || "", { align: "center" });
-                    r++;
-                  });
-                  cel(r, 1, `TOTAL ${tm}`, { bold: true, fill: cinza("FFDDDDDD") });
-                  cel(r, 2, doTam.length, { bold: true, fill: cinza("FFDDDDDD"), align: "center" });
-                  r += 2;
-                });
-                if (!emprestados.length) {
-                  wsE.mergeCells(r, 1, r, 2);
-                  cel(r, 1, "Nenhuma camiseta emprestada", { align: "center" });
-                  r += 2;
-                }
-                cel(r, 1, "TOTAL EMPRESTADOS", { bold: true, size: 11, fill: cinza("FFBBBBBB") });
-                cel(r, 2, emprestados.length, { bold: true, size: 11, fill: cinza("FFBBBBBB"), align: "center" });
-                wsE.getRow(r).height = 20;
-              }
 
               wb.xlsx.writeBuffer().then((buffer) => {
                 const blob = new Blob([buffer], {
@@ -11918,6 +11973,19 @@ function CozinhaV({ edit, t, users }) {
             }}
           >
             Exportar para Fornecedor (XLSX)
+          </button>
+        )}
+        {emprestados.length > 0 && (
+          <button
+            onClick={exportarEmprestimos}
+            style={{
+              ...BK({ width: "100%", padding: 12, borderRadius: 13, fontSize: 13, marginBottom: 14 }),
+              background: "rgba(10,132,255,.1)",
+              borderColor: "rgba(10,132,255,.35)",
+              color: "#64b5f6",
+            }}
+          >
+            Exportar camisetas emprestadas (XLSX)
           </button>
         )}
 
