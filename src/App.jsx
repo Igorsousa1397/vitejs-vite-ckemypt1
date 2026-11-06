@@ -11517,8 +11517,23 @@ function CozinhaV({ edit, t, users }) {
 
     const uniFiltrado = uni.filter(u => !u.naoQuerUniforme);
     // camisetas emprestadas (staff): fora da produção e do financeiro, contadas por tamanho
-    const emprestados = uniFiltrado.filter((u) => emprestadaDe(u));
-    const resumoEmprestados = TAMANHOS.map((tm) => [tm, emprestados.filter((u) => emprestadaDe(u) === tm).length]).filter(([, n]) => n > 0);
+    // Lista de empréstimo: quem pediu a camiseta emprestada + todo staff que comprou
+    // camiseta (quem compra recebe uma a mais de empréstimo, no tamanho da comprada).
+    const tamCompraStaff = (u) =>
+      u.perfil === "staff"
+        ? u.camisa || [...(u.pedidosAnteriores || [])].reverse().find((p) => p.camisa)?.camisa || ""
+        : "";
+    const emprestados = uniFiltrado
+      .map((u) => {
+        const emp = emprestadaDe(u);
+        if (emp) return { nome: u.nome || "", tam: emp, origem: "Emprestada" };
+        const tc = tamCompraStaff(u);
+        if (tc) return { nome: u.nome || "", tam: tc, origem: u.pagoSinal || u.pagoIntegral ? "Compra" : "Compra (pagamento pendente)" };
+        return null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    const resumoEmprestados = TAMANHOS.map((tm) => [tm, emprestados.filter((e) => e.tam === tm).length]).filter(([, n]) => n > 0);
     // Planilha só das camisetas emprestadas (staff). Fica fora da planilha do fornecedor.
     const exportarEmprestimos = async () => {
       const ExcelJS = await carregarExcelJS();
@@ -11535,7 +11550,7 @@ function CozinhaV({ edit, t, users }) {
         x.border = borda;
         return x;
       };
-      [32, 18].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
+      [32, 28].forEach((w, k) => { wsE.getColumn(k + 1).width = w; });
       wsE.mergeCells("A1:B1");
       const tit = wsE.getCell("A1");
       tit.value = "CAMISETAS EMPRESTADAS — ENCONTRO COM DEUS 2026";
@@ -11543,18 +11558,17 @@ function CozinhaV({ edit, t, users }) {
       tit.alignment = { horizontal: "center", vertical: "middle" };
       wsE.getRow(1).height = 24;
       cel(2, 1, "NOME", { bold: true, align: "center" });
-      cel(2, 2, "PERFIL", { bold: true, align: "center" });
+      cel(2, 2, "ORIGEM", { bold: true, align: "center" });
       let r = 3;
-      const ordenados = [...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
       TAMANHOS.forEach((tm) => {
-        const doTam = ordenados.filter((u) => emprestadaDe(u) === tm);
+        const doTam = emprestados.filter((e) => e.tam === tm);
         if (!doTam.length) return;
         wsE.mergeCells(r, 1, r, 2);
         cel(r, 1, `TAMANHO ${tm}`, { bold: true, fill: cinza("FFEEEEEE"), align: "center" });
         r++;
-        doTam.forEach((u) => {
-          cel(r, 1, u.nome || "");
-          cel(r, 2, PERFIS[u.perfil]?.l || u.perfil || "", { align: "center" });
+        doTam.forEach((e) => {
+          cel(r, 1, e.nome);
+          cel(r, 2, e.origem, { align: "center" });
           r++;
         });
         cel(r, 1, `TOTAL ${tm}`, { bold: true, fill: cinza("FFDDDDDD") });
@@ -11639,10 +11653,13 @@ function CozinhaV({ edit, t, users }) {
                 <Pill key={tm} c={`${tm}: ${n}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />
               ))}
             </div>
-            {[...emprestados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map((u) => (
-              <div key={u.userId || u.nome} style={{ display: "flex", justifyContent: "space-between", color: G.td, fontSize: 13, padding: "4px 0" }}>
-                <span>{u.nome}</span>
-                <strong style={{ color: G.t }}>{emprestadaDe(u) || "—"}</strong>
+            {emprestados.map((e, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: G.td, fontSize: 13, padding: "4px 0" }}>
+                <span style={{ minWidth: 0 }}>
+                  {e.nome}
+                  <span style={{ color: e.origem === "Emprestada" ? "#64b5f6" : e.origem === "Compra" ? G.green : "#ff9f0a", fontSize: 11, marginLeft: 6 }}>{e.origem}</span>
+                </span>
+                <strong style={{ color: G.t, flexShrink: 0 }}>{e.tam}</strong>
               </div>
             ))}
           </Acc>
