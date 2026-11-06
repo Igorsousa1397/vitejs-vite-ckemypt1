@@ -15755,8 +15755,14 @@ function PerfilV({ user, setUser, t, onSair }) {
   const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
   const bloqueado = !!(user.cpf && user.nascimento && user.sexo);
   const perfil = PERFIS[user.perfil] || PERFIS.servo;
-  const funcoes = Array.isArray(user.funcoes) ? user.funcoes : [];
-  const diasEscala = ["Quinta", "Sexta", "Sábado", "Domingo"].filter((d) => (user.escala?.[d] || []).length > 0);
+  // mesma conta da aba Escalas: uma função por dia escalado; os chips são os
+  // nomes sem repetir. Sem escala, cai nas funções gerais do cadastro.
+  const DIAS_PERFIL = ["Quinta", "Sexta", "Sábado", "Domingo"];
+  const diasEscala = DIAS_PERFIL.filter((d) => (user.escala?.[d] || []).length > 0);
+  const totalFuncoes = DIAS_PERFIL.reduce((a, d) => a + (user.escala?.[d] || []).length, 0);
+  const funcoes = totalFuncoes
+    ? [...new Set(DIAS_PERFIL.flatMap((d) => user.escala?.[d] || []))]
+    : (Array.isArray(user.funcoes) ? user.funcoes : []);
   const valorInscricao = valorServoPix(user.perfil);
 
   const formatCpf = (v) =>
@@ -15881,7 +15887,7 @@ function PerfilV({ user, setUser, t, onSair }) {
 
       {/* no encontro: funções e dias de escala */}
       {(funcoes.length > 0 || diasEscala.length > 0) && (
-        <Cartao i={1} titulo="No encontro" sub={`${funcoes.length ? `${funcoes.length} ${funcoes.length === 1 ? "função" : "funções"}` : "Sem função definida"}${diasEscala.length ? ` · escala em ${diasEscala.length} ${diasEscala.length === 1 ? "dia" : "dias"}` : ""}`}>
+        <Cartao i={1} titulo="No encontro" sub={(() => { const n = totalFuncoes || funcoes.length; return `${n ? `${n} ${n === 1 ? "função" : "funções"}` : "Sem função definida"}${diasEscala.length ? ` · escala em ${diasEscala.length} ${diasEscala.length === 1 ? "dia" : "dias"}` : ""}`; })()}>
           {funcoes.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {funcoes.map((f) => <Pill key={f} c={f} bg="rgba(255,255,255,.06)" tc={G.td} />)}
@@ -15889,7 +15895,7 @@ function PerfilV({ user, setUser, t, onSair }) {
           )}
           {diasEscala.length > 0 && (
             <div style={{ display: "flex", gap: 6, marginTop: funcoes.length ? 10 : 0 }}>
-              {["Quinta", "Sexta", "Sábado", "Domingo"].map((d) => {
+              {DIAS_PERFIL.map((d) => {
                 const cor = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" }[d];
                 const tem = diasEscala.includes(d);
                 return (
