@@ -19,7 +19,7 @@ import {
   limit,
   arrayUnion,
 } from "./firebase";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { Fragment, useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
 import { QRCodeCanvas } from "qrcode.react";
 
@@ -32,7 +32,7 @@ const carregarJsPDF = () => import("jspdf").then((m) => m.default ?? m);
 const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrcode);
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes } from "./firebase";
-import { Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
+import { Send, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -5640,10 +5640,237 @@ const ColunasDia = ({ dados, max }) => {
   );
 };
 
-function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos, enviandoAviso }) {
+// ── AVISOS: formulário e cartão compartilhados pela home do admin e pela tela
+// de avisos dos servos
+const PUBLICOS_AVISO = [
+  ["todos", "Todos", "#00c851", "rgba(0,200,81,.14)"],
+  ["homens", "Homens", "#0a84ff", "rgba(10,132,255,.14)"],
+  ["mulheres", "Mulheres", "#ff2d92", "rgba(255,45,146,.14)"],
+];
+const publicoAvisoInfo = (k) => PUBLICOS_AVISO.find(([key]) => key === k) || PUBLICOS_AVISO[0];
+const iniciais = (nome = "") =>
+  nome.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase() || "?";
+// "Hoje", "Ontem" ou a data, a partir do createdAt (avisos antigos podem não ter)
+const rotuloDiaAviso = (createdAt) => {
+  if (!createdAt) return "";
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return "";
+  const hoje = new Date();
+  const mesmoDia = (a, b) => a.toDateString() === b.toDateString();
+  if (mesmoDia(d, hoje)) return "Hoje";
+  const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
+  if (mesmoDia(d, ontem)) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "");
+};
+
+const FormAviso = ({ onEnviar, i = 0 }) => {
+  const [txt, setTxt] = useState("");
+  const [publico, setPublico] = useState("todos");
+  const enviando = useRef(false);
+  const [, , corPub] = publicoAvisoInfo(publico);
+  const pronto = txt.trim().length > 0;
+  const enviar = () => {
+    if (enviando.current || !pronto) return;
+    enviando.current = true;
+    vibrar(100);
+    const t = txt.trim();
+    setTxt("");
+    Promise.resolve(onEnviar(t, publico)).finally(() => {
+      setTimeout(() => { enviando.current = false; }, 1500);
+    });
+  };
+  return (
+    <Cartao i={i} titulo="Novo aviso" sub="Chega como notificação no app dos servos" direita={<Megaphone size={20} color={corPub} />}>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+        {AVISOS_TEMPLATES.map((a, idx) => {
+          const sel = txt === a.txt;
+          return (
+            <button
+              key={idx}
+              onClick={() => setTxt(sel ? "" : a.txt)}
+              style={{ flexShrink: 0, background: sel ? "rgba(0,200,81,.14)" : "#1c1c1c", border: `1px solid ${sel ? "rgba(0,200,81,.45)" : "#262626"}`, color: sel ? G.green : G.td, borderRadius: 999, padding: "7px 11px", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all var(--d-fast)" }}
+            >
+              {a.txt.length > 30 ? `${a.txt.slice(0, 30).trim()}…` : a.txt}
+            </button>
+          );
+        })}
+      </div>
+      <textarea
+        value={txt}
+        onChange={(e) => setTxt(e.target.value)}
+        placeholder="Escrever aviso..."
+        rows={3}
+        style={{ ...I, resize: "none", lineHeight: 1.5, fontFamily: "inherit", display: "block", boxSizing: "border-box" }}
+      />
+      <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+        {PUBLICOS_AVISO.map(([k, l, c, bg]) => {
+          const sel = publico === k;
+          return (
+            <button
+              key={k}
+              onClick={() => setPublico(k)}
+              style={{ flex: 1, padding: "9px 6px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${sel ? c : "#262626"}`, background: sel ? bg : "#1c1c1c", color: sel ? c : G.td, transition: "all var(--d-fast)" }}
+            >
+              {l}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        onClick={enviar}
+        disabled={!pronto}
+        style={{ ...BG({ width: "100%", padding: 13, borderRadius: 12, marginTop: 10, fontSize: 13 }), opacity: pronto ? 1 : 0.4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "opacity var(--d-fast)" }}
+      >
+        <Send size={15} /> Publicar aviso
+      </button>
+    </Cartao>
+  );
+};
+
+const CartaoAviso = ({ a, onExcluir, i = 0 }) => {
+  const perfil = a.autorPerfil && PERFIS[a.autorPerfil];
+  const corAutor = perfil?.c || G.green;
+  const [, lPub, cPub, bgPub] = publicoAvisoInfo(a.publico);
+  return (
+    <div className="fu" style={{ animationDelay: `${Math.min(i, 8) * 40}ms`, background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: "13px 14px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 9 }}>
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: `${corAutor}22`, color: corAutor, fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          {iniciais(a.autor)}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: G.t, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.autor}</div>
+          <div style={{ color: G.tm, fontSize: 11, marginTop: 1 }}>{perfil?.l ? `${perfil.l} · ` : ""}{a.hr}</div>
+        </div>
+        {a.publico && a.publico !== "todos" && <Pill c={lPub} bg={bgPub} tc={cPub} />}
+        {onExcluir && (
+          <button
+            onClick={() => onExcluir(a.id)}
+            aria-label="Excluir aviso"
+            style={{ background: "rgba(255,59,48,.1)", border: "none", borderRadius: 9, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#ff453a", flexShrink: 0 }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+      <div style={{ color: G.t, fontSize: 14, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{a.txt}</div>
+    </div>
+  );
+};
+
+// lista de avisos agrupada por dia, com estado vazio
+const ListaAvisos = ({ avs, onExcluir, i = 0 }) => {
+  if (!avs.length) {
+    return (
+      <div className="fu" style={{ animationDelay: `${i * 60}ms`, background: G.card, border: `1px dashed ${G.cb}`, borderRadius: 16, padding: "28px 16px", textAlign: "center" }}>
+        <Megaphone size={26} color={G.tm} style={{ marginBottom: 8 }} />
+        <div style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>Nenhum aviso publicado</div>
+        <div style={{ color: G.tm, fontSize: 12, marginTop: 3 }}>Os avisos aparecem aqui e chegam como notificação.</div>
+      </div>
+    );
+  }
+  let ultimoDia = null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {avs.map((a, idx) => {
+        const dia = rotuloDiaAviso(a.createdAt);
+        const mostraDia = dia && dia !== ultimoDia;
+        if (dia) ultimoDia = dia;
+        return (
+          <Fragment key={a.id}>
+            {mostraDia && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: idx === 0 ? "2px 0 0" : "8px 0 0" }}>
+                <span style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{dia}</span>
+                <div style={{ flex: 1, height: 1, background: "#222" }} />
+              </div>
+            )}
+            <CartaoAviso a={a} onExcluir={onExcluir} i={i + idx} />
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
+// ── AGENDA (home do admin): resumo + linha do tempo por dia
+const DIAS_ENCONTRO = ["Quinta", "Sexta", "Sábado", "Domingo"];
+const AgendaResumo = ({ mins, dC, nav }) => {
+  const enviadas = mins.filter((m) => m.sent).length;
+  const prox = mins.find((m) => !m.sent);
+  const pct = mins.length ? Math.round((enviadas / mins.length) * 100) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <Cartao
+        i={0}
+        titulo="Ministrações"
+        sub={`${enviadas} de ${mins.length} com aviso enviado`}
+        direita={
+          <Anel partes={[{ v: mins.length ? enviadas / mins.length : 0, cor: G.green }]} size={52} stroke={6}>
+            <span key={pct} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 12, lineHeight: 1, display: "inline-block" }}>{pct}%</span>
+          </Anel>
+        }
+      >
+        {prox ? (
+          <div
+            className="press-sc"
+            onClick={() => nav("mins")}
+            style={{ display: "flex", alignItems: "center", gap: 12, background: "#1c1c1c", border: `1px solid ${G.cb}`, borderRadius: 12, padding: "11px 12px", cursor: "pointer" }}
+          >
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: dC[prox.dia] || G.green, boxShadow: `0 0 0 4px ${dC[prox.dia] || G.green}22`, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 3 }}>Próxima</div>
+              <div style={{ color: G.t, fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{prox.nome}</div>
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
+            </div>
+            <span style={{ color: G.tm, fontSize: 20, lineHeight: 1 }}>›</span>
+          </div>
+        ) : (
+          <div style={{ color: G.green, fontSize: 13, fontWeight: 600 }}>✓ Todas as ministrações já tiveram o aviso enviado</div>
+        )}
+      </Cartao>
+
+      {DIAS_ENCONTRO.map((dia, di) => {
+        const doDia = mins.filter((m) => m.dia === dia);
+        if (!doDia.length) return null;
+        const cor = dC[dia] || G.green;
+        const env = doDia.filter((m) => m.sent).length;
+        return (
+          <Cartao
+            key={dia}
+            i={di + 1}
+            titulo={dia}
+            sub={`${doDia.length} ${doDia.length === 1 ? "momento" : "momentos"}${env ? ` · ${env} ${env === 1 ? "aviso enviado" : "avisos enviados"}` : ""}`}
+            direita={<div style={{ width: 10, height: 10, borderRadius: "50%", background: cor, boxShadow: `0 0 0 4px ${cor}22`, marginRight: 4 }} />}
+          >
+            {doDia.map((m, mi) => {
+              const ultimo = mi === doDia.length - 1;
+              return (
+                <div key={m.id} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+                  <div style={{ width: 40, flexShrink: 0, color: m.sent ? G.tm : G.t, fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums", paddingTop: 1 }}>{m.hora}</div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12, flexShrink: 0 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.sent ? G.green : G.card, border: `2px solid ${m.sent ? G.green : cor}`, boxSizing: "border-box", marginTop: 3, flexShrink: 0 }} />
+                    {!ultimo && <div style={{ flex: 1, width: 2, background: "#262626", margin: "4px 0" }} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, paddingBottom: ultimo ? 0 : 14 }}>
+                    <div style={{ color: m.sent ? G.td : G.t, fontSize: 13, fontWeight: 600, lineHeight: 1.35 }}>{m.nome}</div>
+                    {m.sent && <div style={{ color: G.green, fontSize: 11, marginTop: 3, fontWeight: 600 }}>✓ Aviso enviado</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </Cartao>
+        );
+      })}
+    </div>
+  );
+};
+
+function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos }) {
   const [tab, setTab] = useState("dash");
-  const [av, setAv] = useState("");
-  const [publicoAviso, setPublicoAviso] = useState("todos");
+  const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+  const excluirAviso = async (id) => {
+    const ok = await pedirConfirmacao("Excluir este aviso? Ele some para todos os servos.", "Excluir");
+    if (ok) delAv(id);
+  };
   const [filtroDias, setFiltroDias] = useState(7);
   const [todasCelulas, setTodasCelulas] = useState(false);
   const encontro = useEncontro();
@@ -5957,81 +6184,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           </div>
         )}
 
-        {tab === "mins" && mins.map((m) => (
-          <div key={m.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${m.sent ? G.green : dC[m.dia]}`, borderRadius: 13, padding: "12px 14px", marginBottom: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ color: G.t, fontWeight: 600, fontSize: 13 }}>{m.nome}</div>
-              <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>{m.dia} · {m.hora}</div>
-            </div>
-            {m.sent && <Pill c="✓ Enviado" bg="rgba(0,200,81,.1)" tc={G.green} />}
-          </div>
-        ))}
+        {tab === "mins" && <AgendaResumo mins={mins} dC={dC} nav={nav} />}
 
         {tab === "avs" && (
-          <>
-            {canAvisos && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
-                <select onChange={(e) => { if (e.target.value) setAv(e.target.value); }} style={{ ...I, fontSize: 12 }} defaultValue="">
-                  <option value="">Usar template de aviso...</option>
-                  {AVISOS_TEMPLATES.map((a, i) => (
-                    <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
-                  ))}
-                </select>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {[["todos", "Todos"], ["homens", "Homens"], ["mulheres", "Mulheres"]].map(([k, l]) => (
-                    <button
-                      key={k}
-                      onClick={() => setPublicoAviso(k)}
-                      style={{
-                        flex: 1,
-                        padding: "8px 6px",
-                        borderRadius: 9,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        border: `1px solid ${publicoAviso === k ? "#0a84ff" : "#2a2a2a"}`,
-                        background: publicoAviso === k ? "rgba(10,132,255,.12)" : "#1a1a1a",
-                        color: publicoAviso === k ? "#0a84ff" : G.td,
-                      }}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input value={av} onChange={(e) => setAv(e.target.value)} placeholder="Escrever aviso..." style={{ ...I, flex: 1 }} />
-                  <button
-                    onClick={() => {
-                      if (enviandoAviso.current) return;
-                      if (!av.trim()) return;
-                      enviandoAviso.current = true;
-                      vibrar(100);
-                      const txt = av.trim();
-                      setAv("");
-                      addAv(txt, publicoAviso);
-                      setTimeout(() => { enviandoAviso.current = false; }, 1500);
-                    }}
-                    style={BG({ padding: "13px 15px", borderRadius: 12 })}
-                  >+</button>
-                </div>
-              </div>
-            )}
-            {avs.map((a) => (
-              <div key={a.id} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${G.green}`, borderRadius: 13, padding: "12px 14px", marginBottom: 7, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>{a.txt}</div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    {a.autor}{a.autorPerfil && PERFIS[a.autorPerfil] ? ` · ${PERFIS[a.autorPerfil].l}` : ""} · {a.hr}
-                    {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
-                    {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
-                  </div>
-                </div>
-                {canAvisos && <span onClick={() => delAv(a.id)} style={{ color: "rgba(255,59,48,.5)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>×</span>}
-              </div>
-            ))}
-          </>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {canAvisos && <FormAviso i={0} onEnviar={addAv} />}
+            <ListaAvisos avs={avs} i={canAvisos ? 1 : 0} onExcluir={canAvisos ? excluirAviso : null} />
+          </div>
         )}
       </div>
+      {dialogoConfirmacao}
     </div>
   );
 }
@@ -12804,14 +12966,11 @@ export default function App() {
   const unsubUsersRef = useRef(null);
   const unsubSauRef = useRef(null);
   const enviando = useRef(false);
-  const enviandoAviso = useRef(false);
   const [quartoTab, setQuartoTab] = useState("M");
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
   const [inscricoesBloqueadas, setInscricoesBloqueadas] = useState(false);
-  const [avTextoServo, setAvTextoServo] = useState("");
-  const [avPublicoServo, setAvPublicoServo] = useState("todos");
-  const enviandoAvisoServoRef = useRef(false);
+  const [pedirConfirmacaoApp, dialogoConfirmacaoApp] = useConfirmacao();
   const [dataLimitePedido, setDataLimitePedido] = useState("");
   const [dataLimiteRestante, setDataLimiteRestante] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
@@ -13627,117 +13786,34 @@ export default function App() {
         >
           {pg === "sperfil" && <PerfilV user={user} setUser={setUser} t={showT} />}
           {pg === "savs" && (
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {canAvisos(role) && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                  <select
-                    onChange={(e) => { if (e.target.value) setAvTextoServo(e.target.value); }}
-                    style={{ ...I, fontSize: 12 }}
-                    defaultValue=""
-                  >
-                    <option value="">Usar template de aviso...</option>
-                    {AVISOS_TEMPLATES.map((a, i) => (
-                      <option key={i} value={a.txt}>{a.txt.substring(0, 50)}...</option>
-                    ))}
-                  </select>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[["todos", "Todos"], ["homens", "Homens"], ["mulheres", "Mulheres"]].map(([k, l]) => (
-                      <button
-                        key={k}
-                        onClick={() => setAvPublicoServo(k)}
-                        style={{
-                          flex: 1,
-                          padding: "8px 6px",
-                          borderRadius: 9,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          border: `1px solid ${avPublicoServo === k ? "#0a84ff" : "#2a2a2a"}`,
-                          background: avPublicoServo === k ? "rgba(10,132,255,.12)" : "#1a1a1a",
-                          color: avPublicoServo === k ? "#0a84ff" : G.td,
-                        }}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={avTextoServo}
-                      onChange={(e) => setAvTextoServo(e.target.value)}
-                      placeholder="Escrever aviso..."
-                      style={{ ...I, flex: 1 }}
-                    />
-                    <button
-                      onClick={async () => {
-                        if (enviandoAvisoServoRef.current) return;
-                        if (!avTextoServo.trim()) return;
-                        enviandoAvisoServoRef.current = true;
-                        vibrar(100);
-                        const txt = avTextoServo.trim();
-                        const publico = avPublicoServo;
-                        setAvTextoServo("");
-                        const aviso = {
-                          txt,
-                          autor: user.nome,
-                          autorPerfil: role,
-                          publico,
-                          hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-                          createdAt: Date.now(),
-                        };
-                        await addDoc(collection(db, "avisos"), aviso);
-                        notifyAll(`Aviso: ${txt}`, publico);
-                        showT("Aviso publicado!");
-                        setTimeout(() => { enviandoAvisoServoRef.current = false; }, 1500);
-                      }}
-                      style={BG({ padding: "13px 15px", borderRadius: 12 })}
-                    >+</button>
-                  </div>
-                </div>
-              )}
-              {avs.length === 0 && (
-                <div
-                  style={{
-                    color: G.tm,
-                    textAlign: "center",
-                    padding: 48,
-                    fontSize: 13,
+                <FormAviso
+                  i={0}
+                  onEnviar={async (txt, publico) => {
+                    const aviso = {
+                      txt,
+                      autor: user.nome,
+                      autorPerfil: role,
+                      publico,
+                      hr: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                      createdAt: Date.now(),
+                    };
+                    await addDoc(collection(db, "avisos"), aviso);
+                    notifyAll(`Aviso: ${txt}`, publico);
+                    showT("Aviso publicado!");
                   }}
-                >
-                  Nenhum aviso no momento. ✓
-                </div>
+                />
               )}
-              {avs.map((a) => (
-                <div
-                  key={a.id}
-                  className="fu"
-                  style={{
-                    background: G.card,
-                    border: `1px solid ${G.cb}`,
-                    borderLeft: `3px solid ${G.green}`,
-                    borderRadius: 14,
-                    padding: "12px 14px",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ color: G.t, fontSize: 13, lineHeight: 1.6 }}>
-                    {a.txt}
-                  </div>
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    {a.autor}{a.autorPerfil && PERFIS[a.autorPerfil] ? ` · ${PERFIS[a.autorPerfil].l}` : ""} · {a.hr}
-                    {a.publico === "homens" && <Pill c="Homens" bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
-                    {a.publico === "mulheres" && <Pill c="Mulheres" bg="rgba(255,45,146,.12)" tc="#ff2d92" />}
-                  </div>
-                  {canAvisos(role) && (
-                    <span
-                      onClick={async () => { await deleteDoc(doc(db, "avisos", a.id)); }}
-                      style={{ color: "rgba(255,59,48,.6)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "inline-block", marginTop: 6 }}
-                    >
-                      Excluir
-                    </span>
-                  )}
-                </div>
-              ))}
+              <ListaAvisos
+                avs={avs}
+                i={canAvisos(role) ? 1 : 0}
+                onExcluir={canAvisos(role) ? async (id) => {
+                  const ok = await pedirConfirmacaoApp("Excluir este aviso? Ele some para todos os servos.", "Excluir");
+                  if (ok) await deleteDoc(doc(db, "avisos", id));
+                } : null}
+              />
+              {dialogoConfirmacaoApp}
             </div>
           )}
           {pg === "suni" && (
@@ -13943,7 +14019,6 @@ export default function App() {
       <div key={pg} className="pg" style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
         {pg === "home" && (
           <HomeV
-            enviandoAviso={enviandoAviso}
             role={role}
             user={user}
             ck={ck}
