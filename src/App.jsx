@@ -5153,144 +5153,108 @@ function ServoRestV({ user, encH, encM, t }) {
                     {slides.length > 1 && (
                       <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 8 }}>
                         {slides.map((_, i) => (
-                          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 16 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#333", transition: "transform var(--d-base) var(--e-out), width var(--d-base) var(--e-out), background var(--d-base) var(--e-out)", cursor: "pointer" }} />
+                          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 18 : 6, height: 6, borderRadius: 3, background: i === slide ? G.green : "#3a3a3c", transition: "width var(--d-base) var(--e-out), background var(--d-base) var(--e-out)", cursor: "pointer" }} />
                         ))}
                       </div>
                     )}
                     {/* keyed no índice: trocar de slide (toque ou swipe) refaz a entrada */}
                     <div key={slide} className="fu">
                     {slideAtual?.tipo === "min" && (
-                      <div style={{ background: "rgba(10,132,255,.1)", border: "1px solid rgba(10,132,255,.2)", borderRadius: 14, padding: "13px 14px" }}>
-                        <div style={{ color: "#64b5f6", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Próxima</div>
-                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>{prox.nome}</div>
-                        <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{prox.dia} · {prox.hora}</div>
-                      </div>
+                      <SlideAviso
+                        Ic={Calendar}
+                        cor="#0a84ff"
+                        rotulo="Próxima ministração"
+                        titulo={prox.nome}
+                        desc={`${prox.dia}${dataDiaAgenda(encontro, prox.dia) ? `, ${dataDiaAgenda(encontro, prox.dia)}` : ""} · ${prox.hora}`}
+                      />
                     )}
                     {slideAtual?.tipo === "pagamento" && (() => {
-                    const pixValor    = valorServoPix(role);
-                    const creditoValor = comCredito(pixValor);
-                    const pixLabel    = fmtReal(pixValor);
-                    const creditoLabel = fmtReal(creditoValor);
-
-                    return (
-                      <div style={{ background: "rgba(255,59,48,.08)", border: "1px solid rgba(255,59,48,.25)", borderRadius: 14, padding: "13px 14px" }}>
-                        <div className="alerta" style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>⚠️ Pagamento Pendente</div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>Valor: <strong style={{ color: "#fff" }}>{pixLabel}</strong></div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5, marginBottom: 10 }}>Prazo: <strong style={{ color: "#ff6b6b" }}>{new Date(dataLimitePagamento + "T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
-                        <button onClick={async () => {
-                          vibrar(50);
-                          try { await irParaPagamento(user.id, 'servo_pix', { email: user.email || '' }, true); }
-                          catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
-                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 8 }), background: "#009ee3" }}>
-                          PIX ou Boleto — {pixLabel}
-                        </button>
-                        <button onClick={async () => {
-                          vibrar(50);
-                          try { await irParaPagamento(user.id, 'servo_credito', { email: user.email || '' }, true); }
-                          catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
-                        }} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3" }}>
-                          Cartão de Crédito — {creditoLabel}
-                        </button>
-                      </div>
-                    );
-                  })()}
-                    {slideAtual?.tipo === "uniforme_pagamento" && (
-                      <div
+                      const pixValor = valorServoPix(role);
+                      const creditoValor = comCredito(pixValor);
+                      const pagar = (tipo) => async (e) => {
+                        e.stopPropagation();
+                        vibrar(50);
+                        try { await irParaPagamento(user.id, tipo, { email: user.email || '' }, true); }
+                        catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
+                      };
+                      return (
+                        <SlideAviso
+                          Ic={CreditCard}
+                          cor="#ff453a"
+                          rotulo="Pagamento da inscrição"
+                          titulo={`Falta pagar ${fmtReal(pixValor)}`}
+                          desc={`Prazo ${prazoCurto(dataLimitePagamento)}`}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <button onClick={pagar('servo_pix')} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3", color: "#fff" }}>
+                              PIX ou Boleto · {fmtReal(pixValor)}
+                            </button>
+                            <button onClick={pagar('servo_credito')} style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), color: G.t }}>
+                              Cartão de crédito · {fmtReal(creditoValor)}
+                            </button>
+                          </div>
+                        </SlideAviso>
+                      );
+                    })()}
+                    {slideAtual?.tipo === "uniforme" && (
+                      <SlideAviso
+                        Ic={Shirt}
+                        cor="#0a84ff"
+                        rotulo="Uniforme"
+                        titulo="Seu pedido está liberado para alteração"
+                        desc={`Até ${prazoCurto(dataLimiteUni)}`}
                         onClick={() => setPg("suni")}
-                        className="press-sc"
-                        style={{
-                          background: "rgba(255,59,48,.08)",
-                          border: "1px solid rgba(255,59,48,.25)",
-                          borderRadius: 14,
-                          padding: "13px 14px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                          👕 Pagamento de Uniforme
-                        </div>
-                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-                          Você ainda não pagou seu uniforme
-                        </div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
-                          Prazo: <strong style={{ color: "#ff6b6b" }}>
-                            {new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}
-                          </strong> · Toque para pagar
-                        </div>
-                      </div>
+                      />
+                    )}
+                    {slideAtual?.tipo === "uniforme_pagamento" && (
+                      <SlideAviso
+                        Ic={Shirt}
+                        cor="#ff453a"
+                        rotulo="Uniforme"
+                        titulo="Você ainda não pagou seu uniforme"
+                        desc={`Prazo ${prazoCurto(dataLimiteUni)}`}
+                        onClick={() => setPg("suni")}
+                      />
                     )}
                     {slideAtual?.tipo === "uniforme_sem_pedido" && (
-                      <div onClick={() => setPg("suni")} className="press-sc" style={{ background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.25)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
-                        <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>👕 Pedido de Uniforme</div>
-                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>Você ainda não fez seu pedido de uniforme</div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
-                          Prazo: <strong style={{ color: "#ff9f0a" }}>{new Date(dataLimiteUni + "T12:00:00").toLocaleDateString("pt-BR")}</strong> · Toque para pedir
-                        </div>
-                      </div>
+                      <SlideAviso
+                        Ic={Shirt}
+                        cor="#ff9f0a"
+                        rotulo="Uniforme"
+                        titulo="Você ainda não fez seu pedido"
+                        desc={`Prazo ${prazoCurto(dataLimiteUni)}`}
+                        onClick={() => setPg("suni")}
+                      />
                     )}
                     {slideAtual?.tipo === "uniforme_sinal_pago" && (
-                      <div
+                      <SlideAviso
+                        Ic={Shirt}
+                        cor="#ff9f0a"
+                        rotulo="Uniforme"
+                        pill="Sinal pago ✓"
+                        titulo="Falta pagar o restante (50%)"
+                        desc="O sinal já foi confirmado"
                         onClick={() => setPg("suni")}
-                        className="press-sc"
-                        style={{
-                          background: "rgba(255,159,10,.08)",
-                          border: "1px solid rgba(255,159,10,.25)",
-                          borderRadius: 14,
-                          padding: "13px 14px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ color: "#ff9f0a", fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                          👕 Uniforme — Sinal Pago ✓
-                        </div>
-                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700 }}>
-                          Falta pagar o restante (50%)
-                        </div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
-                          Sinal confirmado · Toque para pagar o restante
-                        </div>
-                      </div>
+                      />
                     )}
                     {slideAtual?.tipo === "jejum" && (
-                      <div style={{
-                        background: "rgba(0,200,81,.08)",
-                        border: "1px solid rgba(0,200,81,.25)",
-                        borderRadius: 14,
-                        padding: "13px 14px",
-                      }}>
-                        <div style={{ color: G.green, fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                          🙏 Jejum
-                        </div>
-                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-                          Lembre-se do seu jejum!
-                        </div>
-                        <div style={{ color: "rgba(255,255,255,.6)", fontSize: 12, lineHeight: 1.6 }}>
-                          • Retire ao menos <strong style={{ color: "#fff" }}>1 refeição</strong> por dia<br/>
-                          • Mínimo de <strong style={{ color: "#fff" }}>6h de jejum</strong>
-                        </div>
-                      </div>
+                      <SlideAviso
+                        Ic={HandHeart}
+                        cor={G.green}
+                        rotulo="Jejum"
+                        titulo="Lembre-se do seu jejum"
+                        desc={<>Retire ao menos <strong style={{ color: G.t }}>1 refeição</strong> por dia, com no mínimo <strong style={{ color: G.t }}>6h de jejum</strong>.</>}
+                      />
                     )}
                     {slideAtual?.tipo === "cartas" && (
-                      <div
+                      <SlideAviso
+                        Ic={FileText}
+                        cor={G.green}
+                        rotulo="Cartas"
+                        titulo={minhasCartasTotal === 1 ? "Você tem 1 carta para retirar" : `Você tem ${minhasCartasTotal} cartas para retirar`}
+                        desc={respCartas.trim() ? `Procure ${respCartas} para retirar` : "Procure o líder de Cartas para retirar"}
                         onClick={() => setPg("scartas")}
-                        style={{
-                          background: "rgba(0,200,81,.08)",
-                          border: "1px solid rgba(0,200,81,.25)",
-                          borderRadius: 14,
-                          padding: "13px 14px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ color: G.green, fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                          ✉️ Cartas
-                        </div>
-                        <div style={{ color: G.t, fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-                          {minhasCartasTotal === 1 ? "Você tem 1 carta para retirar" : `Você tem ${minhasCartasTotal} cartas para retirar`}
-                        </div>
-                        <div style={{ color: "rgba(255,255,255,.5)", fontSize: 12, lineHeight: 1.5 }}>
-                          {respCartas.trim() ? `Procure ${respCartas} para retirar.` : "Procure o líder de Cartas para retirar."} · Toque para ver
-                        </div>
-                      </div>
+                      />
                     )}
                     </div>
                   </div>
@@ -5821,6 +5785,50 @@ const LembretesAgenda = ({ ligado, podeAlterar, t }) => {
     </div>
   );
 };
+
+// "10/11 · faltam 4 dias" / "10/11 · último dia" / "10/11 · encerrado"
+const prazoCurto = (iso) => {
+  if (!iso) return "";
+  const hoje = new Date().toISOString().split("T")[0];
+  const dias = Math.round((new Date(iso + "T12:00:00") - new Date(hoje + "T12:00:00")) / 86400000);
+  const data = new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  if (dias < 0) return `${data} · encerrado`;
+  if (dias === 0) return `${data} · último dia`;
+  if (dias === 1) return `${data} · amanhã`;
+  return `${data} · faltam ${dias} dias`;
+};
+
+// Cartão do carrossel da home do servo: ícone na cor do assunto, rótulo,
+// título, texto e, opcionalmente, botões ou uma seta (quando é clicável).
+const SlideAviso = ({ Ic, cor, rotulo, titulo, desc, pill, onClick, children }) => (
+  <div
+    onClick={onClick}
+    className={onClick ? "press-sc" : undefined}
+    style={{
+      background: `linear-gradient(135deg, ${cor}1a 0%, #141414 70%)`,
+      border: `1px solid ${cor}40`,
+      borderRadius: 16,
+      padding: "14px 14px 14px",
+      cursor: onClick ? "pointer" : "default",
+    }}
+  >
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 12, background: `${cor}26`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Ic size={20} color={cor} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ color: cor, fontWeight: 700, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>{rotulo}</span>
+          {pill && <Pill c={pill} bg={`${cor}1f`} tc={cor} />}
+        </div>
+        <div style={{ color: G.t, fontSize: 16, fontWeight: 700, lineHeight: 1.3, marginTop: 3 }}>{titulo}</div>
+        {desc && <div style={{ color: G.td, fontSize: 12, lineHeight: 1.55, marginTop: 4 }}>{desc}</div>}
+      </div>
+      {onClick && <span style={{ color: G.tm, fontSize: 22, lineHeight: 1, alignSelf: "center" }}>›</span>}
+    </div>
+    {children && <div style={{ marginTop: 12 }}>{children}</div>}
+  </div>
+);
 
 // ── AGENDA (home do admin): resumo + linha do tempo por dia
 const DIAS_ENCONTRO = ["Quinta", "Sexta", "Sábado", "Domingo"];
