@@ -5155,6 +5155,7 @@ function ServoRestV({ user, encH, encM, t }) {
               <div>
                 {slides.length > 0 && (
                     <div
+                      data-sem-swipe
                       style={{ marginBottom: 14 }}
                       onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
                       onTouchEnd={e => {
@@ -12888,6 +12889,48 @@ export default function App() {
   useEffect(() => { menuRef.current = menu; }, [menu]);
   // mantém o drawer montado durante a animação de saída
   const menuP = usePresenca(menu, 220);
+  // Arrastar da esquerda para a direita abre o menu lateral; da direita para a
+  // esquerda fecha. Vale dentro do app (logado). Ignora toques que começam em
+  // campos, em áreas com rolagem horizontal (chips) e no que tiver
+  // data-sem-swipe (o carrossel da home do servo usa o mesmo gesto).
+  const scrRef = useRef(scr);
+  useEffect(() => { scrRef.current = scr; }, [scr]);
+  useEffect(() => {
+    let ini = null;
+    const ignorar = (el) => {
+      for (let n = el; n && n !== document.body; n = n.parentElement) {
+        if (n.dataset?.semSwipe !== undefined) return true;
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName)) return true;
+        if (n.scrollWidth > n.clientWidth + 2) {
+          const ox = getComputedStyle(n).overflowX;
+          if (ox === "auto" || ox === "scroll") return true;
+        }
+      }
+      return false;
+    };
+    const onStart = (e) => {
+      ini = null;
+      if (scrRef.current !== "app" || e.touches.length !== 1) return;
+      if (ignorar(e.target)) return;
+      ini = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+    };
+    const onEnd = (e) => {
+      if (!ini) return;
+      const dx = e.changedTouches[0].clientX - ini.x;
+      const dy = e.changedTouches[0].clientY - ini.y;
+      const rapido = Date.now() - ini.t < 800;
+      ini = null;
+      if (!rapido || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      if (dx > 0 && !menuRef.current) { vibrar(10); setMenu(true); }
+      else if (dx < 0 && menuRef.current) setMenu(false);
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchend", onEnd);
+    };
+  }, []);
   const [pagamentoId, setPagamentoId] = useState(null);
   const [encId, setEncId] = useState(null);
   const [termoCpf, setTermoCpf] = useState(null);
