@@ -189,6 +189,8 @@ button,.press-sc{transition:transform var(--d-fast) var(--e-out)}
 .alerta{animation:alerta 2.8s ease-in-out infinite}
 /* barras de progresso crescem da esquerda ao montar; depois a largura transiciona */
 .bar{transform-origin:left;animation:cresce .7s var(--e-out) backwards}
+@keyframes cresceY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.barv{transform-origin:bottom;animation:cresceY .7s var(--e-out) backwards}
 /* check em traço: primeiro o círculo, depois o tique */
 .check-anim{animation:pop .4s var(--e-out) backwards}
 .check-anim circle{stroke-dasharray:166;stroke-dashoffset:166;animation:traco .6s var(--e-out) .1s forwards}
@@ -5485,11 +5487,166 @@ function ServoRestV({ user, encH, encM, t }) {
     );
   }
   // ── HOME ─────────────────────────────────────────────────────────────────────
+// ── PAINEL: peças visuais ────────────────────────────────────────────────────
+const fmtBRL = (v) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+// cartão operacional (check-in, ônibus...): número, ícone e barra fina de progresso
+const StatTile = ({ n, l, Ic, cor, pct, alerta, onClick, i = 0 }) => (
+  <div
+    onClick={onClick}
+    className="press-sc fu"
+    style={{
+      animationDelay: `${i * 50}ms`,
+      background: "#111",
+      border: `1px solid ${alerta ? "rgba(255,59,48,.35)" : "#1c1c1c"}`,
+      borderRadius: 16,
+      padding: "14px 14px 13px",
+      cursor: "pointer",
+      position: "relative",
+      overflow: "hidden",
+    }}
+  >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+      <div style={{ color: alerta ? "#ff6b6b" : G.t, fontWeight: 800, fontSize: String(n).length > 5 ? 20 : 26, letterSpacing: -1, lineHeight: 1, marginTop: 2 }}>{n}</div>
+      <div style={{ width: 30, height: 30, borderRadius: 10, background: `${cor}1f`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Ic size={15} color={cor} />
+      </div>
+    </div>
+    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 8 }}>{l}</div>
+    {pct != null && (
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: "#1a1a1a" }}>
+        <div className="bar" style={{ height: 3, width: `${Math.max(0, Math.min(100, pct))}%`, background: cor, transition: "width var(--d-slow) var(--e-out)" }} />
+      </div>
+    )}
+  </div>
+);
+
+// cartão de seção com título, subtítulo e algo à direita (anel, filtro...)
+const Cartao = ({ titulo, sub, direita, children, i = 0 }) => (
+  <div className="fu" style={{ animationDelay: `${i * 60}ms`, background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>{titulo}</div>
+        {sub && <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{sub}</div>}
+      </div>
+      {direita}
+    </div>
+    {children}
+  </div>
+);
+
+// anel de progresso: `partes` são frações (0–1) desenhadas em sequência
+const Anel = ({ partes, size = 60, stroke = 7, children }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  let acc = 0;
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)", display: "block" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f1f1f" strokeWidth={stroke} />
+        {partes.map((p, i) => {
+          const len = Math.max(0, Math.min(1, p.v || 0)) * c;
+          const el = (
+            <circle
+              key={i}
+              cx={size / 2} cy={size / 2} r={r}
+              fill="none" stroke={p.cor} strokeWidth={stroke}
+              strokeDasharray={`${len} ${c - len}`}
+              strokeDashoffset={-acc}
+              style={{ transition: "stroke-dasharray var(--d-slow) var(--e-out), stroke-dashoffset var(--d-slow) var(--e-out)" }}
+            />
+          );
+          acc += len;
+          return el;
+        })}
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{children}</div>
+    </div>
+  );
+};
+
+// barra única com as partes empilhadas (sobre `total`)
+const BarraEmpilhada = ({ partes, total, h = 10 }) => (
+  <div style={{ display: "flex", background: "#1a1a1a", borderRadius: h, height: h, overflow: "hidden" }}>
+    {partes.filter((p) => p.v > 0).map((p, i) => (
+      <div key={i} className="bar" style={{ width: `${Math.min(100, (p.v / (total || 1)) * 100)}%`, background: p.cor, transition: "width var(--d-slow) var(--e-out)" }} />
+    ))}
+  </div>
+);
+
+// legenda em duas colunas: bolinha, rótulo e número
+const Legenda = ({ itens }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px" }}>
+    {itens.filter((x) => x.mostrar !== false).map((x) => (
+      <div key={x.l} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: x.cor, flexShrink: 0 }} />
+        <span style={{ color: G.td, fontSize: 12, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.l}</span>
+        <span key={String(x.v)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 14, display: "inline-block" }}>{x.v}</span>
+      </div>
+    ))}
+  </div>
+);
+
+// bloco de valor (arrecadado / a receber)
+const Grana = ({ l, v, cor }) => (
+  <div style={{ flex: 1, minWidth: 0, background: "#111", border: "1px solid #1f1f1f", borderRadius: 12, padding: "10px 12px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cor, flexShrink: 0 }} />
+      <span style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{l}</span>
+    </div>
+    <div style={{ color: cor, fontWeight: 800, fontSize: 16, letterSpacing: -0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmtBRL(v)}</div>
+  </div>
+);
+
+const LinhaValor = ({ l, v, cor = G.t, nota, grande }) => (
+  <div>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+      <span style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>{l}</span>
+      <span style={{ color: cor, fontWeight: 800, fontSize: grande ? 17 : 15, whiteSpace: "nowrap" }}>{fmtBRL(v)}</span>
+    </div>
+    {nota && <div style={{ color: G.tm, fontSize: 10, marginTop: 2, lineHeight: 1.4 }}>{nota}</div>}
+  </div>
+);
+
+const Rotulo = ({ c }) => (
+  <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>{c}</div>
+);
+
+// colunas por dia; com muitos dias, mostra só alguns rótulos para não encavalar
+const ColunasDia = ({ dados, max }) => {
+  const n = dados.length;
+  const passo = Math.max(1, Math.ceil(n / 8));
+  const mostraQtd = n <= 14;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: n > 14 ? 3 : 6, height: 110 }}>
+      {dados.map(([dia, qtd], i) => (
+        <div key={dia} style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", gap: 4 }}>
+          {mostraQtd && <span key={String(qtd)} className="tick" style={{ color: G.t, fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{qtd}</span>}
+          <div
+            className="barv"
+            style={{
+              width: "100%", maxWidth: 28,
+              height: `${Math.max(4, (qtd / (max || 1)) * 70)}px`,
+              background: "linear-gradient(180deg,#4da3ff,#0a84ff)",
+              borderRadius: 6,
+              transition: "height var(--d-slow) var(--e-out)",
+              animationDelay: `${i * 30}ms`,
+            }}
+          />
+          <span style={{ color: G.tm, fontSize: 9, lineHeight: 1, whiteSpace: "nowrap", visibility: i % passo === 0 || i === n - 1 ? "visible" : "hidden" }}>{dia}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos, enviandoAviso }) {
   const [tab, setTab] = useState("dash");
   const [av, setAv] = useState("");
   const [publicoAviso, setPublicoAviso] = useState("todos");
   const [filtroDias, setFiltroDias] = useState(7);
+  const [todasCelulas, setTodasCelulas] = useState(false);
+  const encontro = useEncontro();
 
   const ch = ck.filter((c) => c.ok).length, tot = ck.length;
   const oc = ocorr.filter((o) => !o.res).length;
@@ -5581,27 +5738,48 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
 
+  const lugaresOnibus = on.reduce((a, o) => a + (o.poltronas || 40), 0);
+  const hojeISO = hoje.toISOString().split("T")[0];
+  const diasParaEncontro = Math.round((new Date(encontro.inicio + "T12:00:00") - new Date(hojeISO + "T12:00:00")) / 86400000);
+  const diasEncontroTxt = fmtDiasEncontro(encontro, { ano: false });
+  const subtituloEncontro =
+    hojeISO > encontro.fim ? `Encontro realizado em ${diasEncontroTxt}`
+    : diasParaEncontro <= 0 ? "O encontro está acontecendo"
+    : diasParaEncontro === 1 ? `É amanhã · ${diasEncontroTxt}`
+    : `Encontro em ${diasEncontroTxt}`;
+  const pctPreenchido = Math.round((todosEnc.length / META_ENC) * 100);
+  const vagas = Math.max(META_ENC - todosEnc.length, 0);
+  const totalPeriodo = diasOrdenados.reduce((a, [, v]) => a + v, 0);
+  const celulasVisiveis = todasCelulas ? celulasOrdenadas : celulasOrdenadas.slice(0, 8);
+  const qtdItajai = todosEnc.filter(isEncItajai).length;
+  const qtdPadrao = Math.max(META_ENC - qtdItajai, 0);
+  const previsaoTotal = qtdPadrao * VALOR_ENC + qtdItajai * VALOR_ENC_ITAJAI;
+  const valorPagarDepoisServos = servosPagarDepois.reduce((acc, u) => acc + getValorServo(u), 0);
+
   return (
     <div>
-      {/* Saudação */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: G.t }}>
-          Shalom, {user.nome.split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
+      {/* Saudação + contagem regressiva */}
+      <div style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: G.t, lineHeight: 1.15 }}>
+            Shalom, {user.nome.split(" ")[0]}<span className="pop" style={{ color: G.green, display: "inline-block", animationDelay: ".35s" }}>.</span>
+          </div>
+          <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>{subtituloEncontro}</div>
         </div>
+        {diasParaEncontro > 0 && hojeISO <= encontro.fim && (
+          <div className="pop" style={{ animationDelay: ".2s", background: "rgba(0,200,81,.1)", border: "1px solid rgba(0,200,81,.25)", borderRadius: 12, padding: "7px 12px", textAlign: "center", flexShrink: 0 }}>
+            <div style={{ color: G.green, fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{diasParaEncontro}</div>
+            <div style={{ color: "rgba(0,200,81,.7)", fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>{diasParaEncontro === 1 ? "dia" : "dias"}</div>
+          </div>
+        )}
       </div>
+
       {/* Cards operacionais */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-        {[
-          [`${ch}/${tot}`, "Check-in", "checkin"],
-          [`${tPass}/${on.reduce((a, o) => a + (o.poltronas || 40), 0)}`, "Ônibus", "onibus"],
-          [tEnc, "Quartos", "quartos"],
-          [oc, "Ocorrências", "info"],
-        ].map(([n, l, p]) => (
-          <div key={l} onClick={() => nav(p)} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 14, padding: "20px 16px", cursor: "pointer" }}>
-            <div style={{ color: G.t, fontWeight: 800, fontSize: String(n).length > 5 ? 18 : 28, letterSpacing: -1 }}>{n}</div>
-            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 4 }}>{l}</div>
-          </div>
-        ))}
+        <StatTile i={0} n={`${ch}/${tot}`} l="Check-in" Ic={CheckSquare} cor={G.green} pct={tot ? (ch / tot) * 100 : 0} onClick={() => nav("checkin")} />
+        <StatTile i={1} n={`${tPass}/${lugaresOnibus}`} l="Ônibus" Ic={Bus} cor="#0a84ff" pct={lugaresOnibus ? (tPass / lugaresOnibus) * 100 : 0} onClick={() => nav("onibus")} />
+        <StatTile i={2} n={tEnc} l="Quartos" Ic={BedDouble} cor="#bf5af2" onClick={() => nav("quartos")} />
+        <StatTile i={3} n={oc} l="Ocorrências" Ic={AlertTriangle} cor={oc > 0 ? "#ff3b30" : "#ff9f0a"} alerta={oc > 0} onClick={() => nav("info")} />
       </div>
 
       <Seg opts={[["dash", "Dashboard"], ["mins", "Agenda"], ["avs", "Avisos"]]} val={tab} set={setTab} />
@@ -5611,241 +5789,171 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
             {/* Encontristas */}
-            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Encontristas</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: G.tm, fontSize: 11 }}>{todosEnc.length}/{META_ENC}</span>
-                  <Pill c={`${pctEncPagos}%`} bg="rgba(0,200,81,.12)" tc={G.green} />
-                </div>
-              </div>
-
-              {/* Barra meta */}
+            <Cartao
+              i={0}
+              titulo="Encontristas"
+              sub={`${todosEnc.length} inscritos · ${encPagos} pagos · meta ${META_ENC}`}
+              direita={
+                <Anel partes={[{ v: encPagos / META_ENC, cor: G.green }, { v: Math.max(0, todosEnc.length - encPagos) / META_ENC, cor: "#0a84ff" }]}>
+                  <span key={String(pctPreenchido)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 13, lineHeight: 1, display: "inline-block" }}>{pctPreenchido}%</span>
+                </Anel>
+              }
+            >
               <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: G.tm, fontSize: 11 }}>Meta: {META_ENC}</span>
-                  <span style={{ color: G.tm, fontSize: 11 }}>{Math.round((todosEnc.length / META_ENC) * 100)}% preenchido</span>
-                </div>
-                <div style={{ background: '#1a1a1a', borderRadius: 6, height: 8 }}>
-                  <div className="bar" style={{ background: '#0a84ff', borderRadius: 6, height: 8, width: `${Math.min(100, (todosEnc.length / META_ENC) * 100)}%`, transition: 'width var(--d-slow) var(--e-out)' }} />
+                <BarraEmpilhada
+                  total={META_ENC}
+                  partes={[
+                    { v: encPagos, cor: G.green },
+                    { v: encPagarDepois, cor: "#ff9f0a" },
+                    { v: encPendentes, cor: "#ff3b30" },
+                    { v: encDesistencia, cor: "#636366" },
+                  ]}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span style={{ color: G.tm, fontSize: 10 }}>{pctEncPagos}% da meta pagos</span>
+                  <span style={{ color: G.tm, fontSize: 10 }}>{pctPreenchido}% preenchido</span>
                 </div>
               </div>
+              <Legenda
+                itens={[
+                  { l: "Pagos", v: encPagos, cor: G.green },
+                  { l: "Pendentes", v: encPendentes, cor: "#ff3b30" },
+                  { l: "Pagar depois", v: encPagarDepois, cor: "#ff9f0a", mostrar: encPagarDepois > 0 },
+                  { l: "Desistência", v: encDesistencia, cor: "#636366", mostrar: encDesistencia > 0 },
+                  { l: "Vagas", v: vagas, cor: "#2a2a2a", mostrar: vagas > 0 },
+                ]}
+              />
 
-              {/* Pagos vs Pendentes */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pago</span>
-                  <BarPct val={encPagos} max={META_ENC} color={G.green} />
-                  <span key={String(encPagos)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encPagos}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pend.</span>
-                  <BarPct val={encPendentes} max={META_ENC} color="#ff3b30" />
-                  <span key={String(encPendentes)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encPendentes}</span>
-                </div>
-                {encPagarDepois > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ color: '#ff9f0a', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Pagar dep.</span>
-                    <BarPct val={encPagarDepois} max={META_ENC} color="#ff9f0a" />
-                    <span key={String(encPagarDepois)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encPagarDepois}</span>
-                  </div>
-                )}
-                {encDesistencia > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ color: '#636366', fontSize: 12, fontWeight: 700, minWidth: 60 }}>Desistência</span>
-                    <BarPct val={encDesistencia} max={META_ENC} color="#636366" />
-                    <span key={String(encDesistencia)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: 'right', display: 'inline-block' }}>{encDesistencia}</span>
-                  </div>
-                )}
+              <div style={{ height: 1, background: G.cb, margin: "14px 0" }} />
+
+              <Rotulo c="Financeiro" />
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <Grana l="Arrecadado" v={encArrecadado} cor={G.green} />
+                <Grana l="A receber" v={encAReceber} cor="#ff9f0a" />
               </div>
-
-              {/* Divisor */}
-              <div style={{ height: 1, background: G.cb, marginBottom: 14 }} />
-
-              {/* Projeção financeira encontristas */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Financeiro</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: G.green }} />
-                    <span style={{ color: G.tm, fontSize: 13 }}>Arrecadado</span>
-                  </div>
-                  <span style={{ color: G.green, fontWeight: 800, fontSize: 15 }}>
-                    R$ {encArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff9f0a' }} />
-                    <span style={{ color: G.tm, fontSize: 13 }}>A receber</span>
-                  </div>
-                  <span style={{ color: '#ff9f0a', fontWeight: 800, fontSize: 15 }}>
-                    R$ {encAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div style={{ height: 1, background: G.cb, margin: '2px 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção de hoje</span>
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>
-                    R$ {(encArrecadado + encAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div style={{ color: G.tm, fontSize: 10, marginTop: -2 }}>* {todosEnc.length} cadastrados (arrecadado + a receber)</div>
-                {(() => {
-                  const qtdItajai = todosEnc.filter(isEncItajai).length;
-                  const qtdPadrao = Math.max(META_ENC - qtdItajai, 0);
-                  const previsaoTotal = qtdPadrao * VALOR_ENC + qtdItajai * VALOR_ENC_ITAJAI;
-                  return (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                        <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Previsão total (meta)</span>
-                        <span style={{ color: '#0a84ff', fontWeight: 800, fontSize: 16 }}>
-                          R$ {previsaoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
-                        * {qtdPadrao} × R$ {VALOR_ENC} + {qtdItajai} (Itajaí/Paraná) × R$ {VALOR_ENC_ITAJAI}
-                      </div>
-                    </>
-                  );
-                })()}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <LinhaValor grande l="Projeção de hoje" v={encArrecadado + encAReceber} nota={`${todosEnc.length} cadastrados · arrecadado + a receber`} />
+                <LinhaValor grande l="Previsão total (meta)" v={previsaoTotal} cor="#0a84ff" nota={`${qtdPadrao} × R$ ${VALOR_ENC} + ${qtdItajai} (Itajaí/Paraná) × R$ ${VALOR_ENC_ITAJAI}`} />
               </div>
-            </div>
+            </Cartao>
 
             {/* Servos */}
             {(role === 'admin' || role === 'pastor' || role === 'pastor_auxiliar' || role === 'lider_geral') && (
-            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Servos</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: G.tm, fontSize: 11 }}>{servos.length} total</span>
-                  <Pill c={`${pctServos}%`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
+              <Cartao
+                i={1}
+                titulo="Servos"
+                sub={`${servos.length} ativos · ${servosPagos.length} pagos`}
+                direita={
+                  <Anel partes={[
+                    { v: servosPagos.length / (servos.length || 1), cor: G.green },
+                    { v: servosPagarDepois.length / (servos.length || 1), cor: "#0a84ff" },
+                    { v: servosAbonados.length / (servos.length || 1), cor: "#636366" },
+                  ]}>
+                    <span key={String(pctServos)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 13, lineHeight: 1, display: "inline-block" }}>{pctServos}%</span>
+                  </Anel>
+                }
+              >
+                <div style={{ marginBottom: 12 }}>
+                  <BarraEmpilhada
+                    total={servos.length}
+                    partes={[
+                      { v: servosPagos.length, cor: G.green },
+                      { v: servosPagarDepois.length, cor: "#0a84ff" },
+                      { v: servosPendentes.length, cor: "#ff3b30" },
+                      { v: servosAbonados.length, cor: "#636366" },
+                    ]}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                    <span style={{ color: G.tm, fontSize: 10 }}>{pctServos}% dos servos pagos</span>
+                    <span style={{ color: G.tm, fontSize: 10 }}>abonados não pagam</span>
+                  </div>
                 </div>
-              </div>
+                <Legenda
+                  itens={[
+                    { l: "Pagos", v: servosPagos.length, cor: G.green },
+                    { l: "Pendentes", v: servosPendentes.length, cor: "#ff3b30" },
+                    { l: "Abonados", v: servosAbonados.length, cor: "#636366", mostrar: servosAbonados.length > 0 },
+                    { l: "Pagar depois", v: servosPagarDepois.length, cor: "#0a84ff", mostrar: servosPagarDepois.length > 0 },
+                  ]}
+                />
 
-              {/* Barras pagos/pendentes/abonados */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: G.green, fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagos</span>
-                  <BarPct val={servosPagos.length} max={servos.length || 1} color={G.green} />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagos.length}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: '#ff3b30', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pend.</span>
-                  <BarPct val={servosPendentes.length} max={servos.length || 1} color="#ff3b30" />
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPendentes.length}</span>
-                </div>
-                {servosAbonados.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ color: '#636366', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Abonado</span>
-                    <BarPct val={servosAbonados.length} max={servos.length || 1} color="#636366" />
-                    <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosAbonados.length}</span>
-                  </div>
-                )}
-                {servosPagarDepois.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, minWidth: 64 }}>Pagar dep.</span>
-                    <BarPct val={servosPagarDepois.length} max={servos.length || 1} color="#0a84ff" />
-                    <span style={{ color: G.t, fontWeight: 800, fontSize: 14, minWidth: 28, textAlign: 'right' }}>{servosPagarDepois.length}</span>
-                  </div>
-                )}
-              </div>
+                <div style={{ height: 1, background: G.cb, margin: "14px 0" }} />
 
-              {/* Divisor */}
-              <div style={{ height: 1, background: G.cb, marginBottom: 14 }} />
-
-              {/* Projeção financeira */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Financeiro</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: G.green }} />
-                    <span style={{ color: G.tm, fontSize: 13 }}>Arrecadado</span>
+                <Rotulo c="Financeiro" />
+                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  <Grana l="Arrecadado" v={totalArrecadado} cor={G.green} />
+                  <Grana l="A receber" v={totalAReceber} cor="#ff9f0a" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <LinhaValor grande l="Projeção total" v={totalArrecadado + totalAReceber} />
+                  {servosPagarDepois.length > 0 && (
+                    <LinhaValor l={`Pagar depois (${servosPagarDepois.length})`} v={valorPagarDepoisServos} cor="#0a84ff" />
+                  )}
+                  <div style={{ color: G.tm, fontSize: 10, lineHeight: 1.4 }}>
+                    R${VALORES.servo}/servo·staff·líder, R${VALORES.cozinha}/cozinha e R${VALORES.infantil}/{PERFIS.infantil.l.toLowerCase()} (PIX). Abonados não contabilizados.
                   </div>
-                  <span style={{ color: G.green, fontWeight: 800, fontSize: 15 }}>
-                    R$ {totalArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff9f0a' }} />
-                    <span style={{ color: G.tm, fontSize: 13 }}>A receber</span>
-                  </div>
-                  <span style={{ color: '#ff9f0a', fontWeight: 800, fontSize: 15 }}>
-                    R$ {totalAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div style={{ height: 1, background: G.cb, margin: '2px 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Projeção total</span>
-                  <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>
-                    R$ {(totalArrecadado + totalAReceber).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                {servosPagarDepois.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0a84ff' }} />
-                      <span style={{ color: G.tm, fontSize: 13 }}>Pagar depois ({servosPagarDepois.length})</span>
-                    </div>
-                    <span style={{ color: '#0a84ff', fontWeight: 800, fontSize: 15 }}>
-                      R$ {servosPagarDepois.reduce((acc, u) => acc + getValorServo(u), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-                <div style={{ color: G.tm, fontSize: 10, marginTop: 2 }}>
-                  * R${VALORES.servo}/servo·staff·líder, R${VALORES.cozinha}/cozinha e R${VALORES.infantil}/{PERFIS.infantil.l.toLowerCase()} (PIX). Abonados não contabilizados.
-                </div>
-              </div>
-            </div>
+              </Cartao>
             )}
 
             {/* Cadastros por dia */}
-            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Cadastros por dia</div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[7, 14, 30].map(d => (
-                    <button key={d} onClick={() => setFiltroDias(d)} style={{ background: filtroDias === d ? G.green : '#1a1a1a', color: filtroDias === d ? '#000' : G.tm, border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+            <Cartao
+              i={2}
+              titulo="Cadastros por dia"
+              sub={`${totalPeriodo} ${totalPeriodo === 1 ? "cadastro" : "cadastros"} em ${filtroDias} dias`}
+              direita={
+                <div style={{ display: "flex", background: "#111", border: "1px solid #1c1c1c", borderRadius: 10, padding: 3, gap: 2, flexShrink: 0 }}>
+                  {[7, 14, 30].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setFiltroDias(d)}
+                      style={{
+                        background: filtroDias === d ? "#fff" : "transparent",
+                        color: filtroDias === d ? "#000" : G.tm,
+                        border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                        transition: "background var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out)",
+                      }}
+                    >
                       {d}d
                     </button>
                   ))}
                 </div>
-              </div>
-
+              }
+            >
               {diasOrdenados.length === 0 ? (
                 <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum cadastro nesse período.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {diasOrdenados.map(([dia, qtd]) => (
-                    <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ color: G.tm, fontSize: 12, minWidth: 36 }}>{dia}</span>
-                      <BarPct val={qtd} max={maxCad} color="#0a84ff" />
-                      <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
-                    </div>
-                  ))}
-                </div>
+                <ColunasDia key={filtroDias} dados={diasOrdenados} max={maxCad} />
               )}
-            </div>
+            </Cartao>
+
             {/* Inscritos por Célula */}
-            <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ color: G.t, fontWeight: 700, fontSize: 16 }}>Por Célula</div>
-              </div>
+            <Cartao i={3} titulo="Por Célula" sub={`${celulasOrdenadas.length} ${celulasOrdenadas.length === 1 ? "célula" : "células"} com inscritos`}>
               {celulasOrdenadas.length === 0 ? (
                 <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum inscrito ainda.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {celulasOrdenadas.map(([celula, qtd]) => (
-                    <div key={celula} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ color: G.td, fontSize: 12, minWidth: 120 }}>{celula}</span>
-                      <BarPct val={qtd} max={maxCelula} color="#bf5af2" />
-                      <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: 'right' }}>{qtd}</span>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {celulasVisiveis.map(([celula, qtd], i) => (
+                      <div key={celula} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ color: G.tm, fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: "right" }}>{i + 1}</span>
+                        <span style={{ color: celula === "Sem célula" ? G.tm : G.td, fontSize: 12, minWidth: 104, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{celula}</span>
+                        <BarPct val={qtd} max={maxCelula} color={celula === "Sem célula" ? "#48484a" : "#bf5af2"} />
+                        <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 22, textAlign: 'right' }}>{qtd}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {celulasOrdenadas.length > 8 && (
+                    <button
+                      onClick={() => setTodasCelulas((v) => !v)}
+                      style={{ ...BK({ width: "100%", padding: 10, borderRadius: 10, fontSize: 12, marginTop: 12 }), color: G.td }}
+                    >
+                      {todasCelulas ? "Mostrar menos" : `Ver todas (${celulasOrdenadas.length})`}
+                    </button>
+                  )}
+                </>
               )}
-            </div>
+            </Cartao>
           </div>
         )}
 
