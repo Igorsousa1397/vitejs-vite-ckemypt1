@@ -32,7 +32,7 @@ const carregarJsPDF = () => import("jspdf").then((m) => m.default ?? m);
 const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrcode);
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes } from "./firebase";
-import { Send, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
+import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -5791,9 +5791,52 @@ const ListaAvisos = ({ avs, onExcluir, i = 0 }) => {
   );
 };
 
+// Liga/desliga os lembretes automáticos da agenda (function lembretesAgenda)
+const LembretesAgenda = ({ ligado, podeAlterar, t }) => {
+  const [salvando, setSalvando] = useState(false);
+  const alternar = async () => {
+    if (!podeAlterar || salvando) return;
+    setSalvando(true);
+    try {
+      await setDoc(doc(db, "config", "agenda"), { autoNotificar: !ligado }, { merge: true });
+      t(!ligado ? "Lembretes automáticos ligados" : "Lembretes automáticos desligados");
+    } catch (err) {
+      console.error("Erro ao alterar lembretes:", err);
+      t("Não foi possível alterar", "w");
+    } finally {
+      setSalvando(false);
+    }
+  };
+  return (
+    <div className="fu" style={{ background: G.card, border: `1px solid ${ligado ? "rgba(0,200,81,.25)" : G.cb}`, borderRadius: 14, padding: "13px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: ligado ? "rgba(0,200,81,.12)" : "#1f1f1f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {ligado ? <Bell size={18} color={G.green} /> : <BellOff size={18} color={G.tm} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>Lembretes automáticos</div>
+        <div style={{ color: G.tm, fontSize: 11, marginTop: 2, lineHeight: 1.4 }}>
+          {ligado ? "Notifica todos 15 min antes e no horário de cada item" : "Desligados: só o envio manual pelo sino"}
+        </div>
+      </div>
+      {podeAlterar && (
+        <button
+          role="switch"
+          aria-checked={ligado}
+          aria-label="Lembretes automáticos"
+          onClick={alternar}
+          disabled={salvando}
+          style={{ width: 46, height: 28, borderRadius: 999, border: "none", padding: 3, cursor: "pointer", background: ligado ? G.green : "#3a3a3c", transition: "background var(--d-fast)", flexShrink: 0, opacity: salvando ? 0.6 : 1 }}
+        >
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", transform: `translateX(${ligado ? 18 : 0}px)`, transition: "transform var(--d-fast) var(--e-out)" }} />
+        </button>
+      )}
+    </div>
+  );
+};
+
 // ── AGENDA (home do admin): resumo + linha do tempo por dia
 const DIAS_ENCONTRO = ["Quinta", "Sexta", "Sábado", "Domingo"];
-const AgendaResumo = ({ mins, dC, nav }) => {
+const AgendaResumo = ({ mins, dC, nav, autoAgenda }) => {
   const enviadas = mins.filter((m) => m.sent).length;
   const prox = mins.find((m) => !m.sent);
   const pct = mins.length ? Math.round((enviadas / mins.length) * 100) : 0;
@@ -5826,6 +5869,10 @@ const AgendaResumo = ({ mins, dC, nav }) => {
         ) : (
           <div style={{ color: G.green, fontSize: 13, fontWeight: 600 }}>✓ Todas as ministrações já tiveram o aviso enviado</div>
         )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: autoAgenda ? G.td : G.tm, fontSize: 12 }}>
+          {autoAgenda ? <Bell size={14} color={G.green} /> : <BellOff size={14} />}
+          {autoAgenda ? "Lembretes automáticos: 15 min antes e no horário" : "Lembretes automáticos desligados"}
+        </div>
       </Cartao>
 
       {DIAS_ENCONTRO.map((dia, di) => {
@@ -5864,7 +5911,7 @@ const AgendaResumo = ({ mins, dC, nav }) => {
   );
 };
 
-function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos }) {
+function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, encM, addAv, delAv, users, canAvisos, autoAgenda }) {
   const [tab, setTab] = useState("dash");
   const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
   const excluirAviso = async (id) => {
@@ -6184,7 +6231,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           </div>
         )}
 
-        {tab === "mins" && <AgendaResumo mins={mins} dC={dC} nav={nav} />}
+        {tab === "mins" && <AgendaResumo mins={mins} dC={dC} nav={nav} autoAgenda={autoAgenda} />}
 
         {tab === "avs" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -6689,7 +6736,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     );
   }
   // ── MINISTRAÇÕES ─────────────────────────────────────────────────────────────
-  function MinsV({ mins, setMins, edit, role, t, sN }) {
+  function MinsV({ mins, setMins, edit, role, t, sN, autoAgenda }) {
     const [sh, setSh] = useState(false);
     const [f, setF] = useState({ dia: "Sexta", nome: "", hora: "" });
     const [highlightId, setHighlightId] = useState(null);
@@ -6703,6 +6750,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
     return (
       <div>
+        <LembretesAgenda ligado={autoAgenda} podeAlterar={edit} t={t} />
         {edit && (
           <>
             <button
@@ -12913,21 +12961,27 @@ export default function App() {
   // senão uma leitura que falhou sobrescreveria a agenda real com MINS_INIT.
   const minsSalvasRef = useRef(null);
 
+  // config/agenda.autoNotificar: lembretes automáticos (function lembretesAgenda)
+  const [autoAgenda, setAutoAgenda] = useState(true);
+  // Ao vivo: a function lembretesAgenda marca os itens como enviados, e a tela
+  // precisa ver isso sem recarregar (senão a próxima edição desfaria a marca).
   useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "config", "agenda"));
+    const ref = doc(db, "config", "agenda");
+    return onSnapshot(
+      ref,
+      (snap) => {
         if (snap.exists() && Array.isArray(snap.data().lista)) {
           minsSalvasRef.current = JSON.stringify(snap.data().lista);
           setMins(snap.data().lista);
-        } else {
-          await setDoc(doc(db, "config", "agenda"), { lista: MINS_INIT });
-          minsSalvasRef.current = JSON.stringify(MINS_INIT);
+          setAutoAgenda(snap.data().autoNotificar !== false);
+        } else if (!snap.exists()) {
+          setDoc(ref, { lista: MINS_INIT })
+            .then(() => { minsSalvasRef.current = JSON.stringify(MINS_INIT); })
+            .catch((err) => console.error("Erro ao criar agenda:", err));
         }
-      } catch (err) {
-        console.error("Erro ao carregar agenda:", err);
-      }
-    })();
+      },
+      (err) => console.error("Erro ao carregar agenda:", err),
+    );
   }, []);
 
   useEffect(() => {
@@ -12935,7 +12989,7 @@ export default function App() {
     const atual = JSON.stringify(mins);
     if (atual === minsSalvasRef.current) return;
     minsSalvasRef.current = atual;
-    setDoc(doc(db, "config", "agenda"), { lista: mins }).catch((err) =>
+    setDoc(doc(db, "config", "agenda"), { lista: mins }, { merge: true }).catch((err) =>
       console.error("Erro ao salvar agenda:", err),
     );
   }, [mins]);
@@ -14019,6 +14073,7 @@ export default function App() {
       <div key={pg} className="pg" style={{ padding: "16px 16px 0", maxWidth: 480, margin: "0 auto" }}>
         {pg === "home" && (
           <HomeV
+            autoAgenda={autoAgenda}
             role={role}
             user={user}
             ck={ck}
@@ -14061,6 +14116,7 @@ export default function App() {
         {pg === "mins" && (
           <MinsV
             mins={mins}
+            autoAgenda={autoAgenda}
             setMins={setMins}
             edit={canG(role)}
             role={role}

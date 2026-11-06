@@ -1,4 +1,5 @@
 const { onRequest } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const https = require('https');
 const crypto = require('crypto');
@@ -827,6 +828,84 @@ exports.notificarMinisterio = onRequest({ cors: true }, async (req, res) => {
   } catch (err) {
     console.error('Erro notificarMinisterio:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── LEMBRETES AUTOMÁTICOS DA AGENDA ─────────────────────────────────────────
+// Roda a cada minuto. Para cada item de config/agenda manda um push 15 minutos
+// antes ("começa em 15 minutos") e outro no horário ("está começando agora"),
+// para todos os aparelhos cadastrados. O dia da agenda ("Quinta", "Sábado"…) vira
+// data a partir de config/encontro; o horário é de Brasília (sem horário de verão).
+// Cada envio grava uma marca em _agenda_notif com create(): se a execução
+// repetir ou atrasar, o mesmo lembrete não sai duas vezes.
+// Desligado com config/agenda.autoNotificar = false.
+const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const DIA_MS = 86400000;
+// procura o dia com esse nome entre a véspera do início e o fim do encontro
+const dataDoDiaAgenda = (enc, dia) => {
+  const fim = new Date(`${enc.fim}T12:00:00Z`).getTime();
+  for (let t = new Date(`${enc.inicio}T12:00:00Z`).getTime() - DIA_MS; t <= fim; t += DIA_MS) {
+    const d = new Date(t);
+    if (DIAS_SEMANA[d.getUTCDay()] === dia) return d.toISOString().slice(0, 10);
+  }
+  return null;
+};
+// janelas de envio: toleram uma execução atrasada sem mandar lembrete fora de hora
+const LEMBRETES_AGENDA = [
+  { tipo: '15min', de: -15, ate: -10, msg: (m) => [`⏰ ${m.nome}`, `Começa em 15 minutos, às ${m.hora}.`] },
+  { tipo: 'agora', de: 0, ate: 5, msg: (m) => [`🙏 ${m.nome}`, 'Está começando agora!'] },
+];
+const lembretesDevidos = (lista, enc, agora) => {
+  const devidos = [];
+  for (const m of lista) {
+    if (!m || !m.nome || !/^\d{2}:\d{2}$/.test(m.hora || '')) continue;
+    const data = dataDoDiaAgenda(enc, m.dia);
+    if (!data) continue;
+    const inicio = new Date(`${data}T${m.hora}:00-03:00`).getTime();
+    for (const l of LEMBRETES_AGENDA) {
+      if (agora >= inicio + l.de * 60000 && agora < inicio + l.ate * 60000) devidos.push({ m, data, l });
+    }
+  }
+  return devidos;
+};
+
+exports.lembretesAgenda = onSchedule({ schedule: 'every 1 minutes', timeZone: 'America/Sao_Paulo', retryCount: 0 }, async () => {
+  const agora = Date.now();
+  const enc = await lerEncontro();
+  // fora dos dias do encontro não lê mais nada
+  const janelaIni = new Date(`${enc.inicio}T00:00:00-03:00`).getTime() - 2 * DIA_MS;
+  const janelaFim = new Date(`${enc.fim}T23:59:59-03:00`).getTime() + DIA_MS;
+  if (agora < janelaIni || agora > janelaFim) return;
+
+  const agendaRef = db.collection('config').doc('agenda');
+  const cfg = (await agendaRef.get()).data() || {};
+  if (cfg.autoNotificar === false) return;
+  const devidos = lembretesDevidos(Array.isArray(cfg.lista) ? cfg.lista : [], enc, agora);
+  if (!devidos.length) return;
+
+  let destinos = null;
+  for (const { m, data, l } of devidos) {
+    const marca = db.collection('_agenda_notif').doc(`${data}_${m.hora.replace(':', '')}_${m.id}_${l.tipo}`);
+    try {
+      await marca.create({ nome: m.nome, dia: m.dia, hora: m.hora, tipo: l.tipo, em: new Date().toISOString() });
+    } catch (err) {
+      if (err.code === 6) continue; // ALREADY_EXISTS: já foi enviado
+      throw err;
+    }
+    if (!destinos) destinos = (await db.collection('tokens').get()).docs.flatMap(aparelhosDoDoc);
+    const [titulo, corpo] = l.msg(m);
+    const enviadas = destinos.length ? await enviarPush(destinos, titulo, corpo) : 0;
+    await marca.update({ enviadas });
+    if (l.tipo === 'agora') {
+      // marca como enviado na agenda, como o botão manual faz
+      await db.runTransaction(async (tx) => {
+        const atual = (await tx.get(agendaRef)).data() || {};
+        const lista = Array.isArray(atual.lista) ? atual.lista : [];
+        if (!lista.some((x) => x.id === m.id && !x.sent)) return;
+        tx.update(agendaRef, { lista: lista.map((x) => (x.id === m.id ? { ...x, sent: true } : x)) });
+      });
+    }
+    console.log(`lembrete agenda ${l.tipo} "${m.nome}" (${m.dia} ${m.hora}): ${enviadas} aparelhos`);
   }
 });
 
