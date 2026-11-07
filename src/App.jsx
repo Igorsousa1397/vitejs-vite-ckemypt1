@@ -777,6 +777,8 @@ function Sheet({ open, onClose, title, children }) {
           bottom: 0,
           left: 0,
           right: 0,
+          maxWidth: 560,
+          margin: "0 auto",
           background: "#141414",
           borderRadius: "20px 20px 0 0",
           padding: "0 0 40px",
@@ -10218,23 +10220,30 @@ function CozinhaV({ edit, t, users }) {
   const OpcoesFiltro = ({ titulo, opts, val, set, cor = "#0a84ff" }) => (
     <div>
       <Rotulo c={titulo} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {opts.map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => set(k)}
-            style={{
-              ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
-              borderColor: val === k ? `${cor}80` : "#2a2a2a",
-              color: val === k ? cor : G.td,
-              background: val === k ? `${cor}14` : "transparent",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}
-          >
-            {label}
-            {val === k && <span style={{ fontSize: 16 }}>✓</span>}
-          </button>
-        ))}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {opts.map(([k, label]) => {
+          const sel = val === k;
+          return (
+            <button
+              key={k}
+              onClick={() => { vibrar(8); set(k); }}
+              className="press"
+              style={{
+                background: sel ? cor : "#1a1a1a",
+                color: sel ? "#000" : G.td,
+                border: `1px solid ${sel ? cor : "#2a2a2a"}`,
+                borderRadius: 999,
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "background var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out)",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -10435,20 +10444,27 @@ function CozinhaV({ edit, t, users }) {
         </div>
 
         <Sheet open={shFiltro} onClose={() => setShFiltro(false)} title="Filtros">
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <OpcoesFiltro titulo="Perfil" val={filtroPerfil} set={setFiltroPerfil} opts={[["todos", "Todos os perfis"], ["servo", "Servo"], ["cozinha", "Cozinha"], ["infantil", PERFIS.infantil.l], ["staff", "Staff"], ["lider", "Líderes"], ["pastor", "Pastores"]]} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <OpcoesFiltro titulo="Perfil" val={filtroPerfil} set={setFiltroPerfil} opts={[["todos", "Todos"], ["servo", "Servo"], ["cozinha", "Cozinha"], ["infantil", PERFIS.infantil.l], ["staff", "Staff"], ["lider", "Líderes"], ["pastor", "Pastores"]]} />
             {aba === "ativos" && (
-              <OpcoesFiltro titulo="Pagamento" cor={G.green} val={filtroStatus} set={setFiltroStatus} opts={[["todos", "Todos"], ["pagos", "Pagos"], ["pendentes", "Pendentes"], ["pagar_depois", "Pagar depois"], ["abonados", "Abonados"], ["primeiro_acesso", "1º Acesso"]]} />
+              <OpcoesFiltro titulo="Pagamento" cor={G.green} val={filtroStatus} set={setFiltroStatus} opts={[["todos", "Todos"], ["pagos", "Pagos"], ["pendentes", "Pendentes"], ["pagar_depois", "Pagar depois"], ["abonados", "Abonados"], ["primeiro_acesso", "1º acesso"]]} />
             )}
             {aba === "ativos" && (
-              <OpcoesFiltro titulo="Escala" cor="#ff9f0a" val={filtroEscala} set={setFiltroEscala} opts={[["todos", "Todos"], ["com", "Com funções escaladas"], ["sem", "Sem escala"]]} />
+              <OpcoesFiltro titulo="Escala" cor="#ff9f0a" val={filtroEscala} set={setFiltroEscala} opts={[["todos", "Todos"], ["com", "Com funções"], ["sem", "Sem escala"]]} />
             )}
             <OpcoesFiltro titulo="Sexo" cor="#ff2d92" val={filtroSexo} set={setFiltroSexo} opts={[["todos", "Todos"], ["Masculino", "Masculino"], ["Feminino", "Feminino"]]} />
-            {filtrosAtivos > 0 && (
-              <button onClick={limparFiltros} style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}>
-                Limpar filtros
+            <div style={{ display: "flex", gap: 8, paddingTop: 4, borderTop: "1px solid #1e1e1e", marginTop: 2 }}>
+              <button
+                onClick={limparFiltros}
+                disabled={filtrosAtivos === 0}
+                style={{ ...BK({ padding: "12px 16px", borderRadius: 12, fontSize: 13, fontWeight: 700 }), color: filtrosAtivos ? "#ff3b30" : G.tm, borderColor: filtrosAtivos ? "rgba(255,59,48,.3)" : "#222", opacity: filtrosAtivos ? 1 : 0.6 }}
+              >
+                Limpar
               </button>
-            )}
+              <button onClick={() => setShFiltro(false)} style={BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>
+                Ver {lista.length} {lista.length === 1 ? "servo" : "servos"}
+              </button>
+            </div>
           </div>
         </Sheet>
 
