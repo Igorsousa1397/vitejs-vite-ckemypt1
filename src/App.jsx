@@ -6456,192 +6456,116 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       t("Encontrista adicionado!");
     };
 
+    const total = ck.length;
+    const chegaram = ck.filter((c) => c.ok).length;
+    const pctCk = total ? Math.round((chegaram / total) * 100) : 0;
+    const exportarConfirmados = async () => {
+      const confirmados = ck.filter((c) => c.ok);
+      if (!confirmados.length) {
+        t("Nenhum check-in confirmado ainda.", "w");
+        return;
+      }
+      const cpfs = await lerCpfsEnc(confirmados);
+      await baixarXlsx("checkin_confirmados.xlsx", "Check-in", [
+        { header: "Nome", key: "nome", width: 35 },
+        { header: "Sexo", key: "sexo", width: 12 },
+        { header: "CPF", key: "cpf", width: 18 },
+        { header: "WhatsApp", key: "whatsapp", width: 18 },
+        { header: "Ônibus", key: "onibus", width: 10 },
+      ], [...confirmados].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).map((c) => ({
+        nome: c.nome || "",
+        sexo: c.gen === "M" ? "Feminino" : "Masculino",
+        cpf: cpfs.get(c.id) || "",
+        whatsapp: c.whatsapp || "",
+        onibus: c.on || "",
+      })));
+    };
+
     return (
       <div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 8,
-            marginBottom: 14,
-          }}
-        >
-          {[
-            [ck.length, "Total", "#636366"],
-            [ck.filter((c) => c.ok).length, "Chegaram", G.green],
-            [ck.filter((c) => !c.ok).length, "Pendentes", "#ff9f0a"],
-          ].map(([n, l, c]) => (
-            <div
-              key={l}
-              style={{
-                background: "#111",
-                borderRadius: 14,
-                padding: "12px 8px",
-                textAlign: "center",
-                borderTop: `2px solid ${c}`,
-              }}
-            >
-              <div style={ns(n)}>{n}</div>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  marginTop: 3,
-                }}
-              >
-                {l}
-              </div>
+        {/* resumo */}
+        <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+          <Anel size={56} stroke={6} partes={[{ v: total ? chegaram / total : 0, cor: G.green }]}>
+            <span key={pctCk} className="tick" style={{ color: G.t, fontSize: 12, fontWeight: 800 }}>{pctCk}%</span>
+          </Anel>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span key={chegaram} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{chegaram}</span>
+              <span style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>de {total} chegaram</span>
             </div>
-          ))}
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 5 }}>
+              Mulheres {cnt("M", true)}/{cnt("M", true) + cnt("M", false)} · Homens {cnt("H", true)}/{cnt("H", true) + cnt("H", false)}
+            </div>
+          </div>
         </div>
 
-        {/* Botão scanner */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+          <StatTile n={chegaram} l="Chegaram" Ic={CheckCircle2} cor={G.green} onClick={() => setSub("conf")} i={1} />
+          <StatTile n={total - chegaram} l="Pendentes" Ic={AlertTriangle} cor="#ff9f0a" onClick={() => setSub("pend")} i={2} />
+        </div>
+
+        {/* scanner: a ação do dia */}
         <button
           onClick={() => setShQr(true)}
-          style={BG({
-            width: "100%",
-            padding: 14,
-            marginBottom: 10,
-            borderRadius: 14,
-            fontSize: 15,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          })}
+          className="press"
+          style={BG({ width: "100%", padding: 15, marginBottom: 8, borderRadius: 14, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 })}
         >
-          Escanear QR Code
+          <ScanLine size={18} /> Escanear QR Code
         </button>
-
-        {/* Botão exportar - somente confirmados (chegaram), todos os gêneros */}
         <button
-          onClick={async () => {
-            const confirmados = ck.filter((c) => c.ok);
-            if (!confirmados.length) {
-              t("Nenhum check-in confirmado ainda.", "w");
-              return;
-            }
-            const ExcelJS = await carregarExcelJS();
-              const wb = new ExcelJS.Workbook();
-            const ws = wb.addWorksheet("Check-in");
-            ws.columns = [
-              { header: "Nome", key: "nome", width: 35 },
-              { header: "Sexo", key: "sexo", width: 12 },
-              { header: "CPF", key: "cpf", width: 18 },
-              { header: "WhatsApp", key: "whatsapp", width: 18 },
-              { header: "Ônibus", key: "onibus", width: 10 },
-            ];
-            ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
-            ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
-            const cpfs = await lerCpfsEnc(confirmados);
-            confirmados
-              .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""))
-              .forEach((c) => {
-                ws.addRow({
-                  nome: c.nome || "",
-                  sexo: c.gen === "M" ? "Feminino" : "Masculino",
-                  cpf: cpfs.get(c.id) || "",
-                  whatsapp: c.whatsapp || "",
-                  onibus: c.on || "",
-                });
-              });
-            const buf = await wb.xlsx.writeBuffer();
-            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a"); a.href = url; a.download = "checkin_confirmados.xlsx"; a.click();
-            URL.revokeObjectURL(url);
-          }}
-          style={BK({
-            width: "100%",
-            padding: 13,
-            marginBottom: 10,
-            borderRadius: 14,
-            fontSize: 14,
-          })}
+          onClick={exportarConfirmados}
+          style={{ ...BK({ width: "100%", padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 14 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: G.td }}
         >
-          Exportar Excel (confirmados)
+          <Download size={14} /> Exportar confirmados (XLSX)
         </button>
 
-        <Seg
-          opts={[
-            ["M", "Mulheres"],
-            ["H", "Homens"],
-          ]}
-          val={gen}
-          set={setGen}
-        />
-        <div style={{ display: "flex", gap: 6, margin: "8px 0" }}>
-          <button
-            onClick={() => setSub("pend")}
-            style={{
-              flex: 1,
-              background: sub === "pend" ? "#ff9f0a" : "#111",
-              color: sub === "pend" ? "#000" : G.td,
-              border: "none",
-              borderRadius: 10,
-              padding: "9px",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Pendentes ({cnt(gen, false)})
-          </button>
-          <button
-            onClick={() => setSub("conf")}
-            style={{
-              flex: 1,
-              background: sub === "conf" ? G.green : "#111",
-              color: sub === "conf" ? "#000" : G.td,
-              border: "none",
-              borderRadius: 10,
-              padding: "9px",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Confirmados ({cnt(gen, true)})
-          </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+          <Seg
+            opts={[
+              ["M", <>Mulheres <span style={{ opacity: 0.55, fontSize: 11, fontWeight: 800 }}>{cnt("M", true)}/{cnt("M", true) + cnt("M", false)}</span></>],
+              ["H", <>Homens <span style={{ opacity: 0.55, fontSize: 11, fontWeight: 800 }}>{cnt("H", true)}/{cnt("H", true) + cnt("H", false)}</span></>],
+            ]}
+            val={gen}
+            set={setGen}
+          />
+          <Seg
+            opts={[
+              ["pend", <>Pendentes <span style={{ opacity: 0.55, fontSize: 11, fontWeight: 800 }}>{cnt(gen, false)}</span></>],
+              ["conf", <>Confirmados <span style={{ opacity: 0.55, fontSize: 11, fontWeight: 800 }}>{cnt(gen, true)}</span></>],
+            ]}
+            val={sub}
+            set={setSub}
+          />
         </div>
-        <input
-          value={s}
-          onChange={(e) => setS(e.target.value)}
-          placeholder="🔍 Buscar..."
-          style={{ ...I, marginBottom: 10 }}
-        />
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={s} onChange={(e) => setS(e.target.value)} placeholder="Buscar por nome..." style={{ ...I, marginBottom: 0, paddingLeft: 34 }} />
+        </div>
+        <div style={{ color: G.tm, fontSize: 12, marginBottom: 10 }}>
+          Exibindo <strong style={{ color: G.t }}>{lista.length}</strong>{s.trim() ? ` · "${s.trim()}"` : ""}
+        </div>
         {lista.length === 0 && (
-          <div
-            className="empty"
-            style={{
-              color: G.tm,
-              textAlign: "center",
-              padding: 28,
-              fontSize: 13,
-            }}
-          >
-            Nenhum encontrista aqui.
+          <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+            {sub === "pend" ? "Ninguém pendente aqui. 🎉" : "Nenhum check-in confirmado ainda."}
           </div>
         )}
-        {lista.map((c) => (
+        {lista.map((c, idx) => (
           <div
             key={c.id}
             className="fu"
             ref={c.id === highlightId ? highlightRef : null}
             style={{
-              background: G.card,
+              animationDelay: `${Math.min(idx, 10) * 30}ms`,
+              background: c.id === highlightId ? "rgba(251,146,60,.06)" : G.card,
               border: `1px solid ${c.id === highlightId ? "#fb923c" : c.ok ? "rgba(0,200,81,.3)" : G.cb}`,
               borderLeft: `3px solid ${c.id === highlightId ? "#fb923c" : c.ok ? G.green : "#2a2a2a"}`,
-              borderRadius: 13,
+              borderRadius: 16,
               padding: "12px 14px",
-              marginBottom: 7,
-              transition: "border-color var(--d-base) var(--e-out)",
+              marginBottom: 8,
+              transition: "border-color var(--d-base) var(--e-out), background var(--d-base) var(--e-out)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
                 onClick={() => {
                   vibrar(30);
@@ -6670,14 +6594,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     setTimeout(() => tentarAbrir(8), 150);
                   }
                 }}
+                className="press-sc"
+                aria-label={c.ok ? "Desfazer check-in" : "Confirmar check-in"}
                 style={{
-                  width: 30,
-                  height: 30,
+                  width: 36,
+                  height: 36,
                   borderRadius: "50%",
-                  border: `2px solid ${c.ok ? G.green : "#333"}`,
-                  background: c.ok ? "rgba(0,200,81,.15)" : "transparent",
-                  color: G.green,
-                  fontSize: 16,
+                  border: `2px solid ${c.ok ? G.green : "#3a3a3a"}`,
+                  background: c.ok ? G.green : "transparent",
+                  color: "#000",
+                  fontSize: 18,
+                  fontWeight: 800,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -6690,15 +6617,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     repetida, e sem isso não há confirmação de que o toque pegou */}
                 {c.ok ? <span className="pop" style={{ display: "block", lineHeight: 1 }}>✓</span> : ""}
               </button>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: G.t, fontWeight: 600, fontSize: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: G.t, fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {c.nome}
                 </div>
-                {c.on && (
-                  <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                    Ônibus {c.on}
-                  </div>
-                )}
+                <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
+                  {c.ok ? (c.on ? `Ônibus ${c.on}` : "Chegou · sem ônibus") : "Ainda não chegou"}
+                </div>
               </div>
               {c.ok && (
                 <select
@@ -6719,9 +6644,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   style={{
                     ...I,
                     width: "auto",
-                    padding: "6px 10px",
-                    fontSize: 11,
-                    borderRadius: 9,
+                    maxWidth: 130,
+                    padding: "7px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    borderRadius: 10,
+                    marginBottom: 0,
+                    borderColor: c.on ? "rgba(255,159,10,.5)" : "rgba(255,59,48,.4)",
+                    color: c.on ? "#ff9f0a" : "#ff6b6b",
+                    background: c.on ? "rgba(255,159,10,.08)" : "rgba(255,59,48,.06)",
                   }}
                 >
                   <option value="">Ônibus?</option>
@@ -6736,7 +6667,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     })
                     .map((o) => (
                       <option key={o.num} value={o.num}>
-                        Ônibus {o.num} — {o.tipo}
+                        Ônibus {o.num}
                       </option>
                     ))}
                 </select>
@@ -7004,6 +6935,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     // um card aberto por vez
     const [expandido, setExpandido] = useState(null);
     const [busca, setBusca] = useState("");
+    const [shFiltro, setShFiltro] = useState(false);
 
     const todos = [...encM, ...encH];
     const celulasUnicas = [
@@ -7257,219 +7189,163 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     });
     const AC = "#0a84ff"; // cor do Acordo (não é status)
 
+    const statsCadastro = todos.filter(cadastroPendente).length;
+    const nMulheres = todos.filter((e) => e.sexo === "Feminino").length;
+    const nHomens = todos.filter((e) => e.sexo === "Masculino").length;
+    const pctPago = stats.total ? Math.round((stats.pago / stats.total) * 100) : 0;
+    const filtrosAtivos = (filtroCelula !== "todas" ? 1 : 0) + filtroStatus.length + (soCadastroPendente ? 1 : 0);
+    const limparFiltros = () => { setFiltroCelula("todas"); setFiltroStatus([]); setSoCadastroPendente(false); };
+
     return (
       <div>
         {dialogoConfirmacao}
-        {/* total geral */}
-        <div
-          style={{
-            background: "#111",
-            border: `1px solid ${G.cb}`,
-            borderRadius: 12,
-            padding: "14px 8px",
-            textAlign: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ color: G.t, fontSize: 30, fontWeight: 800 }}>{stats.total}</div>
-          <div style={{ ...lbl, marginTop: 3 }}>Total Geral</div>
-        </div>
-        {/* 4 cards por status (sobre todos, não filtrado) */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-          {[
-            ["pago", "Pagos"],
-            ["pendente", "Pendentes"],
-            ["pagar_depois", "Pagar dep."],
-            ["desistiu", "Desistência"],
-          ].map(([st, l]) => (
-            <div
-              key={st}
-              style={{
-                background: "#111",
-                border: `1px solid ${G.cb}`,
-                borderLeft: `3px solid ${ENC_STATUS[st].c}`,
-                borderRadius: 12,
-                padding: "10px 12px",
-              }}
-            >
-              <div style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>{stats[st]}</div>
-              <div style={{ ...lbl, marginTop: 3 }}>{l}</div>
+
+        {/* resumo */}
+        <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+          <Anel
+            size={56}
+            stroke={6}
+            partes={[
+              { v: stats.total ? stats.pago / stats.total : 0, cor: ENC_STATUS.pago.c },
+              { v: stats.total ? stats.pagar_depois / stats.total : 0, cor: ENC_STATUS.pagar_depois.c },
+            ]}
+          >
+            <span key={pctPago} className="tick" style={{ color: G.t, fontSize: 12, fontWeight: 800 }}>{pctPago}%</span>
+          </Anel>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span key={stats.total} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{stats.total}</span>
+              <span style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>encontristas</span>
             </div>
-          ))}
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 5 }}>
+              {nMulheres} mulheres · {nHomens} homens
+              {stats.desistiu > 0 && <> · <span style={{ color: ENC_STATUS.desistiu.c }}>{stats.desistiu} desistiu</span></>}
+            </div>
+          </div>
+        </div>
+
+        {/* tiles: tocar filtra */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+          <StatTile n={stats.pago} l="Pagos" Ic={CheckCircle2} cor={ENC_STATUS.pago.c} pct={stats.total ? (stats.pago / stats.total) * 100 : 0} onClick={() => alternarStatus("pago")} i={1} />
+          <StatTile n={stats.pendente} l="Pendentes" Ic={AlertTriangle} cor={ENC_STATUS.pendente.c} pct={stats.total ? (stats.pendente / stats.total) * 100 : 0} onClick={() => alternarStatus("pendente")} i={2} />
+          <StatTile n={stats.pagar_depois} l="Pagar depois" Ic={Calendar} cor={ENC_STATUS.pagar_depois.c} pct={stats.total ? (stats.pagar_depois / stats.total) * 100 : 0} onClick={() => alternarStatus("pagar_depois")} i={3} />
+          <StatTile n={statsCadastro} l="Cadastro pendente" Ic={FileText} cor="#0a84ff" alerta={statsCadastro > 0} pct={stats.total ? (statsCadastro / stats.total) * 100 : 0} onClick={() => setSoCadastroPendente((v) => !v)} i={4} />
         </div>
 
         {/* abas de sexo (com contagem) */}
-        <Seg
-          opts={[
-            ["T", segLabel("Todos", porSexo.T)],
-            ["M", segLabel("Mulheres", porSexo.M)],
-            ["H", segLabel("Homens", porSexo.H)],
-          ]}
-          val={g}
-          set={setG}
-        />
-
-        {/* filtro de célula */}
-        <select
-          value={filtroCelula}
-          onChange={(e) => setFiltroCelula(e.target.value)}
-          style={{ ...I, marginTop: 10, marginBottom: 0, fontSize: 13 }}
-        >
-          {celulasUnicas.map((c) => (
-            <option key={c} value={c}>{c === "todas" ? "Todas as células" : c}</option>
-          ))}
-        </select>
-
-        {/* status: múltipla seleção (nenhum marcado = todos) */}
-        <div style={{ marginTop: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={lbl}>
-              Status <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>— marque quantos quiser</span>
-            </span>
-            {filtroStatus.length > 0 && (
-              <span
-                onClick={() => setFiltroStatus([])}
-                style={{ color: AC, fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
-              >
-                Limpar
-              </span>
-            )}
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {Object.keys(ENC_STATUS).map((st) => {
-              const ativo = filtroStatus.includes(st);
-              const c = ENC_STATUS[st].c;
-              return (
-                <button
-                  key={st}
-                  onClick={() => alternarStatus(st)}
-                  aria-pressed={ativo}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    borderRadius: 50,
-                    padding: "7px 12px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    border: `1px solid ${ativo ? c : G.cb}`,
-                    background: ativo ? `${c}1a` : "transparent",
-                    color: ativo ? c : G.td,
-                  }}
-                >
-                  {ENC_STATUS[st].l}
-                  <span style={{ opacity: 0.65, fontSize: 11 }}>{porStatus[st]}</span>
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setSoCadastroPendente((v) => !v)}
-              aria-pressed={soCadastroPendente}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                borderRadius: 50,
-                padding: "7px 12px",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                border: `1px solid ${soCadastroPendente ? "#0a84ff" : G.cb}`,
-                background: soCadastroPendente ? "rgba(10,132,255,.1)" : "transparent",
-                color: soCadastroPendente ? "#0a84ff" : G.td,
-              }}
-            >
-              Cadastro pendente
-              <span style={{ opacity: 0.65, fontSize: 11 }}>{qtdCadastroPendente}</span>
-            </button>
-          </div>
-        </div>
-
-        <button
-          onClick={exportarPlanilha}
-          style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginTop: 12, marginBottom: 0 }) }}
-        >
-          Exportar Excel
-        </button>
-        {edit && (
-          <div
-            onClick={() => salvarInscricoesBloqueadas(!inscricoesBloqueadas)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 10,
-              cursor: "pointer",
-              padding: "12px 14px",
-              borderRadius: 12,
-              marginTop: 10,
-              background: inscricoesBloqueadas ? "rgba(255,59,48,.08)" : "#111",
-              border: `1px solid ${inscricoesBloqueadas ? "rgba(255,59,48,.3)" : "#1e1e1e"}`,
-            }}
-          >
-            <div>
-              <div style={{ color: G.t, fontSize: 13, fontWeight: 700 }}>
-                {inscricoesBloqueadas ? "Inscrições encerradas" : "Inscrições abertas"}
-              </div>
-              <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                {inscricoesBloqueadas ? "Ninguém consegue se inscrever agora" : "Toque para encerrar novas inscrições"}
-              </div>
-            </div>
-            <div
-              style={{
-                width: 44,
-                height: 26,
-                borderRadius: 14,
-                background: inscricoesBloqueadas ? "#ff3b30" : "#333",
-                position: "relative",
-                flexShrink: 0,
-                transition: "background var(--d-fast) var(--e-out)",
-              }}
-            >
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: "#fff",
-                  position: "absolute",
-                  top: 3,
-                  left: 3,
-                  transform: inscricoesBloqueadas ? "translateX(18px)" : "none",
-                  transition: "transform var(--d-fast) var(--e-sheet)",
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* busca */}
-        <div style={{ position: "relative", marginTop: 10 }}>
-          <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-          <input
-            value={busca}
-            onChange={(e) => { setBusca(e.target.value); setExpandido(null); }}
-            placeholder="Buscar por nome..."
-            style={{ ...I, marginTop: 0, marginBottom: 0, paddingLeft: 34 }}
+        <div style={{ marginBottom: 12 }}>
+          <Seg
+            opts={[
+              ["T", segLabel("Todos", porSexo.T)],
+              ["M", segLabel("Mulheres", porSexo.M)],
+              ["H", segLabel("Homens", porSexo.H)],
+            ]}
+            val={g}
+            set={setG}
           />
         </div>
 
+        {/* busca + filtros */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+            <input
+              value={busca}
+              onChange={(e) => { setBusca(e.target.value); setExpandido(null); }}
+              placeholder="Buscar por nome..."
+              style={{ ...I, marginTop: 0, marginBottom: 0, paddingLeft: 34 }}
+            />
+          </div>
+          <BotaoFiltro n={filtrosAtivos} onClick={() => setShFiltro(true)} />
+        </div>
+
+        <Sheet open={shFiltro} onClose={() => setShFiltro(false)} title="Filtros">
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div>
+              <Rotulo c="Status — marque quantos quiser" />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {Object.keys(ENC_STATUS).map((st) => (
+                  <ChipFiltro key={st} sel={filtroStatus.includes(st)} cor={ENC_STATUS[st].c} n={porStatus[st]} onClick={() => alternarStatus(st)}>
+                    {ENC_STATUS[st].l}
+                  </ChipFiltro>
+                ))}
+                <ChipFiltro sel={soCadastroPendente} cor="#0a84ff" n={qtdCadastroPendente} onClick={() => setSoCadastroPendente((v) => !v)}>
+                  Cadastro pendente
+                </ChipFiltro>
+              </div>
+            </div>
+            <div>
+              <Rotulo c="Célula" />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {celulasUnicas.map((c) => (
+                  <ChipFiltro key={c} sel={filtroCelula === c} cor="#bf5af2" onClick={() => setFiltroCelula(c)}>
+                    {c === "todas" ? "Todas" : c}
+                  </ChipFiltro>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, paddingTop: 4, borderTop: "1px solid #1e1e1e", marginTop: 2 }}>
+              <button
+                onClick={limparFiltros}
+                disabled={filtrosAtivos === 0}
+                style={{ ...BK({ padding: "12px 16px", borderRadius: 12, fontSize: 13, fontWeight: 700 }), color: filtrosAtivos ? "#ff3b30" : G.tm, borderColor: filtrosAtivos ? "rgba(255,59,48,.3)" : "#222", opacity: filtrosAtivos ? 1 : 0.6 }}
+              >
+                Limpar
+              </button>
+              <button onClick={() => setShFiltro(false)} style={BG({ flex: 1, padding: 12, borderRadius: 12, fontSize: 14 })}>
+                Ver {lista.length} {lista.length === 1 ? "encontrista" : "encontristas"}
+              </button>
+            </div>
+          </div>
+        </Sheet>
+
+        {/* exportar + inscrições */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <button
+            onClick={exportarPlanilha}
+            style={{ ...BK({ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: G.td }}
+          >
+            <Download size={14} /> Exportar {temFiltro ? `${lista.length} ` : ""}(XLSX)
+          </button>
+          {edit && (
+            <button
+              onClick={() => salvarInscricoesBloqueadas(!inscricoesBloqueadas)}
+              style={{
+                ...BK({ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700 }),
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                color: inscricoesBloqueadas ? "#ff6b6b" : G.green,
+                borderColor: inscricoesBloqueadas ? "rgba(255,59,48,.35)" : "rgba(0,200,81,.35)",
+                background: inscricoesBloqueadas ? "rgba(255,59,48,.08)" : "rgba(0,200,81,.06)",
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: inscricoesBloqueadas ? "#ff3b30" : G.green, flexShrink: 0 }} />
+              {inscricoesBloqueadas ? "Inscrições encerradas" : "Inscrições abertas"}
+            </button>
+          )}
+        </div>
+
         {/* quantos o filtro atual traz */}
-        <div style={{ color: G.tm, fontSize: 12, marginTop: 10 }}>
-          <span style={{ color: G.t, fontWeight: 800, fontSize: 15 }}>{lista.length}</span>{" "}
-          {lista.length === 1 ? "encontrista" : "encontristas"}
-          {temFiltro && ` de ${todos.length}`}
+        <div style={{ color: G.tm, fontSize: 12, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <span>
+            Exibindo <strong style={{ color: G.t }}>{lista.length}</strong>
+            {temFiltro && ` de ${todos.length}`}
+            {filtroStatus.length > 0 && ` · ${filtroStatus.map((st) => ENC_STATUS[st].l).join(", ")}`}
+            {soCadastroPendente && " · Cadastro pendente"}
+            {filtroCelula !== "todas" && ` · ${filtroCelula}`}
+          </span>
+          {temFiltro && (
+            <button onClick={() => { limparFiltros(); setBusca(""); setG("T"); }} style={{ background: "none", border: "none", color: "#0a84ff", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, flexShrink: 0 }}>Limpar</button>
+          )}
         </div>
 
         {/* lista */}
-        <div style={{ marginTop: 8 }}>
+        <div>
           {lista.length === 0 && (
             <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
               Nenhum encontrista encontrado.
             </div>
           )}
-          {lista.map((e) => {
+          {lista.map((e, idx) => {
             const st = encStatus(e);
             const cor = ENC_STATUS[st].c;
             const aberto = expandido === e.id;
@@ -7482,75 +7358,50 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             const emEdicaoPd = editandoPd[e.id] ?? !e.pagarDepoisData;
             const pdData = pdDataTemp[e.id] ?? (e.pagarDepoisData || "");
             const pdObs = pdObsTemp[e.id] ?? (e.pagarDepoisObs || "");
+            const subPartes = [
+              e.igreja || "—",
+              e.celula || "Sem célula",
+              e.criadoEm ? e.criadoEm.split(", ")[0] : null,
+              st === "pagar_depois" && e.pagarDepoisData ? `pagar até ${fmtISO(e.pagarDepoisData)}` : null,
+            ].filter(Boolean);
             return (
-              <div
+              <CartaoExp
                 key={e.id}
-                className="fu"
-                style={{
-                  background: G.card,
-                  border: `1px solid ${G.cb}`,
-                  borderLeft: `3px solid ${cor}`,
-                  borderRadius: 13,
-                  marginBottom: 7,
-                  overflow: "hidden",
-                }}
-              >
-                {/* cabeçalho do card (clicável) */}
-                <div
-                  onClick={() => setExpandido(aberto ? null : e.id)}
-                  className="press"
-                  style={{
-                    padding: "12px 14px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* a tag fica junto do nome: na linha de baixo ela era cortada no celular */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                      <div style={{ color: G.t, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {e.nome}
-                      </div>
-                      {cadastroPendente(e) && (
-                        <span style={{ flexShrink: 0 }}>
-                          <Pill c="Cadastro pendente" bg="rgba(10,132,255,.12)" tc="#0a84ff" />
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ color: G.tm, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {e.igreja || "—"} · {e.celula || "Não tenho célula"}
-                      {e.criadoEm ? ` · ${e.criadoEm.split(", ")[0]}` : ""}
-                      {st === "pagar_depois" && e.pagarDepoisData ? ` · pagar até ${fmtISO(e.pagarDepoisData)}` : ""}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                i={idx}
+                cor={cor}
+                avatar={iniciais(e.nome)}
+                titulo={e.nome}
+                sub={
+                  <>
+                    {cadastroPendente(e) && <span style={{ color: "#0a84ff", fontWeight: 700 }}>Cadastro pendente · </span>}
+                    {subPartes.join(" · ")}
+                  </>
+                }
+                open={aberto}
+                onToggle={() => setExpandido(aberto ? null : e.id)}
+                direita={
+                  <>
                     {e.pago && e.pagamentoId && (
                       <img src="/mp-logo.png" alt="Mercado Pago" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
                     )}
                     <Pill c={e.pago && !e.pagamentoId ? "Pago fora do app" : ENC_STATUS[st].l} bg={`${cor}1a`} tc={cor} />
-                  </div>
-                </div>
-
-                {/* detalhes expandidos */}
-                {aberto && (
-                  <div style={{ borderTop: "1px solid #1e1e1e", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <CampoCpfEnc enc={e} />
-                      <CampoInfo label="Nascimento" valor={fmtISO(e.nascimento)} />
-                      <CampoInfo label="Camiseta" valor={e.camiseta || "—"} />
-                      <CampoInfo label="Emergência" valor={e.emergencia || "—"} />
-                      <CampoInfo label="Medicamento" valor={e.medicamento || "Não"} />
-                      <CampoInfo label="Doença crônica" valor={e.doenca || "Não"} />
-                    </div>
+                  </>
+                }
+              >
+                    <Bloco titulo="Dados">
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <CampoCpfEnc enc={e} />
+                        <CampoInfo label="Nascimento" valor={fmtISO(e.nascimento)} />
+                        <CampoInfo label="Camiseta" valor={e.camiseta || "—"} />
+                        <CampoInfo label="Emergência" valor={e.emergencia || "—"} />
+                        <CampoInfo label="Medicamento" valor={e.medicamento || "Não"} />
+                        <CampoInfo label="Doença crônica" valor={e.doenca || "Não"} />
+                      </div>
+                    </Bloco>
 
                     {/* status (some quando pago) + acordo */}
                     {podeAcordo && (
-                      <div>
-                        <div style={{ ...lbl, marginBottom: 8 }}>{e.pago ? "Acordo" : "Status"}</div>
+                      <Bloco titulo={e.pago ? "Acordo" : "Status"}>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
                           {/* Marcar como pago — só admin. Fica em destaque no topo. */}
                           {!e.pago && edit && (
@@ -7672,7 +7523,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             />
                           </div>
                         )}
-                      </div>
+                      </Bloco>
                     )}
 
                     {/* reverter pagamento — só admin, e só quando já está pago */}
@@ -7747,9 +7598,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           : "Nenhum contato registrado"}
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
+              </CartaoExp>
             );
           })}
         </div>
@@ -10216,34 +10065,38 @@ function CozinhaV({ edit, t, users }) {
     </div>
   );
 
+  // chip de filtro: preenchido quando selecionado; `n` é a contagem à direita
+  const ChipFiltro = ({ sel, cor = "#0a84ff", onClick, n, children }) => (
+    <button
+      onClick={() => { vibrar(8); onClick(); }}
+      className="press"
+      aria-pressed={sel}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        background: sel ? cor : "#1a1a1a",
+        color: sel ? "#000" : G.td,
+        border: `1px solid ${sel ? cor : "#2a2a2a"}`,
+        borderRadius: 999,
+        padding: "8px 14px",
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: "pointer",
+        transition: "background var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out)",
+      }}
+    >
+      {children}
+      {n != null && <span style={{ opacity: sel ? 0.7 : 0.55, fontSize: 11, fontWeight: 800 }}>{n}</span>}
+    </button>
+  );
+
   // grupo de opções de filtro (uma escolha)
   const OpcoesFiltro = ({ titulo, opts, val, set, cor = "#0a84ff" }) => (
     <div>
       <Rotulo c={titulo} />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {opts.map(([k, label]) => {
-          const sel = val === k;
-          return (
-            <button
-              key={k}
-              onClick={() => { vibrar(8); set(k); }}
-              className="press"
-              style={{
-                background: sel ? cor : "#1a1a1a",
-                color: sel ? "#000" : G.td,
-                border: `1px solid ${sel ? cor : "#2a2a2a"}`,
-                borderRadius: 999,
-                padding: "8px 14px",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "background var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out)",
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {opts.map(([k, label]) => (
+          <ChipFiltro key={k} sel={val === k} cor={cor} onClick={() => set(k)}>{label}</ChipFiltro>
+        ))}
       </div>
     </div>
   );
