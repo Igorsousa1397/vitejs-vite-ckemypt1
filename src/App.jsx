@@ -10819,6 +10819,10 @@ function CozinhaV({ edit, t, users }) {
   function UniV({ uni, setUni, dataLimite, setDataLimite, dataLimitePagamento, dataLimitePedido, dataLimiteRestante, user, role, edit, t }) {
     const isAdm = edit;
     const hoje = new Date().toISOString().split("T")[0];
+    // admin: busca, filtro por situação e cartão aberto
+    const [uniBusca, setUniBusca] = useState("");
+    const [uniFiltro, setUniFiltro] = useState("todos");
+    const [uniAberto, setUniAberto] = useState(null);
     const prazoDefinido = !!dataLimite;
     const prazoOk = prazoDefinido && hoje <= dataLimite;
     const meuPedido = uni.find((u) => u.userId === user.id);
@@ -12082,149 +12086,7 @@ function CozinhaV({ edit, t, users }) {
       t("Solicitacao reprovada.");
     };
 
-    return (
-      <div>
-        {/* PRAZOS: editados na tela Datas */}
-        <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: "12px 14px", marginBottom: 14, color: G.td, fontSize: 13, lineHeight: 1.8 }}>
-          <div>Pedido até <strong style={{ color: G.t }}>{dataLimite ? fmtDataBR(dataLimite) : "sem data"}</strong>{dataLimite && <span style={{ color: hoje <= dataLimite ? G.green : "#ff6b6b", fontWeight: 700 }}> · {hoje <= dataLimite ? "aberto" : "encerrado"}</span>}</div>
-          <div>Restante (50%) até <strong style={{ color: G.t }}>{dataLimiteRestante ? fmtDataBR(dataLimiteRestante) : "sem data"}</strong></div>
-          <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>Para alterar os prazos, use o menu Datas.</div>
-        </div>
-
-        {/* ALERTA PENDENTES */}
-        {pendentes > 0 && (
-          <div
-            style={{
-              background: "rgba(255,159,10,.1)",
-              border: "1px solid rgba(255,159,10,.3)",
-              borderRadius: 12,
-              padding: "10px 14px",
-              marginBottom: 14,
-              color: "#ff9f0a",
-              fontWeight: 700,
-              fontSize: 13,
-            }}
-          >
-            {pendentes} solicitacao{pendentes > 1 ? "oes" : ""} de alteracao
-            pendente{pendentes > 1 ? "s" : ""}
-          </div>
-        )}
-
-        {/* EMPRESTADOS */}
-        {emprestados.length > 0 && (
-          <Acc title={`Camisetas emprestadas (${emprestados.length})`} def={false}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-              {resumoEmprestados.map(([tm, n]) => (
-                <Pill key={tm} c={`${tm}: ${n}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />
-              ))}
-            </div>
-            {emprestados.map((e, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: G.td, fontSize: 13, padding: "4px 0" }}>
-                <span style={{ minWidth: 0 }}>{e.nome}</span>
-                <strong style={{ color: G.t, flexShrink: 0 }}>{e.tam}</strong>
-              </div>
-            ))}
-          </Acc>
-        )}
-
-        {/* RESUMO */}
-        {uniFiltrado.length > 0 && (
-            <Acc title={`Resumo (${uniPedidos.length} pedidos)`} def={true}>
-            {[
-              { key: "camisa", label: "Camisetas" },
-              { key: "calca", label: "Calcas" },
-              { key: "blusa", label: "Blusas de Frio" },
-            ].map(({ key, label }) => {
-              const r = resumo(key);
-              const total = Object.values(r).reduce((a, b) => a + b, 0);
-              if (!total) return null;
-              return (
-                <div key={key} style={{ marginBottom: 12 }}>
-                  <div style={{ color: G.td, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    {label}
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {TAMANHOS.filter((tm) => r[tm] > 0).map((tm) => (
-                      <Pill key={tm} c={`${tm}: ${r[tm]}`} bg="#1e1e1e" tc={G.td} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Financeiro uniformes */}
-            {(() => {
-              const precoItemFn = (item, tam, qtd) => {
-                if (!tam) return 0;
-                const grande = ["G1","G2","G3","G4"].includes(tam);
-                let p = 0;
-                if (item === "camisa") p = grande ? 47 : 43;
-                else if (item === "blusa") p = grande ? 115 : 105;
-                else if (item === "calca") p = grande ? 90 : 80;
-                return p * (qtd || 1);
-              };
-              const calcTotal = (u) =>
-                precoItemFn("camisa", u.camisa, u.qtdCamisas) +
-                precoItemFn("calca", u.calca, u.qtdCalcas) +
-                precoItemFn("blusa", u.blusa, u.qtdBlusas);
-
-              const uniComPedido = uniPedidos;
-              let arrecadadoSinal = 0, arrecadadoIntegral = 0, aReceber = 0;
-
-              uniComPedido.forEach(u => {
-                const vTotal = u.valorTotal || calcTotal(u);
-                if (u.pagoIntegral) {
-                  arrecadadoIntegral += vTotal;
-                } else if (u.pagoSinal) {
-                  arrecadadoSinal += vTotal * 0.5;
-                  aReceber += vTotal * 0.5;
-                } else {
-                  aReceber += vTotal;
-                }
-              });
-
-              const totalArrecadado = arrecadadoSinal + arrecadadoIntegral;
-              const fmt = (v) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-
-              return (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ height: 1, background: G.cb, marginBottom: 12 }} />
-                  <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Financeiro</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: G.green }} />
-                        <span style={{ color: G.tm, fontSize: 13 }}>Arrecadado</span>
-                      </div>
-                      <span style={{ color: G.green, fontWeight: 800, fontSize: 15 }}>{fmt(totalArrecadado)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff9f0a' }} />
-                        <span style={{ color: G.tm, fontSize: 13 }}>A receber</span>
-                      </div>
-                      <span style={{ color: '#ff9f0a', fontWeight: 800, fontSize: 15 }}>{fmt(aReceber)}</span>
-                    </div>
-                    <div style={{ height: 1, background: G.cb }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: G.tm, fontSize: 13, fontWeight: 700 }}>Total esperado</span>
-                      <span style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>{fmt(totalArrecadado + aReceber)}</span>
-                    </div>
-                    <div style={{ color: G.tm, fontSize: 10 }}>* Inclui sinal pago + restante pendente + integrais</div>
-                  </div>
-                </div>
-              );
-            })()}
-          </Acc>
-        )}
-
-        {/* PEDIDOS */}
-        <SL c={`Pedidos (${uniFiltrado.length})`} mt={14} />
-
-        {/* EXPORTAR */}
-        {uniFiltrado.length > 0 && (
-          <button
-            onClick={async () => {
+    const exportarFornecedor = async () => {
               const TAMANHOS = ["P", "M", "G", "GG", "G1", "G2", "G3"];
 
               const buildAba = (wb, titulo, dados) => {
@@ -12437,196 +12299,286 @@ function CozinhaV({ edit, t, users }) {
                 a.click();
                 URL.revokeObjectURL(url);
               });
-            }}
-            style={{
-              ...BG({
-                width: "100%",
-                padding: 12,
-                borderRadius: 13,
-                fontSize: 13,
-                marginBottom: 14,
-              }),
-              background: "rgba(0,200,81,.15)",
-              border: "1px solid rgba(0,200,81,.3)",
-              color: G.green,
-            }}
-          >
-            Exportar para Fornecedor (XLSX)
-          </button>
-        )}
-        {emprestados.length > 0 && (
-          <button
-            onClick={exportarEmprestimos}
-            style={{
-              ...BK({ width: "100%", padding: 12, borderRadius: 13, fontSize: 13, marginBottom: 14 }),
-              background: "rgba(10,132,255,.1)",
-              borderColor: "rgba(10,132,255,.35)",
-              color: "#64b5f6",
-            }}
-          >
-            Exportar camisetas emprestadas (XLSX)
-          </button>
-        )}
+    };
 
-        {uniFiltrado.length === 0 && (
+    // preço de cada peça (tamanhos grandes custam mais); pedido antigo guarda valorTotal
+    const precoItemFn = (item, tam, qtd) => {
+      if (!tam) return 0;
+      const grande = ["G1", "G2", "G3", "G4"].includes(tam);
+      const p = item === "camisa" ? (grande ? 47 : 43) : item === "blusa" ? (grande ? 115 : 105) : item === "calca" ? (grande ? 90 : 80) : 0;
+      return p * (qtd || 1);
+    };
+    const valorPedido = (u) =>
+      u.valorTotal || (precoItemFn("camisa", u.camisa, u.qtdCamisas) + precoItemFn("calca", u.calca, u.qtdCalcas) + precoItemFn("blusa", u.blusa, u.qtdBlusas));
+    let arrecadado = 0, aReceber = 0;
+    uniPedidos.forEach((u) => {
+      const v = valorPedido(u);
+      if (u.pagoIntegral) arrecadado += v;
+      else if (u.pagoSinal) { arrecadado += v / 2; aReceber += v / 2; }
+      else aReceber += v;
+    });
+    const totalEsperado = arrecadado + aReceber;
+    const pctArrecadado = totalEsperado ? Math.round((arrecadado / totalEsperado) * 100) : 0;
+
+    // situação do pedido atual de cada servo (os anteriores são sempre pagos)
+    const situacaoUni = (u) => {
+      const tamEmp = emprestadaDe(u);
+      if (tamEmp && !temPecasUni(u)) return { k: "emprestada", l: "Emprestada", c: "#0a84ff" };
+      if (u.pagoIntegral === true) return { k: "pago", l: "Pago", c: G.green };
+      if (u.pagoSinal === true) return { k: "sinal", l: "Sinal pago", c: "#ff9f0a" };
+      return { k: "sem", l: "Sem pagamento", c: "#ff3b30" };
+    };
+    const nSit = { pago: 0, sinal: 0, sem: 0, emprestada: 0 };
+    uniFiltrado.forEach((u) => { nSit[situacaoUni(u).k]++; });
+    const pecasDe = (p) => [
+      p.camisa && `Camiseta ${p.camisa}${(p.qtdCamisas || 1) > 1 ? ` ×${p.qtdCamisas}` : ""}`,
+      p.calca && `Calça ${p.calca}${(p.qtdCalcas || 1) > 1 ? ` ×${p.qtdCalcas}` : ""}`,
+      p.blusa && `Blusa ${p.blusa}${(p.qtdBlusas || 1) > 1 ? ` ×${p.qtdBlusas}` : ""}`,
+    ].filter(Boolean);
+
+    const q = uniBusca.trim().toLowerCase();
+    const listaUni = uniFiltrado
+      .filter((u) => !q || (u.nome || "").toLowerCase().includes(q))
+      .filter((u) => uniFiltro === "todos" || (uniFiltro === "aprovacao" ? u.status === "pendente" : situacaoUni(u).k === uniFiltro))
+      .sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+    const toggleFiltroUni = (k) => setUniFiltro((cur) => (cur === k ? "todos" : k));
+    const labelFiltroUni = { pago: "Pagos", sinal: "Sinal pago", sem: "Sem pagamento", emprestada: "Emprestadas", aprovacao: "Aguardando aprovação" };
+
+    // produção: só os tamanhos que aparecem em alguma peça
+    const itensProducao = [
+      { key: "camisa", label: "Camisetas" },
+      { key: "calca", label: "Calças" },
+      { key: "blusa", label: "Blusas de frio" },
+    ].map((it) => ({ ...it, r: resumo(it.key) })).map((it) => ({ ...it, total: Object.values(it.r).reduce((a, b) => a + b, 0) })).filter((it) => it.total > 0);
+    const tamanhosUsados = TAMANHOS.filter((tm) => itensProducao.some((it) => it.r[tm] > 0));
+
+    return (
+      <div>
+        {/* resumo financeiro + prazos */}
+        <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 14, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <Anel size={56} stroke={6} partes={[{ v: totalEsperado ? arrecadado / totalEsperado : 0, cor: G.green }]}>
+              <span key={pctArrecadado} className="tick" style={{ color: G.t, fontSize: 12, fontWeight: 800 }}>{pctArrecadado}%</span>
+            </Anel>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                <span key={uniPedidos.length} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{uniPedidos.length}</span>
+                <span style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>{uniPedidos.length === 1 ? "pedido" : "pedidos"} · {uniFiltrado.length} {uniFiltrado.length === 1 ? "servo" : "servos"}</span>
+              </div>
+              <div style={{ color: G.tm, fontSize: 12, marginTop: 5 }}>
+                Pedidos até <strong style={{ color: G.t }}>{dataLimite ? fmtDataBR(dataLimite) : "sem data"}</strong>
+                {dataLimite && <span style={{ color: hoje <= dataLimite ? G.green : "#ff6b6b", fontWeight: 700 }}> · {hoje <= dataLimite ? "aberto" : "encerrado"}</span>}
+                {" · "}restante até <strong style={{ color: G.t }}>{dataLimiteRestante ? fmtDataBR(dataLimiteRestante) : "sem data"}</strong>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <Grana l="Arrecadado" v={arrecadado} cor={G.green} />
+            <Grana l="A receber" v={aReceber} cor="#ff9f0a" />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <LinhaValor l="Total esperado" v={totalEsperado} grande nota="Sinal pago + restante pendente + integrais. Prazos mudam na tela Datas." />
+          </div>
+        </div>
+
+        {/* tiles: tocar filtra a lista */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+          <StatTile n={nSit.pago} l="Pagos" Ic={CheckCircle2} cor={G.green} pct={uniFiltrado.length ? (nSit.pago / uniFiltrado.length) * 100 : 0} onClick={() => toggleFiltroUni("pago")} i={1} />
+          <StatTile n={nSit.sinal} l="Sinal pago" Ic={Banknote} cor="#ff9f0a" pct={uniFiltrado.length ? (nSit.sinal / uniFiltrado.length) * 100 : 0} onClick={() => toggleFiltroUni("sinal")} i={2} />
+          <StatTile n={nSit.sem} l="Sem pagamento" Ic={AlertTriangle} cor="#ff3b30" alerta={nSit.sem > 0} pct={uniFiltrado.length ? (nSit.sem / uniFiltrado.length) * 100 : 0} onClick={() => toggleFiltroUni("sem")} i={3} />
+          <StatTile n={emprestados.length} l="Emprestadas" Ic={Shirt} cor="#0a84ff" onClick={() => toggleFiltroUni("emprestada")} i={4} />
+        </div>
+        {pendentes > 0 && (
           <div
-            style={{
-              color: G.tm,
-              textAlign: "center",
-              padding: 28,
-              fontSize: 13,
-            }}
+            onClick={() => toggleFiltroUni("aprovacao")}
+            className="press"
+            style={{ background: "rgba(255,159,10,.1)", border: "1px solid rgba(255,159,10,.35)", borderRadius: 12, padding: "10px 14px", marginBottom: 8, color: "#ff9f0a", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
           >
-            Nenhum pedido ainda.
+            <span>{pendentes} {pendentes > 1 ? "pedidos aguardando" : "pedido aguardando"} aprovação para alterar</span>
+            <span style={{ fontSize: 11 }}>{uniFiltro === "aprovacao" ? "✕" : "ver ›"}</span>
           </div>
         )}
-        {uni.filter(u => !u.naoQuerUniforme).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map((u, i) => {
-          const pagoIntegral = u.pagoIntegral === true;
-          const pagoSinal    = u.pagoSinal === true || pagoIntegral;
-          const tamEmp = emprestadaDe(u);
-          // só camiseta emprestada, sem compra: sem peças nem pagamento
-          const ehEmprestado = !!tamEmp && !temPecasUni(u);
 
-          const borderColor =
-            ehEmprestado ? "#0a84ff" :
-            pagoIntegral ? G.green :
-            pagoSinal    ? "#ff9f0a" :
-                          "#ff3b30";
-
-          const statusColor =
-            u.status === "pendente"
-              ? "#ff9f0a"
-              : u.status === "aberto"
-                ? "#0a84ff"
-                : G.green;
-          const statusLabel =
-            u.status === "pendente"
-              ? "Aguardando aprovacao"
-              : u.status === "aberto"
-                ? "Liberado para editar"
-                : "Pedido realizado";
-          return (
-            <Acc
-              key={i}
-              title={u.nome}
-              ax={borderColor}
-              right={
-                <Pill
-                  c={statusLabel}
-                  bg="rgba(99,99,102,.15)"
-                  tc="#636366"
-                />
-              }
-            >
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+        {/* produção por tamanho */}
+        {itensProducao.length > 0 && (
+          <Cartao titulo="Produção" sub="Peças por tamanho, contando cada pedido" i={1}>
+            <div style={{ overflowX: "auto", margin: "0 -4px" }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", color: G.tm, fontWeight: 700, fontSize: 10, letterSpacing: 1, padding: "4px 4px 8px" }}>PEÇA</th>
+                    {tamanhosUsados.map((tm) => <th key={tm} style={{ color: G.tm, fontWeight: 700, fontSize: 10, letterSpacing: 1, padding: "4px 4px 8px", textAlign: "center" }}>{tm}</th>)}
+                    <th style={{ color: G.tm, fontWeight: 700, fontSize: 10, letterSpacing: 1, padding: "4px 4px 8px", textAlign: "right" }}>TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itensProducao.map((it) => (
+                    <tr key={it.key} style={{ borderTop: "1px solid #1c1c1c" }}>
+                      <td style={{ color: G.td, fontWeight: 600, padding: "9px 4px", whiteSpace: "nowrap" }}>{it.label}</td>
+                      {tamanhosUsados.map((tm) => (
+                        <td key={tm} style={{ textAlign: "center", padding: "9px 4px", color: it.r[tm] ? G.t : "#333", fontWeight: it.r[tm] ? 800 : 400 }}>{it.r[tm] || "·"}</td>
+                      ))}
+                      <td style={{ textAlign: "right", padding: "9px 4px", color: G.t, fontWeight: 800 }}>{it.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button
+                onClick={exportarFornecedor}
+                style={{ ...BK({ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: G.green, borderColor: "rgba(0,200,81,.35)", background: "rgba(0,200,81,.06)" }}
               >
-                {tamEmp && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    <Pill c={`Camiseta emprestada · ${tamEmp}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />
-                  </div>
-                )}
-                {!ehEmprestado && (<>
+                <Download size={14} /> Fornecedor
+              </button>
+              {emprestados.length > 0 && (
+                <button
+                  onClick={exportarEmprestimos}
+                  style={{ ...BK({ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: "#64b5f6", borderColor: "rgba(10,132,255,.35)", background: "rgba(10,132,255,.06)" }}
+                >
+                  <Download size={14} /> Emprestadas
+                </button>
+              )}
+            </div>
+          </Cartao>
+        )}
+
+        {/* emprestadas (staff) */}
+        {emprestados.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <CartaoExp
+              cor="#0a84ff"
+              avatar={<Shirt size={16} />}
+              titulo="Camisetas emprestadas"
+              sub={resumoEmprestados.map(([tm, n]) => `${tm}: ${n}`).join(" · ")}
+              direita={<Pill c={`${emprestados.length}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />}
+              open={uniAberto === "__emprestadas"}
+              onToggle={() => setUniAberto((cur) => (cur === "__emprestadas" ? null : "__emprestadas"))}
+            >
+              <div style={{ color: G.tm, fontSize: 11, lineHeight: 1.4 }}>Quem pediu emprestada e todo staff que comprou camiseta (recebe uma a mais no mesmo tamanho). Fora da produção e do financeiro.</div>
+              {emprestados.map((e, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: G.td, fontSize: 13, padding: "6px 0", borderTop: i ? "1px solid #1c1c1c" : "none" }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nome}</span>
+                  <Pill c={e.tam} bg="rgba(10,132,255,.12)" tc="#64b5f6" />
+                </div>
+              ))}
+            </CartaoExp>
+          </div>
+        )}
+
+        {/* pedidos */}
+        <div style={{ position: "relative", margin: "14px 0 10px" }}>
+          <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={uniBusca} onChange={(e) => setUniBusca(e.target.value)} placeholder="Buscar por nome..." style={{ ...I, marginBottom: 0, paddingLeft: 34 }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 8, WebkitOverflowScrolling: "touch" }} data-sem-swipe>
+          {[["todos", `Todos ${uniFiltrado.length}`], ["pago", `Pagos ${nSit.pago}`], ["sinal", `Sinal ${nSit.sinal}`], ["sem", `Sem pagamento ${nSit.sem}`], ["emprestada", `Emprestadas ${nSit.emprestada}`], ...(pendentes > 0 ? [["aprovacao", `Aprovação ${pendentes}`]] : [])].map(([k, l]) => {
+            const sel = uniFiltro === k;
+            const cor = k === "pago" ? G.green : k === "sinal" ? "#ff9f0a" : k === "sem" ? "#ff3b30" : k === "emprestada" ? "#0a84ff" : k === "aprovacao" ? "#ff9f0a" : "#fff";
+            return (
+              <button
+                key={k}
+                onClick={() => setUniFiltro(k)}
+                className="press"
+                style={{ flexShrink: 0, background: sel ? cor : "#161616", color: sel ? "#000" : G.td, border: `1px solid ${sel ? cor : "#262626"}`, borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                {l}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ color: G.tm, fontSize: 12, marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <span>Exibindo <strong style={{ color: G.t }}>{listaUni.length}</strong>{uniFiltro !== "todos" ? ` · ${labelFiltroUni[uniFiltro]}` : ""}{q ? ` · "${uniBusca.trim()}"` : ""}</span>
+          {(uniFiltro !== "todos" || q) && (
+            <button onClick={() => { setUniFiltro("todos"); setUniBusca(""); }} style={{ background: "none", border: "none", color: "#0a84ff", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>Limpar</button>
+          )}
+        </div>
+
+        {listaUni.length === 0 && (
+          <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+            {uniFiltrado.length === 0 ? "Nenhum pedido ainda." : "Nenhum pedido com esse filtro."}
+          </div>
+        )}
+        {listaUni.map((u, i) => {
+          const sit = situacaoUni(u);
+          const pagoIntegral = u.pagoIntegral === true;
+          const pagoSinal = u.pagoSinal === true || pagoIntegral;
+          const tamEmp = emprestadaDe(u);
+          const ehEmprestado = sit.k === "emprestada";
+          const pecas = pecasDe(u);
+          const anteriores = u.pedidosAnteriores || [];
+          const valor = ehEmprestado ? 0 : valorPedido(u);
+          const subTexto = ehEmprestado ? `Emprestada · ${tamEmp}` : pecas.join(" · ");
+          return (
+            <CartaoExp
+              key={u.userId || i}
+              i={i}
+              cor={sit.c}
+              avatar={iniciais(u.nome)}
+              titulo={u.nome}
+              sub={
+                <>
+                  {u.status === "pendente" && <span style={{ color: "#ff9f0a", fontWeight: 700 }}>Aguardando aprovação · </span>}
+                  {u.status === "aberto" && <span style={{ color: "#0a84ff", fontWeight: 700 }}>Liberado para editar · </span>}
+                  {subTexto}
+                </>
+              }
+              direita={<Pill c={sit.l} bg={`${sit.c}1f`} tc={sit.c} />}
+              open={uniAberto === (u.userId || i)}
+              onToggle={() => setUniAberto((cur) => (cur === (u.userId || i) ? null : (u.userId || i)))}
+            >
+              <Bloco titulo="Peças" direita={!ehEmprestado && <Pill c={fmtBRL(valor)} bg="#1e1e1e" tc={G.t} />}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  <Pill
-                    c={`Camiseta ${u.camisa} x${u.qtdCamisas || 1}`}
-                    bg="#1e1e1e"
-                    tc={G.td}
-                  />
-                  {u.nomeCamiseta && (
-                    <Pill
-                      c={`Nome: ${u.nomeCamiseta}`}
-                      bg="rgba(0,200,81,.1)"
-                      tc={G.green}
-                    />
-                  )}
-                  {u.calca && (
-                    <Pill c={`Calca ${u.calca} x${u.qtdCalcas || 1}`} bg="#1e1e1e" tc={G.td} />
-                  )}
-                  {u.blusa && (
-                    <Pill c={`Blusa ${u.blusa} x${u.qtdBlusas || 1}`} bg="#1e1e1e" tc={G.td} />
-                  )}
+                  {tamEmp && <Pill c={`Camiseta emprestada · ${tamEmp}`} bg="rgba(10,132,255,.12)" tc="#64b5f6" />}
+                  {pecas.map((pc) => <Pill key={pc} c={pc} bg="#1e1e1e" tc={G.td} />)}
+                  {u.nomeCamiseta && <Pill c={`Nome: ${u.nomeCamiseta}`} bg="rgba(0,200,81,.1)" tc={G.green} />}
                 </div>
+                {u.data && <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>Salvo em {u.data}</div>}
+              </Bloco>
 
-                {/* PAGAMENTO — via MP, sem toggle */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <span style={{ color: G.tm, fontSize: 12, fontWeight: 600 }}>Pagamento</span>
-
-                  {/* Sinal — só mostra se não pagou integral */}
-                  {!pagoIntegral && (
+              {!ehEmprestado && (
+                <Bloco titulo="Pagamento">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {!pagoIntegral && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: G.td, fontSize: 13 }}>Sinal (50%) · {fmtBRL(valor / 2)}</span>
+                        {pagoSinal ? <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} /> : <Pill c="Pendente" bg="rgba(255,59,48,.1)" tc="#ff6b6b" />}
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: G.tm, fontSize: 12 }}>Sinal (50%)</span>
-                      {pagoSinal
-                        ? <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
-                        : <Pill c="Pendente" bg="rgba(255,59,48,.1)" tc="#ff6b6b" />
-                      }
+                      <span style={{ color: G.td, fontSize: 13 }}>
+                        {pagoSinal && !pagoIntegral ? `Restante (50%) · ${fmtBRL(valor / 2)}` : `Integral · ${fmtBRL(valor)}`}
+                      </span>
+                      {pagoIntegral ? <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} /> : <Pill c="Pendente" bg="rgba(255,59,48,.1)" tc="#ff6b6b" />}
                     </div>
-                  )}
-
-                  {/* Integral */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: G.tm, fontSize: 12 }}>
-                      {pagoSinal && !pagoIntegral ? "Restante (50%)" : "Integral"}
-                    </span>
-                    {pagoIntegral
-                      ? <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
-                      : <Pill c="Pendente" bg="rgba(255,59,48,.1)" tc="#ff6b6b" />
-                    }
                   </div>
-                </div>
-                </>)}
+                </Bloco>
+              )}
 
-                {(u.pedidosAnteriores || []).length > 0 && (
-                  <div style={{ borderTop: `1px solid ${G.cb}`, paddingTop: 8 }}>
-                    <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
-                      Pedidos anteriores (pagos)
-                    </div>
-                    {(u.pedidosAnteriores || []).map((p, j) => (
-                      <div key={j} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: j ? 6 : 0 }}>
-                        {p.camisa && <Pill c={`Camiseta ${p.camisa} x${p.qtdCamisas || 1}`} bg="#1e1e1e" tc={G.td} />}
-                        {p.calca && <Pill c={`Calca ${p.calca} x${p.qtdCalcas || 1}`} bg="#1e1e1e" tc={G.td} />}
-                        {p.blusa && <Pill c={`Blusa ${p.blusa} x${p.qtdBlusas || 1}`} bg="#1e1e1e" tc={G.td} />}
-                        <Pill c="✓ Pago" bg="rgba(0,200,81,.12)" tc={G.green} />
+              {anteriores.length > 0 && (
+                <Bloco titulo="Pedidos anteriores (pagos)">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {anteriores.map((pa, j) => (
+                      <div key={j} style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                        {pecasDe(pa).map((pc) => <Pill key={pc} c={pc} bg="#1e1e1e" tc={G.td} />)}
+                        <Pill c={`✓ ${fmtBRL(valorPedido(pa))}`} bg="rgba(0,200,81,.12)" tc={G.green} />
                       </div>
                     ))}
                   </div>
-                )}
+                </Bloco>
+              )}
 
-                <div style={{ color: G.tm, fontSize: 11 }}>
-                  Salvo em: {u.data}
+              {u.status === "pendente" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => aprovar(u.userId)} style={BG({ flex: 1, padding: 11, borderRadius: 12, fontSize: 13 })}>
+                    Aprovar alteração
+                  </button>
+                  <button onClick={() => reprovar(u.userId)} style={{ ...BK({ flex: 1, padding: 11, borderRadius: 12, fontSize: 13 }), borderColor: "rgba(255,59,48,.4)", color: "#ff6b6b" }}>
+                    Reprovar
+                  </button>
                 </div>
-                {u.status === "pendente" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <button
-                      onClick={() => aprovar(u.userId)}
-                      style={BG({
-                        flex: 1,
-                        padding: "10px",
-                        borderRadius: 12,
-                        fontSize: 13,
-                      })}
-                    >
-                      Aprovar
-                    </button>
-                    <button
-                      onClick={() => reprovar(u.userId)}
-                      style={{
-                        ...BK({
-                          flex: 1,
-                          padding: "10px",
-                          borderRadius: 12,
-                          fontSize: 13,
-                        }),
-                        borderColor: "rgba(255,59,48,.4)",
-                        color: "#ff6b6b",
-                      }}
-                    >
-                      Reprovar
-                    </button>
-                  </div>
-                )}
-              </div>
-            </Acc>
+              )}
+            </CartaoExp>
           );
         })}
       </div>
