@@ -7526,8 +7526,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       </Bloco>
                     )}
 
-                    {/* reverter pagamento — só admin, e só quando já está pago */}
-                    {e.pago && edit && (
+                    {/* reverter pagamento — só admin, só quando já está pago e só se foi
+                        marcado à mão: pagamento do Mercado Pago (com pagamentoId) não volta */}
+                    {e.pago && !e.pagamentoId && edit && (
                       <button
                         onClick={() => reverterPago(e)}
                         style={BK({ width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, borderColor: "rgba(255,59,48,.5)", color: "#ff3b30" })}
