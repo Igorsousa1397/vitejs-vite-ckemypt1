@@ -10106,21 +10106,37 @@ function CozinhaV({ edit, t, users }) {
       </>
     );
   }
-  function SvV({ users, pendentes = [], setUsers, edit, t, dataLimitePagamento }) {
-    const [filtroPerfil, setFiltroPerfil] = useState("todos");
-    const [filtroStatus, setFiltroStatus] = useState("todos");
-    const [filtroSexo, setFiltroSexo] = useState("todos");
-    // ativos e inativos ficam em sub-telas separadas; os cards de totais seguem a aba
-    const [aba, setAba] = useState("ativos");
-    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
-    const [excluindo, setExcluindo] = useState(null);
-    const [shFiltro, setShFiltro] = useState(false);
-    const [filtro, setFiltro] = useState("todos"); // mantido por compatibilidade
-    const [busca, setBusca] = useState("");
-    const upd = (id, fn) =>
-      setUsers(users.map((u) => (u.id === id ? fn(u) : u)));
-
-  const ORDEM_PERFIL = (perfil) => {
+  // ── BACK OFFICE: Servos · Perfis · Funções ───────────────────────────────────
+  // A tela Servos (status/pagamento) e a aba Escalas eram duas listas da mesma
+  // gente; aqui viraram um cartão só por servo. Perfis e Funções seguem como abas.
+  const DIAS_CORES = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
+  const TELAS_BACK = [
+    ["mins", "Agenda"],
+    ["avisos", "Avisos"],
+    ["uniforme", "Uniforme"],
+    ["info", "Ocorrências"],
+    ["rest", "Restrições"],
+    ["img", "Uso de Imagem"],
+    ["checkin", "Check-in"],
+    ["termo", "Termo"],
+    ["quartos", "Quartos"],
+    ["enc", "Encontristas"],
+    ["onibus", "Ônibus"],
+    ["cozinha", "Cozinha"],
+    ["servos", "Servos"],
+    ["ach", "Achados & Perdidos"],
+    ["crac", "Crachás"],
+    ["saude", "Saúde"],
+    ["test", "Testemunhos"],
+    ["back", "Back Office"],
+  ];
+  // todo perfil vê estas (ver temPermissao); não faz sentido marcar/desmarcar
+  const TELAS_FIXAS_BACK = ["mins", "avisos", "uniforme", "info"];
+  // não pagam inscrição: entram nas contagens como abonados
+  const PERFIS_ISENTOS = ["pastor", "pastor_auxiliar", "lider_geral"];
+  const FUNCOES_CONFLITO_QUARTO = ["Templo", "Som", "Cozinha"];
+  const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças", "Servir comida", "Limpeza refeitório", "Servir Comida Pastores"];
+  const ordemPerfilBack = (perfil) => {
     if (perfil === "pastor") return 0;
     if (perfil === "pastor_auxiliar") return 1;
     if (perfil === "lider_geral") return 2;
@@ -10132,344 +10148,359 @@ function CozinhaV({ edit, t, users }) {
     if (perfil === "infantil") return 8;
     return 9;
   };
-
-  const filtroPerfilFn = (u) => {
-    if (filtroPerfil === "todos") return true;
-    if (filtroPerfil === "servo") return u.perfil === "servo";
-    if (filtroPerfil === "cozinha") return u.perfil === "cozinha";
-    if (filtroPerfil === "infantil") return u.perfil === "infantil";
-    if (filtroPerfil === "staff") return u.perfil === "staff";
-    if (filtroPerfil === "lider") return u.perfil?.startsWith("lider_");
-    if (filtroPerfil === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
-    return true;
+  const escalaDe = (u) => u.escala || { Quinta: [], Sexta: [], Sábado: [], Domingo: [] };
+  const totalFuncoesEscala = (u) => DIAS_ENCONTRO.reduce((a, d) => a + (escalaDe(u)[d]?.length || 0), 0);
+  // situação do pagamento, já considerando inativo e perfis isentos
+  const statusServo = (u) => {
+    if (u.ativo === false) return { k: "inativo", l: "Inativo", c: "#8e8e93" };
+    if (PERFIS_ISENTOS.includes(u.perfil)) return { k: "isento", l: null, c: "#8e8e93" };
+    if (u.pago === true) return { k: "pago", l: "Pago ✓", c: G.green };
+    if (u.pago === "abonado") return { k: "abonado", l: "Abonado", c: "#8e8e93" };
+    if (u.pago === "pagar_depois") return { k: "pagar_depois", l: "Pagar depois", c: "#0a84ff" };
+    return { k: "pendente", l: "Pendente", c: "#ff3b30" };
   };
 
-  const isExentoPagamento = (u) => ["pastor", "pastor_auxiliar", "lider_geral"].includes(u.perfil);
+  // cartão expansível com avatar (servo, perfil ou função)
+  function CartaoExp({ cor, avatar, titulo, sub, direita, open, onToggle, children, i = 0 }) {
+    return (
+      <div className="fu" style={{ animationDelay: `${Math.min(i, 10) * 30}ms`, background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${cor}`, borderRadius: 16, marginBottom: 8 }}>
+        <div onClick={onToggle} className="press" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+          {avatar != null && (
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: `${cor}22`, color: cor, fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {avatar}
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: G.t, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{titulo}</div>
+            {sub && <div style={{ color: G.tm, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {direita}
+            <span style={{ color: G.tm, fontSize: 12, transition: "transform var(--d-fast) var(--e-out)", display: "inline-block", transform: open ? "rotate(180deg)" : "none" }}>▾</span>
+          </div>
+        </div>
+        {open && (
+          <>
+            <div style={{ height: 1, background: "#1e1e1e" }} />
+            <div className="rv" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
+          </>
+        )}
+      </div>
+    );
+  }
 
-  const filtroStatusFn = (u) => {
-    if (filtroStatus === "todos") return true;
-    if (filtroStatus === "pagos") return u.pago === true;
-    if (filtroStatus === "pendentes") return !u.pago && !isExentoPagamento(u);
-    if (filtroStatus === "abonados") return u.pago === "abonado" || isExentoPagamento(u);
-    if (filtroStatus === "primeiro_acesso") return u.primeiro === true;
-    return true;
+  // seção dentro do cartão expandido
+  const Bloco = ({ titulo, direita, children }) => (
+    <div style={{ background: "#111", border: "1px solid #1c1c1c", borderRadius: 12, padding: "12px 14px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <Rotulo c={titulo} />
+        {direita}
+      </div>
+      {children}
+    </div>
+  );
+
+  // linha com caixa de marcar (telas do perfil, telas extras, líderes)
+  const LinhaCheck = ({ ativo, label, cor = "#0a84ff", onClick }) => (
+    <div
+      onClick={onClick}
+      className="press"
+      style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", padding: "9px 10px", borderRadius: 10, background: ativo ? `${cor}14` : "#161616", border: `1px solid ${ativo ? `${cor}44` : "#1e1e1e"}`, minWidth: 0 }}
+    >
+      <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? cor : "#444"}`, background: ativo ? `${cor}26` : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {ativo && <span style={{ color: cor, fontSize: 11, fontWeight: 800 }}>✓</span>}
+      </div>
+      <span style={{ color: ativo ? G.t : G.td, fontSize: 13, lineHeight: 1.25 }}>{label}</span>
+    </div>
+  );
+
+  // grupo de opções de filtro (uma escolha)
+  const OpcoesFiltro = ({ titulo, opts, val, set, cor = "#0a84ff" }) => (
+    <div>
+      <Rotulo c={titulo} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {opts.map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => set(k)}
+            style={{
+              ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
+              borderColor: val === k ? `${cor}80` : "#2a2a2a",
+              color: val === k ? cor : G.td,
+              background: val === k ? `${cor}14` : "transparent",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}
+          >
+            {label}
+            {val === k && <span style={{ fontSize: 16 }}>✓</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  // botão de filtro com contador de filtros ativos
+  const BotaoFiltro = ({ n, onClick }) => (
+    <button
+      onClick={onClick}
+      style={{
+        ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
+        position: "relative",
+        borderColor: n > 0 ? "rgba(10,132,255,.5)" : G.cb,
+        color: n > 0 ? "#0a84ff" : G.t,
+        background: n > 0 ? "rgba(10,132,255,.08)" : G.card,
+        height: 44, display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+    >
+      <SlidersHorizontal size={18} />
+      {n > 0 && (
+        <span style={{ position: "absolute", top: 4, right: 4, background: "#0a84ff", color: "#fff", fontSize: 10, fontWeight: 800, borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {n}
+        </span>
+      )}
+    </button>
+  );
+
+  const baixarXlsx = async (nomeArquivo, nomeAba, colunas, linhas) => {
+    const ExcelJS = await carregarExcelJS();
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(nomeAba);
+    ws.columns = colunas;
+    ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
+    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+    linhas.forEach((l) => ws.addRow(l));
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = nomeArquivo; a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const filtroSexoFn = (u) => {
-    if (filtroSexo === "todos") return true;
-    return u.sexo === filtroSexo;
-  };
+  // ── Aba Servos: lista única com status, pagamento, perfil, telas e escala ──
+  function ServosTab({ users, pendentes = [], setUsers, edit, t, fns = [], permissoes = {}, expandidos, setExpandidos, buscaRef }) {
+    const [aba, setAba] = useState("ativos");
+    const [filtroPerfil, setFiltroPerfil] = useState("todos");
+    const [filtroStatus, setFiltroStatus] = useState("todos");
+    const [filtroSexo, setFiltroSexo] = useState("todos");
+    const [filtroEscala, setFiltroEscala] = useState("todos");
+    const [shFiltro, setShFiltro] = useState(false);
+    const [busca, setBuscaState] = useState(buscaRef?.current || "");
+    const setBusca = (v) => { setBuscaState(v); if (buscaRef) buscaRef.current = v; };
+    const [excluindo, setExcluindo] = useState(null);
+    const [expInterno, setExpInterno] = useState({});
+    const exp = expandidos || expInterno;
+    const setExp = setExpandidos || setExpInterno;
+    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
 
-  const filtrosAtivos = (filtroPerfil !== "todos" ? 1 : 0) + (filtroStatus !== "todos" ? 1 : 0) + (filtroSexo !== "todos" ? 1 : 0);
+    const upd = (id, fn) => setUsers((prev) => prev.map((u) => (u.id === id ? fn(u) : u)));
+    const salvar = async (u, dados, msg) => {
+      try {
+        await setDoc(doc(db, "users", u.id), dados, { merge: true });
+        upd(u.id, (x) => ({ ...x, ...dados }));
+        if (msg) t(msg);
+        return true;
+      } catch {
+        t("Erro ao salvar.", "w");
+        return false;
+      }
+    };
+    const alternar = (id) => setExp((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const daAba = (u) => (aba === "inativos" ? u.ativo === false : u.ativo !== false);
+    // escala por dia (mesmas regras de conflito da antiga aba Escalas)
+    const addFuncaoDia = async (u, dia, fn) => {
+      const fnLimpa = (fn || "").trim();
+      if (!fnLimpa) return;
+      const escala = escalaDe(u);
+      if (fnLimpa === "Servo de Quarto" && DIAS_ENCONTRO.some((d) => (escala[d] || []).some((f) => FUNCOES_CONFLITO_QUARTO.includes(f)))) {
+        t("Esse servo já tem Templo, Som ou Cozinha na escala — não pode ser Servo de Quarto.", "w");
+        return;
+      }
+      if (FUNCOES_CONFLITO_QUARTO.includes(fnLimpa) && DIAS_ENCONTRO.some((d) => (escala[d] || []).includes("Servo de Quarto"))) {
+        t("Esse servo já é Servo de Quarto — não pode ter Templo, Som ou Cozinha.", "w");
+        return;
+      }
+      const novaEscala = { ...escala, [dia]: [...(escala[dia] || []), fnLimpa] };
+      await salvar(u, { escala: novaEscala }, "✓");
+    };
+    const removeFuncaoDia = async (u, dia, i) => {
+      const escala = escalaDe(u);
+      const novaEscala = { ...escala, [dia]: (escala[dia] || []).filter((_, j) => j !== i) };
+      await salvar(u, { escala: novaEscala });
+    };
 
-  const lista = users.filter(
-    (u) =>
-      u.perfil !== "admin" &&
-      u.nome &&
-      daAba(u) &&
-      filtroPerfilFn(u) &&
-      filtroStatusFn(u) &&
-      filtroSexoFn(u) &&
-      (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
-  ).sort((a, b) => {
-    const ordemA = ORDEM_PERFIL(a.perfil);
-    const ordemB = ORDEM_PERFIL(b.perfil);
-    if (ordemA !== ordemB) return ordemA - ordemB;
-    return a.nome.localeCompare(b.nome, "pt-BR");
-  });
+    const filtroPerfilFn = (u) => {
+      if (filtroPerfil === "todos") return true;
+      if (filtroPerfil === "lider") return u.perfil?.startsWith("lider_");
+      if (filtroPerfil === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
+      return u.perfil === filtroPerfil;
+    };
+    const filtroStatusFn = (u) => {
+      if (filtroStatus === "todos") return true;
+      if (filtroStatus === "primeiro_acesso") return u.primeiro === true;
+      const s = statusServo(u).k;
+      if (filtroStatus === "abonados") return s === "abonado" || s === "isento";
+      if (filtroStatus === "pagos") return s === "pago";
+      if (filtroStatus === "pendentes") return s === "pendente";
+      if (filtroStatus === "pagar_depois") return s === "pagar_depois";
+      return true;
+    };
+    const filtroSexoFn = (u) => filtroSexo === "todos" || u.sexo === filtroSexo;
+    const filtroEscalaFn = (u) => {
+      if (filtroEscala === "todos") return true;
+      const n = totalFuncoesEscala(u);
+      return filtroEscala === "com" ? n > 0 : n === 0;
+    };
+    const filtrosAtivos = [filtroPerfil, filtroStatus, filtroSexo, filtroEscala].filter((f) => f !== "todos").length;
+    const limparFiltros = () => { setFiltroPerfil("todos"); setFiltroStatus("todos"); setFiltroSexo("todos"); setFiltroEscala("todos"); };
 
-  // Base padronizada: mesma regra de perfil usada no dashboard financeiro (Home),
-  // exceto que Pastor/Pastor Auxiliar/Líder Geral entram no total e contam como
-  // Abonados (não pagam inscrição, mas aparecem na contagem geral de servos).
-  const PERFIS_ABONADOS = ["pastor", "pastor_auxiliar", "lider_geral"];
-  const isAbonadoPorPerfil = (u) => PERFIS_ABONADOS.includes(u.perfil);
-  const statsBaseTodos = users.filter((u) => u.nome && u.perfil !== "admin");
-  const statsInativos = statsBaseTodos.filter((u) => u.ativo === false).length;
-  const statsAtivos = statsBaseTodos.length - statsInativos;
-  // só o que a aba atual exibe
-  const statsBase = statsBaseTodos.filter(daAba);
-  const statsPagos = statsBase.filter((u) => !isAbonadoPorPerfil(u) && u.pago === true).length;
-  const statsAbonados = statsBase.filter((u) => isAbonadoPorPerfil(u) || u.pago === "abonado").length;
-  const statsPagarDepois = statsBase.filter((u) => !isAbonadoPorPerfil(u) && u.pago === "pagar_depois").length;
-  const statsPendentes = statsBase.length - statsPagos - statsAbonados - statsPagarDepois;
-  const statsTotal = statsBase.length;
+    const daAba = (u) => (aba === "inativos" ? u.ativo === false : u.ativo !== false);
+    const base = users.filter((u) => u.nome && u.perfil !== "admin");
+    const nAtivos = base.filter((u) => u.ativo !== false).length;
+    const nInativos = base.length - nAtivos;
+    const statsBase = base.filter(daAba);
+    const stats = { pago: 0, pendente: 0, abonado: 0, pagar_depois: 0 };
+    statsBase.forEach((u) => {
+      const k = statusServo(u).k;
+      if (k === "isento") stats.abonado++;
+      else if (stats[k] != null) stats[k]++;
+    });
+    const nEscalados = statsBase.filter((u) => totalFuncoesEscala(u) > 0).length;
+    const pctEscala = statsBase.length ? Math.round((nEscalados / statsBase.length) * 100) : 0;
+
+    const lista = base
+      .filter((u) => daAba(u) && filtroPerfilFn(u) && filtroStatusFn(u) && filtroSexoFn(u) && filtroEscalaFn(u) && (u.nome || "").toLowerCase().includes(busca.toLowerCase()))
+      .sort((a, b) => {
+        const d = ordemPerfilBack(a.perfil) - ordemPerfilBack(b.perfil);
+        return d !== 0 ? d : a.nome.localeCompare(b.nome, "pt-BR");
+      });
+
+    const toggleStatusTile = (k) => setFiltroStatus((cur) => (cur === k ? "todos" : k));
+
+    const exportarServos = () =>
+      baixarXlsx("servos.xlsx", "Servos", [
+        { header: "Nome", key: "nome", width: 35 },
+        { header: "Email", key: "email", width: 30 },
+        { header: "CPF", key: "cpf", width: 18 },
+        { header: "Nascimento", key: "nascimento", width: 14 },
+        { header: "Perfil", key: "perfil", width: 22 },
+        { header: "Pago", key: "pago", width: 10 },
+      ], [...users].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).map((u) => ({
+        nome: u.nome || "",
+        email: u.email || "",
+        cpf: u.cpf || "",
+        nascimento: u.nascimento ? (u.nascimento.includes("-") && u.nascimento.length === 10 ? u.nascimento.split("-").reverse().join("/") : u.nascimento) : "",
+        perfil: PERFIS[u.perfil]?.l || u.perfil || "",
+        pago: u.pago ? "Pago" : "Pendente",
+      })));
+    const exportarEscalas = () =>
+      baixarXlsx("escalas.xlsx", "Escalas", [
+        { header: "Nome", key: "nome", width: 35 },
+        { header: "Perfil", key: "perfil", width: 20 },
+        ...DIAS_ENCONTRO.map((d) => ({ header: d, key: d, width: 35 })),
+      ], base.filter((u) => u.ativo !== false).sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).map((u) => {
+        const escala = escalaDe(u);
+        const linha = { nome: u.nome || "", perfil: PERFIS[u.perfil]?.l || u.perfil || "" };
+        DIAS_ENCONTRO.forEach((d) => { linha[d] = (escala[d] || []).join(", "); });
+        return linha;
+      }));
+
+    const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", infantil: PERFIS.infantil.l, staff: "Staff", lider: "Líderes", pastor: "Pastores" };
+    const labelsStatus = { pagos: "Pagos", pendentes: "Pendentes", abonados: "Abonados", pagar_depois: "Pagar depois", primeiro_acesso: "1º Acesso" };
+    const partesFiltro = [
+      filtroPerfil !== "todos" && (labelsPerfil[filtroPerfil] || filtroPerfil),
+      filtroStatus !== "todos" && (labelsStatus[filtroStatus] || filtroStatus),
+      filtroSexo !== "todos" && filtroSexo,
+      filtroEscala !== "todos" && (filtroEscala === "com" ? "Com escala" : "Sem escala"),
+      busca.trim() && `"${busca.trim()}"`,
+    ].filter(Boolean);
 
     return (
       <div>
         {edit && <PendentesAprovacao pendentes={pendentes} t={t} />}
 
-        {/* ATIVOS / INATIVOS */}
         <div style={{ marginBottom: 12 }}>
           <Seg
-            opts={[["ativos", `Ativos (${statsAtivos})`], ["inativos", `Inativos (${statsInativos})`]]}
+            opts={[["ativos", `Ativos (${nAtivos})`], ["inativos", `Inativos (${nInativos})`]]}
             val={aba}
             set={(k) => { setAba(k); if (k === "inativos") setFiltroStatus("todos"); }}
           />
         </div>
 
-        {/* BUSCA + FUNIL */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <div style={{ position: "relative", flex: 1 }}>
             <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-            <input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar..."
-              style={{ ...I, marginBottom: 0, paddingLeft: 34 }}
-            />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar servo..." style={{ ...I, marginBottom: 0, paddingLeft: 34 }} />
           </div>
-          <button
-            onClick={() => setShFiltro(true)}
-            style={{
-              ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
-              position: "relative",
-              borderColor: filtrosAtivos > 0 ? "rgba(10,132,255,.5)" : G.cb,
-              color: filtrosAtivos > 0 ? "#0a84ff" : G.t,
-              background: filtrosAtivos > 0 ? "rgba(10,132,255,.08)" : G.card,
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <SlidersHorizontal size={18} />
-            {filtrosAtivos > 0 && (
-              <span style={{
-                position: "absolute", top: 4, right: 4,
-                background: "#0a84ff", color: "#fff",
-                fontSize: 10, fontWeight: 800,
-                borderRadius: "50%", width: 16, height: 16,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {filtrosAtivos}
-              </span>
-            )}
-          </button>
+          <BotaoFiltro n={filtrosAtivos} onClick={() => setShFiltro(true)} />
         </div>
 
-        {edit && (
-          <button
-            onClick={async () => {
-              const ExcelJS = await carregarExcelJS();
-              const wb = new ExcelJS.Workbook();
-              const ws = wb.addWorksheet("Servos");
-              ws.columns = [
-                { header: "Nome", key: "nome", width: 35 },
-                { header: "Email", key: "email", width: 30 },
-                { header: "CPF", key: "cpf", width: 18 },
-                { header: "Nascimento", key: "nascimento", width: 14 },
-                { header: "Perfil", key: "perfil", width: 22 },
-                { header: "Pago", key: "pago", width: 10 },
-              ];
-              ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
-              ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
-              [...users].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).forEach((u) => {
-                ws.addRow({
-                  nome: u.nome || "",
-                  email: u.email || "",
-                  cpf: u.cpf || "",
-                  nascimento: u.nascimento
-                    ? (u.nascimento.includes("-") && u.nascimento.length === 10
-                        ? u.nascimento.split("-").reverse().join("/")
-                        : u.nascimento)
-                    : "",
-                  perfil: PERFIS[u.perfil]?.l || u.perfil || "",
-                  pago: u.pago ? "Pago" : "Pendente",
-                });
-              });
-              const buf = await wb.xlsx.writeBuffer();
-              const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a"); a.href = url; a.download = "servos.xlsx"; a.click();
-              URL.revokeObjectURL(url);
-            }}
-            style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 14 })}
-          >
-            Exportar Excel
-          </button>
-        )}
         <Sheet open={shFiltro} onClose={() => setShFiltro(false)} title="Filtros">
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-            {/* Perfil */}
-            <div>
-              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Perfil</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {[
-                  ["todos", "Todos os perfis"],
-                  ["servo", "Servo"],
-                  ["cozinha", "Cozinha"],
-                  ["infantil", PERFIS.infantil.l],
-                  ["staff", "Staff"],
-                  ["lider", "Líderes"],
-                  ["pastor", "Pastores"],
-                ].map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => setFiltroPerfil(val)}
-                    style={{
-                      ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
-                      borderColor: filtroPerfil === val ? "rgba(10,132,255,.5)" : "#2a2a2a",
-                      color: filtroPerfil === val ? "#0a84ff" : G.td,
-                      background: filtroPerfil === val ? "rgba(10,132,255,.08)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}
-                  >
-                    {label}
-                    {filtroPerfil === val && <span style={{ fontSize: 16 }}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Status: só na aba Ativos (inativo não tem status de pagamento) */}
+            <OpcoesFiltro titulo="Perfil" val={filtroPerfil} set={setFiltroPerfil} opts={[["todos", "Todos os perfis"], ["servo", "Servo"], ["cozinha", "Cozinha"], ["infantil", PERFIS.infantil.l], ["staff", "Staff"], ["lider", "Líderes"], ["pastor", "Pastores"]]} />
             {aba === "ativos" && (
-            <div>
-              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Status</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {[
-                  ["todos", "Todos"],
-                  ["pagos", "Pagos"],
-                  ["pendentes", "Pendentes"],
-                  ["abonados", "Abonados"],
-                  ["primeiro_acesso", "1º Acesso"],
-                ].map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => setFiltroStatus(val)}
-                    style={{
-                      ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
-                      borderColor: filtroStatus === val ? "rgba(48,209,88,.5)" : "#2a2a2a",
-                      color: filtroStatus === val ? G.green : G.td,
-                      background: filtroStatus === val ? "rgba(48,209,88,.08)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}
-                  >
-                    {label}
-                    {filtroStatus === val && <span style={{ fontSize: 16 }}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
+              <OpcoesFiltro titulo="Pagamento" cor={G.green} val={filtroStatus} set={setFiltroStatus} opts={[["todos", "Todos"], ["pagos", "Pagos"], ["pendentes", "Pendentes"], ["pagar_depois", "Pagar depois"], ["abonados", "Abonados"], ["primeiro_acesso", "1º Acesso"]]} />
             )}
-
-            {/* Sexo */}
-            <div>
-              <div style={{ color: G.tm, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Sexo</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {[
-                  ["todos", "Todos"],
-                  ["Masculino", "Masculino"],
-                  ["Feminino", "Feminino"],
-                ].map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => setFiltroSexo(val)}
-                    style={{
-                      ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
-                      borderColor: filtroSexo === val ? "rgba(255,45,146,.5)" : "#2a2a2a",
-                      color: filtroSexo === val ? "#ff2d92" : G.td,
-                      background: filtroSexo === val ? "rgba(255,45,146,.08)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}
-                  >
-                    {label}
-                    {filtroSexo === val && <span style={{ fontSize: 16 }}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Limpar */}
+            {aba === "ativos" && (
+              <OpcoesFiltro titulo="Escala" cor="#ff9f0a" val={filtroEscala} set={setFiltroEscala} opts={[["todos", "Todos"], ["com", "Com funções escaladas"], ["sem", "Sem escala"]]} />
+            )}
+            <OpcoesFiltro titulo="Sexo" cor="#ff2d92" val={filtroSexo} set={setFiltroSexo} opts={[["todos", "Todos"], ["Masculino", "Masculino"], ["Feminino", "Feminino"]]} />
             {filtrosAtivos > 0 && (
-              <button
-                onClick={() => { setFiltroPerfil("todos"); setFiltroStatus("todos"); setFiltroSexo("todos"); }}
-                style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}
-              >
+              <button onClick={limparFiltros} style={{ ...BK({ width: "100%", padding: 12, borderRadius: 12 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}>
                 Limpar filtros
               </button>
             )}
           </div>
         </Sheet>
 
-        <div
-          style={{
-            background: "#111",
-            borderRadius: 12,
-            padding: "12px 8px",
-            textAlign: "center",
-            borderTop: "2px solid #636366",
-            marginBottom: aba === "ativos" ? 8 : 14,
-          }}
-        >
-          <div key={aba} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800 }}>{statsTotal}</div>
-          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>
-            {aba === "inativos" ? "Servos inativos" : "Servos ativos"}
+        {/* resumo */}
+        <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+          {aba === "ativos" ? (
+            <Anel partes={[{ v: pctEscala / 100, cor: "#0a84ff" }]} size={56} stroke={6}>
+              <span key={pctEscala} className="tick" style={{ color: G.t, fontSize: 12, fontWeight: 800 }}>{pctEscala}%</span>
+            </Anel>
+          ) : (
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(142,142,147,.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Users size={22} color="#8e8e93" />
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span key={statsBase.length} className="pop" style={{ color: G.t, fontSize: 26, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{statsBase.length}</span>
+              <span style={{ color: G.td, fontSize: 13, fontWeight: 600 }}>{aba === "ativos" ? "servos ativos" : "servos inativos"}</span>
+            </div>
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 5 }}>
+              {aba === "ativos"
+                ? <>{nEscalados} com escala · {statsBase.length - nEscalados} sem escala</>
+                : "Inativo não tem perfil nem pagamento. Pode ser reativado ou excluído."}
+            </div>
           </div>
         </div>
-        {/* inativo não tem status de pagamento: os cards só fazem sentido na aba Ativos */}
+
         {aba === "ativos" && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 8,
-            marginBottom: 14,
-          }}
-        >
-          {[
-            [statsPagos, "Pagos", G.green],
-            [statsPendentes, "Pendentes", "#ff3b30"],
-            [statsAbonados, "Abonados", "#636366"],
-            [statsPagarDepois, "Pagar dep.", "#0a84ff"],
-          ].map(([n, l, c]) => (
-            <div
-              key={l}
-              style={{
-                background: "#111",
-                borderRadius: 12,
-                padding: "10px 8px",
-                textAlign: "center",
-                borderTop: `2px solid ${c}`,
-              }}
-            >
-              <div key={aba} className="pop" style={{ color: G.t, fontSize: 20, fontWeight: 800 }}>
-                {n}
-              </div>
-              <div
-                style={{
-                  color: G.tm,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  marginTop: 3,
-                }}
-              >
-                {l}
-              </div>
-            </div>
-          ))}
-        </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+            <StatTile n={stats.pago} l="Pagos" Ic={CheckCircle2} cor={G.green} pct={statsBase.length ? (stats.pago / statsBase.length) * 100 : 0} onClick={() => toggleStatusTile("pagos")} i={1} />
+            <StatTile n={stats.pendente} l="Pendentes" Ic={AlertTriangle} cor="#ff3b30" pct={statsBase.length ? (stats.pendente / statsBase.length) * 100 : 0} onClick={() => toggleStatusTile("pendentes")} i={2} />
+            <StatTile n={stats.abonado} l="Abonados" Ic={HandHeart} cor="#8e8e93" pct={statsBase.length ? (stats.abonado / statsBase.length) * 100 : 0} onClick={() => toggleStatusTile("abonados")} i={3} />
+            <StatTile n={stats.pagar_depois} l="Pagar depois" Ic={Calendar} cor="#0a84ff" pct={statsBase.length ? (stats.pagar_depois / statsBase.length) * 100 : 0} onClick={() => toggleStatusTile("pagar_depois")} i={4} />
+          </div>
         )}
 
-        {(() => {
-          const partes = [];
-          const labelsPerfil = { servo: "Servos", cozinha: "Cozinha", infantil: PERFIS.infantil.l, staff: "Staff", lider: "Líderes", pastor: "Pastores" };
-          const labelsStatus = { pagos: "Pagos", pendentes: "Pendentes", abonados: "Abonados", primeiro_acesso: "1º Acesso" };
-          if (filtroPerfil !== "todos") partes.push(labelsPerfil[filtroPerfil] || filtroPerfil);
-          if (filtroStatus !== "todos") partes.push(labelsStatus[filtroStatus] || filtroStatus);
-          if (filtroSexo !== "todos") partes.push(filtroSexo);
-          if (busca.trim()) partes.push(`"${busca.trim()}"`);
-          return (
-            <div style={{ color: G.tm, fontSize: 12, textAlign: "left", marginBottom: 14 }}>
-              Exibindo <strong style={{ color: G.t }}>{lista.length}</strong>
-              {partes.length > 0 ? ` de ${partes.join(" · ")}` : ""}
-            </div>
-          );
-        })()}
+        {edit && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            {[["Servos (XLSX)", exportarServos], ["Escalas (XLSX)", exportarEscalas]].map(([l, fn]) => (
+              <button key={l} onClick={fn} style={{ ...BK({ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: G.td }}>
+                <Download size={14} /> {l}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div style={{ color: G.tm, fontSize: 12, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <span>Exibindo <strong style={{ color: G.t }}>{lista.length}</strong>{partesFiltro.length > 0 ? ` · ${partesFiltro.join(" · ")}` : ""}</span>
+          {(filtrosAtivos > 0 || busca) && (
+            <button onClick={() => { limparFiltros(); setBusca(""); }} style={{ background: "none", border: "none", color: "#0a84ff", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>Limpar</button>
+          )}
+        </div>
 
         {lista.length === 0 && (
           <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: "center", padding: "28px 0" }}>
@@ -10477,178 +10508,442 @@ function CozinhaV({ edit, t, users }) {
           </div>
         )}
 
-        {lista.map((u, i) => (
-          <Acc
-            key={i}
-            title={u.nome}
-            ax={
-              u.perfil === "pastor" ? (u.pago ? "#bf5af2" : "#bf5af2") :
-              u.perfil === "pastor_auxiliar" ? "#9b59b6" :
-              u.perfil === "lider_geral" ? (u.pago ? "#0a84ff" : "#0a84ff") :
-              u.ativo === false ? "#636366" :
-              u.perfil?.startsWith("lider_") ? (PERFIS[u.perfil]?.c || "#ff9f0a") :
-              u.pago === true ? G.green : u.pago === 'abonado' ? "#636366" : u.pago === 'pagar_depois' ? "#0a84ff" : "#ff3b30"
-            }
-            right={
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {u.primeiro && (
-                  <Pill c="1º acesso" bg="rgba(255,159,10,.15)" tc="#ff9f0a" />
-                )}
-                {!u.sexo && (
-                  <Pill c="Sem sexo" bg="rgba(255,59,48,.12)" tc="#ff3b30" />
-                )}
-                {!u.ativo && (
-                  <Pill c="Inativo" bg="rgba(99,99,102,.2)" tc="#636366" />
-                )}
-                {u.ativo !== false && u.pago === true && (
-                  <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />
-                )}
-                {u.ativo !== false && u.pago === 'abonado' && (
-                  <Pill c="Abonado" bg="rgba(99,99,102,.2)" tc="#aaa" />
-                )}
-                {u.ativo !== false && u.pago === 'pagar_depois' && (
-                  <Pill c="Pagar depois" bg="rgba(10,132,255,.12)" tc="#0a84ff" />
-                )}
-                <Pill
-                  c={PERFIS[u.perfil]?.l || u.perfil}
-                  bg={`${PERFIS[u.perfil]?.c || "#636366"}18`}
-                  tc={u.perfil === "servo" ? "#fff" : (PERFIS[u.perfil]?.c || "#fff")}
-                />
-              </div>
-            }
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {u.email && (
-                <div style={{ color: G.tm, fontSize: 12 }}>✉️ {u.email}</div>
+        {lista.map((u, i) => {
+          const st = statusServo(u);
+          const ativo = u.ativo !== false;
+          const cor = ativo ? (PERFIS[u.perfil]?.c || "#636366") : "#636366";
+          const nFn = totalFuncoesEscala(u);
+          const escala = escalaDe(u);
+          const podeEscalar = ativo && u.primeiro !== true;
+          const subPartes = [
+            PERFIS[u.perfil]?.l || u.perfil,
+            u.liderCelula === true && "Líder de célula",
+            podeEscalar && (nFn > 0 ? `${nFn} ${nFn === 1 ? "função" : "funções"}` : "sem escala"),
+          ].filter(Boolean);
+          const telasPerfil = permissoes[u.perfil]?.telas || [];
+          const telasExtra = u.telasExtra || [];
+          const telasDisponiveis = TELAS_BACK.filter(([id]) => id !== "back" && !telasPerfil.includes(id) && !TELAS_FIXAS_BACK.includes(id));
+          return (
+            <CartaoExp
+              key={u.id}
+              i={i}
+              cor={cor}
+              avatar={iniciais(u.nome)}
+              titulo={u.nome}
+              sub={subPartes.join(" · ")}
+              open={!!exp[u.id]}
+              onToggle={() => alternar(u.id)}
+              direita={
+                <>
+                  {u.primeiro && <Pill c="1º acesso" bg="rgba(255,159,10,.15)" tc="#ff9f0a" />}
+                  {!u.sexo && ativo && <Pill c="Sem sexo" bg="rgba(255,59,48,.12)" tc="#ff3b30" />}
+                  {st.l && <Pill c={st.l} bg={`${st.c}1f`} tc={st.c} />}
+                </>
+              }
+            >
+              {u.email && <div style={{ color: G.tm, fontSize: 12, wordBreak: "break-all" }}>✉️ {u.email}</div>}
+
+              {edit && ativo && (
+                <Bloco titulo="Perfil">
+                  <select
+                    value={u.perfil}
+                    onChange={async (e) => {
+                      const novoPerfil = e.target.value;
+                      await salvar(u, { perfil: novoPerfil }, "Perfil atualizado!");
+                    }}
+                    style={{ ...I, marginBottom: 0, fontSize: 14 }}
+                  >
+                    {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => (
+                      <option key={k} value={k}>{v.l}</option>
+                    ))}
+                  </select>
+                  {(u.perfil === "servo" || u.perfil === "lider_celula") && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ color: G.td, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Líder de célula?</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {[true, false].map((val) => {
+                          const sel = (u.liderCelula === true) === val;
+                          return (
+                            <button
+                              key={String(val)}
+                              onClick={() => salvar(u, { liderCelula: val, ...(val ? {} : { celula: "" }) }, val ? "Marcado como Líder de Célula." : "Líder de Célula removido.")}
+                              style={{
+                                ...BK({ flex: 1, padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 700 }),
+                                background: sel ? (val ? "rgba(255,107,53,.12)" : "rgba(99,99,102,.1)") : "transparent",
+                                borderColor: sel ? (val ? "rgba(255,107,53,.5)" : "#444") : "#2a2a2a",
+                                color: sel ? (val ? "#ff6b35" : G.td) : G.tm,
+                              }}
+                            >
+                              {val ? "Sim" : "Não"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {u.liderCelula === true && (
+                        <select
+                          value={u.celula || ""}
+                          onChange={(e) => salvar(u, { celula: e.target.value }, "Célula salva!")}
+                          style={{ ...I, fontSize: 13, marginTop: 8, marginBottom: 0 }}
+                        >
+                          <option value="">Selecione a célula...</option>
+                          {CELULAS.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  )}
+                </Bloco>
               )}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {/* Ativo/Inativo */}
-              <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Status</div>
+              <Bloco titulo="Status">
                 <Toggle
-                  val={u.ativo !== false}
+                  val={ativo}
                   onToggle={async () => {
-                    // campo ausente conta como ativo, então o próximo estado sai de "=== false"
-                    const ativar = u.ativo === false;
-                    // inativo perde o perfil (líder, staff, cozinha...) e fica só como Servo;
-                    // o perfil antigo fica guardado em perfilAnterior, só como registro
+                    const ativar = !ativo;
+                    // inativo perde o perfil e fica só como Servo; o antigo vai para perfilAnterior
                     if (!ativar && u.perfil !== "servo") {
-                      const ok = await pedirConfirmacao(
-                        `Inativar ${(u.nome || "").split(" ")[0]}? O perfil ${PERFIS[u.perfil]?.l || u.perfil} passa a ser Servo.`,
-                        "Inativar",
-                      );
+                      const ok = await pedirConfirmacao(`Inativar ${(u.nome || "").split(" ")[0]}? O perfil ${PERFIS[u.perfil]?.l || u.perfil} passa a ser Servo.`, "Inativar");
                       if (!ok) return;
                     }
-                    const dados = ativar
-                      ? { ativo: true }
-                      : { ativo: false, perfil: "servo", ...(u.perfil !== "servo" ? { perfilAnterior: u.perfil } : {}) };
-                    try {
-                      await setDoc(doc(db, "users", u.id), dados, { merge: true });
-                      upd(u.id, (x) => ({ ...x, ...dados }));
-                      t(ativar ? "Servo reativado." : "Servo inativado.");
-                    } catch {
-                      t("Erro ao salvar.", "w");
-                    }
+                    const dados = ativar ? { ativo: true } : { ativo: false, perfil: "servo", ...(u.perfil !== "servo" ? { perfilAnterior: u.perfil } : {}) };
+                    await salvar(u, dados, ativar ? "Servo reativado." : "Servo inativado.");
                   }}
                   labelOn="Ativo"
                   labelOff="Inativo"
                 />
-              </div>
+                {!ativo && edit && (
+                  <button
+                    disabled={excluindo === u.id}
+                    onClick={async () => {
+                      const ok = await pedirConfirmacao(`Excluir ${u.nome}? A conta de acesso e o cadastro serão apagados.`, "Excluir");
+                      if (!ok) return;
+                      setExcluindo(u.id);
+                      try {
+                        await chamarFn("excluirServo", { id: u.id }, true);
+                        setUsers((prev) => prev.filter((x) => x.id !== u.id));
+                        t("Servo excluído.");
+                      } catch (err) {
+                        t(err?.message || "Erro ao excluir.", "w");
+                      }
+                      setExcluindo(null);
+                    }}
+                    style={{ ...BK({ width: "100%", padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, marginTop: 10 }), borderColor: "rgba(255,59,48,.35)", color: "#ff6b6b", background: "rgba(255,59,48,.06)", opacity: excluindo === u.id ? 0.6 : 1 }}
+                  >
+                    {excluindo === u.id ? "Excluindo..." : "Excluir servo"}
+                  </button>
+                )}
+              </Bloco>
 
-              {/* Excluir: só para inativo (a function confere de novo e só aceita admin) */}
-              {u.ativo === false && edit && (
-                <button
-                  disabled={excluindo === u.id}
-                  onClick={async () => {
-                    const ok = await pedirConfirmacao(`Excluir ${u.nome}? A conta de acesso e o cadastro serão apagados.`, "Excluir");
-                    if (!ok) return;
-                    setExcluindo(u.id);
-                    try {
-                      await chamarFn("excluirServo", { id: u.id }, true);
-                      setUsers((prev) => prev.filter((x) => x.id !== u.id));
-                      t("Servo excluído.");
-                    } catch (err) {
-                      t(err?.message || "Erro ao excluir.", "w");
-                    }
-                    setExcluindo(null);
-                  }}
-                  style={{
-                    ...BK({ width: "100%", padding: "10px 12px", borderRadius: 12, fontSize: 13, fontWeight: 700 }),
-                    borderColor: "rgba(255,59,48,.35)",
-                    color: "#ff6b6b",
-                    background: "rgba(255,59,48,.06)",
-                    opacity: excluindo === u.id ? 0.6 : 1,
-                  }}
-                >
-                  {excluindo === u.id ? "Excluindo..." : "Excluir servo"}
-                </button>
-              )}
-
-              {/* Pagamento */}
-              {u.ativo !== false && u.perfil !== "admin" && u.perfil !== "pastor" && u.perfil !== "pastor_auxiliar" && u.perfil !== "lider_geral" && (
-              <div style={{ background: "#111", borderRadius: 12, padding: "12px 14px" }}>
-                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Pagamento</div>
-                {/* Status atual */}
-                <div style={{ marginBottom: 10 }}>
-                  {u.pago === true && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <img src="/mp-logo.png" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
-                      <span style={{ color: G.green, fontSize: 13, fontWeight: 700 }}>Pago via Mercado Pago</span>
-                    </div>
-                  )}
-                  {u.pago === 'abonado' && (
-                    <span style={{ color: "#aaa", fontSize: 13, fontWeight: 700 }}>Abonado — pagamento dispensado</span>
-                  )}
-                  {u.pago === 'pagar_depois' && (
-                    <div>
-                      <span style={{ color: "#0a84ff", fontSize: 13, fontWeight: 700 }}>Pagar depois</span>
-                      {u.pagarDepoisData && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📅 {new Date(u.pagarDepoisData + 'T12:00:00').toLocaleDateString('pt-BR')}</div>}
-                      {u.pagarDepoisObs && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>💬 {u.pagarDepoisObs}</div>}
-                    </div>
-                  )}
-                  {!u.pago && (
-                    <span style={{ color: "#ff3b30", fontSize: 13, fontWeight: 700 }}>Pendente</span>
-                  )}
-                </div>
-                {/* Botão Abonar / Desfazer abono */}
-                {u.pago !== true && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {/* Pagar depois */}
-                    {u.pago !== 'abonado' && (
-                      <div style={{ background: "#1a1a1a", borderRadius: 10, padding: "10px 12px" }}>
-                        <PagarDepoisWidget u={u} upd={upd} t={t} />
+              {ativo && st.k !== "isento" && (
+                <Bloco titulo="Pagamento">
+                  <div style={{ marginBottom: st.k === "pago" ? 0 : 10 }}>
+                    {st.k === "pago" && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <img src="/mp-logo.png" alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
+                        <span style={{ color: G.green, fontSize: 13, fontWeight: 700 }}>Pago via Mercado Pago</span>
                       </div>
                     )}
-                    {/* Abonar */}
-                    {u.pago !== 'pagar_depois' && (
-                      <button
-                        onClick={async () => {
-                          const novoStatus = u.pago === 'abonado' ? false : 'abonado';
-                          await setDoc(doc(db, "users", u.id), { pago: novoStatus }, { merge: true });
-                          upd(u.id, (x) => ({ ...x, pago: novoStatus }));
-                          t(novoStatus === 'abonado' ? "Servo abonado." : "Abono removido.");
-                        }}
-                        style={{
-                          ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 }),
-                          borderColor: u.pago === 'abonado' ? "rgba(255,159,10,.4)" : "rgba(99,99,102,.4)",
-                          color: u.pago === 'abonado' ? "#ff9f0a" : "#aaa",
-                          background: u.pago === 'abonado' ? "rgba(255,159,10,.08)" : "rgba(99,99,102,.08)",
-                        }}
-                      >
-                        {u.pago === 'abonado' ? "↩ Desfazer abono" : "Abonar pagamento"}
-                      </button>
+                    {st.k === "abonado" && <span style={{ color: "#aaa", fontSize: 13, fontWeight: 700 }}>Abonado — pagamento dispensado</span>}
+                    {st.k === "pagar_depois" && (
+                      <div>
+                        <span style={{ color: "#0a84ff", fontSize: 13, fontWeight: 700 }}>Pagar depois</span>
+                        {u.pagarDepoisData && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📅 {new Date(u.pagarDepoisData + "T12:00:00").toLocaleDateString("pt-BR")}</div>}
+                        {u.pagarDepoisObs && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>💬 {u.pagarDepoisObs}</div>}
+                      </div>
                     )}
+                    {st.k === "pendente" && <span style={{ color: "#ff3b30", fontSize: 13, fontWeight: 700 }}>Pendente</span>}
                   </div>
-                )}
-              </div>
+                  {st.k !== "pago" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {st.k !== "abonado" && (
+                        <div style={{ background: "#1a1a1a", borderRadius: 10, padding: "10px 12px" }}>
+                          <PagarDepoisWidget u={u} upd={upd} t={t} />
+                        </div>
+                      )}
+                      {st.k !== "pagar_depois" && (
+                        <button
+                          onClick={() => {
+                            const novo = st.k === "abonado" ? false : "abonado";
+                            salvar(u, { pago: novo }, novo === "abonado" ? "Servo abonado." : "Abono removido.");
+                          }}
+                          style={{
+                            ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 }),
+                            borderColor: st.k === "abonado" ? "rgba(255,159,10,.4)" : "rgba(99,99,102,.4)",
+                            color: st.k === "abonado" ? "#ff9f0a" : "#aaa",
+                            background: st.k === "abonado" ? "rgba(255,159,10,.08)" : "rgba(99,99,102,.08)",
+                          }}
+                        >
+                          {st.k === "abonado" ? "↩ Desfazer abono" : "Abonar pagamento"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </Bloco>
               )}
-            </div>
-            </div>
-          </Acc>
-        ))}
+
+              {edit && podeEscalar && telasDisponiveis.length > 0 && (
+                <Bloco
+                  titulo="Telas extras"
+                  direita={telasExtra.length > 0 && <Pill c={`${telasExtra.length} ${telasExtra.length === 1 ? "extra" : "extras"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />}
+                >
+                  <div style={{ color: G.tm, fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>Além do que o perfil {PERFIS[u.perfil]?.l || u.perfil} já vê.</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    {telasDisponiveis.map(([id, label]) => {
+                      const on = telasExtra.includes(id);
+                      return (
+                        <LinhaCheck
+                          key={id}
+                          ativo={on}
+                          label={label}
+                          onClick={() => salvar(u, { telasExtra: on ? telasExtra.filter((x) => x !== id) : [...telasExtra, id] }, on ? `${label} removida.` : `${label} habilitada.`)}
+                        />
+                      );
+                    })}
+                  </div>
+                </Bloco>
+              )}
+
+              {podeEscalar && (edit || nFn > 0) && (
+                <Bloco titulo="Escala" direita={nFn > 0 && <Pill c={`${nFn} ${nFn === 1 ? "função" : "funções"}`} bg="rgba(0,200,81,.12)" tc={G.green} />}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {DIAS_ENCONTRO.map((dia) => {
+                      const doDia = escala[dia] || [];
+                      if (!edit && doDia.length === 0) return null;
+                      return (
+                        <div key={dia}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: DIAS_CORES[dia] }} />
+                            <span style={{ color: DIAS_CORES[dia], fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{dia}</span>
+                            {doDia.length > 0 && <span style={{ color: G.tm, fontSize: 11 }}>· {doDia.length}</span>}
+                          </div>
+                          {doDia.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: edit ? 6 : 0 }}>
+                              {doDia.map((fn, j) => (
+                                <span
+                                  key={j}
+                                  onClick={edit ? () => removeFuncaoDia(u, dia, j) : undefined}
+                                  style={{ background: `${DIAS_CORES[dia]}18`, border: `1px solid ${DIAS_CORES[dia]}44`, borderRadius: 50, padding: "4px 10px", color: DIAS_CORES[dia], fontSize: 11, cursor: edit ? "pointer" : "default", display: "inline-flex", alignItems: "center", gap: 5 }}
+                                >
+                                  {fn}{edit && <span style={{ color: "rgba(255,59,48,.6)", fontWeight: 800 }}>×</span>}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {edit && <AddFuncaoDia dia={dia} fns={fns} onAdd={(fn) => addFuncaoDia(u, dia, fn)} />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Bloco>
+              )}
+            </CartaoExp>
+          );
+        })}
 
         {dialogoConfirmacao}
+      </div>
+    );
+  }
+
+  // ── Aba Perfis: o que cada perfil enxerga ──
+  function PerfisTab({ permissoes, perfisExtra, users, abertos, setAbertos, t }) {
+    const porPerfil = {};
+    users.forEach((u) => {
+      if (!u.nome || u.perfil === "admin" || u.ativo === false) return;
+      porPerfil[u.perfil] = (porPerfil[u.perfil] || 0) + 1;
+    });
+    const telasEditaveis = TELAS_BACK.filter(([id]) => !TELAS_FIXAS_BACK.includes(id) && id !== "back");
+    return (
+      <>
+        <NovoPerfilForm perfisExtra={perfisExtra} t={t} />
+        <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
+          Agenda, Avisos, Uniforme e Ocorrências todo perfil vê. Back Office é só de Admin e Líder Geral.
+        </div>
+        {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v], i) => {
+          const telas = permissoes[k]?.telas || [];
+          const nTelas = telas.filter((id) => telasEditaveis.some(([tid]) => tid === id)).length;
+          const n = porPerfil[k] || 0;
+          return (
+            <CartaoExp
+              key={k}
+              i={i}
+              cor={v.c}
+              avatar={iniciais(v.l)}
+              titulo={v.l}
+              sub={`${n} ${n === 1 ? "pessoa" : "pessoas"} · ${nTelas} ${nTelas === 1 ? "tela extra" : "telas extras"}`}
+              open={!!abertos[k]}
+              onToggle={() => setAbertos((prev) => ({ ...prev, [k]: !prev[k] }))}
+            >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                {telasEditaveis.map(([id, label]) => {
+                  const on = telas.includes(id);
+                  return (
+                    <LinhaCheck
+                      key={id}
+                      ativo={on}
+                      label={label}
+                      cor={G.green}
+                      onClick={async () => {
+                        try {
+                          await setDoc(doc(db, "permissoes", k), { telas: on ? telas.filter((x) => x !== id) : [...telas, id] }, { merge: true });
+                        } catch {
+                          t("Erro ao salvar.", "w");
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </CartaoExp>
+          );
+        })}
+      </>
+    );
+  }
+
+  // ── Aba Funções: quem lidera e quem está escalado em cada função ──
+  function FuncoesTab({ users, fns, setFns, liderMapOverrides, setLiderMapOverrides, t }) {
+    const [busca, setBusca] = useState("");
+    const [abertos, setAbertos] = useState({});
+    const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+
+    const porFuncao = {};
+    (fns || []).forEach((fn) => { porFuncao[fn] = []; });
+    (users || []).forEach((u) => {
+      if (u.perfil === "admin" || !u.nome || u.ativo === false) return;
+      const escala = u.escala || {};
+      DIAS_ENCONTRO.forEach((dia) => {
+        (escala[dia] || []).forEach((fn) => {
+          if (!porFuncao[fn]) porFuncao[fn] = [];
+          porFuncao[fn].push({ id: u.id, nome: u.nome, perfil: u.perfil, sexo: u.sexo, dia });
+        });
+      });
+    });
+
+    const excluirFuncao = async (fn) => {
+      if (!(await pedirConfirmacao(`Excluir a função "${fn}"?`, "Excluir"))) return;
+      const novasFns = fns.filter((f) => f !== fn);
+      setFns(novasFns);
+      try {
+        await setDoc(doc(db, "config", "funcoes_extra"), { lista: novasFns.filter((f) => !FUNCOES_INIT.includes(f)) }, { merge: true });
+        t("Função excluída!");
+      } catch (err) {
+        console.error("Erro ao excluir função:", err);
+        t("Erro ao excluir função.", "w");
+      }
+    };
+
+    const funcoes = Object.keys(porFuncao)
+      // funções que sempre têm período (Almoço/Jantar) nunca aparecem "soltas"
+      .filter((fn) => !FUNCOES_COM_PERIODO.includes(fn))
+      .filter((fn) => fn.toLowerCase().includes(busca.toLowerCase()))
+      .sort((a, b) => a.localeCompare(b));
+    const comGente = funcoes.filter((fn) => porFuncao[fn].length > 0).length;
+
+    return (
+      <>
+        <NovaFuncaoForm fns={fns} setFns={setFns} t={t} />
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <Search size={15} color={G.tm} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar função..." style={{ ...I, marginBottom: 0, paddingLeft: 34 }} />
+        </div>
+        <div style={{ color: G.tm, fontSize: 12, marginBottom: 10 }}>
+          <strong style={{ color: G.t }}>{funcoes.length}</strong> funções · {comGente} com gente escalada
+        </div>
+
+        {funcoes.length === 0 && (
+          <div className="empty" style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>Nenhuma função encontrada.</div>
+        )}
+
+        {funcoes.map((fn, i) => {
+          const pessoas = porFuncao[fn];
+          const unicas = new Set(pessoas.map((p) => p.id)).size;
+          const lideres = liderMapOverrides[fn] || LIDER_MAP_DEFAULT[fn] || ["lider_staff"];
+          const corFn = PERFIS[lideres[0]]?.c || "#0a84ff";
+          return (
+            <CartaoExp
+              key={fn}
+              i={i}
+              cor={corFn}
+              titulo={fn}
+              sub={lideres.map((p) => PERFIS[p]?.l || p).join(" · ")}
+              open={!!abertos[fn]}
+              onToggle={() => setAbertos((prev) => ({ ...prev, [fn]: !prev[fn] }))}
+              direita={
+                unicas > 0
+                  ? <Pill c={`${unicas} ${unicas === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
+                  : <Pill c="Sem ninguém" bg="rgba(99,99,102,.15)" tc="#888" />
+              }
+            >
+              <Bloco titulo="Liderança">
+                <LideresEditor fn={fn} liderMapOverrides={liderMapOverrides} setLiderMapOverrides={setLiderMapOverrides} t={t} />
+              </Bloco>
+
+              <Bloco titulo="Escala" direita={pessoas.length > 0 && <Pill c={`${pessoas.length} ${pessoas.length === 1 ? "vaga" : "vagas"}`} bg="#1e1e1e" tc={G.tm} />}>
+                {pessoas.length === 0 ? (
+                  <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic" }}>Nenhum servo escalado nesta função ainda.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {DIAS_ENCONTRO.map((dia) => {
+                      const doDia = pessoas.filter((p) => p.dia === dia);
+                      if (doDia.length === 0) return null;
+                      const grupos = [
+                        ["Mulheres", doDia.filter((p) => p.sexo === "Feminino"), "#ff2d92"],
+                        ["Homens", doDia.filter((p) => p.sexo === "Masculino"), "#0a84ff"],
+                        ["Sem sexo definido", doDia.filter((p) => p.sexo !== "Feminino" && p.sexo !== "Masculino"), "#888"],
+                      ].filter(([, g]) => g.length > 0);
+                      return (
+                        <div key={dia}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: DIAS_CORES[dia] }} />
+                            <span style={{ color: DIAS_CORES[dia], fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{dia}</span>
+                            <span style={{ color: G.tm, fontSize: 11 }}>· {doDia.length}</span>
+                          </div>
+                          {grupos.map(([label, grupo, cor]) => (
+                            <div key={label} style={{ marginBottom: 6 }}>
+                              <div style={{ color: cor, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>{label} · {grupo.length}</div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {grupo.map((p, j) => <PessoaChip key={`${p.id}_${j}`} pessoa={p} />)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Bloco>
+
+              {pessoas.length === 0 && (
+                <button
+                  onClick={() => excluirFuncao(fn)}
+                  style={{ ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}
+                >
+                  Excluir função
+                </button>
+              )}
+            </CartaoExp>
+          );
+        })}
+        {dialogoConfirmacao}
+      </>
+    );
+  }
+
+  function BackV({ users, setUsers, pendentes, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra, buscaUserRef }) {
+    return (
+      <div>
+        <Seg opts={[["servos", "Servos"], ["grupos", "Perfis"], ["geral", "Funções"]]} val={tab} set={setTab} />
+        <div style={{ marginTop: 14 }}>
+          {tab === "servos" && (
+            <ServosTab users={users} setUsers={setUsers} pendentes={pendentes} edit t={t} fns={fns} permissoes={permissoes} expandidos={expandidos} setExpandidos={setExpandidos} buscaRef={buscaUserRef} />
+          )}
+          {tab === "grupos" && (
+            <PerfisTab permissoes={permissoes} perfisExtra={perfisExtra} users={users} abertos={gruposAbertos} setAbertos={setGruposAbertos} t={t} />
+          )}
+          {tab === "geral" && (
+            <FuncoesTab users={users} fns={fns} setFns={setFns} liderMapOverrides={liderMapOverrides} setLiderMapOverrides={setLiderMapOverrides} t={t} />
+          )}
+        </div>
       </div>
     );
   }
@@ -12812,7 +13107,34 @@ const EH_IOS = (() => {
   } catch { return false; }
 })();
 
+// __PREVIEW_HOOK__
+function __PreviewBack() {
+  const nomes = ["Ana Clara Souza", "Bruno Henrique Lima", "Carla Dias", "Daniel Ferreira Prado", "Elisa Martins", "Fabio Nunes", "Gabriela Rocha", "Heitor Alves", "Isabela Costa", "João Pedro Melo"];
+  const perfis = ["pastor", "lider_geral", "lider_quartos", "lider_templo", "staff", "servo", "servo", "cozinha", "infantil", "servo"];
+  const pagos = [true, true, true, "abonado", "pagar_depois", false, true, false, "abonado", false];
+  const [users, setUsers] = useState(nomes.map((n, i) => ({
+    id: "u" + i, nome: n, email: `pessoa${i}@exemplo.com`, perfil: perfis[i], pago: pagos[i], sexo: i % 2 ? "Masculino" : "Feminino",
+    ativo: i !== 9, primeiro: i === 7, liderCelula: i === 5, celula: i === 5 ? CELULAS[0] : "",
+    telasExtra: i === 6 ? ["quartos"] : [],
+    escala: i < 7 ? { Quinta: ["Templo"], Sexta: i % 2 ? ["Kit Sobrevivência", "Cartas"] : [], Sábado: ["Templo"], Domingo: [] } : undefined,
+    pagarDepoisData: i === 4 ? "2026-11-15" : undefined, pagarDepoisObs: i === 4 ? "Paga na sexta" : undefined,
+  })));
+  const [fns, setFns] = useState(FUNCOES_INIT);
+  const [tab, setTab] = useState(window.location.search.includes("tab=") ? window.location.search.split("tab=")[1].split("&")[0] : "servos");
+  const [exp, setExp] = useState({ u5: true });
+  const [grp, setGrp] = useState({ lider_cartas: true });
+  const [lm, setLm] = useState({});
+  const t = (m) => console.log("toast", m);
+  return (
+    <div style={{ background: "#000", minHeight: "100vh", padding: 16, maxWidth: 480, margin: "0 auto" }}>
+      <BackV users={users} setUsers={setUsers} pendentes={[]} fns={fns} setFns={setFns} t={t} expandidos={exp} setExpandidos={setExp}
+        permissoes={{ lider_cartas: { telas: ["mins", "avisos", "uniforme", "info", "ach", "crac"] }, pastor: { telas: ["servos", "enc"] } }}
+        tab={tab} setTab={setTab} gruposAbertos={grp} setGruposAbertos={setGrp} liderMapOverrides={lm} setLiderMapOverrides={setLm} perfisExtra={[]} buscaUserRef={{ current: "" }} />
+    </div>
+  );
+}
 export default function App() {
+  if (window.location.search.includes("__back")) return <__PreviewBack />;
   const [sp, setSp] = useState(true);
   const [spSaindo, setSpSaindo] = useState(false);
   const spSaindoRef = useRef(false);
@@ -13054,7 +13376,7 @@ export default function App() {
   const [dataLimiteRestante, setDataLimiteRestante] = useState("");
   const [backExpandidos, setBackExpandidos] = useState({});
   const [permissoes, setPermissoes] = useState({});
-  const [backTab, setBackTab] = useState("grupos");
+  const [backTab, setBackTab] = useState("servos");
   const [backGruposAbertos, setBackGruposAbertos] = useState({});
   const backBuscaUserRef = useRef("");
   const unsubPermRef = useRef(null);
@@ -13407,6 +13729,10 @@ export default function App() {
 
   const role = user?.perfil || "servo";
   const isAdm = role === "admin" || role === "lider_geral";
+  // "Servos" virou a primeira aba do Back Office para quem administra
+  useEffect(() => {
+    if (pg === "servos" && isAdm) { setBackTab("servos"); setPg("back"); }
+  }, [pg, isAdm]);
   const [liderMapOverrides, setLiderMapOverrides] = useState({});
 
   useEffect(() => {
@@ -13603,7 +13929,8 @@ export default function App() {
   // menu drawer
   const MENU_ITEMS = [
     [Home, "home"],
-    ...(temPermissao("servos") ? [[Users, "servos"]] : []),
+    // admin e líder geral mexem nos servos pelo Back Office
+    ...(temPermissao("servos") && !isAdm ? [[Users, "servos"]] : []),
     ...(temPermissao("enc") ? [[Users, "enc"]] : []),
     ...(temPermissao("checkin") ? [[CheckSquare, "checkin"]] : []),
     ...(temPermissao("termo") ? [[FileText, "termo"]] : []),
@@ -14251,14 +14578,13 @@ export default function App() {
             t={showT}
           />
         )}
-        {pg === "servos" && (
-          <SvV
+        {pg === "servos" && !isAdm && (
+          <ServosTab
             users={users}
             pendentes={pendentes}
             setUsers={setUsers}
-            edit={isAdm}
+            edit={false}
             t={showT}
-            dataLimitePagamento={dataLimitePagamento}
           />
         )}
         {pg === "test" &&
@@ -14277,6 +14603,7 @@ export default function App() {
           <BackV
             users={users}
             setUsers={setUsers}
+            pendentes={pendentes}
             fns={fns}
             setFns={setFns}
             t={showT}
@@ -15065,626 +15392,6 @@ export default function App() {
     );
   }
 
-
-function BackV({ users, setUsers, fns, setFns, t, expandidos, setExpandidos, permissoes, tab, setTab, gruposAbertos, setGruposAbertos, liderMapOverrides, setLiderMapOverrides, perfisExtra, buscaUserRef }) {
-    const [buscaUser, setBuscaUserState] = useState(buscaUserRef?.current || "");
-    const setBuscaUser = (v) => {
-      setBuscaUserState(v);
-      if (buscaUserRef) buscaUserRef.current = v;
-    };
-    // const [tab, setTab] = useState("usuarios");
-    const [buscaFn, setBuscaFn] = useState("");
-    const [filtroPerfilBack, setFiltroPerfilBack] = useState("todos");
-    const [shFiltroBack, setShFiltroBack] = useState(false);
-    const filtroPerfilBackFn = (u) => {
-      if (filtroPerfilBack === "todos") return true;
-      if (filtroPerfilBack === "servo") return u.perfil === "servo";
-      if (filtroPerfilBack === "cozinha") return u.perfil === "cozinha";
-      if (filtroPerfilBack === "infantil") return u.perfil === "infantil";
-      if (filtroPerfilBack === "staff") return u.perfil === "staff";
-      if (filtroPerfilBack === "lider") return u.perfil?.startsWith("lider_");
-      if (filtroPerfilBack === "pastor") return u.perfil === "pastor" || u.perfil === "pastor_auxiliar";
-      return true;
-    };
-    const [shGrp, setShGrp] = useState(false);
-    const [grpForm, setGrpForm] = useState({ label: "", cor: "#00c851" });
-
-    const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
-    const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
-
-    const pD = {
-      admin: "Acesso total",
-      lider_cartas: "Permissões customizadas",
-      lider_celula: "Permissões customizadas",
-      lider_geral: "Tudo exceto Back Office",
-      lider_midia: "Líder Mídia",
-      lider_quartos: "Edição de quartos",
-      lider_staff: "Operacional",
-      lider_templo: "Permissões customizadas",
-      pastor: "Edição geral",
-      pastor_auxiliar: "Somente visualização",
-      servo: "Somente visualização",
-      staff: "Operacional",
-      lider_som: "Líder Som",
-      lider_danca: "Líder Dança",
-    };
-
-    const toggleExpandido = (id) =>
-      setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
-
-    const getEscala = (u) => u.escala || { Quinta: [], Sexta: [], Sábado: [], Domingo: [] };
-
-    const FUNCOES_CONFLITO_QUARTO = ["Templo", "Som", "Cozinha"];
-    const ehFuncaoConflitoQuarto = (f) => FUNCOES_CONFLITO_QUARTO.includes(f);
-
-    const addFuncaoDia = async (u, dia, fn) => {
-      if (!fn.trim()) return;
-      const fnLimpa = fn.trim();
-      const escala = getEscala(u);
-
-      if (fnLimpa === "Servo de Quarto") {
-        const temConflito = DIAS.some((d) =>
-          (escala[d] || []).some((f) => ehFuncaoConflitoQuarto(f)),
-        );
-        if (temConflito) {
-          t("Esse servo já tem Templo, Som ou Cozinha na escala — não pode ser Servo de Quarto.", "w");
-          return;
-        }
-      }
-      if (ehFuncaoConflitoQuarto(fnLimpa)) {
-        const jaEhServoQuarto = DIAS.some((d) =>
-          (escala[d] || []).includes("Servo de Quarto"),
-        );
-        if (jaEhServoQuarto) {
-          t("Esse servo já é Servo de Quarto — não pode ter Templo, Som ou Cozinha.", "w");
-          return;
-        }
-      }
-
-      const novas = [...(escala[dia] || []), fnLimpa];
-      const novaEscala = { ...escala, [dia]: novas };
-      await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
-      setExpandidos(prev => ({ ...prev, [u.id]: true }))
-      setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
-      t("✓");
-    };
-
-    const removeFuncaoDia = async (u, dia, i) => {
-      const escala = getEscala(u);
-      const novas = (escala[dia] || []).filter((_, j) => j !== i);
-      const novaEscala = { ...escala, [dia]: novas };
-      await setDoc(doc(db, "users", u.id), { escala: novaEscala }, { merge: true });
-      setExpandidos(prev => ({ ...prev, [u.id]: true }))
-      setUsers(users.map(x => x.id === u.id ? { ...x, escala: novaEscala } : x));
-    };
-
-    const totalFuncoes = (u) => {
-      const escala = getEscala(u);
-      return DIAS.reduce((a, d) => a + (escala[d]?.length || 0), 0);
-    };
-
-    return (
-      <div>
-        <Seg opts={[["grupos", "Perfis"], ["usuarios", "Escalas"], ["geral", "Funções"]]} val={tab} set={setTab} />
-        <div style={{ marginTop: 14 }}>
-          {tab === "grupos" && (
-            <>
-              <NovoPerfilForm perfisExtra={perfisExtra} t={t} />
-              {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => {
-                const telasAtivas = permissoes[k]?.telas || [];
-                return (
-                  <Acc
-                    key={k}
-                    title={v.l}
-                    ax={v.c}
-                    right={<Pill c={`${telasAtivas.length} telas`} bg="#1e1e1e" tc={G.tm} />}
-                    open={!!gruposAbertos[k]}
-                    onToggle={() => setGruposAbertos(prev => ({ ...prev, [k]: !prev[k] }))}
-                  >
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {[
-                        ["mins", "Agenda"],
-                        ["avisos", "Avisos"],
-                        ["uniforme", "Uniforme"],
-                        ["info", "Ocorrências"],
-                        ["rest", "Restrições"],
-                        ["img", "Uso de Imagem"],
-                        ["checkin", "Check-in"],
-                        ["termo", "Termo"],
-                        ["quartos", "Quartos"],
-                        ["enc", "Encontristas"],
-                        ["onibus", "Ônibus"],
-                        ["cozinha", "Cozinha"],
-                        ["servos", "Servos"],
-                        ["ach", "Achados & Perdidos"],
-                        ["crac", "Crachás"],
-                        ["saude", "Saúde"],
-                        ["test", "Testemunhos"],
-                        ["back", "Back Office"],
-                      ].map(([id, label]) => {
-                        const ativo = telasAtivas.includes(id);
-                        return (
-                          <div
-                            key={id}
-                            onClick={async () => {
-                              const novas = ativo
-                                ? telasAtivas.filter(t => t !== id)
-                                : [...telasAtivas, id];
-                              await setDoc(doc(db, "permissoes", k), { telas: novas }, { merge: true });
-                            }}
-                            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 10px", borderRadius: 10, background: ativo ? "rgba(0,200,81,.08)" : "#111", border: `1px solid ${ativo ? "rgba(0,200,81,.2)" : "#1e1e1e"}` }}
-                          >
-                            <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? G.green : "#444"}`, background: ativo ? "rgba(0,200,81,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              {ativo && <span style={{ color: G.green, fontSize: 11, fontWeight: 800 }}>✓</span>}
-                            </div>
-                            <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Acc>
-                );
-              })}
-            </>
-          )}
-
-          {tab === "usuarios" && (
-            <>
-              <button
-                onClick={async () => {
-                  const DIAS = ["Quinta", "Sexta", "Sábado", "Domingo"];
-                  const ExcelJS = await carregarExcelJS();
-              const wb = new ExcelJS.Workbook();
-                  const ws = wb.addWorksheet("Escalas");
-                  ws.columns = [
-                    { header: "Nome", key: "nome", width: 35 },
-                    { header: "Perfil", key: "perfil", width: 20 },
-                    { header: "Quinta", key: "Quinta", width: 35 },
-                    { header: "Sexta", key: "Sexta", width: 35 },
-                    { header: "Sábado", key: "Sábado", width: 35 },
-                    { header: "Domingo", key: "Domingo", width: 35 },
-                  ];
-                  ws.getRow(1).font = { bold: true };
-                  ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
-                  const lista = users
-                    .filter(u => u.perfil !== "admin" && u.nome && u.ativo !== false)
-                    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
-                  lista.forEach(u => {
-                    const escala = u.escala || {};
-                    ws.addRow({
-                      nome: u.nome || "",
-                      perfil: PERFIS[u.perfil]?.l || u.perfil || "",
-                      Quinta: (escala["Quinta"] || []).join(", "),
-                      Sexta: (escala["Sexta"] || []).join(", "),
-                      "Sábado": (escala["Sábado"] || []).join(", "),
-                      Domingo: (escala["Domingo"] || []).join(", "),
-                    });
-                  });
-                  const buf = await wb.xlsx.writeBuffer();
-                  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a"); a.href = url; a.download = "escalas.xlsx"; a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13, marginBottom: 12 }) }}
-              >
-                Exportar Escalas (XLSX)
-              </button>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                <input value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} placeholder="🔍 Buscar usuário..." style={{ ...I, marginBottom: 0, flex: 1 }} />
-                <button
-                  onClick={() => setShFiltroBack(true)}
-                  style={{
-                    ...BK({ padding: "0 14px", borderRadius: 12, flexShrink: 0 }),
-                    position: "relative",
-                    borderColor: filtroPerfilBack !== "todos" ? "rgba(10,132,255,.5)" : G.cb,
-                    color: filtroPerfilBack !== "todos" ? "#0a84ff" : G.t,
-                    background: filtroPerfilBack !== "todos" ? "rgba(10,132,255,.08)" : G.card,
-                    height: 44,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <SlidersHorizontal size={18} />
-                  {filtroPerfilBack !== "todos" && (
-                    <span style={{
-                      position: "absolute", top: 4, right: 4,
-                      background: "#0a84ff", color: "#fff",
-                      fontSize: 10, fontWeight: 800,
-                      borderRadius: "50%", width: 16, height: 16,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      1
-                    </span>
-                  )}
-                </button>
-              </div>
-              <Sheet open={shFiltroBack} onClose={() => setShFiltroBack(false)} title="Filtrar por perfil">
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    ["todos", "Todos"],
-                    ["pastor", "Pastores"],
-                    ["lider", "Líderes"],
-                    ["servo", "Servos"],
-                    ["cozinha", "Cozinha"],
-                    ["infantil", PERFIS.infantil.l],
-                    ["staff", "Staff"],
-                  ].map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => { setFiltroPerfilBack(val); setShFiltroBack(false); }}
-                      style={{
-                        ...BK({ width: "100%", padding: "11px 14px", borderRadius: 12, textAlign: "left", fontSize: 14 }),
-                        borderColor: filtroPerfilBack === val ? "rgba(10,132,255,.5)" : "#2a2a2a",
-                        color: filtroPerfilBack === val ? "#0a84ff" : G.td,
-                        background: filtroPerfilBack === val ? "rgba(10,132,255,.08)" : "transparent",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                      }}
-                    >
-                      {label}
-                      {filtroPerfilBack === val && <span style={{ fontSize: 16 }}>✓</span>}
-                    </button>
-                  ))}
-                </div>
-              </Sheet>
-              {users
-               .filter(u =>
-                  (u.nome || "").toLowerCase().includes(buscaUser.toLowerCase()) &&
-                  u.perfil !== "admin" &&
-                  u.nome &&
-                  u.ativo !== false &&
-                  u.primeiro !== true &&
-                  filtroPerfilBackFn(u)
-                )
-                .sort((a, b) => {
-                  const ORDEM = (p) => {
-                    if (p === "pastor") return 0;
-                    if (p === "pastor_auxiliar") return 1;
-                    if (p === "lider_geral") return 2;
-                    if (p?.startsWith("lider_")) return 3;
-                    if (p === "servo") return 4;
-                    if (p === "cozinha") return 5;
-                    if (p === "infantil") return 6;
-                    if (p === "staff") return 7;
-                    return 8;
-                  };
-                  const diff = ORDEM(a.perfil) - ORDEM(b.perfil);
-                  if (diff !== 0) return diff;
-                  return a.nome.localeCompare(b.nome, "pt-BR");
-                })
-                .map((u, i) => {
-                  const aberto = !!expandidos[u.id];
-                  const escala = getEscala(u);
-                  const total = totalFuncoes(u);
-
-                  return (
-                    <div key={i} className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${PERFIS[u.perfil]?.c || G.green}`, borderRadius: 13, marginBottom: 7, overflow: "visible" }}>
-                      
-                      {/* Header */}
-                      <div
-                        onClick={() => toggleExpandido(u.id)}
-                        style={{ padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
-                      >
-                        <div>
-                          <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>{u.nome}</div>
-                          <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
-                            {PERFIS[u.perfil]?.l || u.perfil}
-                            {total > 0 && <span style={{ color: G.green, marginLeft: 6 }}>· {total} {total === 1 ? 'função' : 'funções'}</span>}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <select
-                            value={u.perfil}
-                            onClick={e => e.stopPropagation()}
-                            onChange={async (e) => {
-                              const novoPerfil = e.target.value;
-                              await setDoc(doc(db, "users", u.id), { perfil: novoPerfil }, { merge: true });
-                              setUsers(prev => prev.map(x => x.id === u.id ? { ...x, perfil: novoPerfil } : x));
-                              setExpandidos(prev => ({ ...prev, [u.id]: true }));
-                              t("Perfil atualizado!");
-                            }}
-                            style={{ ...I, width: "auto", padding: "6px 9px", fontSize: 11, borderRadius: 9 }}
-                          >
-                            {Object.entries(PERFIS).filter(([k]) => k !== "admin").map(([k, v]) => (
-                              <option key={k} value={k}>{v.l}</option>
-                            ))}
-                          </select>
-                          <span style={{ color: G.tm, fontSize: 12, transition: "transform var(--d-fast) var(--e-out)", display: "inline-block", transform: aberto ? "rotate(180deg)" : "none" }}>▾</span>
-                        </div>
-                      </div>
-
-                      {/* Expandido */}
-                      {aberto && (
-                        <div style={{ borderTop: "1px solid #1e1e1e", padding: "12px 14px" }}>
-                          {u.email && <div style={{ color: G.tm, fontSize: 12, marginBottom: 12 }}>✉️ {u.email}</div>}
-
-                          {/* ADICIONA AQUI */}
-                            {/* Toggle Líder de Célula — visível para servo */}
-                            {(u.perfil === "servo" || u.perfil === "lider_celula") && (
-                              <div style={{ marginBottom: 12 }}>
-                                <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Líder de Célula</div>
-                                <div style={{ display: "flex", gap: 8, marginBottom: u.liderCelula ? 10 : 0 }}>
-                                  {[true, false].map(val => (
-                                    <button
-                                      key={String(val)}
-                                      onClick={async () => {
-                                        const novo = { liderCelula: val };
-                                        if (!val) novo.celula = "";
-                                        await setDoc(doc(db, "users", u.id), novo, { merge: true });
-                                        setUsers(prev => prev.map(x => x.id === u.id ? { ...x, ...novo } : x));
-                                        t(val ? "Marcado como Líder de Célula." : "Líder de Célula removido.");
-                                      }}
-                                      style={{
-                                        ...BK({ flex: 1, padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 700 }),
-                                        background: (u.liderCelula === true) === val ? (val ? "rgba(255,107,53,.12)" : "rgba(99,99,102,.1)") : "transparent",
-                                        borderColor: (u.liderCelula === true) === val ? (val ? "rgba(255,107,53,.5)" : "#444") : "#2a2a2a",
-                                        color: (u.liderCelula === true) === val ? (val ? "#ff6b35" : G.td) : G.tm,
-                                      }}
-                                    >
-                                      {val ? "Sim" : "Não"}
-                                    </button>
-                                  ))}
-                                </div>
-                                {u.liderCelula === true && (
-                                  <select
-                                    value={u.celula || ""}
-                                    onChange={async (e) => {
-                                      const novacelula = e.target.value;
-                                      await setDoc(doc(db, "users", u.id), { celula: novacelula }, { merge: true });
-                                      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, celula: novacelula } : x));
-                                      t("Célula salva!");
-                                    }}
-                                    style={{ ...I, fontSize: 13 }}
-                                  >
-                                    <option value="">Selecione a célula...</option>
-                                    {CELULAS.map(c => (
-                                      <option key={c} value={c}>{c}</option>
-                                    ))}
-                                  </select>
-                                )}
-                              </div>
-                            )}
-
-{/* Telas extras individuais */}
-                          {(() => {
-                            const TELAS_LISTA = [
-                              ["mins", "Agenda"],
-                              ["avisos", "Avisos"],
-                              ["uniforme", "Uniforme"],
-                              ["info", "Ocorrências"],
-                              ["rest", "Restrições"],
-                              ["img", "Uso de Imagem"],
-                              ["checkin", "Check-in"],
-                              ["termo", "Termo"],
-                              ["quartos", "Quartos"],
-                              ["enc", "Encontristas"],
-                              ["onibus", "Ônibus"],
-                              ["cozinha", "Cozinha"],
-                              ["servos", "Servos"],
-                              ["ach", "Achados & Perdidos"],
-                              ["crac", "Crachás"],
-                              ["saude", "Saúde"],
-                              ["test", "Testemunhos"],
-                              ["back", "Back Office"],
-                            ];
-                            const telasPerfil = permissoes[u.perfil]?.telas || [];
-                            const telasFixas = ["mins", "avisos", "uniforme", "info"];
-                            const telasExtra = u.telasExtra || [];
-                            // só mostra telas que o perfil NÃO tem por padrão
-                            const telasDisponiveis = TELAS_LISTA.filter(([id]) =>
-                              !telasPerfil.includes(id) && !telasFixas.includes(id)
-                            );
-                            if (!telasDisponiveis.length) return null;
-                            return (
-                              <div style={{ marginBottom: 12 }}>
-                                <button
-                                  onClick={() => setExpandidos(prev => ({ ...prev, [`telas_${u.id}`]: !prev[`telas_${u.id}`] }))}
-                                  style={{ ...BK({ width: "100%", padding: "10px 14px", borderRadius: 12, fontSize: 13, fontWeight: 600 }), display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: telasExtra.length > 0 ? "rgba(10,132,255,.4)" : "#2a2a2a", background: telasExtra.length > 0 ? "rgba(10,132,255,.06)" : "transparent" }}
-                                >
-                                  <span style={{ color: telasExtra.length > 0 ? "#0a84ff" : G.td }}>
-                                    Telas extras {telasExtra.length > 0 ? `(${telasExtra.length})` : ""}
-                                  </span>
-                                  <span style={{ color: G.tm, fontSize: 11 }}>{expandidos[`telas_${u.id}`] ? "▲" : "▼"}</span>
-                                </button>
-                                {expandidos[`telas_${u.id}`] && (
-                                  <div style={{ marginTop: 6, background: "#111", borderRadius: 10, border: "1px solid #1e1e1e", overflow: "hidden" }}>
-                                    {telasDisponiveis.map(([id, label], idx) => {
-                                      const ativo = telasExtra.includes(id);
-                                      return (
-                                        <div
-                                          key={id}
-                                          onClick={async () => {
-                                            const novas = ativo
-                                              ? telasExtra.filter(t => t !== id)
-                                              : [...telasExtra, id];
-                                            await setDoc(doc(db, "users", u.id), { telasExtra: novas }, { merge: true });
-                                            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, telasExtra: novas } : x));
-                                            t(ativo ? `${label} removida.` : `${label} habilitada.`);
-                                          }}
-                                          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 14px", background: ativo ? "rgba(10,132,255,.08)" : "transparent", borderTop: idx > 0 ? "1px solid #1e1e1e" : "none" }}
-                                        >
-                                          <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${ativo ? "#0a84ff" : "#444"}`, background: ativo ? "rgba(10,132,255,.15)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                            {ativo && <span style={{ color: "#0a84ff", fontSize: 11, fontWeight: 800 }}>✓</span>}
-                                          </div>
-                                          <span style={{ color: ativo ? G.t : G.td, fontSize: 13 }}>{label}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-
-                          {/* Escala por dia */}
-                          {DIAS.map(dia => (
-                            <div key={dia} style={{ marginBottom: 12 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: dC[dia] }} />
-                                <span style={{ color: dC[dia], fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{dia}</span>
-                              </div>
-                              
-                              {/* Funções do dia */}
-                              {(escala[dia] || []).length > 0 && (
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
-                                  {(escala[dia] || []).map((fn, j) => (
-                                    <span
-                                      key={j}
-                                      onClick={() => removeFuncaoDia(u, dia, j)}
-                                      style={{ background: `${dC[dia]}18`, border: `1px solid ${dC[dia]}44`, borderRadius: 50, padding: "4px 10px", color: dC[dia], fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}
-                                    >
-                                      {fn} <span style={{ color: "rgba(255,59,48,.6)", fontWeight: 800 }}>×</span>
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Input adicionar função */}
-                              <AddFuncaoDia
-                                dia={dia}
-                                fns={fns}
-                                onAdd={(fn) => addFuncaoDia(u, dia, fn)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </>
-          )}
-
-          {tab === "geral" && (
-            <>
-              <NovaFuncaoForm fns={fns} setFns={setFns} t={t} />
-              <input
-                value={buscaFn}
-                onChange={(e) => setBuscaFn(e.target.value)}
-                placeholder="🔍 Buscar função..."
-                style={{ ...I, marginBottom: 12 }}
-              />
-              {(() => {
-                const DIAS_ORD = ["Quinta", "Sexta", "Sábado", "Domingo"];
-                const dC = { Quinta: "#ff6b35", Sexta: "#bf5af2", Sábado: G.green, Domingo: "#ff9f0a" };
-                const FUNCOES_COM_PERIODO = ["Panelas", "Louça", "Louças", "Servir comida", "Limpeza refeitório", "Servir Comida Pastores"];
-
-                // Monta mapa: função -> [{ user, dia }] — inicia com todas as funções cadastradas
-                const porFuncao = {};
-                (fns || []).forEach(fn => { porFuncao[fn] = []; });
-                (users || []).forEach(u => {
-                  if (u.perfil === "admin" || !u.nome) return;
-                  const escala = u.escala || {};
-                  DIAS_ORD.forEach(dia => {
-                    (escala[dia] || []).forEach(fn => {
-                      if (!porFuncao[fn]) porFuncao[fn] = [];
-                      porFuncao[fn].push({ nome: u.nome, dia, sexo: u.sexo });
-                    });
-                  });
-                });
-
-                const excluirFuncao = async (fn) => {
-                  const novasFns = fns.filter(f => f !== fn);
-                  setFns(novasFns);
-                  try {
-                    const extras = novasFns.filter(f => !FUNCOES_INIT.includes(f));
-                    await setDoc(doc(db, "config", "funcoes_extra"), { lista: extras }, { merge: true });
-                    t("Função excluída!");
-                  } catch (err) {
-                    console.error("Erro ao excluir função:", err);
-                    t("Erro ao excluir função.", "w");
-                  }
-                };
-
-                const funcoesOrdenadas = Object.keys(porFuncao)
-                  // funções que sempre têm período (Almoço/Jantar) nunca aparecem "soltas" sem ninguém
-                  .filter(fn => !FUNCOES_COM_PERIODO.includes(fn))
-                  .filter(fn => fn.toLowerCase().includes(buscaFn.toLowerCase()))
-                  .sort((a, b) => a.localeCompare(b));
-
-                if (funcoesOrdenadas.length === 0) {
-                  return (
-                    <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
-                      Nenhuma função encontrada.
-                    </div>
-                  );
-                }
-
-                return funcoesOrdenadas.map((fn) => {
-                  const pessoas = porFuncao[fn];
-                  const pessoasUnicas = new Set(pessoas.map(p => p.nome)).size;
-                  return (
-                    <Acc
-                      key={fn}
-                      title={fn}
-                      right={
-                        pessoasUnicas > 0
-                          ? <Pill c={`${pessoasUnicas} ${pessoasUnicas === 1 ? "pessoa" : "pessoas"}`} bg="rgba(10,132,255,.12)" tc="#0a84ff" />
-                          : <Pill c="Sem ninguém" bg="rgba(99,99,102,.15)" tc="#888" />
-                      }
-                    >
-                      <LideresEditor fn={fn} liderMapOverrides={liderMapOverrides} setLiderMapOverrides={setLiderMapOverrides} t={t} />
-
-                      {pessoasUnicas === 0 && (
-                        <button
-                          onClick={() => excluirFuncao(fn)}
-                          style={{ ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, marginTop: 10 }), color: "#ff3b30", borderColor: "rgba(255,59,48,.3)" }}
-                        >
-                          Excluir função
-                        </button>
-                      )}
-
-                      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", margin: "12px 0 6px" }}>
-                        Escala
-                      </div>
-                      {pessoas.length === 0 ? (
-                        <div style={{ color: G.tm, fontSize: 12, fontStyle: "italic", padding: "4px 0" }}>
-                          Nenhum servo escalado nesta função ainda.
-                        </div>
-                      ) : (
-                        DIAS_ORD.map(dia => {
-                          const doDia = pessoas.filter(p => p.dia === dia);
-                          if (doDia.length === 0) return null;
-                          const mulheres = doDia.filter(p => p.sexo === "Feminino");
-                          const homens = doDia.filter(p => p.sexo === "Masculino");
-                          const semSexo = doDia.filter(p => p.sexo !== "Feminino" && p.sexo !== "Masculino");
-                          return (
-                            <div key={dia} style={{ marginBottom: 10 }}>
-                              <div style={{ color: dC[dia], fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                                {dia} · {doDia.length}
-                              </div>
-                              {[
-                                ["Mulheres", mulheres, "#ff2d92"],
-                                ["Homens", homens, "#0a84ff"],
-                                ["Sem sexo definido", semSexo, "#888"],
-                              ].map(([grupoLabel, grupo, cor]) => grupo.length === 0 ? null : (
-                                <div key={grupoLabel} style={{ marginBottom: 6, marginLeft: 4 }}>
-                                  <div style={{ color: cor, fontSize: 10, fontWeight: 700, marginBottom: 3 }}>
-                                    {grupoLabel} · {grupo.length}
-                                  </div>
-                                  {grupo.map((p, i) => (
-                                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, marginLeft: 8 }}>
-                                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: cor }} />
-                                      <span style={{ color: G.td, fontSize: 13 }}>{p.nome}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })
-                      )}
-                    </Acc>
-                  );
-                });
-              })()}
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
 
 function LideresEditor({ fn, liderMapOverrides, setLiderMapOverrides, t }) {
   const [sh, setSh] = useState(false);
