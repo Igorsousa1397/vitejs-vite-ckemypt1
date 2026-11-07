@@ -13903,6 +13903,7 @@ export default function App() {
   const MENU_ITEMS = [
     [Home, "home"],
     // admin e líder geral mexem nos servos pelo Back Office
+    ...(isAdm ? [[Settings, "back"]] : []),
     ...(temPermissao("servos") && !isAdm ? [[Users, "servos"]] : []),
     ...(temPermissao("enc") ? [[Users, "enc"]] : []),
     ...(temPermissao("checkin") ? [[CheckSquare, "checkin"]] : []),
@@ -13921,7 +13922,6 @@ export default function App() {
     ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
     ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
     ...(isAdm ? [[Calendar, "datas"]] : []),
-    ...(isAdm ? [[Settings, "back"]] : []),
   ];
 
 
