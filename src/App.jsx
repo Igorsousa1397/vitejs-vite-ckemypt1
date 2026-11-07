@@ -13107,34 +13107,7 @@ const EH_IOS = (() => {
   } catch { return false; }
 })();
 
-// __PREVIEW_HOOK__
-function __PreviewBack() {
-  const nomes = ["Ana Clara Souza", "Bruno Henrique Lima", "Carla Dias", "Daniel Ferreira Prado", "Elisa Martins", "Fabio Nunes", "Gabriela Rocha", "Heitor Alves", "Isabela Costa", "João Pedro Melo"];
-  const perfis = ["pastor", "lider_geral", "lider_quartos", "lider_templo", "staff", "servo", "servo", "cozinha", "infantil", "servo"];
-  const pagos = [true, true, true, "abonado", "pagar_depois", false, true, false, "abonado", false];
-  const [users, setUsers] = useState(nomes.map((n, i) => ({
-    id: "u" + i, nome: n, email: `pessoa${i}@exemplo.com`, perfil: perfis[i], pago: pagos[i], sexo: i % 2 ? "Masculino" : "Feminino",
-    ativo: i !== 9, primeiro: i === 7, liderCelula: i === 5, celula: i === 5 ? CELULAS[0] : "",
-    telasExtra: i === 6 ? ["quartos"] : [],
-    escala: i < 7 ? { Quinta: ["Templo"], Sexta: i % 2 ? ["Kit Sobrevivência", "Cartas"] : [], Sábado: ["Templo"], Domingo: [] } : undefined,
-    pagarDepoisData: i === 4 ? "2026-11-15" : undefined, pagarDepoisObs: i === 4 ? "Paga na sexta" : undefined,
-  })));
-  const [fns, setFns] = useState(FUNCOES_INIT);
-  const [tab, setTab] = useState(window.location.search.includes("tab=") ? window.location.search.split("tab=")[1].split("&")[0] : "servos");
-  const [exp, setExp] = useState({ u5: true });
-  const [grp, setGrp] = useState({ lider_cartas: true });
-  const [lm, setLm] = useState({});
-  const t = (m) => console.log("toast", m);
-  return (
-    <div style={{ background: "#000", minHeight: "100vh", padding: 16, maxWidth: 480, margin: "0 auto" }}>
-      <BackV users={users} setUsers={setUsers} pendentes={[]} fns={fns} setFns={setFns} t={t} expandidos={exp} setExpandidos={setExp}
-        permissoes={{ lider_cartas: { telas: ["mins", "avisos", "uniforme", "info", "ach", "crac"] }, pastor: { telas: ["servos", "enc"] } }}
-        tab={tab} setTab={setTab} gruposAbertos={grp} setGruposAbertos={setGrp} liderMapOverrides={lm} setLiderMapOverrides={setLm} perfisExtra={[]} buscaUserRef={{ current: "" }} />
-    </div>
-  );
-}
 export default function App() {
-  if (window.location.search.includes("__back")) return <__PreviewBack />;
   const [sp, setSp] = useState(true);
   const [spSaindo, setSpSaindo] = useState(false);
   const spSaindoRef = useRef(false);
