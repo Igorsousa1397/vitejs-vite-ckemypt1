@@ -357,7 +357,7 @@ const PERFIS = {
 const canG = (p) =>
   ["admin", "lider_geral", "pastor", "lider_staff"].includes(p);
 const canAvisos = (p) =>
-  ["admin", "lider_geral", "pastor", "lider_staff", "lider_templo", "pastor_auxiliar"].includes(p);
+  ["admin", "lider_geral", "pastor", "lider_staff", "lider_templo", "lider_quartos", "pastor_auxiliar"].includes(p);
 const canQ = (p) => ["admin", "lider_geral", "lider_quartos"].includes(p);
 const canC = (p) => ["admin", "lider_geral"].includes(p);
 const canN = (p) => ["admin", "lider_geral", "pastor"].includes(p);
