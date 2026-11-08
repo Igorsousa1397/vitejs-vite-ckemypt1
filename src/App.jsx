@@ -4769,6 +4769,14 @@ function ServoRestV({ user, encH, encM, t }) {
                 {nRestr === 0 ? "Sem restrições" : nRestr === 1 ? "1 restrição" : `${nRestr} restrições`}
               </div>
             </div>
+            {(() => {
+              const st = ENC_STATUS[encStatus(enc)];
+              return (
+                <span style={{ flexShrink: 0, color: st.c, background: `${st.c}1f`, border: `1px solid ${st.c}44`, borderRadius: 50, padding: "3px 9px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                  {st.l}
+                </span>
+              );
+            })()}
             <span style={{ color: G.tm, fontSize: 12, display: "inline-block", transition: "transform .2s", transform: estaAberto ? "rotate(180deg)" : "none" }}>▾</span>
           </div>
           {estaAberto && (
