@@ -8033,8 +8033,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 `;
 
   // Demonstração: ônibus fictícios andando pela rota (nada é gravado). Sem rota
-  // definida, usa uma de exemplo só para mostrar como fica.
-  const ROTA_DEMO = { origem: { lat: -23.5505, lng: -46.6333 }, destino: { lat: -23.1171, lng: -46.5564 } };
+  // definida em config/rota, usa Igreja Fonte (Cajamar) -> Chácara Maranata (Mauá).
+  const ROTA_DEMO = { origem: { lat: -23.4092152, lng: -46.8672186 }, destino: { lat: -23.6416302, lng: -46.4163667 } };
 
   function MapaOnibusV({ on: onReal, podeConfigurar, onClose, t, rotaInicial = null }) {
     const [rota, setRota] = useState(rotaInicial);
