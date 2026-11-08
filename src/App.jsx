@@ -33,7 +33,7 @@ const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrco
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes } from "./firebase";
 import "leaflet/dist/leaflet.css";
-import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
+import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare, Crosshair } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -8032,8 +8032,14 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 .pt-mk{width:34px;height:34px;border-radius:50%;background:#1c1c1e;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 `;
 
-  function MapaOnibusV({ on, podeConfigurar, onClose, t, rotaInicial = null }) {
+  // Demonstração: ônibus fictícios andando pela rota (nada é gravado). Sem rota
+  // definida, usa uma de exemplo só para mostrar como fica.
+  const ROTA_DEMO = { origem: { lat: -23.5505, lng: -46.6333 }, destino: { lat: -23.1171, lng: -46.5564 } };
+
+  function MapaOnibusV({ on: onReal, podeConfigurar, onClose, t, rotaInicial = null }) {
     const [rota, setRota] = useState(rotaInicial);
+    const [demo, setDemo] = useState(false);
+    const [demoT, setDemoT] = useState(0);
     const [L, setL] = useState(null);
     const [geo, setGeo] = useState(null); // pontos [lat,lng] da rota
     const [acum, setAcum] = useState(null); // distância acumulada até cada ponto
@@ -8049,7 +8055,26 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const busRef = useRef({}); // num -> { marker, cur, idx, raf, html }
     const fitRef = useRef(false);
     const osrmRef = useRef({});
-    const origem = rota?.origem, destino = rota?.destino;
+    const usandoRotaDemo = demo && !(rota?.origem && rota?.destino);
+    const rotaEf = usandoRotaDemo ? ROTA_DEMO : rota;
+    const origem = rotaEf?.origem, destino = rotaEf?.destino;
+
+    useEffect(() => {
+      if (!demo) return;
+      const id = setInterval(() => setDemoT((x) => x + 1), 3000);
+      return () => clearInterval(id);
+    }, [demo]);
+    const demoOnibus = (() => {
+      if (!demo || !geo || geo.length < 3) return [];
+      const at = (f) => geo[Math.min(geo.length - 1, Math.floor(f * (geo.length - 1)))];
+      const p1 = at((0.05 + demoT * 0.012) % 1), p2 = at(0.62);
+      return [
+        { num: 1, tipo: "Feminino", poltronas: 40, rastreio: { ativo: true, uid: "demo", nome: "Demonstração", lat: p1[0], lng: p1[1], velocidade: 22, atualizadoEm: Date.now() } },
+        { num: 2, tipo: "Masculino", poltronas: 40, rastreio: { ativo: true, uid: "demo", nome: "Demonstração", lat: p2[0], lng: p2[1], atualizadoEm: Date.now() - 6 * 60000 } },
+        { num: 3, tipo: "Servos", poltronas: 20 },
+      ];
+    })();
+    const on = demo ? demoOnibus : onReal;
 
     useEffect(() => {
       const id = setInterval(() => setAgora(Date.now()), 4000);
@@ -8092,7 +8117,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         setGeo(pts);
         setAcum(a);
       };
-      if (rota.polyline) { setErroRota(""); aplicar(decodePolyline(rota.polyline)); return; }
+      if (rotaEf.polyline) { setErroRota(""); aplicar(decodePolyline(rotaEf.polyline)); return; }
       fetch(`https://router.project-osrm.org/route/v1/driving/${origem.lng},${origem.lat};${destino.lng},${destino.lat}?overview=full&geometries=polyline`)
         .then((r) => r.json())
         .then(async (j) => {
@@ -8101,7 +8126,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           osrmRef.current = { distancia: r0.distance, duracao: r0.duration };
           setErroRota("");
           aplicar(decodePolyline(r0.geometry));
-          if (podeConfigurar && !rotaInicial) {
+          if (podeConfigurar && !rotaInicial && !usandoRotaDemo) {
             await setDoc(doc(db, "config", "rota"), { polyline: r0.geometry, distancia: r0.distance, duracao: r0.duration }, { merge: true }).catch(() => {});
           }
         })
@@ -8112,7 +8137,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           aplicar([[origem.lat, origem.lng], [destino.lat, destino.lng]]);
         });
       return () => { cancel = true; };
-    }, [origem?.lat, origem?.lng, destino?.lat, destino?.lng, rota?.polyline]);
+    }, [origem?.lat, origem?.lng, destino?.lat, destino?.lng, rotaEf?.polyline]);
 
     // desenha igreja, sítio e rota
     useEffect(() => {
@@ -8292,10 +8317,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", paddingTop: "max(12px, env(safe-area-inset-top))", borderBottom: "1px solid #1a1a1a", background: "#000" }}>
           <button onClick={onClose} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>←</button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>Ônibus ao vivo</div>
-            <div style={{ color: G.tm, fontSize: 11 }}>{emRota} em rota · {(on || []).length} ônibus</div>
+            <div style={{ color: G.t, fontWeight: 800, fontSize: 16, whiteSpace: "nowrap" }}>Ônibus ao vivo</div>
+            <div style={{ color: G.tm, fontSize: 11, whiteSpace: "nowrap" }}>{emRota} em rota · {(on || []).length} ônibus</div>
           </div>
-          <button onClick={centralizar} style={BK({ padding: "8px 10px", borderRadius: 10, fontSize: 12 })}>Centralizar</button>
+          <button onClick={centralizar} aria-label="Centralizar" style={{ ...BK({ padding: "8px 10px", borderRadius: 10 }), display: "flex" }}><Crosshair size={16} color={G.td} /></button>
+          {podeConfigurar && (
+            <button onClick={() => { vibrar(); setDemo(!demo); fitRef.current = false; }} style={{ ...BK({ padding: "8px 10px", borderRadius: 10, fontSize: 12 }), borderColor: demo ? "#ff9f0a88" : undefined, color: demo ? "#ffb340" : G.td }}>Demo</button>
+          )}
           {podeConfigurar && (
             <button onClick={() => setCfg(!cfg)} aria-label="Definir igreja e sítio" style={{ ...BK({ padding: "8px 10px", borderRadius: 10 }), borderColor: cfg ? `${G.green}88` : undefined, display: "flex" }}>
               <Settings size={16} color={cfg ? G.green : G.td} />
@@ -8313,6 +8341,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           )}
           {erroRota && origem && destino && !cfg && (
             <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12 }}>{erroRota}</div>
+          )}
+          {demo && (
+            <div style={{ position: "absolute", bottom: 26, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12, textAlign: "center" }}>
+              Demonstração com ônibus fictícios{usandoRotaDemo ? " e rota de exemplo" : ""} · nada é gravado
+            </div>
           )}
           {cfg && (
             <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(10,10,10,.96)", border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
