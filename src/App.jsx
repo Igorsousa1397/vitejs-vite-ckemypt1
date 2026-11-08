@@ -4610,9 +4610,10 @@ const normalizar = (str) =>
 
 function ServoRestV({ user, encH, encM, t }) {
   const celula = user.celula || "";
-  const todos = [...encH, ...encM].filter(
-    (e) => normalizar(e.celula) === normalizar(celula),
-  );
+  const daCelula = (e) => normalizar(e.celula) === normalizar(celula);
+  const qtdH = encH.filter(daCelula).length;
+  const qtdM = encM.filter(daCelula).length;
+  const todos = [...encH, ...encM].filter(daCelula);
   const [restricoes, setRestricoes] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -4683,6 +4684,27 @@ function ServoRestV({ user, encH, encM, t }) {
         <div style={{ color: G.tm, fontSize: 12 }}>
           Marque quem não pode ficar no mesmo quarto.
         </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
+        {[
+          ["Cadastrados", todos.length, G.t],
+          ["Homens", qtdH, "#0a84ff"],
+          ["Mulheres", qtdM, "#ff2d92"],
+        ].map(([rot, n, cor]) => (
+          <div
+            key={rot}
+            style={{
+              background: G.card,
+              border: `1px solid ${G.cb}`,
+              borderRadius: 14,
+              padding: "10px 12px",
+            }}
+          >
+            <div style={{ color: cor, fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>{n}</div>
+            <div style={{ color: G.tm, fontSize: 11, fontWeight: 600, marginTop: 2 }}>{rot}</div>
+          </div>
+        ))}
       </div>
 
       {todos.length === 0 && (
