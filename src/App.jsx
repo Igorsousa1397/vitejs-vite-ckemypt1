@@ -4614,6 +4614,8 @@ function ServoRestV({ user, encH, encM, t }) {
   const qtdH = encH.filter(daCelula).length;
   const qtdM = encM.filter(daCelula).length;
   const todos = [...encH, ...encM].filter(daCelula);
+  const [filtroSexo, setFiltroSexo] = useState(null);
+  const lista = filtroSexo === "H" ? encH.filter(daCelula) : filtroSexo === "M" ? encM.filter(daCelula) : todos;
   const [restricoes, setRestricoes] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -4688,23 +4690,31 @@ function ServoRestV({ user, encH, encM, t }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
         {[
-          ["Cadastrados", todos.length, G.t],
-          ["Homens", qtdH, "#0a84ff"],
-          ["Mulheres", qtdM, "#ff2d92"],
-        ].map(([rot, n, cor]) => (
-          <div
-            key={rot}
-            style={{
-              background: G.card,
-              border: `1px solid ${G.cb}`,
-              borderRadius: 14,
-              padding: "10px 12px",
-            }}
-          >
-            <div style={{ color: cor, fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>{n}</div>
-            <div style={{ color: G.tm, fontSize: 11, fontWeight: 600, marginTop: 2 }}>{rot}</div>
-          </div>
-        ))}
+          [null, "Cadastrados", todos.length, G.t, "rgba(255,255,255,.06)"],
+          ["H", "Homens", qtdH, "#0a84ff", "rgba(10,132,255,.14)"],
+          ["M", "Mulheres", qtdM, "#ff2d92", "rgba(255,45,146,.14)"],
+        ].map(([sx, rot, n, cor, fundo]) => {
+          const ativo = filtroSexo === sx;
+          return (
+            <button
+              key={rot}
+              onClick={() => { vibrar(); setFiltroSexo(sx === null || ativo ? null : sx); }}
+              aria-pressed={ativo}
+              style={{
+                background: ativo ? fundo : G.card,
+                border: `1px solid ${ativo ? cor : G.cb}`,
+                borderRadius: 14,
+                padding: "10px 12px",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              <div style={{ color: cor, fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>{n}</div>
+              <div style={{ color: ativo ? G.t : G.tm, fontSize: 11, fontWeight: 600, marginTop: 2 }}>{rot}</div>
+            </button>
+          );
+        })}
       </div>
 
       {todos.length === 0 && (
@@ -4721,7 +4731,13 @@ function ServoRestV({ user, encH, encM, t }) {
         </div>
       )}
 
-      {todos.map((enc, i) => (
+      {filtroSexo && todos.length > 0 && lista.length === 0 && (
+        <div style={{ color: G.tm, textAlign: "center", padding: 28, fontSize: 13 }}>
+          Nenhum{filtroSexo === "M" ? "a mulher" : " homem"} da sua célula inscrit{filtroSexo === "M" ? "a" : "o"} ainda.
+        </div>
+      )}
+
+      {lista.map((enc, i) => (
         <div
           key={enc.id}
           className="fu"
@@ -4756,7 +4772,7 @@ function ServoRestV({ user, encH, encM, t }) {
             Não pode ficar com:
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {todos
+            {lista
               .filter((e) => e.id !== enc.id)
               .map((outro, j) => {
                 const restrito = temRestricao(enc.nome, outro.nome);
