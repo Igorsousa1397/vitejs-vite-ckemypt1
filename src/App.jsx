@@ -4615,6 +4615,7 @@ function ServoRestV({ user, encH, encM, t }) {
   const qtdM = encM.filter(daCelula).length;
   const todos = [...encH, ...encM].filter(daCelula);
   const [filtroSexo, setFiltroSexo] = useState(null);
+  const [aberto, setAberto] = useState(null);
   const homensCel = encH.filter(daCelula);
   const mulheresCel = encM.filter(daCelula);
   const idsHomens = new Set(homensCel.map((e) => e.id));
@@ -4740,28 +4741,38 @@ function ServoRestV({ user, encH, encM, t }) {
         </div>
       )}
 
-      {lista.map((enc, i) => (
+      {lista.map((enc, i) => {
+        const mesmoSexo = idsHomens.has(enc.id) ? homensCel : mulheresCel;
+        const nRestr = mesmoSexo.filter((o) => o.id !== enc.id && temRestricao(enc.nome, o.nome)).length;
+        const estaAberto = aberto === enc.id;
+        return (
         <div
           key={enc.id}
           className="fu"
           style={{
             background: G.card,
-            border: `1px solid ${G.cb}`,
+            border: `1px solid ${estaAberto ? "#2a2a2a" : G.cb}`,
             borderRadius: 14,
-            padding: "12px 14px",
             marginBottom: 8,
           }}
         >
           <div
-            style={{
-              color: G.t,
-              fontWeight: 700,
-              fontSize: 16,
-              marginBottom: 8,
-            }}
+            onClick={() => setAberto(estaAberto ? null : enc.id)}
+            className="press"
+            style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}
           >
-            {enc.nome}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: G.t, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {enc.nome}
+              </div>
+              <div style={{ color: nRestr ? "#ff6b6b" : G.tm, fontSize: 11, marginTop: 2 }}>
+                {nRestr === 0 ? "Sem restrições" : nRestr === 1 ? "1 restrição" : `${nRestr} restrições`}
+              </div>
+            </div>
+            <span style={{ color: G.tm, fontSize: 12, display: "inline-block", transition: "transform .2s", transform: estaAberto ? "rotate(180deg)" : "none" }}>▾</span>
           </div>
+          {estaAberto && (
+          <div style={{ padding: "0 14px 12px" }}>
           <div
             style={{
               color: G.tm,
@@ -4807,8 +4818,11 @@ function ServoRestV({ user, encH, encM, t }) {
                 );
               })}
           </div>
+          </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
