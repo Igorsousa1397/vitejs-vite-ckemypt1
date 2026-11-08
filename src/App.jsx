@@ -4615,7 +4615,10 @@ function ServoRestV({ user, encH, encM, t }) {
   const qtdM = encM.filter(daCelula).length;
   const todos = [...encH, ...encM].filter(daCelula);
   const [filtroSexo, setFiltroSexo] = useState(null);
-  const lista = filtroSexo === "H" ? encH.filter(daCelula) : filtroSexo === "M" ? encM.filter(daCelula) : todos;
+  const homensCel = encH.filter(daCelula);
+  const mulheresCel = encM.filter(daCelula);
+  const idsHomens = new Set(homensCel.map((e) => e.id));
+  const lista = filtroSexo === "H" ? homensCel : filtroSexo === "M" ? mulheresCel : todos;
   const [restricoes, setRestricoes] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -4772,7 +4775,12 @@ function ServoRestV({ user, encH, encM, t }) {
             Não pode ficar com:
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {lista
+            {(idsHomens.has(enc.id) ? homensCel : mulheresCel).length < 2 && (
+              <span style={{ color: G.tm, fontSize: 12 }}>
+                Ninguém do mesmo sexo na célula ainda.
+              </span>
+            )}
+            {(idsHomens.has(enc.id) ? homensCel : mulheresCel)
               .filter((e) => e.id !== enc.id)
               .map((outro, j) => {
                 const restrito = temRestricao(enc.nome, outro.nome);
