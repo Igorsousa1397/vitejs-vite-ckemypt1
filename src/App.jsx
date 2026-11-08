@@ -32,6 +32,7 @@ const carregarJsPDF = () => import("jspdf").then((m) => m.default ?? m);
 const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrcode);
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes } from "./firebase";
+import "leaflet/dist/leaflet.css";
 import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare } from "lucide-react";
 
 const vibrar = (ms = 50) => {
@@ -5087,7 +5088,7 @@ function ServoRestV({ user, encH, encM, t }) {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, users, qh, qm, on, liderMapOverrides }) {
+  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, users, qh, qm, on, liderMapOverrides, t, abrirMapa }) {
     const encontro = useEncontro();
     const [cartasGlobais, setCartasGlobais] = useState([]);
     useEffect(() => {
@@ -5198,6 +5199,34 @@ function ServoRestV({ user, encH, encM, t }) {
                     <StatTile i={i} n={c.n} l={c.l} Ic={c.Ic} cor={c.cor} badge={c.badge} alerta={c.alerta} onClick={c.onClick} />
                   </div>
                 ))}
+              </div>
+            );
+          })()}
+
+          {/* ônibus: responsável liga o compartilhamento; todo mundo acompanha no mapa */}
+          {(() => {
+            const meus = (on || []).filter((o) => (o.resp || []).includes(user?.nome));
+            const emRota = (on || []).filter((o) => statusRastreio(o) === "ao_vivo").length;
+            if (meus.length === 0 && emRota === 0) return null;
+            return (
+              <div style={{ marginBottom: 14 }}>
+                {meus.map((o) => (
+                  <div key={o.num} style={{ background: G.card, border: `1px solid ${G.cb}`, borderLeft: `3px solid ${CORES_ONIBUS[o.tipo] || G.green}`, borderRadius: 16, padding: "12px 14px 2px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <Bus size={16} color={CORES_ONIBUS[o.tipo] || G.green} />
+                      <div style={{ flex: 1, color: G.t, fontWeight: 700, fontSize: 15 }}>Ônibus {o.num} · você é responsável</div>
+                      <button onClick={abrirMapa} style={BK({ padding: "6px 10px", borderRadius: 10, fontSize: 12 })}>Ver mapa</button>
+                    </div>
+                    <ControleRastreio o={o} user={user} t={t} edit={false} />
+                  </div>
+                ))}
+                {meus.length === 0 && (
+                  <button onClick={abrirMapa} className="press" style={BK({ width: "100%", padding: "12px 14px", borderRadius: 14, fontSize: 13, display: "flex", alignItems: "center", gap: 10, textAlign: "left" })}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: G.green, boxShadow: `0 0 0 4px ${G.green}33`, flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: G.t, fontWeight: 700 }}>{emRota === 1 ? "1 ônibus em rota" : `${emRota} ônibus em rota`}</span>
+                    <span style={{ color: G.tm, fontSize: 12 }}>Ver mapa ›</span>
+                  </button>
+                )}
               </div>
             );
           })()}
@@ -7804,7 +7833,533 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     );
   }
   // ── ÔNIBUS ───────────────────────────────────────────────────────────────────
+  // ── ÔNIBUS AO VIVO ─────────────────────────────────────────────────────────
+  // O responsável do ônibus compartilha a posição do celular (onibus/{num}.rastreio)
+  // e todo mundo acompanha no mapa. A rota igreja → sítio fica em config/rota
+  // ({ origem, destino } definidos pela liderança + polyline do OSRM em cache).
+  const decodePolyline = (str) => {
+    const pts = [];
+    let i = 0, lat = 0, lng = 0;
+    while (i < str.length) {
+      for (const k of [0, 1]) {
+        let b, shift = 0, result = 0;
+        do { b = str.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+        const d = result & 1 ? ~(result >> 1) : result >> 1;
+        if (k === 0) lat += d; else lng += d;
+      }
+      pts.push([lat / 1e5, lng / 1e5]);
+    }
+    return pts;
+  };
+  const distM = (a, b) => {
+    const R = 6371000, r = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * r, dLng = (b[1] - a[1]) * r;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+  // aceita "lat, lng" ou link do Google Maps (@lat,lng · q=lat,lng · !3dlat!4dlng)
+  const parseCoord = (txt) => {
+    const s = (txt || "").trim();
+    const m =
+      s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+      s.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+      s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
+      s.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+    if (!m) return null;
+    const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+    if (Number.isNaN(lat) || Number.isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return { lat, lng };
+  };
+  const pontoMaisProximo = (rota, p) => {
+    let idx = 0, d = Infinity;
+    for (let i = 0; i < rota.length; i++) {
+      const di = distM(rota[i], p);
+      if (di < d) { d = di; idx = i; }
+    }
+    return { idx, d };
+  };
+  // ao_vivo · sem_sinal (2 min sem atualizar) · chegou (encerrado) · parado (nunca saiu)
+  const statusRastreio = (o, agora = Date.now()) => {
+    const r = o?.rastreio;
+    if (!r?.ativo) return r?.encerradoEm ? "chegou" : "parado";
+    return agora - (r.atualizadoEm || 0) > 120000 ? "sem_sinal" : "ao_vivo";
+  };
+  const CORES_ONIBUS = { Feminino: "#bf5af2", Masculino: "#0a84ff", Servos: "#30d158" };
+  const fmtHora = (ms) => new Date(ms).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const fmtTempoAtras = (ms) => {
+    const s = Math.max(0, Math.round(ms / 1000));
+    return s < 60 ? `${s}s` : `${Math.round(s / 60)} min`;
+  };
+  const fmtKm = (m) => (m < 10000 ? (m / 1000).toFixed(1) : Math.round(m / 1000)) + " km";
+
+  // Fica montado no App: se eu sou quem está compartilhando a posição de um ônibus,
+  // mantém o GPS ligado e grava a cada ~8s. Sobrevive a recarregar a página.
+  function RastreioRunner({ on, user, t }) {
+    const meu = (on || []).find((o) => o.rastreio?.ativo && o.rastreio?.uid === user?.id);
+    const num = meu?.num;
+    const ultimoRef = useRef(0);
+    const wakeRef = useRef(null);
+    useEffect(() => {
+      if (num == null || !("geolocation" in navigator)) return;
+      const gravar = (pos) => {
+        const agora = Date.now();
+        if (agora - ultimoRef.current < 8000) return;
+        ultimoRef.current = agora;
+        const c = pos.coords;
+        setDoc(
+          doc(db, "onibus", String(num)),
+          { rastreio: { lat: c.latitude, lng: c.longitude, precisao: Math.round(c.accuracy || 0), velocidade: c.speed ?? null, rumo: c.heading ?? null, atualizadoEm: agora } },
+          { merge: true },
+        ).catch((e) => console.error("rastreio:", e));
+      };
+      const id = navigator.geolocation.watchPosition(
+        gravar,
+        (e) => { if (e.code === 1) t("Localização bloqueada. Libere o acesso para o app nas configurações do celular.", "w"); },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 },
+      );
+      // tela acesa enquanto compartilha: o GPS para quando o celular bloqueia
+      const pedirWake = async () => {
+        try {
+          if (document.visibilityState === "visible" && navigator.wakeLock) wakeRef.current = await navigator.wakeLock.request("screen");
+        } catch { /* sem wake lock */ }
+      };
+      pedirWake();
+      document.addEventListener("visibilitychange", pedirWake);
+      return () => {
+        navigator.geolocation.clearWatch(id);
+        document.removeEventListener("visibilitychange", pedirWake);
+        wakeRef.current?.release?.().catch(() => {});
+        wakeRef.current = null;
+      };
+    }, [num]);
+    return null;
+  }
+
+  // "Estou no ônibus": o responsável liga o compartilhamento; quem edita ônibus
+  // também pode ligar (admin a bordo) ou encerrar.
+  function ControleRastreio({ o, user, t, edit, ocupados = null }) {
+    const [agora, setAgora] = useState(Date.now());
+    useEffect(() => {
+      const id = setInterval(() => setAgora(Date.now()), 5000);
+      return () => clearInterval(id);
+    }, []);
+    const r = o.rastreio;
+    const souResp = !!user?.nome && (o.resp || []).includes(user.nome);
+    const souEu = !!r?.ativo && r.uid === user?.id;
+    const st = statusRastreio(o, agora);
+    if (!souResp && !edit && !r?.ativo) return null;
+
+    const iniciar = () => {
+      if (!("geolocation" in navigator)) { t("Este aparelho não tem localização.", "w"); return; }
+      vibrar();
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const c = pos.coords;
+          try {
+            await setDoc(
+              doc(db, "onibus", String(o.num)),
+              { rastreio: { ativo: true, uid: user.id, nome: user.nome, lat: c.latitude, lng: c.longitude, precisao: Math.round(c.accuracy || 0), velocidade: c.speed ?? null, rumo: c.heading ?? null, iniciadoEm: Date.now(), atualizadoEm: Date.now(), encerradoEm: null } },
+              { merge: true },
+            );
+            t("Você está no mapa! Mantenha o app aberto durante a viagem.");
+          } catch (e) {
+            console.error(e);
+            t("Não consegui iniciar o compartilhamento.", "w");
+          }
+        },
+        (e) => t(e.code === 1 ? "Permita o acesso à localização para continuar." : "Não consegui pegar sua localização. Tente de novo.", "w"),
+        { enableHighAccuracy: true, timeout: 20000 },
+      );
+    };
+    const parar = async () => {
+      vibrar();
+      await setDoc(doc(db, "onibus", String(o.num)), { rastreio: { ativo: false, encerradoEm: Date.now() } }, { merge: true });
+      t("Compartilhamento encerrado.");
+    };
+
+    if (r?.ativo) {
+      const cor = st === "ao_vivo" ? G.green : "#ff9f0a";
+      const atras = fmtTempoAtras(agora - (r.atualizadoEm || 0));
+      return (
+        <div style={{ background: `${cor}12`, border: `1px solid ${cor}44`, borderRadius: 12, padding: "10px 12px", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor, boxShadow: st === "ao_vivo" ? `0 0 0 4px ${cor}33` : "none", flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: G.t, fontWeight: 700, fontSize: 13 }}>
+                {st === "ao_vivo" ? (souEu ? "Você está compartilhando a posição" : "Em rota") : `Sem sinal há ${atras}`}
+              </div>
+              <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>
+                {souEu ? `Atualizado há ${atras} · mantenha o app aberto` : `Posição de ${nomeCurto(r.nome)}`}
+              </div>
+            </div>
+            {(souEu || edit) && (
+              <button onClick={parar} style={{ ...BK({ padding: "8px 12px", borderRadius: 10, fontSize: 12 }), borderColor: "rgba(255,59,48,.4)", color: "#ff6b6b" }}>
+                {souEu ? "Cheguei" : "Encerrar"}
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (!souResp && !edit) return null;
+    const poltronas = o.poltronas || 40;
+    const faltam = ocupados != null ? Math.max(0, poltronas - ocupados) : null;
+    return (
+      <div style={{ marginBottom: 10 }}>
+        <button onClick={iniciar} style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 })}>
+          <Bus size={16} /> Estou no ônibus · compartilhar localização
+        </button>
+        <div style={{ color: G.tm, fontSize: 11, marginTop: 6, textAlign: "center" }}>
+          {faltam === 0 ? "Ônibus completo. " : faltam > 0 ? `Faltam ${faltam} passageiros. ` : ""}
+          Sua localização vira a posição do Ônibus {o.num} no mapa.
+          {r?.encerradoEm ? ` Último compartilhamento encerrado às ${fmtHora(r.encerradoEm)}.` : ""}
+        </div>
+      </div>
+    );
+  }
+
+  const CSS_MAPA = `
+.mapa-onibus .leaflet-container{background:#0a0a0a;font-family:inherit}
+.mapa-onibus .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.8) contrast(.95) saturate(.5)}
+.mapa-onibus .leaflet-control-attribution{background:rgba(0,0,0,.6);color:#777;font-size:9px}
+.mapa-onibus .leaflet-control-attribution a{color:#999}
+.mapa-onibus .leaflet-tooltip{background:#1c1c1e;color:#fff;border:1px solid #333;border-radius:8px;font-weight:700;font-size:11px;padding:4px 8px}
+.mapa-onibus .leaflet-tooltip-top:before{border-top-color:#333}
+.bus-mk{position:relative;width:34px;height:34px;border-radius:12px;background:var(--c);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.55)}
+.bus-mk.on::before{content:"";position:absolute;inset:-6px;border-radius:16px;border:2px solid var(--c);animation:busPulse 1.6s ease-out infinite}
+.bus-mk.off{filter:grayscale(1);opacity:.55}
+@keyframes busPulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+.pt-mk{width:34px;height:34px;border-radius:50%;background:#1c1c1e;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.55)}
+`;
+
+  function MapaOnibusV({ on, podeConfigurar, onClose, t, rotaInicial = null }) {
+    const [rota, setRota] = useState(rotaInicial);
+    const [L, setL] = useState(null);
+    const [geo, setGeo] = useState(null); // pontos [lat,lng] da rota
+    const [acum, setAcum] = useState(null); // distância acumulada até cada ponto
+    const [agora, setAgora] = useState(Date.now());
+    const [cfg, setCfg] = useState(false);
+    const [txtIgreja, setTxtIgreja] = useState("");
+    const [txtSitio, setTxtSitio] = useState("");
+    const [foco, setFoco] = useState(null);
+    const [erroRota, setErroRota] = useState("");
+    const divRef = useRef(null);
+    const mapRef = useRef(null);
+    const camadasRef = useRef({});
+    const busRef = useRef({}); // num -> { marker, cur, idx, raf, html }
+    const fitRef = useRef(false);
+    const osrmRef = useRef({});
+    const origem = rota?.origem, destino = rota?.destino;
+
+    useEffect(() => {
+      const id = setInterval(() => setAgora(Date.now()), 4000);
+      return () => clearInterval(id);
+    }, []);
+    useEffect(() => {
+      if (rotaInicial) return;
+      const unsub = onSnapshot(doc(db, "config", "rota"), (s) => setRota(s.exists() ? s.data() : {}), () => setRota({}));
+      return () => unsub();
+    }, []);
+    useEffect(() => {
+      import("leaflet").then((m) => setL(m.default || m));
+    }, []);
+    useEffect(() => {
+      if (origem) setTxtIgreja(`${origem.lat}, ${origem.lng}`);
+      if (destino) setTxtSitio(`${destino.lat}, ${destino.lng}`);
+    }, [origem?.lat, origem?.lng, destino?.lat, destino?.lng]);
+
+    // cria o mapa uma vez
+    useEffect(() => {
+      if (!L || !divRef.current || mapRef.current) return;
+      const map = L.map(divRef.current, { zoomControl: false }).setView([-15.8, -47.9], 4);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+      mapRef.current = map;
+      setTimeout(() => map.invalidateSize(), 50);
+      return () => { map.remove(); mapRef.current = null; busRef.current = {}; camadasRef.current = {}; };
+    }, [L]);
+
+    // rota: usa a polyline em cache ou pede ao OSRM (e guarda, se puder)
+    useEffect(() => {
+      if (!origem || !destino) { setGeo(null); setAcum(null); return; }
+      let cancel = false;
+      const aplicar = (pts) => {
+        if (cancel) return;
+        const a = [0];
+        for (let i = 1; i < pts.length; i++) a.push(a[i - 1] + distM(pts[i - 1], pts[i]));
+        setGeo(pts);
+        setAcum(a);
+      };
+      if (rota.polyline) { setErroRota(""); aplicar(decodePolyline(rota.polyline)); return; }
+      fetch(`https://router.project-osrm.org/route/v1/driving/${origem.lng},${origem.lat};${destino.lng},${destino.lat}?overview=full&geometries=polyline`)
+        .then((r) => r.json())
+        .then(async (j) => {
+          const r0 = j.routes?.[0];
+          if (!r0) throw new Error(j.code || "sem rota");
+          osrmRef.current = { distancia: r0.distance, duracao: r0.duration };
+          setErroRota("");
+          aplicar(decodePolyline(r0.geometry));
+          if (podeConfigurar && !rotaInicial) {
+            await setDoc(doc(db, "config", "rota"), { polyline: r0.geometry, distancia: r0.distance, duracao: r0.duration }, { merge: true }).catch(() => {});
+          }
+        })
+        .catch((e) => {
+          if (cancel) return;
+          console.warn("rota:", e);
+          setErroRota("Não consegui traçar a rota agora. Mostrando linha reta.");
+          aplicar([[origem.lat, origem.lng], [destino.lat, destino.lng]]);
+        });
+      return () => { cancel = true; };
+    }, [origem?.lat, origem?.lng, destino?.lat, destino?.lng, rota?.polyline]);
+
+    // desenha igreja, sítio e rota
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!L || !map) return;
+      Object.values(camadasRef.current).forEach((l) => l && map.removeLayer(l));
+      const c = {};
+      const ponto = (p, emoji, rotulo) =>
+        L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: `<div class="pt-mk">${emoji}</div>`, iconSize: [34, 34], iconAnchor: [17, 17] }), zIndexOffset: 100 })
+          .addTo(map)
+          .bindTooltip(rotulo, { direction: "top", offset: [0, -18] });
+      if (origem) c.igreja = ponto(origem, "⛪", "Igreja");
+      if (destino) c.sitio = ponto(destino, "🏕️", "Sítio");
+      if (geo) {
+        c.rotaBase = L.polyline(geo, { color: "#000", weight: 9, opacity: 0.55 }).addTo(map);
+        c.rota = L.polyline(geo, { color: "#0a84ff", weight: 5, opacity: 0.9, dashArray: geo.length === 2 ? "8 10" : null }).addTo(map);
+      }
+      camadasRef.current = c;
+      if (!fitRef.current && (geo || origem)) {
+        const b = geo ? L.latLngBounds(geo) : L.latLngBounds([[origem.lat, origem.lng]]);
+        if (destino) b.extend([destino.lat, destino.lng]);
+        map.fitBounds(b, { padding: [40, 40] });
+        fitRef.current = true;
+      }
+    }, [L, geo, origem?.lat, origem?.lng, destino?.lat, destino?.lng]);
+
+    // posição do ônibus: cola na rota quando está a menos de 250 m dela
+    const posOnibus = (o) => {
+      const r = o.rastreio;
+      if (!r || r.lat == null) return null;
+      const bruto = [r.lat, r.lng];
+      if (!geo || geo.length < 3) return { pos: bruto, idx: null };
+      const { idx, d } = pontoMaisProximo(geo, bruto);
+      return d < 250 ? { pos: geo[idx], idx } : { pos: bruto, idx };
+    };
+
+    // desliza o marcador até o novo ponto seguindo a rota (6s, tempo entre atualizações)
+    const animar = (b, alvo, idxAlvo) => {
+      if (b.cur[0] === alvo[0] && b.cur[1] === alvo[1]) return;
+      if (b.raf) cancelAnimationFrame(b.raf);
+      let caminho = [b.cur, alvo];
+      if (geo && idxAlvo != null) {
+        const idxDe = pontoMaisProximo(geo, b.cur).idx;
+        if (idxDe !== idxAlvo) {
+          const seg = idxAlvo > idxDe ? geo.slice(idxDe + 1, idxAlvo + 1) : geo.slice(idxAlvo, idxDe).reverse();
+          caminho = [b.cur, ...seg];
+          const fim = caminho[caminho.length - 1];
+          if (fim[0] !== alvo[0] || fim[1] !== alvo[1]) caminho.push(alvo);
+        }
+      }
+      const len = [0];
+      for (let i = 1; i < caminho.length; i++) len.push(len[i - 1] + distM(caminho[i - 1], caminho[i]));
+      const total = len[len.length - 1] || 1;
+      const t0 = performance.now(), dur = 6000;
+      const passo = (now) => {
+        const k = Math.min(1, (now - t0) / dur);
+        const d = k * total;
+        let i = 1;
+        while (i < len.length - 1 && len[i] < d) i++;
+        const f = (d - len[i - 1]) / (len[i] - len[i - 1] || 1);
+        const pos = [caminho[i - 1][0] + (caminho[i][0] - caminho[i - 1][0]) * f, caminho[i - 1][1] + (caminho[i][1] - caminho[i - 1][1]) * f];
+        b.marker.setLatLng(pos);
+        b.cur = pos;
+        if (k < 1) b.raf = requestAnimationFrame(passo);
+        else { b.cur = alvo; b.raf = null; }
+      };
+      b.raf = requestAnimationFrame(passo);
+    };
+
+    // marcadores dos ônibus
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!L || !map) return;
+      const vivos = new Set();
+      (on || []).forEach((o) => {
+        const p = posOnibus(o);
+        if (!p) return;
+        vivos.add(String(o.num));
+        const st = statusRastreio(o, agora);
+        const cor = CORES_ONIBUS[o.tipo] || G.green;
+        const html = `<div class="bus-mk ${st === "ao_vivo" ? "on" : "off"}" style="--c:${cor}"><span>${o.num}</span></div>`;
+        const icone = () => L.divIcon({ className: "", html, iconSize: [34, 34], iconAnchor: [17, 17] });
+        let b = busRef.current[o.num];
+        if (!b) {
+          b = { marker: L.marker(p.pos, { icon: icone(), zIndexOffset: 500 }).addTo(map), cur: p.pos, raf: null, html };
+          b.marker.bindTooltip(`Ônibus ${o.num}`, { direction: "top", offset: [0, -20] });
+          b.marker.on("click", () => setFoco({ num: o.num, n: Date.now() }));
+          busRef.current[o.num] = b;
+        } else {
+          if (b.html !== html) { b.marker.setIcon(icone()); b.html = html; }
+          animar(b, p.pos, p.idx);
+        }
+      });
+      Object.keys(busRef.current).forEach((k) => {
+        if (!vivos.has(k)) { map.removeLayer(busRef.current[k].marker); delete busRef.current[k]; }
+      });
+      if (!fitRef.current && !origem && vivos.size > 0) {
+        map.fitBounds(L.latLngBounds(Object.values(busRef.current).map((b) => b.cur)), { padding: [60, 60], maxZoom: 14 });
+        fitRef.current = true;
+      }
+    }, [L, on, geo, agora]);
+
+    useEffect(() => {
+      const map = mapRef.current, b = foco && busRef.current[foco.num];
+      if (map && b) map.flyTo(b.cur, Math.max(map.getZoom(), 13), { duration: 0.8 });
+    }, [foco]);
+
+    const centralizar = () => {
+      const map = mapRef.current;
+      if (!L || !map) return;
+      const pts = [...(geo || []), ...Object.values(busRef.current).map((b) => b.cur)];
+      if (origem) pts.push([origem.lat, origem.lng]);
+      if (destino) pts.push([destino.lat, destino.lng]);
+      if (pts.length) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+    };
+
+    const infoOnibus = (o) => {
+      const st = statusRastreio(o, agora);
+      const p = posOnibus(o);
+      let restante = null, eta = null, chegou = false;
+      if (p && geo && acum && p.idx != null && geo.length > 2) {
+        restante = acum[acum.length - 1] - acum[p.idx];
+        chegou = restante < 300;
+        const v = o.rastreio?.velocidade;
+        const dist = osrmRef.current.distancia || rota?.distancia, dur = osrmRef.current.duracao || rota?.duracao;
+        const vel = v > 1.5 ? v : dist && dur ? dist / dur : null;
+        if (vel && !chegou) eta = agora + (restante / vel) * 1000;
+      }
+      let texto, cor;
+      if (st === "ao_vivo") {
+        cor = G.green;
+        texto = chegou ? "Chegou ao sítio" : restante != null ? `Em rota · faltam ${fmtKm(restante)}${eta ? ` · chega ~${fmtHora(eta)}` : ""}` : `Em rota · ${nomeCurto(o.rastreio?.nome || "")}`;
+      } else if (st === "sem_sinal") {
+        cor = "#ff9f0a";
+        texto = `Sem sinal há ${fmtTempoAtras(agora - (o.rastreio?.atualizadoEm || 0))}`;
+      } else if (st === "chegou") {
+        cor = G.tm;
+        texto = `Encerrado às ${fmtHora(o.rastreio.encerradoEm)}`;
+      } else {
+        cor = G.tm;
+        texto = "Ainda não saiu";
+      }
+      return { st, p, texto, cor };
+    };
+
+    const usarMinha = (set) => {
+      if (!("geolocation" in navigator)) { t("Este aparelho não tem localização.", "w"); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => set(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`),
+        () => t("Não consegui pegar sua localização.", "w"),
+        { enableHighAccuracy: true, timeout: 15000 },
+      );
+    };
+    const salvarCfg = async () => {
+      const o = parseCoord(txtIgreja), d = parseCoord(txtSitio);
+      if (!o || !d) { t("Cole \"latitude, longitude\" ou um link do Google Maps nos dois campos.", "w"); return; }
+      await setDoc(doc(db, "config", "rota"), { origem: o, destino: d, polyline: null, distancia: null, duracao: null }, { merge: true });
+      fitRef.current = false;
+      setCfg(false);
+      t("Rota salva!");
+    };
+
+    const emRota = (on || []).filter((o) => statusRastreio(o, agora) === "ao_vivo").length;
+    const campo = ({ rot, val, set }) => (
+      <div>
+        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{rot}</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={val} onChange={(e) => set(e.target.value)} placeholder="lat, lng ou link do Google Maps" style={{ ...I, fontSize: 12, padding: "9px 12px", marginBottom: 0, flex: 1 }} />
+          <button onClick={() => usarMinha(set)} title="Usar minha localização" style={BK({ padding: "0 12px", borderRadius: 10, fontSize: 12, whiteSpace: "nowrap" })}>📍 Aqui</button>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="mapa-onibus" data-sem-swipe style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
+        <style>{CSS_MAPA}</style>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", paddingTop: "max(12px, env(safe-area-inset-top))", borderBottom: "1px solid #1a1a1a", background: "#000" }}>
+          <button onClick={onClose} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>←</button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: G.t, fontWeight: 800, fontSize: 16 }}>Ônibus ao vivo</div>
+            <div style={{ color: G.tm, fontSize: 11 }}>{emRota} em rota · {(on || []).length} ônibus</div>
+          </div>
+          <button onClick={centralizar} style={BK({ padding: "8px 10px", borderRadius: 10, fontSize: 12 })}>Centralizar</button>
+          {podeConfigurar && (
+            <button onClick={() => setCfg(!cfg)} aria-label="Definir igreja e sítio" style={{ ...BK({ padding: "8px 10px", borderRadius: 10 }), borderColor: cfg ? `${G.green}88` : undefined, display: "flex" }}>
+              <Settings size={16} color={cfg ? G.green : G.td} />
+            </button>
+          )}
+        </div>
+
+        <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+          <div ref={divRef} style={{ position: "absolute", inset: 0 }} />
+          {!L && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: G.tm, fontSize: 13 }}>Carregando mapa…</div>}
+          {L && (!origem || !destino) && !cfg && (
+            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(0,0,0,.85)", border: "1px solid #333", borderRadius: 12, padding: "10px 12px", color: G.td, fontSize: 12 }}>
+              {podeConfigurar ? "Defina a igreja e o sítio no botão de ajustes para traçar a rota." : "A liderança ainda não definiu a rota da igreja ao sítio."}
+            </div>
+          )}
+          {erroRota && origem && destino && !cfg && (
+            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12 }}>{erroRota}</div>
+          )}
+          {cfg && (
+            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(10,10,10,.96)", border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>Rota do ônibus</div>
+              {campo({ rot: "Igreja (saída)", val: txtIgreja, set: setTxtIgreja })}
+              {campo({ rot: "Sítio (chegada)", val: txtSitio, set: setTxtSitio })}
+              <div style={{ color: G.tm, fontSize: 11 }}>No Google Maps, segure no local, toque nas coordenadas para copiar e cole aqui. Ou toque em "Aqui" estando no lugar.</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setCfg(false)} style={BK({ flex: 1, padding: 11, borderRadius: 11 })}>Cancelar</button>
+                <button onClick={salvarCfg} style={BG({ flex: 1, padding: 11, borderRadius: 11 })}>Salvar rota</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ background: "#000", borderTop: "1px solid #1a1a1a", maxHeight: "34vh", overflowY: "auto", padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom))" }}>
+          {(on || []).length === 0 && <div style={{ color: G.tm, fontSize: 13, textAlign: "center", padding: 12 }}>Nenhum ônibus cadastrado.</div>}
+          {(on || []).map((o) => {
+            const inf = infoOnibus(o);
+            const cor = CORES_ONIBUS[o.tipo] || G.green;
+            return (
+              <div
+                key={o.num}
+                onClick={() => inf.p && setFoco({ num: o.num, n: Date.now() })}
+                className={inf.p ? "press" : undefined}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #141414", cursor: inf.p ? "pointer" : "default", opacity: inf.st === "parado" ? 0.6 : 1 }}
+              >
+                <div style={{ width: 34, height: 34, borderRadius: 11, background: inf.st === "ao_vivo" ? cor : `${cor}33`, color: inf.st === "ao_vivo" ? "#fff" : cor, fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{o.num}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>Ônibus {o.num}</span>
+                    <span style={{ color: cor, fontSize: 11, fontWeight: 700 }}>{o.tipo}</span>
+                  </div>
+                  <div style={{ color: inf.cor, fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{inf.texto}</div>
+                </div>
+                {inf.p && <span style={{ color: G.tm, fontSize: 12 }}>Ver ›</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   function OnV({
+    user,
+    abrirMapa,
     on,
     uOn,
     setOn,
@@ -8033,6 +8588,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           </div>
         )}
 
+        {(() => {
+          const emRota = on.filter((o) => statusRastreio(o) === "ao_vivo").length;
+          return (
+            <button onClick={abrirMapa} className="press" style={{ ...BK({ width: "100%", padding: "12px 14px", borderRadius: 13, marginBottom: 10, fontSize: 14, display: "flex", alignItems: "center", gap: 10, textAlign: "left" }), borderColor: emRota ? `${G.green}66` : undefined }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: emRota ? G.green : G.tm, boxShadow: emRota ? `0 0 0 4px ${G.green}33` : "none", flexShrink: 0 }} />
+              <span style={{ flex: 1, color: G.t, fontWeight: 700 }}>Mapa ao vivo</span>
+              <span style={{ color: G.tm, fontSize: 12 }}>{emRota ? `${emRota} em rota` : "Nenhum em rota"} ›</span>
+            </button>
+          );
+        })()}
+
         {edit && (
           <>
             <button
@@ -8239,6 +8805,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   ? `${poltronas - ocupados} vagas`
                   : "Lotado"}
               </div>
+
+              <ControleRastreio o={o} user={user} t={t} edit={edit} ocupados={ocupados} />
 
               {edit && <EditOnibus o={o} onSave={salvarOnibus} />}
 
@@ -13218,6 +13786,7 @@ export default function App() {
   const [uni, setUni] = useState([]);
   const [dataLimiteUni, setDataLimiteUni] = useState("");
   const [toast, setToast] = useState(null);
+  const [mapaOnibus, setMapaOnibus] = useState(false);
   const toastKey = useRef(0);
   const [notif, setNotif] = useState(false);
   const unsubConfigRef = useRef(null);
@@ -13847,6 +14416,8 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
         {toast && <Toast key={toast.k} m={toast.m} tp={toast.tp} saindo={toast.saindo} />}
+        <RastreioRunner on={on} user={user} t={showT} />
+        {mapaOnibus && <MapaOnibusV on={on} podeConfigurar={isAdm || canG(role)} onClose={() => setMapaOnibus(false)} t={showT} />}
         {menuP.montado && (
           <div style={{ position: "fixed", inset: 0, zIndex: 200 }} className={menuP.saindo ? "out" : undefined}>
             <div
@@ -14031,6 +14602,8 @@ export default function App() {
         {/* home com 3 cards */}
         {(pg === "smins" || pg === "home") && (
           <ServoHomeV
+            t={showT}
+            abrirMapa={() => setMapaOnibus(true)}
             liderMapOverrides={liderMapOverrides}
             user={user}
             mins={mins}
@@ -14132,7 +14705,7 @@ export default function App() {
             <CartasV users={users} user={user} role={role} t={showT} />
           )}
           {pg === "sonibus" && (
-            temPermissao("onibus") ? <OnV on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
+            temPermissao("onibus") ? <OnV user={user} abrirMapa={() => setMapaOnibus(true)} on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
           )}
           {pg === "senc" && (
             temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} inscricoesBloqueadas={inscricoesBloqueadas} salvarInscricoesBloqueadas={salvarInscricoesBloqueadas} /> : <TelaRestrita />
@@ -14151,6 +14724,8 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: G.bg, paddingBottom: 60 }}>
       {toast && <Toast key={toast.k} m={toast.m} tp={toast.tp} saindo={toast.saindo} />}
+      <RastreioRunner on={on} user={user} t={showT} />
+      {mapaOnibus && <MapaOnibusV on={on} podeConfigurar={isAdm || canG(role)} onClose={() => setMapaOnibus(false)} t={showT} />}
       {menuP.montado && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200 }} className={menuP.saindo ? "out" : undefined}>
           <div
@@ -14379,6 +14954,8 @@ export default function App() {
         )}
         {pg === "onibus" && (
           <OnV
+            user={user}
+            abrirMapa={() => setMapaOnibus(true)}
             on={on}
             uOn={uOn}
             setOn={setOn}

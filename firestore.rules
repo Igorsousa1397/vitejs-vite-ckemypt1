@@ -133,7 +133,13 @@ service cloud.firestore {
     match /cozinha_estoque/{id}   { allow read, write: if ativo(); }
     match /ocorrencias/{id}       { allow read, write: if ativo(); }
     match /testemunhos/{id}       { allow read, write: if ativo(); }
-    match /onibus/{id}            { allow read: if ativo(); allow write: if isLider() || temTelaExtra('onibus'); }
+    match /onibus/{id} {
+      allow read: if ativo();
+      allow write: if isLider() || temTelaExtra('onibus');
+      // responsável do ônibus compartilha a posição ao vivo: só mexe em `rastreio`
+      allow update: if ativo() && soMudou(['rastreio'])
+        && meuDoc().get('nome', '') in resource.data.get('resp', []);
+    }
     match /quartos_h/{id}         { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
     // planta dos quartos (mapas/h e mapas/m): quem edita quartos monta o mapa
     match /mapas/{id}             { allow read: if ativo(); allow write: if isLider() || temTelaExtra('quartos'); }
