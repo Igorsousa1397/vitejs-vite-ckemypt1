@@ -1230,6 +1230,8 @@ exports.excluirEncontrista = onRequest({ cors: true, invoker: 'public' }, async 
     if (!snap.exists) return res.status(404).json({ error: 'Inscrição não encontrada.' });
     const e = snap.data();
     if (e.pagamentoId) return res.status(400).json({ error: 'Essa inscrição foi paga pelo Mercado Pago e não pode ser excluída.' });
+    // só pendente sai: pago, pagar depois e desistiu têm histórico que a liderança usa
+    if (e.pago || e.pagarDepois || e.desistiu) return res.status(400).json({ error: 'Só inscrições pendentes podem ser excluídas.' });
 
     const apagarPorCampo = async (col) => {
       const q = await db.collection(col).where('encontristaId', '==', id).get();

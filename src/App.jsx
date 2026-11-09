@@ -7344,7 +7344,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
     const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
     const [excluindoEnc, setExcluindoEnc] = useState(null);
-    // só admin; quem pagou pelo Mercado Pago não sai por aqui (a function também barra)
+    // só admin e só pendente (a function também barra pago / pagar depois / desistiu)
     const excluirInscricao = async (enc) => {
       const ok = await pedirConfirmacao(
         `Excluir a inscrição de ${enc.nome}? Apaga também termo, ficha de saúde e fotos. Não dá para desfazer.`,
@@ -7952,7 +7952,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           : "Nenhum contato registrado"}
                       </div>
                     )}
-                    {edit && !e.pagamentoId && (
+                    {edit && encStatus(e) === "pendente" && (
                       <button
                         onClick={(ev) => { ev.stopPropagation(); excluirInscricao(e); }}
                         disabled={excluindoEnc === e.id}
