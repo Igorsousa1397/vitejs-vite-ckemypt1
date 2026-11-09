@@ -7857,19 +7857,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
   };
-  // aceita "lat, lng" ou link do Google Maps (@lat,lng · q=lat,lng · !3dlat!4dlng)
-  const parseCoord = (txt) => {
-    const s = (txt || "").trim();
-    const m =
-      s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-      s.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-      s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
-      s.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
-    if (!m) return null;
-    const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
-    if (Number.isNaN(lat) || Number.isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-    return { lat, lng };
-  };
   const pontoMaisProximo = (rota, p) => {
     let idx = 0, d = Infinity;
     for (let i = 0; i < rota.length; i++) {
@@ -8035,9 +8022,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 .pt-mk{width:34px;height:34px;border-radius:50%;background:#1c1c1e;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 `;
 
-  // Demonstração: ônibus fictícios andando pela rota (nada é gravado). Sem rota
-  // definida em config/rota, usa Igreja Fonte (Cajamar) -> Chácara Maranata (Mauá).
-  const ROTA_DEMO = { origem: { lat: -23.4092152, lng: -46.8672186 }, destino: { lat: -23.6416302, lng: -46.4163667 } };
+  // Rota fixa do encontro: Igreja Fonte (Cajamar) -> Chácara Maranata (Mauá). Não é
+  // editável no app; config/rota guarda a polyline em cache (ajuste só por script).
+  const ROTA_PADRAO = { origem: { lat: -23.4092152, lng: -46.8672186 }, destino: { lat: -23.6416302, lng: -46.4163667 } };
 
   // estilos de mapa sem chave de API: OSM (escuro via filtro ou claro) e satélite da Esri
   const ESTILOS_MAPA = {
@@ -8059,9 +8046,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [geo, setGeo] = useState(null); // pontos [lat,lng] da rota
     const [acum, setAcum] = useState(null); // distância acumulada até cada ponto
     const [agora, setAgora] = useState(Date.now());
-    const [cfg, setCfg] = useState(false);
-    const [txtIgreja, setTxtIgreja] = useState("");
-    const [txtSitio, setTxtSitio] = useState("");
     const [foco, setFoco] = useState(null);
     const [erroRota, setErroRota] = useState("");
     const divRef = useRef(null);
@@ -8070,9 +8054,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const busRef = useRef({}); // num -> { marker, cur, idx, raf, html }
     const fitRef = useRef(false);
     const osrmRef = useRef({});
-    const usandoRotaDemo = demo && !(rota?.origem && rota?.destino);
-    const rotaEf = usandoRotaDemo ? ROTA_DEMO : rota;
-    const origem = rotaEf?.origem, destino = rotaEf?.destino;
+    const rotaEf = rota?.origem && rota?.destino ? rota : ROTA_PADRAO;
+    const origem = rotaEf.origem, destino = rotaEf.destino;
 
     useEffect(() => {
       if (!demo) return;
@@ -8103,10 +8086,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     useEffect(() => {
       import("leaflet").then((m) => setL(m.default || m));
     }, []);
-    useEffect(() => {
-      if (origem) setTxtIgreja(`${origem.lat}, ${origem.lng}`);
-      if (destino) setTxtSitio(`${destino.lat}, ${destino.lng}`);
-    }, [origem?.lat, origem?.lng, destino?.lat, destino?.lng]);
 
     // cria o mapa uma vez
     useEffect(() => {
@@ -8151,8 +8130,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           osrmRef.current = { distancia: r0.distance, duracao: r0.duration };
           setErroRota("");
           aplicar(decodePolyline(r0.geometry));
-          if (podeConfigurar && !rotaInicial && !usandoRotaDemo) {
-            await setDoc(doc(db, "config", "rota"), { polyline: r0.geometry, distancia: r0.distance, duracao: r0.duration }, { merge: true }).catch(() => {});
+          if (podeConfigurar && !rotaInicial) {
+            await setDoc(doc(db, "config", "rota"), { origem, destino, polyline: r0.geometry, distancia: r0.distance, duracao: r0.duration }, { merge: true }).catch(() => {});
           }
         })
         .catch((e) => {
@@ -8319,33 +8298,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       return { st, p, texto, cor };
     };
 
-    const usarMinha = (set) => {
-      if (!("geolocation" in navigator)) { t("Este aparelho não tem localização.", "w"); return; }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => set(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`),
-        () => t("Não consegui pegar sua localização.", "w"),
-        { enableHighAccuracy: true, timeout: 15000 },
-      );
-    };
-    const salvarCfg = async () => {
-      const o = parseCoord(txtIgreja), d = parseCoord(txtSitio);
-      if (!o || !d) { t("Cole \"latitude, longitude\" ou um link do Google Maps nos dois campos.", "w"); return; }
-      await setDoc(doc(db, "config", "rota"), { origem: o, destino: d, polyline: null, distancia: null, duracao: null }, { merge: true });
-      fitRef.current = false;
-      setCfg(false);
-      t("Rota salva!");
-    };
-
     const emRota = (on || []).filter((o) => statusRastreio(o, agora) === "ao_vivo").length;
-    const campo = ({ rot, val, set }) => (
-      <div>
-        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{rot}</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <input value={val} onChange={(e) => set(e.target.value)} placeholder="lat, lng ou link do Google Maps" style={{ ...I, fontSize: 12, padding: "9px 12px", marginBottom: 0, flex: 1 }} />
-          <button onClick={() => usarMinha(set)} title="Usar minha localização" style={BK({ padding: "0 12px", borderRadius: 10, fontSize: 12, whiteSpace: "nowrap" })}>📍 Aqui</button>
-        </div>
-      </div>
-    );
 
     return (
       <div className={`mapa-onibus${ESTILOS_MAPA[estilo].filtro ? " mapa-escuro" : ""}`} data-sem-swipe style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
@@ -8360,44 +8313,22 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           {podeConfigurar && (
             <button onClick={() => { vibrar(); setDemo(!demo); fitRef.current = false; }} style={{ ...BK({ padding: "8px 10px", borderRadius: 10, fontSize: 12 }), borderColor: demo ? "#ff9f0a88" : undefined, color: demo ? "#ffb340" : G.td }}>Demo</button>
           )}
-          {podeConfigurar && (
-            <button onClick={() => setCfg(!cfg)} aria-label="Definir igreja e sítio" style={{ ...BK({ padding: "8px 10px", borderRadius: 10 }), borderColor: cfg ? `${G.green}88` : undefined, display: "flex" }}>
-              <Settings size={16} color={cfg ? G.green : G.td} />
-            </button>
-          )}
         </div>
 
         <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
           <div ref={divRef} style={{ position: "absolute", inset: 0 }} />
           {!L && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: G.tm, fontSize: 13 }}>Carregando mapa…</div>}
-          {L && (!origem || !destino) && !cfg && (
-            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(0,0,0,.85)", border: "1px solid #333", borderRadius: 12, padding: "10px 12px", color: G.td, fontSize: 12 }}>
-              {podeConfigurar ? "Defina a igreja e o sítio no botão de ajustes para traçar a rota." : "A liderança ainda não definiu a rota da igreja ao sítio."}
-            </div>
-          )}
-          {erroRota && origem && destino && !cfg && (
+          {erroRota && (
             <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12 }}>{erroRota}</div>
           )}
           {L && (
-            <button onClick={trocarEstilo} style={{ ...BK({ padding: "7px 10px", borderRadius: 10, fontSize: 12 }), position: "absolute", top: cfg || !origem || !destino || erroRota ? 70 : 12, right: 12, zIndex: 500, background: "rgba(0,0,0,.75)" }}>
+            <button onClick={trocarEstilo} style={{ ...BK({ padding: "7px 10px", borderRadius: 10, fontSize: 12 }), position: "absolute", top: erroRota ? 70 : 12, right: 12, zIndex: 500, background: "rgba(0,0,0,.75)" }}>
               🗺 {ESTILOS_MAPA[estilo].l}
             </button>
           )}
           {demo && (
             <div style={{ position: "absolute", bottom: 26, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12, textAlign: "center" }}>
-              Demonstração com ônibus fictícios{usandoRotaDemo ? " e rota de exemplo" : ""} · nada é gravado
-            </div>
-          )}
-          {cfg && (
-            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(10,10,10,.96)", border: `1px solid ${G.cb}`, borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ color: G.t, fontWeight: 700, fontSize: 14 }}>Rota do ônibus</div>
-              {campo({ rot: "Igreja (saída)", val: txtIgreja, set: setTxtIgreja })}
-              {campo({ rot: "Sítio (chegada)", val: txtSitio, set: setTxtSitio })}
-              <div style={{ color: G.tm, fontSize: 11 }}>No Google Maps, segure no local, toque nas coordenadas para copiar e cole aqui. Ou toque em "Aqui" estando no lugar.</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setCfg(false)} style={BK({ flex: 1, padding: 11, borderRadius: 11 })}>Cancelar</button>
-                <button onClick={salvarCfg} style={BG({ flex: 1, padding: 11, borderRadius: 11 })}>Salvar rota</button>
-              </div>
+              Demonstração com ônibus fictícios · nada é gravado
             </div>
           )}
         </div>
