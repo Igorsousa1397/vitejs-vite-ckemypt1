@@ -11371,10 +11371,16 @@ function CozinhaV({ edit, t, users }) {
               {ativo && st.k !== "isento" && (
                 <Bloco titulo="Pagamento">
                   <div style={{ marginBottom: st.k === "pago" ? 0 : 10 }}>
-                    {st.k === "pago" && (
+                    {st.k === "pago" && u.pagamentoId && (
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <img src="/mp-logo.png" alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
                         <span style={{ color: G.green, fontSize: 13, fontWeight: 700 }}>Pago via Mercado Pago</span>
+                      </div>
+                    )}
+                    {st.k === "pago" && !u.pagamentoId && (
+                      <div>
+                        <span style={{ color: G.green, fontSize: 13, fontWeight: 700 }}>Pago ✓ · marcado manualmente</span>
+                        {u.pagoEm && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📅 {new Date(u.pagoEm).toLocaleDateString("pt-BR")}</div>}
                       </div>
                     )}
                     {st.k === "abonado" && <span style={{ color: "#aaa", fontSize: 13, fontWeight: 700 }}>Abonado — pagamento dispensado</span>}
@@ -11387,8 +11393,35 @@ function CozinhaV({ edit, t, users }) {
                     )}
                     {st.k === "pendente" && <span style={{ color: "#ff3b30", fontSize: 13, fontWeight: 700 }}>Pendente</span>}
                   </div>
+                  {st.k === "pago" && edit && (
+                    <button
+                      onClick={async () => {
+                        if (!(await pedirConfirmacao("Reverter este pagamento para PENDENTE?", "Reverter"))) return;
+                        salvar(u, { pago: false, pagoEm: null, pagoValor: null, pagamentoId: null, pagarDepoisData: null, pagarDepoisObs: null }, "Pagamento revertido.");
+                      }}
+                      style={{ ...BK({ width: "100%", padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, marginTop: 10 }), borderColor: "rgba(255,59,48,.35)", color: "#ff6b6b", background: "rgba(255,59,48,.06)" }}
+                    >
+                      ↩ Reverter para pendente
+                    </button>
+                  )}
                   {st.k !== "pago" && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {/* Marcar como pago — pagamento fora do Mercado Pago (Pix direto, dinheiro). Confirma antes: mexe no arrecadado do painel. */}
+                      {edit && (
+                        <button
+                          onClick={async () => {
+                            if (!(await pedirConfirmacao(`Marcar ${nomeCurto(u.nome)} como PAGO?`, "Marcar pago"))) return;
+                            salvar(
+                              u,
+                              { pago: true, pagoEm: new Date().toISOString(), pagoValor: valorServoPix(u.perfil), pagamentoId: null, pagarDepoisData: null, pagarDepoisObs: null },
+                              "Marcado como pago.",
+                            );
+                          }}
+                          style={{ ...BK({ width: "100%", padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700 }), borderColor: "rgba(0,200,81,.45)", color: G.green, background: "rgba(0,200,81,.1)" }}
+                        >
+                          Marcar como pago
+                        </button>
+                      )}
                       {st.k !== "abonado" && (
                         <div style={{ background: "#1a1a1a", borderRadius: 10, padding: "10px 12px" }}>
                           <PagarDepoisWidget u={u} upd={upd} t={t} />
