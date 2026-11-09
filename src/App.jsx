@@ -8020,7 +8020,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   const CSS_MAPA = `
 .mapa-onibus .leaflet-container{background:#0a0a0a;font-family:inherit}
-.mapa-onibus .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.8) contrast(.95) saturate(.5)}
+.mapa-onibus.mapa-escuro .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.8) contrast(.95) saturate(.5)}
 .mapa-onibus .leaflet-control-attribution{background:rgba(0,0,0,.6);color:#777;font-size:9px}
 .mapa-onibus .leaflet-control-attribution a{color:#999}
 .mapa-onibus .leaflet-tooltip{background:#1c1c1e;color:#fff;border:1px solid #333;border-radius:8px;font-weight:700;font-size:11px;padding:4px 8px}
@@ -8039,8 +8039,20 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   // definida em config/rota, usa Igreja Fonte (Cajamar) -> Chácara Maranata (Mauá).
   const ROTA_DEMO = { origem: { lat: -23.4092152, lng: -46.8672186 }, destino: { lat: -23.6416302, lng: -46.4163667 } };
 
+  // estilos de mapa sem chave de API: OSM (escuro via filtro ou claro) e satélite da Esri
+  const ESTILOS_MAPA = {
+    escuro: { l: "Escuro", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', filtro: true },
+    claro: { l: "Claro", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', filtro: false },
+    satelite: { l: "Satélite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr: "Tiles &copy; Esri", filtro: false },
+  };
+  const ORDEM_ESTILOS = ["escuro", "claro", "satelite"];
+
   function MapaOnibusV({ on: onReal, podeConfigurar, onClose, t, rotaInicial = null }) {
     const [rota, setRota] = useState(rotaInicial);
+    const [estilo, setEstilo] = useState(() => {
+      try { const v = localStorage.getItem("mapa_estilo"); return ESTILOS_MAPA[v] ? v : "escuro"; } catch { return "escuro"; }
+    });
+    const tilesRef = useRef(null);
     const [demo, setDemo] = useState(false);
     const [demoT, setDemoT] = useState(0);
     const [L, setL] = useState(null);
@@ -8100,14 +8112,24 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     useEffect(() => {
       if (!L || !divRef.current || mapRef.current) return;
       const map = L.map(divRef.current, { zoomControl: false }).setView([-15.8, -47.9], 4);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map);
       mapRef.current = map;
       setTimeout(() => map.invalidateSize(), 50);
       return () => { map.remove(); mapRef.current = null; busRef.current = {}; camadasRef.current = {}; };
     }, [L]);
+
+    // camada de fundo conforme o estilo escolhido
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!L || !map) return;
+      const e = ESTILOS_MAPA[estilo];
+      if (tilesRef.current) map.removeLayer(tilesRef.current);
+      tilesRef.current = L.tileLayer(e.url, { attribution: e.attr, maxZoom: 19 }).addTo(map);
+      try { localStorage.setItem("mapa_estilo", estilo); } catch { /* sem storage */ }
+    }, [L, estilo]);
+    const trocarEstilo = () => {
+      vibrar();
+      setEstilo((v) => ORDEM_ESTILOS[(ORDEM_ESTILOS.indexOf(v) + 1) % ORDEM_ESTILOS.length]);
+    };
 
     // rota: usa a polyline em cache ou pede ao OSRM (e guarda, se puder)
     useEffect(() => {
@@ -8326,7 +8348,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     );
 
     return (
-      <div className="mapa-onibus" data-sem-swipe style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
+      <div className={`mapa-onibus${ESTILOS_MAPA[estilo].filtro ? " mapa-escuro" : ""}`} data-sem-swipe style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
         <style>{CSS_MAPA}</style>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", paddingTop: "max(12px, env(safe-area-inset-top))", borderBottom: "1px solid #1a1a1a", background: "#000" }}>
           <button onClick={onClose} style={BK({ padding: "8px 12px", borderRadius: 10, fontSize: 16 })}>←</button>
@@ -8355,6 +8377,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           )}
           {erroRota && origem && destino && !cfg && (
             <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12 }}>{erroRota}</div>
+          )}
+          {L && (
+            <button onClick={trocarEstilo} style={{ ...BK({ padding: "7px 10px", borderRadius: 10, fontSize: 12 }), position: "absolute", top: cfg || !origem || !destino || erroRota ? 70 : 12, right: 12, zIndex: 500, background: "rgba(0,0,0,.75)" }}>
+              🗺 {ESTILOS_MAPA[estilo].l}
+            </button>
           )}
           {demo && (
             <div style={{ position: "absolute", bottom: 26, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12, textAlign: "center" }}>
