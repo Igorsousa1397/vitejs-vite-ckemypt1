@@ -1131,7 +1131,9 @@ const emprestadaDe = (p) => p?.camisaEmprestada || (p?.modalidade === "emprestim
 // Datas do encontro (config/encontro: { inicio, fim } em AAAA-MM-DD). Inscrição,
 // termos, lembrete de jejum e o termo gravado pela function leem daqui. Sem o
 // documento vale o padrão abaixo. Manter igual em functions/index.js.
-const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22" };
+const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP", lat: -23.6416302, lng: -46.4163667 };
+const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO };
+const linkMapsLocal = (l) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${l.nome}, ${l.endereco}`)}`;
 const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} e ${xs[xs.length - 1]}`);
 // "20, 21 e 22 de novembro de 2026" (atravessando o mês: "30 de novembro e 1 de dezembro de 2026")
@@ -1157,7 +1159,12 @@ function useEncontro() {
         doc(db, "config", "encontro"),
         (s) => {
           const d = s.data();
-          if (d?.inicio && d?.fim) setEnc({ inicio: d.inicio, fim: d.fim });
+          if (!d) return;
+          setEnc({
+            inicio: d.inicio || ENCONTRO_PADRAO.inicio,
+            fim: d.fim || ENCONTRO_PADRAO.fim,
+            local: d.local?.nome && d.local?.endereco ? { ...LOCAL_PADRAO, ...d.local } : LOCAL_PADRAO,
+          });
         },
         () => {},
       ),
@@ -1225,6 +1232,65 @@ function CampoEncontro({ t }) {
         style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, opacity: !mudou || salvando ? 0.4 : 1, cursor: !mudou || salvando ? "default" : "pointer" })}
       >
         {salvando ? "Salvando..." : "Salvar datas do encontro"}
+      </button>
+    </div>
+  );
+}
+// Local do encontro (config/encontro.local): nome, endereço e coordenadas. Aparece
+// na inscrição e é o destino da rota dos ônibus. As coordenadas vêm do Nominatim.
+const geocodificar = async (q) => {
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`, { headers: { "Accept-Language": "pt-BR" } });
+  const j = await r.json();
+  return j?.[0] ? { lat: parseFloat(j[0].lat), lng: parseFloat(j[0].lon) } : null;
+};
+function CampoLocal({ t }) {
+  const enc = useEncontro();
+  const [nome, setNome] = useState(enc.local.nome);
+  const [endereco, setEndereco] = useState(enc.local.endereco);
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => { setNome(enc.local.nome); setEndereco(enc.local.endereco); }, [enc.local.nome, enc.local.endereco]);
+  const mudou = nome.trim() !== enc.local.nome || endereco.trim() !== enc.local.endereco;
+  const salvar = async () => {
+    const n = nome.trim().replace(/\s+/g, " "), e = endereco.trim().replace(/\s+/g, " ");
+    if (!n || !e) { t("Preencha o nome do local e o endereço.", "w"); return; }
+    setSalvando(true);
+    try {
+      let coord = null;
+      try { coord = (await geocodificar(`${n}, ${e}`)) || (await geocodificar(e)); } catch { /* sem geocodificação */ }
+      const local = { nome: n, endereco: e, lat: coord?.lat ?? enc.local.lat, lng: coord?.lng ?? enc.local.lng };
+      await setDoc(doc(db, "config", "encontro"), { local }, { merge: true });
+      t(coord ? "Local salvo e encontrado no mapa!" : "Local salvo. Não achei o endereço no mapa, então a rota continua no ponto anterior.", coord ? "s" : "w");
+    } catch {
+      t("Erro ao salvar o local.", "w");
+    }
+    setSalvando(false);
+  };
+  return (
+    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Local do encontro</div>
+      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
+        Aparece na inscrição, com link para o Google Maps, e é o destino da rota dos ônibus.
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+        <label style={{ display: "block", minWidth: 0 }}>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nome do local</div>
+          <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Chácara Maranata" style={{ ...I, marginBottom: 0 }} />
+        </label>
+        <label style={{ display: "block", minWidth: 0 }}>
+          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Endereço completo</div>
+          <textarea value={endereco} onChange={(e) => setEndereco(e.target.value)} rows={2} placeholder="Rua, número, bairro, cidade - UF" style={{ ...I, marginBottom: 0, resize: "none", fontFamily: "inherit", lineHeight: 1.4 }} />
+        </label>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+        <span style={{ color: G.tm, fontSize: 11 }}>No mapa: {enc.local.lat.toFixed(5)}, {enc.local.lng.toFixed(5)}</span>
+        <a href={linkMapsLocal(enc.local)} target="_blank" rel="noopener noreferrer" style={{ color: G.green, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>Abrir no Google Maps ›</a>
+      </div>
+      <button
+        onClick={salvar}
+        disabled={!mudou || salvando}
+        style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, opacity: !mudou || salvando ? 0.4 : 1, cursor: !mudou || salvando ? "default" : "pointer" })}
+      >
+        {salvando ? "Salvando..." : "Salvar local do encontro"}
       </button>
     </div>
   );
@@ -1330,11 +1396,13 @@ function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, in
         rotuloOff="Cadastro desligado"
         onChange={(ligado) => salvarCadastroServoBloqueado(!ligado)}
       />
-      <Rotulo c="Datas e prazos" />
+      <Rotulo c="Encontro" />
+      <CampoLocal t={t} />
+      <CampoEncontro t={t} />
+      <Rotulo c="Prazos" />
       <div style={{ color: G.tm, fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
         Os prazos valem para todos os servos assim que forem salvos.
       </div>
-      <CampoEncontro t={t} />
       <CampoPrazo
         i={1}
         titulo="Pagamento da inscrição do servo"
@@ -3096,9 +3164,9 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
             <strong style={{ color: G.green }}>Dias {fmtDiasEncontro(encontro, { ano: false })}</strong>
             <br />
             
-          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>Chácara Maranata — Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP</span>
+          <span style={{ color: 'rgba(0,200,81,.7)', fontSize: 12 }}>{encontro.local.nome} — {encontro.local.endereco}</span>
           <a
-          href="https://www.google.com/maps/search/?api=1&query=Ch%C3%A1cara%20Maranata%2C%20Estrada%20de%20Sapopemba%20km%2035%2C5%2C%20Mau%C3%A1%20-%20SP"
+          href={linkMapsLocal(encontro.local)}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -8073,9 +8141,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 .pt-mk{width:34px;height:34px;border-radius:50%;background:#1c1c1e;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 `;
 
-  // Rota fixa do encontro: Igreja Fonte (Cajamar) -> Chácara Maranata (Mauá). Não é
-  // editável no app; config/rota guarda a polyline em cache (ajuste só por script).
-  const ROTA_PADRAO = { origem: { lat: -23.4092152, lng: -46.8672186 }, destino: { lat: -23.6416302, lng: -46.4163667 } };
+  // Rota dos ônibus: saída fixa na Igreja Fonte (Cajamar) e chegada no local do
+  // encontro (Configurações). config/rota guarda a polyline em cache para o trajeto.
+  const IGREJA = { lat: -23.4092152, lng: -46.8672186 };
+  const mesmoPonto = (a, b) => !!a && !!b && Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
 
   // estilos de mapa sem chave de API: OSM (escuro via filtro ou claro) e satélite da Esri
   const ESTILOS_MAPA = {
@@ -8105,8 +8174,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const busRef = useRef({}); // num -> { marker, cur, idx, raf, html }
     const fitRef = useRef(false);
     const osrmRef = useRef({});
-    const rotaEf = rota?.origem && rota?.destino ? rota : ROTA_PADRAO;
-    const origem = rotaEf.origem, destino = rotaEf.destino;
+    const enc = useEncontro();
+    const origem = IGREJA;
+    const destino = { lat: enc.local.lat, lng: enc.local.lng };
+    const cacheOk = !!rota?.polyline && mesmoPonto(rota.origem, origem) && mesmoPonto(rota.destino, destino);
 
     useEffect(() => {
       if (!demo) return;
@@ -8172,7 +8243,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         setGeo(pts);
         setAcum(a);
       };
-      if (rotaEf.polyline) { setErroRota(""); aplicar(decodePolyline(rotaEf.polyline)); return; }
+      if (cacheOk) { setErroRota(""); aplicar(decodePolyline(rota.polyline)); return; }
       fetch(`https://router.project-osrm.org/route/v1/driving/${origem.lng},${origem.lat};${destino.lng},${destino.lat}?overview=full&geometries=polyline`)
         .then((r) => r.json())
         .then(async (j) => {
@@ -8192,7 +8263,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           aplicar([[origem.lat, origem.lng], [destino.lat, destino.lng]]);
         });
       return () => { cancel = true; };
-    }, [origem?.lat, origem?.lng, destino?.lat, destino?.lng, rotaEf?.polyline]);
+    }, [destino.lat, destino.lng, cacheOk]);
 
     // desenha igreja, sítio e rota
     useEffect(() => {
