@@ -27,12 +27,30 @@ const transporterGmail = () => nodemailer.createTransport({
 // ── VALORES ──────────────────────────────────────────────────────────────────
 // Fonte da verdade dos valores cobrados. O front (VALORES em src/App.jsx) só
 // mostra os rótulos — o valor enviado ao Mercado Pago é sempre calculado aqui.
-const VALORES = {
+// O admin altera em Configurações (config/valores); carregarValores() aplica por
+// cima dos padrões antes de cada cobrança (cache de 1 min).
+const VALORES_PADRAO = {
   encontrista: 390,
   encontristaItajai: 200,
   servo: 250, // servo, staff e líderes
   cozinha: 150,
   infantil: 180, // servos que cuidam das crianças
+};
+const VALORES = { ...VALORES_PADRAO };
+const UNI_PRECOS_PADRAO = { camisa: 43, camisaG: 47, blusa: 105, blusaG: 115, calca: 80, calcaG: 90 };
+const UNI_PRECOS = { ...UNI_PRECOS_PADRAO };
+let valoresLidosEm = 0;
+const carregarValores = async () => {
+  if (Date.now() - valoresLidosEm < 60000) return;
+  try {
+    const s = await db.doc('config/valores').get();
+    const d = s.exists ? s.data() : {};
+    Object.keys(VALORES_PADRAO).forEach((k) => { const v = Number(d[k]); VALORES[k] = Number.isFinite(v) && v >= 0 ? v : VALORES_PADRAO[k]; });
+    Object.keys(UNI_PRECOS_PADRAO).forEach((k) => { const v = Number(d.uniforme?.[k]); UNI_PRECOS[k] = Number.isFinite(v) && v >= 0 ? v : UNI_PRECOS_PADRAO[k]; });
+    valoresLidosEm = Date.now();
+  } catch (e) {
+    console.error('config/valores:', e.message);
+  }
 };
 const PERFIS_ISENTOS = ['pastor', 'pastor_auxiliar', 'lider_geral'];
 const PERFIS_ADMIN = ['admin', 'lider_geral'];
@@ -55,12 +73,9 @@ const valorEncontrista = (e) => {
 const valorServo = (u) => ({ cozinha: VALORES.cozinha, infantil: VALORES.infantil })[u.perfil] ?? VALORES.servo;
 
 const precoItemUniforme = (item, tam) => {
-  if (!tam) return 0;
+  if (!tam || !['camisa', 'blusa', 'calca'].includes(item)) return 0;
   const grande = ['G1', 'G2', 'G3', 'G4'].includes(tam);
-  if (item === 'camisa') return grande ? 47 : 43;
-  if (item === 'blusa') return grande ? 115 : 105;
-  if (item === 'calca') return grande ? 90 : 80;
-  return 0;
+  return UNI_PRECOS[grande ? `${item}G` : item] || 0;
 };
 const totalUniforme = (p) => {
   const calc =
@@ -262,6 +277,7 @@ async function notificarAdminsNovaInscricao(encontristaId, nome) {
 // O valor nunca vem do cliente: é calculado a partir do tipo e do documento no
 // Firestore, e vai gravado no external_reference para o webhook conferir.
 exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
+  await carregarValores();
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { encontristaId, email } = req.body;
@@ -383,6 +399,7 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
 // Só confia no que o próprio Mercado Pago devolve ao consultar o pagamento, e
 // confere o valor pago contra o esperado antes de marcar como pago.
 exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] }, async (req, res) => {
+  await carregarValores();
   const { type, data } = req.body || {};
   if (type !== 'payment' || !data?.id) return res.sendStatus(200);
   const paymentId = String(data.id);
@@ -725,6 +742,7 @@ const tamanho = (v) => (TAMANHOS_UNIFORME.includes(v) ? v : '');
 const qtdPeca = (tam, v) => (tam ? Math.min(3, Math.max(1, Number(v) || 1)) : 0);
 
 exports.novoPedidoUniforme = onRequest({ cors: true }, async (req, res) => {
+  await carregarValores();
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   const u = await usuarioLogado(req);
   if (!u) return res.status(401).json({ error: 'Faça login novamente' });

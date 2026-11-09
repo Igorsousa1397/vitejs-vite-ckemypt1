@@ -1295,6 +1295,77 @@ function CampoLocal({ t }) {
     </div>
   );
 }
+// Valores cobrados (config/valores). Inscrições em PIX; cartão soma 5% sozinho.
+const GRUPOS_VALORES = {
+  encontrista: { titulo: "Valores da inscrição", chaves: ["encontrista", "encontristaItajai"], itens: [["encontrista", "Padrão"], ["encontristaItajai", "Itajaí · Paraná · Peniel"]], nota: "" },
+  servo: { titulo: "Valores da inscrição por perfil", chaves: ["servo", "cozinha", "infantil"], itens: [["servo", "Servo · staff · líderes"], ["cozinha", "Cozinha"], ["infantil", "Infantil"]], nota: "Pastor, pastor auxiliar e líder geral são isentos." },
+  uniforme: { titulo: "Preços das peças", chaves: ["camisa", "camisaG", "blusa", "blusaG", "calca", "calcaG"], itens: [["u_camisa", "Camiseta"], ["u_camisaG", "Camiseta G1+"], ["u_blusa", "Blusa de frio"], ["u_blusaG", "Blusa G1+"], ["u_calca", "Calça"], ["u_calcaG", "Calça G1+"]], nota: "Tamanhos P a GG usam o preço normal; G1 em diante usa o preço G1+. O sinal é 50% do pedido." },
+};
+function CampoValores({ t, grupo }) {
+  const cfg = GRUPOS_VALORES[grupo];
+  const ehUni = grupo === "uniforme";
+  const [salvo, setSalvo] = useState(null); // último doc lido
+  const [f, setF] = useState({});
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "valores"), (s) => {
+      const d = s.exists() ? s.data() : {};
+      const base = {};
+      cfg.chaves.forEach((k) => {
+        if (ehUni) base[`u_${k}`] = String(d.uniforme?.[k] ?? UNI_PRECOS_PADRAO[k]);
+        else base[k] = String(d[k] ?? VALORES_PADRAO[k]);
+      });
+      setSalvo(base);
+      setF(base);
+    }, () => {});
+    return () => unsub();
+  }, []);
+  const mudou = !!salvo && Object.keys(salvo).some((k) => (f[k] ?? "") !== salvo[k]);
+  const num = (v) => Number(String(v).replace(",", "."));
+  const salvar = async () => {
+    const ks = Object.keys(f);
+    if (ks.some((k) => !Number.isFinite(num(f[k])) || num(f[k]) < 0)) { t("Confira os valores: use só números.", "w"); return; }
+    setSalvando(true);
+    try {
+      const d = ehUni ? { uniforme: {} } : {};
+      cfg.chaves.forEach((k) => { if (ehUni) d.uniforme[k] = num(f[`u_${k}`]); else d[k] = num(f[k]); });
+      await setDoc(doc(db, "config", "valores"), d, { merge: true });
+      t("Valores salvos! Valem para as próximas cobranças.");
+    } catch {
+      t("Erro ao salvar os valores.", "w");
+    }
+    setSalvando(false);
+  };
+  const campo = (k, rot) => (
+    <label key={k} style={{ display: "block", minWidth: 0 }}>
+      <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rot}</div>
+      <div style={{ position: "relative" }}>
+        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: G.tm, fontSize: 13 }}>R$</span>
+        <input inputMode="decimal" value={f[k] ?? ""} onChange={(e) => setF((v) => ({ ...v, [k]: e.target.value }))} style={{ ...I, marginBottom: 0, paddingLeft: 36 }} />
+      </div>
+    </label>
+  );
+  const grade = (itens) => (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{itens.map(([k, rot]) => campo(k, rot))}</div>
+  );
+  return (
+    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>{cfg.titulo}</div>
+      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
+        Valores em PIX ou boleto. No cartão de crédito o app soma 5% sozinho. Quem já pagou não é afetado.
+      </div>
+      {grade(cfg.itens)}
+      {cfg.nota && <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>{cfg.nota}</div>}
+      <button
+        onClick={salvar}
+        disabled={!mudou || salvando}
+        style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, marginTop: 14, opacity: !mudou || salvando ? 0.4 : 1, cursor: !mudou || salvando ? "default" : "pointer" })}
+      >
+        {salvando ? "Salvando..." : "Salvar valores"}
+      </button>
+    </div>
+  );
+}
 // Prazos do encontro num lugar só (config/uniformes). O pedido de uniforme grava
 // dataLimite (o que abre/fecha o pedido) e dataLimitePedido (o que aparece nas
 // condições) juntos, para os dois nunca ficarem diferentes.
@@ -1374,59 +1445,74 @@ function Chave({ titulo, desc, ligado, rotuloOn, rotuloOff, onChange, i = 0 }) {
 }
 
 function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, inscricoesBloqueadas, salvarInscricoesBloqueadas, cadastroServoBloqueado, salvarCadastroServoBloqueado }) {
+  const [tab, setTab] = useState("encontro");
   const gravar = (campos) => setDoc(doc(db, "config", "uniformes"), campos, { merge: true });
   return (
     <div>
-      <Rotulo c="Acessos" />
-      <Chave
-        i={0}
-        titulo="Inscrições de encontristas"
-        desc="Com as inscrições encerradas, a página pública avisa que não há mais vagas e nenhuma inscrição nova entra."
-        ligado={!inscricoesBloqueadas}
-        rotuloOn="Inscrições abertas"
-        rotuloOff="Inscrições encerradas"
-        onChange={(ligado) => salvarInscricoesBloqueadas(!ligado)}
-      />
-      <Chave
-        i={1}
-        titulo="Cadastro de servos"
-        desc="Permite que um servo crie a própria conta pela tela de login. Quem já se cadastrou continua aguardando sua aprovação normalmente."
-        ligado={!cadastroServoBloqueado}
-        rotuloOn="Cadastro liberado"
-        rotuloOff="Cadastro desligado"
-        onChange={(ligado) => salvarCadastroServoBloqueado(!ligado)}
-      />
-      <Rotulo c="Encontro" />
-      <CampoLocal t={t} />
-      <CampoEncontro t={t} />
-      <Rotulo c="Prazos" />
-      <div style={{ color: G.tm, fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
-        Os prazos valem para todos os servos assim que forem salvos.
+      <Seg opts={[["encontro", "Encontro"], ["enc", "Encontristas"], ["servos", "Servos"], ["uni", "Uniformes"]]} val={tab} set={setTab} />
+      <div key={tab} style={{ marginTop: 12 }}>
+        {tab === "encontro" && (
+          <>
+            <CampoLocal t={t} />
+            <CampoEncontro t={t} />
+          </>
+        )}
+        {tab === "enc" && (
+          <>
+            <Chave
+              titulo="Inscrições de encontristas"
+              desc="Com as inscrições encerradas, a página pública avisa que não há mais vagas e nenhuma inscrição nova entra."
+              ligado={!inscricoesBloqueadas}
+              rotuloOn="Inscrições abertas"
+              rotuloOff="Inscrições encerradas"
+              onChange={(ligado) => salvarInscricoesBloqueadas(!ligado)}
+            />
+            <CampoValores t={t} grupo="encontrista" />
+          </>
+        )}
+        {tab === "servos" && (
+          <>
+            <Chave
+              titulo="Cadastro de servos"
+              desc="Permite que um servo crie a própria conta pela tela de login. Quem já se cadastrou continua aguardando sua aprovação normalmente."
+              ligado={!cadastroServoBloqueado}
+              rotuloOn="Cadastro liberado"
+              rotuloOff="Cadastro desligado"
+              onChange={(ligado) => salvarCadastroServoBloqueado(!ligado)}
+            />
+            <CampoValores t={t} grupo="servo" />
+            <CampoPrazo
+              i={1}
+              titulo="Pagamento da inscrição do servo"
+              desc="Último dia para o servo pagar a inscrição. Aparece no lembrete de pagamento da tela inicial."
+              valor={dataLimitePagamento}
+              onSalvar={(v) => gravar({ dataLimitePagamento: v })}
+              t={t}
+            />
+          </>
+        )}
+        {tab === "uni" && (
+          <>
+            <CampoValores t={t} grupo="uniforme" />
+            <CampoPrazo
+              i={1}
+              titulo="Pedido de uniforme"
+              desc="Último dia para fazer ou alterar o pedido de uniforme. Depois dessa data o pedido fecha."
+              valor={dataLimiteUni}
+              onSalvar={(v) => gravar({ dataLimite: v, dataLimitePedido: v })}
+              t={t}
+            />
+            <CampoPrazo
+              i={2}
+              titulo="Pagamento do uniforme (restante)"
+              desc="Último dia para pagar os 50% restantes do uniforme. O sinal é pago no momento do pedido."
+              valor={dataLimiteRestante}
+              onSalvar={(v) => gravar({ dataLimiteRestante: v })}
+              t={t}
+            />
+          </>
+        )}
       </div>
-      <CampoPrazo
-        i={1}
-        titulo="Pagamento da inscrição do servo"
-        desc="Último dia para o servo pagar a inscrição. Aparece no lembrete de pagamento da tela inicial."
-        valor={dataLimitePagamento}
-        onSalvar={(v) => gravar({ dataLimitePagamento: v })}
-        t={t}
-      />
-      <CampoPrazo
-        i={2}
-        titulo="Pedido de uniforme"
-        desc="Último dia para fazer ou alterar o pedido de uniforme. Depois dessa data o pedido fecha."
-        valor={dataLimiteUni}
-        onSalvar={(v) => gravar({ dataLimite: v, dataLimitePedido: v })}
-        t={t}
-      />
-      <CampoPrazo
-        i={3}
-        titulo="Pagamento do uniforme (restante)"
-        desc="Último dia para pagar os 50% restantes do uniforme. O sinal é pago no momento do pedido."
-        valor={dataLimiteRestante}
-        onSalvar={(v) => gravar({ dataLimiteRestante: v })}
-        t={t}
-      />
     </div>
   );
 }
@@ -1601,13 +1687,29 @@ const LOUÇA_INIT = [
 const UNI_INIT = [];
 const DATA_LIMITE_UNI = "2025-12-01";
 // Valores de inscrição em PIX/boleto. Cartão de crédito = PIX + 5%.
-// Mantenha alinhado com os padrões em functions/index.js (criarPagamento).
-const VALORES = {
+// Os padrões ficam iguais em functions/index.js; o admin altera em Configurações
+// (config/valores) e o App atualiza VALORES/UNI_PRECOS no lugar ao ler o documento.
+const VALORES_PADRAO = {
   encontrista: 390,
   encontristaItajai: 200,
   servo: 250, // servo, staff e líderes (exceto pastor/pastor auxiliar/líder geral, que são isentos)
   cozinha: 150,
   infantil: 180, // servos que cuidam das crianças
+};
+const VALORES = { ...VALORES_PADRAO };
+// preços do uniforme: tamanho normal (P a GG) e grande (G1 em diante)
+const UNI_PRECOS_PADRAO = { camisa: 43, camisaG: 47, blusa: 105, blusaG: 115, calca: 80, calcaG: 90 };
+const UNI_PRECOS = { ...UNI_PRECOS_PADRAO };
+const precoUniforme = (item, tam) => {
+  if (!tam || !["camisa", "blusa", "calca"].includes(item)) return 0;
+  const grande = ["G1", "G2", "G3", "G4"].includes(tam);
+  return UNI_PRECOS[grande ? `${item}G` : item] || 0;
+};
+// copia só números válidos do config/valores para os objetos acima
+const aplicarValores = (d) => {
+  if (!d) return;
+  Object.keys(VALORES_PADRAO).forEach((k) => { const v = Number(d[k]); if (Number.isFinite(v) && v >= 0) VALORES[k] = v; });
+  Object.keys(UNI_PRECOS_PADRAO).forEach((k) => { const v = Number(d.uniforme?.[k]); if (Number.isFinite(v) && v >= 0) UNI_PRECOS[k] = v; });
 };
 const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
 // Igrejas e células com valor reduzido (o mesmo de Itajaí). Manter igual em functions/index.js.
@@ -11615,14 +11717,7 @@ function CozinhaV({ edit, t, users }) {
       }
     }, [meuPedido?.status]);
 
-    const precoItem = (item, tam) => {
-      if (!tam) return 0;
-      const grande = ["G1", "G2", "G3", "G4"].includes(tam);
-      if (item === "camisa") return grande ? 47 : 43;
-      if (item === "blusa") return grande ? 115 : 105;
-      if (item === "calca") return grande ? 90 : 80;
-      return 0;
-    };
+    const precoItem = precoUniforme;
 
     const totalPedido = () => {
       const camisa = precoItem("camisa", form.camisa) * (form.qtdCamisas || 1);
@@ -13066,12 +13161,7 @@ function CozinhaV({ edit, t, users }) {
     };
 
     // preço de cada peça (tamanhos grandes custam mais); pedido antigo guarda valorTotal
-    const precoItemFn = (item, tam, qtd) => {
-      if (!tam) return 0;
-      const grande = ["G1", "G2", "G3", "G4"].includes(tam);
-      const p = item === "camisa" ? (grande ? 47 : 43) : item === "blusa" ? (grande ? 115 : 105) : item === "calca" ? (grande ? 90 : 80) : 0;
-      return p * (qtd || 1);
-    };
+    const precoItemFn = (item, tam, qtd) => precoUniforme(item, tam) * (qtd || 1);
     const valorPedido = (u) =>
       u.valorTotal || (precoItemFn("camisa", u.camisa, u.qtdCamisas) + precoItemFn("calca", u.calca, u.qtdCalcas) + precoItemFn("blusa", u.blusa, u.qtdBlusas));
     let arrecadado = 0, aReceber = 0;
@@ -13812,6 +13902,17 @@ export default function App() {
       });
       setPerfisExtra(lista);
     });
+    return () => unsub();
+  }, []);
+
+  // valores cobrados (inscrição e uniforme): atualiza os objetos do módulo e re-renderiza
+  const [, setValoresVer] = useState(0);
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, "config", "valores"),
+      (snap) => { aplicarValores(snap.exists() ? snap.data() : null); setValoresVer((v) => v + 1); },
+      (err) => console.error("Erro ao ler config/valores:", err),
+    );
     return () => unsub();
   }, []);
 
