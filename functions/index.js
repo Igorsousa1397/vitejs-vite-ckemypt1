@@ -103,6 +103,27 @@ async function usuarioLogado(req) {
 const soDigitos = (s) => String(s || '').replace(/\D/g, '');
 const texto = (s, max = 200) => String(s ?? '').trim().slice(0, max);
 
+// CPF de verdade: 11 dígitos, não repetidos, com os dois verificadores batendo.
+// Barra inscrição de teste ("111.111.111-11", número inventado) antes de virar doc.
+function cpfValido(cpf) {
+  const d = soDigitos(cpf);
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  const dv = (n) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(d[i]) * (n + 1 - i);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dv(9) === Number(d[9]) && dv(10) === Number(d[10]);
+}
+// Nome de teste óbvio ou sem sobrenome: não entra em produção.
+const PALAVRAS_TESTE = /^(test|teste|testando|testar|asdf?|aaa+|xxx+|abc|qwe|fulano|ciclano|beltrano)$/i;
+function nomePareceTeste(nome) {
+  const partes = String(nome || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length < 2) return true;
+  return partes.some((pt) => PALAVRAS_TESTE.test(pt.replace(/[^\p{L}]/gu, '')));
+}
+
 // Uso de imagem, contato de emergência e saúde passaram da inscrição para o termo.
 // Inscrições do fluxo antigo já trazem tudo respondido; as novas só depois do termo.
 const temComplementares = (e) => !!(
@@ -492,10 +513,12 @@ exports.inscrever = onRequest({ cors: true }, async (req, res) => {
     if (cfg.exists && cfg.data().bloqueadas) return res.status(403).json({ error: 'As inscrições estão encerradas.' });
 
     const cpf = soDigitos(form.cpf);
-    if (cpf.length !== 11) return res.status(400).json({ error: 'CPF inválido.' });
+    if (!cpfValido(cpf)) return res.status(400).json({ error: 'CPF inválido. Confira os números digitados.' });
     const nome = texto(form.nome, 120);
     const whatsapp = soDigitos(form.whatsapp);
     if (!nome || whatsapp.length < 10) return res.status(400).json({ error: 'Nome e WhatsApp são obrigatórios.' });
+    if (nomePareceTeste(nome)) return res.status(400).json({ error: 'Informe o nome completo (nome e sobrenome).' });
+    if (/^(\d)\1+$/.test(whatsapp)) return res.status(400).json({ error: 'WhatsApp inválido.' });
 
     const nascimento = new Date(form.nascimento);
     if (isNaN(nascimento)) return res.status(400).json({ error: 'Data de nascimento inválida.' });
@@ -1185,6 +1208,53 @@ exports.excluirServo = onRequest({ cors: true, invoker: 'public' }, async (req, 
     return res.json({ ok: true });
   } catch (e) {
     console.error('Erro excluirServo:', e.message);
+    return res.status(500).json({ error: 'Não foi possível excluir.' });
+  }
+});
+
+// Exclusão de inscrição (admin). Pensada para limpar teste e cadastro errado:
+// apaga o doc, o /privado, termo, ficha de saúde, fotos do termo e tira a
+// pessoa do quarto. Quem pagou pelo Mercado Pago não sai por aqui — o log de
+// pagamento precisa continuar apontando para alguém.
+exports.excluirEncontrista = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  const u = await usuarioLogado(req);
+  if (!u) return res.status(401).json({ error: 'Faça login novamente' });
+  if (!PERFIS_ADMIN.includes(u.perfil)) return res.status(403).json({ error: 'Sem permissão' });
+
+  const id = texto(req.body?.id, 128);
+  if (!id) return res.status(400).json({ error: 'id obrigatório' });
+  try {
+    const ref = db.collection('encontristas').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Inscrição não encontrada.' });
+    const e = snap.data();
+    if (e.pagamentoId) return res.status(400).json({ error: 'Essa inscrição foi paga pelo Mercado Pago e não pode ser excluída.' });
+
+    const apagarPorCampo = async (col) => {
+      const q = await db.collection(col).where('encontristaId', '==', id).get();
+      await Promise.all(q.docs.map((d) => d.ref.delete()));
+      return q.size;
+    };
+    const [termos, saude] = await Promise.all([apagarPorCampo('termos'), apagarPorCampo('saude')]);
+
+    // quartos guardam o nome, não o id
+    const nome = String(e.nome || '').trim();
+    if (nome) {
+      for (const col of ['quartos_h', 'quartos_m']) {
+        const qs = await db.collection(col).where('enc', 'array-contains', nome).get();
+        await Promise.all(qs.docs.map((d) => d.ref.update({ enc: admin.firestore.FieldValue.arrayRemove(nome) })));
+      }
+    }
+
+    await admin.storage().bucket(BUCKET).deleteFiles({ prefix: `termos/${id}/` }).catch((err) => console.error('fotos termo:', err.message));
+    await db.collection('_notif_dedupe').doc(id).delete().catch(() => {});
+    await db.recursiveDelete(ref);
+
+    console.log(`excluirEncontrista: ${id} por ${u.uid} (termos=${termos}, saude=${saude})`);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro excluirEncontrista:', e.message);
     return res.status(500).json({ error: 'Não foi possível excluir.' });
   }
 });

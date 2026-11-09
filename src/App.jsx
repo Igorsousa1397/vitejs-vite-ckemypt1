@@ -3110,6 +3110,8 @@ function Inscricao({ onVoltar, onPago, onFaq }) {
     if (!form.cpf.trim()) { alert("Informe seu CPF."); enviandoRef.current = false; return; }
     const cpfLimpo = form.cpf.replace(/[\.\-]/g, "").trim();
     if (cpfLimpo.length !== 11) { alert("CPF inválido. Deve ter 11 dígitos."); enviandoRef.current = false; return; }
+    if (!cpfValido(cpfLimpo)) { alert("CPF inválido. Confira os números digitados."); enviandoRef.current = false; return; }
+    if (form.nome.trim().split(/\s+/).length < 2) { alert("Informe seu nome completo (nome e sobrenome)."); enviandoRef.current = false; return; }
 
     setSaving(true);
 
@@ -6178,6 +6180,18 @@ const SlideAviso = ({ Ic, cor, rotulo, titulo, desc, pill, onClick, children }) 
 );
 
 // "Igor Oliveira de Sousa" → "Igor Sousa"
+// Mesma regra da function inscrever: 11 dígitos, não repetidos, verificadores ok.
+const cpfValido = (cpf) => {
+  const d = String(cpf || "").replace(/\D/g, "");
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  const dv = (n) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(d[i]) * (n + 1 - i);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dv(9) === Number(d[9]) && dv(10) === Number(d[10]);
+};
 const nomeCurto = (nome = "") => {
   const partes = nome.trim().split(/\s+/).filter(Boolean);
   if (partes.length <= 1) return nome.trim();
@@ -7329,6 +7343,27 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
 
     const [pedirConfirmacao, dialogoConfirmacao] = useConfirmacao();
+    const [excluindoEnc, setExcluindoEnc] = useState(null);
+    // só admin; quem pagou pelo Mercado Pago não sai por aqui (a function também barra)
+    const excluirInscricao = async (enc) => {
+      const ok = await pedirConfirmacao(
+        `Excluir a inscrição de ${enc.nome}? Apaga também termo, ficha de saúde e fotos. Não dá para desfazer.`,
+        "Excluir",
+      );
+      if (!ok) return;
+      setExcluindoEnc(enc.id);
+      try {
+        await chamarFn("excluirEncontrista", { id: enc.id }, true);
+        const tira = (prev) => prev.filter((x) => x.id !== enc.id);
+        setEncH(tira);
+        setEncM(tira);
+        setExpandido(null);
+        t("Inscrição excluída.");
+      } catch (err) {
+        t(err?.message || "Erro ao excluir.", "w");
+      }
+      setExcluindoEnc(null);
+    };
 
     // rascunhos por card (acordo / pagar depois)
     const [acordoTemp, setAcordoTemp] = useState({});
@@ -7916,6 +7951,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                           ? <>Último contato: <strong style={{ color: G.td }}>{fmtUltimoContato(e.ultimoContato)}</strong></>
                           : "Nenhum contato registrado"}
                       </div>
+                    )}
+                    {edit && !e.pagamentoId && (
+                      <button
+                        onClick={(ev) => { ev.stopPropagation(); excluirInscricao(e); }}
+                        disabled={excluindoEnc === e.id}
+                        style={{ ...BK({ width: "100%", padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, marginTop: 10 }), borderColor: "rgba(255,59,48,.35)", color: "#ff6b6b", background: "rgba(255,59,48,.06)", opacity: excluindoEnc === e.id ? 0.6 : 1 }}
+                      >
+                        {excluindoEnc === e.id ? "Excluindo..." : "Excluir inscrição"}
+                      </button>
                     )}
               </CartaoExp>
             );
