@@ -8025,10 +8025,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 .mapa-onibus .leaflet-control-attribution a{color:#999}
 .mapa-onibus .leaflet-tooltip{background:#1c1c1e;color:#fff;border:1px solid #333;border-radius:8px;font-weight:700;font-size:11px;padding:4px 8px}
 .mapa-onibus .leaflet-tooltip-top:before{border-top-color:#333}
-.bus-mk{position:relative;width:34px;height:34px;border-radius:12px;background:var(--c);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.55)}
-.bus-mk.on::before{content:"";position:absolute;inset:-6px;border-radius:16px;border:2px solid var(--c);animation:busPulse 1.6s ease-out infinite}
-.bus-mk.off{filter:grayscale(1);opacity:.55}
-@keyframes busPulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+.bus-mk{position:relative;width:48px;height:34px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,.65))}
+.bus-mk .bus-ico{display:block}
+.bus-mk.esq .bus-ico{transform:scaleX(-1)}
+.bus-num{position:absolute;top:-7px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#fff;color:#111;font-size:11px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid var(--c);box-sizing:border-box}
+.bus-mk.on::before{content:"";position:absolute;left:0;right:0;top:1px;bottom:3px;border-radius:12px;border:2px solid var(--c);animation:busPulse 1.6s ease-out infinite}
+.bus-mk.off{filter:grayscale(1) opacity(.6) drop-shadow(0 2px 6px rgba(0,0,0,.65))}
+@keyframes busPulse{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.7);opacity:0}}
 .pt-mk{width:34px;height:34px;border-radius:50%;background:#1c1c1e;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 `;
 
@@ -8218,16 +8221,27 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         vivos.add(String(o.num));
         const st = statusRastreio(o, agora);
         const cor = CORES_ONIBUS[o.tipo] || G.green;
-        const html = `<div class="bus-mk ${st === "ao_vivo" ? "on" : "off"}" style="--c:${cor}"><span>${o.num}</span></div>`;
-        const icone = () => L.divIcon({ className: "", html, iconSize: [34, 34], iconAnchor: [17, 17] });
         let b = busRef.current[o.num];
+        // vira o desenho para o lado em que o ônibus está andando
+        const dir = b && Math.abs(p.pos[1] - b.cur[1]) > 1e-6 ? (p.pos[1] < b.cur[1] ? "esq" : "dir") : b?.dir || "dir";
+        const html = `<div class="bus-mk ${st === "ao_vivo" ? "on" : "off"} ${dir}" style="--c:${cor}">
+<svg class="bus-ico" viewBox="0 0 44 26" width="44" height="26" aria-hidden="true">
+<rect x="1" y="2" width="42" height="18" rx="5" fill="${cor}" stroke="#fff" stroke-width="1.6"/>
+<rect x="5" y="5.5" width="8" height="6.5" rx="1.5" fill="#fff" opacity=".92"/>
+<rect x="15.5" y="5.5" width="8" height="6.5" rx="1.5" fill="#fff" opacity=".92"/>
+<rect x="26" y="5.5" width="8" height="6.5" rx="1.5" fill="#fff" opacity=".92"/>
+<rect x="36.5" y="5.5" width="5" height="9" rx="1.5" fill="#fff" opacity=".92"/>
+<circle cx="11" cy="21" r="3.4" fill="#111" stroke="#fff" stroke-width="1.6"/>
+<circle cx="33" cy="21" r="3.4" fill="#111" stroke="#fff" stroke-width="1.6"/>
+</svg><span class="bus-num">${o.num}</span></div>`;
+        const icone = () => L.divIcon({ className: "", html, iconSize: [48, 34], iconAnchor: [24, 17] });
         if (!b) {
-          b = { marker: L.marker(p.pos, { icon: icone(), zIndexOffset: 500 }).addTo(map), cur: p.pos, raf: null, html };
+          b = { marker: L.marker(p.pos, { icon: icone(), zIndexOffset: 500 }).addTo(map), cur: p.pos, raf: null, html, dir };
           b.marker.bindTooltip(`Ônibus ${o.num}`, { direction: "top", offset: [0, -20] });
           b.marker.on("click", () => setFoco({ num: o.num, n: Date.now() }));
           busRef.current[o.num] = b;
         } else {
-          if (b.html !== html) { b.marker.setIcon(icone()); b.html = html; }
+          if (b.html !== html) { b.marker.setIcon(icone()); b.html = html; b.dir = dir; }
           animar(b, p.pos, p.idx);
         }
       });
