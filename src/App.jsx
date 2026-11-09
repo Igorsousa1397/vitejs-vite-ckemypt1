@@ -1279,10 +1279,58 @@ function CampoPrazo({ titulo, desc, valor, onSalvar, t, i }) {
     </div>
   );
 }
-function DatasV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t }) {
+// liga/desliga de configuração (inscrições, cadastro de servo)
+function Chave({ titulo, desc, ligado, rotuloOn, rotuloOff, onChange, i = 0 }) {
+  const cor = ligado ? G.green : "#ff6b6b";
+  return (
+    <div className="fu" style={{ animationDelay: `${i * 40}ms`, background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>{titulo}</div>
+          <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>{desc}</div>
+        </div>
+        <button
+          onClick={() => { vibrar(); onChange(!ligado); }}
+          role="switch"
+          aria-checked={ligado}
+          aria-label={titulo}
+          style={{ width: 52, height: 30, borderRadius: 15, border: "none", padding: 0, cursor: "pointer", flexShrink: 0, background: ligado ? G.green : "#3a3a3c", position: "relative", transition: "background var(--d-fast) var(--e-out)" }}
+        >
+          <span style={{ position: "absolute", top: 3, left: ligado ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,.4)", transition: "left var(--d-fast) var(--e-out)" }} />
+        </button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, color: cor, fontSize: 12, fontWeight: 700 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor }} />
+        {ligado ? rotuloOn : rotuloOff}
+      </div>
+    </div>
+  );
+}
+
+function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, inscricoesBloqueadas, salvarInscricoesBloqueadas, cadastroServoBloqueado, salvarCadastroServoBloqueado }) {
   const gravar = (campos) => setDoc(doc(db, "config", "uniformes"), campos, { merge: true });
   return (
     <div>
+      <Rotulo c="Acessos" />
+      <Chave
+        i={0}
+        titulo="Inscrições de encontristas"
+        desc="Com as inscrições encerradas, a página pública avisa que não há mais vagas e nenhuma inscrição nova entra."
+        ligado={!inscricoesBloqueadas}
+        rotuloOn="Inscrições abertas"
+        rotuloOff="Inscrições encerradas"
+        onChange={(ligado) => salvarInscricoesBloqueadas(!ligado)}
+      />
+      <Chave
+        i={1}
+        titulo="Cadastro de servos"
+        desc="Permite que um servo crie a própria conta pela tela de login. Quem já se cadastrou continua aguardando sua aprovação normalmente."
+        ligado={!cadastroServoBloqueado}
+        rotuloOn="Cadastro liberado"
+        rotuloOff="Cadastro desligado"
+        onChange={(ligado) => salvarCadastroServoBloqueado(!ligado)}
+      />
+      <Rotulo c="Datas e prazos" />
       <div style={{ color: G.tm, fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
         Os prazos valem para todos os servos assim que forem salvos.
       </div>
@@ -1562,7 +1610,7 @@ const LABELS = {
   saude: "Saúde",
   cozinha: "Cozinha",
   back: "Back Office",
-  datas: "Datas",
+  datas: "Configurações",
   uniformes: "Uniformes",
   termo: "Termo",
   test: "Testemunhos",
@@ -1799,7 +1847,7 @@ function TelaPublicaServo({ onVoltar, children }) {
   );
 }
 
-function CadastroServoV({ onVoltar, onIrLogin }) {
+function CadastroServoV({ onVoltar, onIrLogin, bloqueado }) {
   const [f, setF] = useState({ nome: "", email: "", cpf: "", nascimento: "", sexo: "", senha: "", confirma: "" });
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -1826,6 +1874,19 @@ function CadastroServoV({ onVoltar, onIrLogin }) {
     }
     setEnviando(false);
   };
+
+  if (bloqueado && !enviado)
+    return (
+      <TelaPublicaServo onVoltar={onVoltar}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Cadastro desligado</div>
+          <div style={{ color: G.td, fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+            O cadastro de novos servos está fechado no momento. Fale com a liderança para liberar seu acesso.
+          </div>
+          <button onClick={onIrLogin} style={BG({ width: "100%", padding: 14, borderRadius: 14 })}>Ir para o login</button>
+        </div>
+      </TelaPublicaServo>
+    );
 
   if (enviado)
     return (
@@ -7020,7 +7081,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     edit,
     t,
     inscricoesBloqueadas,
-    salvarInscricoesBloqueadas,
   }) {
     const [g, setG] = useState("T");
     // status: múltipla seleção — nenhum marcado = todos
@@ -7404,20 +7464,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           >
             <Download size={14} /> Exportar {temFiltro ? `${lista.length} ` : ""}(XLSX)
           </button>
-          {edit && (
-            <button
-              onClick={() => salvarInscricoesBloqueadas(!inscricoesBloqueadas)}
-              style={{
-                ...BK({ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700 }),
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                color: inscricoesBloqueadas ? "#ff6b6b" : G.green,
-                borderColor: inscricoesBloqueadas ? "rgba(255,59,48,.35)" : "rgba(0,200,81,.35)",
-                background: inscricoesBloqueadas ? "rgba(255,59,48,.08)" : "rgba(0,200,81,.06)",
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: inscricoesBloqueadas ? "#ff3b30" : G.green, flexShrink: 0 }} />
-              {inscricoesBloqueadas ? "Inscrições encerradas" : "Inscrições abertas"}
-            </button>
+          {inscricoesBloqueadas && (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#ff6b6b", fontSize: 12, fontWeight: 700, border: "1px solid rgba(255,59,48,.35)", borderRadius: 12, background: "rgba(255,59,48,.08)", padding: "10px 12px" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3b30", flexShrink: 0 }} />
+              Inscrições encerradas
+            </div>
           )}
         </div>
 
@@ -13019,7 +13070,7 @@ function CozinhaV({ edit, t, users }) {
             <Grana l="A receber" v={aReceber} cor="#ff9f0a" />
           </div>
           <div style={{ marginTop: 10 }}>
-            <LinhaValor l="Total esperado" v={totalEsperado} grande nota="Sinal pago + restante pendente + integrais. Prazos mudam na tela Datas." />
+            <LinhaValor l="Total esperado" v={totalEsperado} grande nota="Sinal pago + restante pendente + integrais. Prazos mudam na tela Configurações." />
           </div>
         </div>
 
@@ -13698,6 +13749,7 @@ export default function App() {
       doc(db, "config", "inscricoes"),
       (snap) => {
         setInscricoesBloqueadas(snap.exists() ? !!snap.data().bloqueadas : false);
+        setCadastroServoBloqueado(snap.exists() ? !!snap.data().cadastroServoBloqueado : false);
       },
       (err) => {
         console.error("Erro ao ler status das inscrições (provável regra do Firestore bloqueando leitura pública):", err);
@@ -13705,6 +13757,17 @@ export default function App() {
     );
     return () => unsub();
   }, []);
+
+  const salvarCadastroServoBloqueado = async (valor) => {
+    try {
+      await setDoc(doc(db, "config", "inscricoes"), { cadastroServoBloqueado: valor }, { merge: true });
+      setCadastroServoBloqueado(valor);
+      showT(valor ? "Cadastro de servos desligado." : "Cadastro de servos liberado!");
+    } catch (err) {
+      console.error("Erro ao salvar cadastro de servos:", err);
+      showT("Erro ao salvar.", "w");
+    }
+  };
 
   const salvarInscricoesBloqueadas = async (valor) => {
     try {
@@ -13808,6 +13871,7 @@ export default function App() {
   const [quartosAbertos, setQuartosAbertos] = useState({});
   const [dataLimitePagamento, setDataLimitePagamento] = useState("");
   const [inscricoesBloqueadas, setInscricoesBloqueadas] = useState(false);
+  const [cadastroServoBloqueado, setCadastroServoBloqueado] = useState(false);
   const [pedirConfirmacaoApp, dialogoConfirmacaoApp] = useConfirmacao();
   const [dataLimitePedido, setDataLimitePedido] = useState("");
   const [dataLimiteRestante, setDataLimiteRestante] = useState("");
@@ -14341,7 +14405,7 @@ export default function App() {
     return <JaInscritoV onVoltar={() => setScr('welcome')} bloqueadas={inscricoesBloqueadas} />;
 
   if (scr === "cadastro_servo")
-    return <CadastroServoV onVoltar={() => setScr("login")} onIrLogin={() => setScr("login")} />;
+    return <CadastroServoV onVoltar={() => setScr("login")} onIrLogin={() => setScr("login")} bloqueado={cadastroServoBloqueado} />;
 
   if (user?.aprovado === false) return <AguardandoAprovacaoV user={user} onSair={logout} />;
 
@@ -14357,7 +14421,7 @@ export default function App() {
       <Login
         onLogin={login}
         onVoltar={() => setScr("welcome")}
-        onCadastro={() => setScr("cadastro_servo")}
+        onCadastro={cadastroServoBloqueado ? null : () => setScr("cadastro_servo")}
         users={users}
         setUsers={setUsers}
       />
@@ -14385,7 +14449,7 @@ export default function App() {
     ...(temPermissao("uniformes") ? [[Shirt, "uniformes"]] : []),
     ...(temPermissao("cozinha") ? [[ChefHat, "cozinha"]] : []),
     ...(temPermissao("test") ? [[HandHeart, "test"]] : []),
-    ...(isAdm ? [[Calendar, "datas"]] : []),
+    ...(isAdm ? [[Settings, "datas"]] : []),
   ];
 
 
@@ -14713,7 +14777,7 @@ export default function App() {
             temPermissao("onibus") ? <OnV user={user} abrirMapa={() => setMapaOnibus(true)} on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
           )}
           {pg === "senc" && (
-            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} inscricoesBloqueadas={inscricoesBloqueadas} salvarInscricoesBloqueadas={salvarInscricoesBloqueadas} /> : <TelaRestrita />
+            temPermissao("enc") ? <EncV encH={encH} setEncH={setEncH} encM={encM} setEncM={setEncM} qh={qh} qm={qm} setQh={setQh} setQm={setQm} edit={isAdm || canExtra("enc")} t={showT} inscricoesBloqueadas={inscricoesBloqueadas} /> : <TelaRestrita />
           )}
           {pg === "scozinha" && (
             temPermissao("cozinha") ? <CozinhaV edit={isAdm || canExtra("cozinha")} t={showT} users={users} /> : <TelaRestrita />
@@ -14954,7 +15018,6 @@ export default function App() {
             edit={canG(role)}
             t={showT}
             inscricoesBloqueadas={inscricoesBloqueadas}
-            salvarInscricoesBloqueadas={salvarInscricoesBloqueadas}
           />
         )}
         {pg === "onibus" && (
@@ -15037,11 +15100,15 @@ export default function App() {
             <TestV encH={encH} encM={encM} t={showT} />
           )}
         {pg === "datas" && isAdm && (
-          <DatasV
+          <ConfigV
             dataLimitePagamento={dataLimitePagamento}
             dataLimiteUni={dataLimiteUni}
             dataLimiteRestante={dataLimiteRestante}
             t={showT}
+            inscricoesBloqueadas={inscricoesBloqueadas}
+            salvarInscricoesBloqueadas={salvarInscricoesBloqueadas}
+            cadastroServoBloqueado={cadastroServoBloqueado}
+            salvarCadastroServoBloqueado={salvarCadastroServoBloqueado}
           />
         )}
         {pg === "back" && isAdm && (

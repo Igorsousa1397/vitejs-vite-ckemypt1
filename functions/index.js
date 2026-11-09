@@ -996,6 +996,9 @@ exports.cadastrarServo = onRequest({ cors: true }, async (req, res) => {
   if (senha.length < 6) return res.status(400).json({ error: 'A senha precisa ter ao menos 6 caracteres.' });
 
   try {
+    // chave "Cadastro de servos" da tela Configurações (config/inscricoes)
+    const cfg = await db.doc('config/inscricoes').get();
+    if (cfg.exists && cfg.data().cadastroServoBloqueado) return res.status(403).json({ error: 'O cadastro de novos servos está fechado. Fale com a liderança.' });
     const dup = await db.collection('users').where('cpf', '==', cpf).limit(1).get();
     if (!dup.empty) return res.status(400).json({ error: 'Já existe um servo com este CPF. Use "Esqueci minha senha" ou fale com a liderança.' });
 
