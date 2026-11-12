@@ -1342,10 +1342,149 @@ function CampoLocal({ t }) {
 }
 // Valores cobrados (config/valores). Inscrições em PIX; cartão soma 5% sozinho.
 const GRUPOS_VALORES = {
-  encontrista: { titulo: "Valores da inscrição", chaves: ["encontrista", "encontristaItajai"], itens: [["encontrista", "Padrão"], ["encontristaItajai", "Itajaí · Paraná · Peniel"]], nota: "" },
   servo: { titulo: "Valores da inscrição por perfil", chaves: ["servo", "cozinha", "infantil"], itens: [["servo", "Servo · staff · líderes"], ["cozinha", "Cozinha"], ["infantil", "Infantil"]], nota: "Pastor, pastor auxiliar e líder geral são isentos." },
   uniforme: { titulo: "Preços das peças", chaves: ["camisa", "camisaG", "blusa", "blusaG", "calca", "calcaG"], itens: [["u_camisa", "Camiseta"], ["u_camisaG", "Camiseta G1+"], ["u_blusa", "Blusa de frio"], ["u_blusaG", "Blusa G1+"], ["u_calca", "Calça"], ["u_calcaG", "Calça G1+"]], nota: "Tamanhos P a GG usam o preço normal; G1 em diante usa o preço G1+. O sinal é 50% do pedido." },
 };
+// Valor padrão do encontrista + opções com valor próprio por igreja ou célula.
+// Cada opção é uma linha separada; dá para adicionar, mudar o valor e remover.
+const IGREJAS_INSCRICAO = ["Fonte Cajamar", "Fonte Itajaí", "Fonte Barueri", "Paraná"];
+function CampoValoresEncontrista({ t }) {
+  const [salvo, setSalvo] = useState(null); // { padrao, regras } do último doc lido
+  const [padrao, setPadrao] = useState("");
+  const [regras, setRegras] = useState([]);
+  const [novoTipo, setNovoTipo] = useState("igreja");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoValor, setNovoValor] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "valores"), (s) => {
+      const d = s.exists() ? s.data() : {};
+      const base = {
+        padrao: String(d.encontrista ?? VALORES_PADRAO.encontrista),
+        regras: lerRegrasEnc(d).map((r) => ({ ...r, valor: String(r.valor) })),
+      };
+      setSalvo(base);
+      setPadrao(base.padrao);
+      setRegras(base.regras);
+    }, () => {});
+    return () => unsub();
+  }, []);
+  const num = (v) => Number(String(v).replace(",", "."));
+  const valido = (v) => String(v).trim() !== "" && Number.isFinite(num(v)) && num(v) >= 0;
+  const mudou = !!salvo && (padrao !== salvo.padrao || JSON.stringify(regras) !== JSON.stringify(salvo.regras));
+  const rotTipo = { igreja: "Igreja", celula: "Célula" };
+  const nomesDoTipo = novoTipo === "igreja" ? IGREJAS_INSCRICAO : CELULAS.filter((c) => c !== "Não tenho célula");
+  const jaExiste = (tipo, nome) => regras.some((r) => r.tipo === tipo && normNome(r.nome) === normNome(nome));
+  const adicionar = () => {
+    const nome = novoNome.trim();
+    if (!nome) { t(`Escolha ${novoTipo === "igreja" ? "a igreja" : "a célula"}.`, "w"); return; }
+    if (!valido(novoValor)) { t("Informe o valor da opção.", "w"); return; }
+    if (jaExiste(novoTipo, nome)) { t("Essa opção já está na lista.", "w"); return; }
+    setRegras((rs) => [...rs, { id: `${novoTipo}_${Date.now()}`, tipo: novoTipo, nome, valor: novoValor }]);
+    setNovoNome("");
+    setNovoValor("");
+  };
+  const salvar = async () => {
+    if (!valido(padrao) || regras.some((r) => !valido(r.valor))) { t("Confira os valores: use só números.", "w"); return; }
+    setSalvando(true);
+    try {
+      await setDoc(doc(db, "config", "valores"), {
+        encontrista: num(padrao),
+        encontristaRegras: regras.map((r) => ({ id: r.id, tipo: r.tipo, nome: r.nome, valor: num(r.valor) })),
+      }, { merge: true });
+      t("Valores salvos! Valem para as próximas cobranças.");
+    } catch {
+      t("Erro ao salvar os valores.", "w");
+    }
+    setSalvando(false);
+  };
+  const rotulo = (txt) => (
+    <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{txt}</div>
+  );
+  const inputReal = (val, onChange, extra = {}) => (
+    <div style={{ position: "relative", ...extra }}>
+      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: G.tm, fontSize: 13 }}>R$</span>
+      <input inputMode="decimal" value={val} onChange={(e) => onChange(e.target.value)} style={{ ...I, marginBottom: 0, paddingLeft: 36 }} />
+    </div>
+  );
+  const sep = { borderTop: `1px solid ${G.cb}`, margin: "14px 0 12px" };
+  return (
+    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Valores da inscrição</div>
+      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
+        Valores em PIX ou boleto. No cartão de crédito o app soma 5% sozinho. Quem já pagou não é afetado.
+      </div>
+      <label style={{ display: "block", minWidth: 0 }}>
+        {rotulo("Padrão")}
+        {inputReal(padrao, setPadrao)}
+      </label>
+      <div style={{ color: G.tm, fontSize: 11, marginTop: 6 }}>Vale para quem não se encaixa em nenhuma opção abaixo.</div>
+
+      <div style={sep} />
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 2 }}>Valores por igreja ou célula</div>
+      <div style={{ color: G.tm, fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
+        Se a pessoa se encaixar em mais de uma opção, vale o menor valor.
+      </div>
+      {regras.length === 0 && <div style={{ color: G.tm, fontSize: 12, marginBottom: 10 }}>Nenhuma opção. Todos pagam o valor padrão.</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {regras.map((r) => (
+          <div key={r.id} style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {rotulo(`${rotTipo[r.tipo]} · ${r.nome}`)}
+              {inputReal(r.valor, (v) => setRegras((rs) => rs.map((x) => (x.id === r.id ? { ...x, valor: v } : x))))}
+            </div>
+            <button
+              onClick={() => setRegras((rs) => rs.filter((x) => x.id !== r.id))}
+              aria-label={`Remover ${r.nome}`}
+              style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 12, border: "1px solid rgba(255,59,48,.35)", background: "rgba(255,59,48,.08)", color: "#ff3b30", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div style={sep} />
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Adicionar opção</div>
+      <Seg opts={[["igreja", "Igreja"], ["celula", "Célula"]]} val={novoTipo} set={(v) => { setNovoTipo(v); setNovoNome(""); }} />
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 10, marginTop: 10 }}>
+        <label style={{ display: "block", minWidth: 0 }}>
+          {rotulo(rotTipo[novoTipo])}
+          {novoTipo === "igreja" ? (
+            <>
+              <input list="igrejas-valor" placeholder="Nome da igreja" value={novoNome} onChange={(e) => setNovoNome(e.target.value)} style={{ ...I, marginBottom: 0 }} />
+              <datalist id="igrejas-valor">{nomesDoTipo.map((n) => <option key={n} value={n} />)}</datalist>
+            </>
+          ) : (
+            <select value={novoNome} onChange={(e) => setNovoNome(e.target.value)} style={{ ...I, marginBottom: 0, colorScheme: "dark" }}>
+              <option value="">Escolha...</option>
+              {nomesDoTipo.map((n) => <option key={n} value={n} disabled={jaExiste("celula", n)}>{n}</option>)}
+            </select>
+          )}
+        </label>
+        <label style={{ display: "block", minWidth: 0 }}>
+          {rotulo("Valor")}
+          {inputReal(novoValor, setNovoValor)}
+        </label>
+      </div>
+      <button
+        onClick={adicionar}
+        style={{ ...BK({ width: "100%", padding: 11, borderRadius: 12, fontSize: 13, marginTop: 10 }), color: G.td, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+      >
+        <Plus size={15} /> Adicionar opção
+      </button>
+      <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>Igreja digitada como "Outra" na inscrição também vale: escreva o nome igual.</div>
+
+      <button
+        onClick={salvar}
+        disabled={!mudou || salvando}
+        style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, marginTop: 14, opacity: !mudou || salvando ? 0.4 : 1, cursor: !mudou || salvando ? "default" : "pointer" })}
+      >
+        {salvando ? "Salvando..." : "Salvar valores"}
+      </button>
+    </div>
+  );
+}
 function CampoValores({ t, grupo }) {
   const cfg = GRUPOS_VALORES[grupo];
   const ehUni = grupo === "uniforme";
@@ -1513,7 +1652,7 @@ function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, in
               onChange={(ligado) => salvarInscricoesBloqueadas(!ligado)}
             />
             <CampoMetaEncontristas t={t} />
-            <CampoValores t={t} grupo="encontrista" />
+            <CampoValoresEncontrista t={t} />
           </>
         )}
         {tab === "servos" && (
@@ -1751,19 +1890,39 @@ const precoUniforme = (item, tam) => {
   const grande = ["G1", "G2", "G3", "G4"].includes(tam);
   return UNI_PRECOS[grande ? `${item}G` : item] || 0;
 };
+// Valores especiais do encontrista por igreja ou célula (config/valores.encontristaRegras).
+// Sem a lista salva, vale a regra antiga: Fonte Itajaí, Paraná e Peniel pelo valor
+// encontristaItajai. Manter igual em functions/index.js.
+const ALIAS_CELULA = { "Peniel - Santa Catarina": "Peniel" }; // nome antigo, inscrições já feitas
+const normNome = (x) => String(x || "").trim().toLowerCase();
+const regrasEncPadrao = (valor) => [
+  { id: "igreja_fonte_itajai", tipo: "igreja", nome: "Fonte Itajaí", valor },
+  { id: "igreja_parana", tipo: "igreja", nome: "Paraná", valor },
+  { id: "celula_peniel", tipo: "celula", nome: "Peniel", valor },
+];
+const lerRegrasEnc = (d) => {
+  if (!Array.isArray(d?.encontristaRegras)) return regrasEncPadrao(Number.isFinite(Number(d?.encontristaItajai)) ? Number(d.encontristaItajai) : VALORES_PADRAO.encontristaItajai);
+  return d.encontristaRegras
+    .filter((r) => r && ["igreja", "celula"].includes(r.tipo) && String(r.nome || "").trim() && Number.isFinite(Number(r.valor)) && Number(r.valor) >= 0)
+    .map((r) => ({ id: r.id || `${r.tipo}_${normNome(r.nome)}`, tipo: r.tipo, nome: String(r.nome).trim(), valor: Number(r.valor) }));
+};
+const REGRAS_ENC = regrasEncPadrao(VALORES_PADRAO.encontristaItajai);
+// regra que vale para a inscrição; se mais de uma bate, a mais barata
+const regraEnc = (e) => {
+  const igreja = normNome(e?.igreja);
+  const celula = normNome(ALIAS_CELULA[e?.celula] || e?.celula);
+  const ok = REGRAS_ENC.filter((r) => (r.tipo === "igreja" ? igreja : celula) === normNome(r.nome));
+  return ok.length ? ok.reduce((a, b) => (b.valor < a.valor ? b : a)) : null;
+};
 // copia só números válidos do config/valores para os objetos acima
 const aplicarValores = (d) => {
   if (!d) return;
   Object.keys(VALORES_PADRAO).forEach((k) => { const v = Number(d[k]); if (Number.isFinite(v) && v >= 0) VALORES[k] = v; });
   Object.keys(UNI_PRECOS_PADRAO).forEach((k) => { const v = Number(d.uniforme?.[k]); if (Number.isFinite(v) && v >= 0) UNI_PRECOS[k] = v; });
+  REGRAS_ENC.splice(0, REGRAS_ENC.length, ...lerRegrasEnc(d));
 };
 const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
-// Igrejas e células com valor reduzido (o mesmo de Itajaí). Manter igual em functions/index.js.
-// Peniel é a célula de Santa Catarina; o nome antigo fica para inscrições já feitas.
-const IGREJAS_VALOR_REDUZIDO = ["Fonte Itajaí", "Paraná"];
-const CELULAS_VALOR_REDUZIDO = ["Peniel", "Peniel - Santa Catarina"];
-const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e?.igreja) || CELULAS_VALOR_REDUZIDO.includes(e?.celula);
-const valorEncPix = (e) => (isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista);
+const valorEncPix = (e) => regraEnc(e)?.valor ?? VALORES.encontrista;
 // cozinha e infantil têm valor próprio; os demais perfis pagam o valor de servo
 const valorServoPix = (perfil) => ({ cozinha: VALORES.cozinha, infantil: VALORES.infantil })[perfil] ?? VALORES.servo;
 const fmtReal = (v) => `R$ ${v.toFixed(2).replace(".", ",")}`;
@@ -6420,7 +6579,6 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const META_ENC = encontro.meta;
   const todosEnc = [...encH, ...encM];
   const VALOR_ENC = VALORES.encontrista;
-  const VALOR_ENC_ITAJAI = VALORES.encontristaItajai;
   const getValorEnc = (e) => {
     if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);
     return valorEncPix(e);
@@ -6518,9 +6676,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const vagas = Math.max(META_ENC - todosEnc.length, 0);
   const totalPeriodo = diasOrdenados.reduce((a, [, v]) => a + v, 0);
   const celulasVisiveis = todasCelulas ? celulasOrdenadas : celulasOrdenadas.slice(0, 8);
-  const qtdItajai = todosEnc.filter(isEncItajai).length;
-  const qtdPadrao = Math.max(META_ENC - qtdItajai, 0);
-  const previsaoTotal = qtdPadrao * VALOR_ENC + qtdItajai * VALOR_ENC_ITAJAI;
+  // inscritos com valor especial, agrupados pela opção (igreja/célula) que vale para eles
+  const porRegra = {};
+  todosEnc.forEach((e) => {
+    const r = regraEnc(e);
+    if (r) (porRegra[r.id] ||= { r, qtd: 0 }).qtd++;
+  });
+  const gruposEspeciais = Object.values(porRegra);
+  const qtdEspecial = gruposEspeciais.reduce((a, g) => a + g.qtd, 0);
+  const qtdPadrao = Math.max(META_ENC - qtdEspecial, 0);
+  const previsaoTotal = qtdPadrao * VALOR_ENC + gruposEspeciais.reduce((a, g) => a + g.qtd * g.r.valor, 0);
+  const notaPrevisao = [`${qtdPadrao} × R$ ${VALOR_ENC}`, ...gruposEspeciais.map((g) => `${g.qtd} (${g.r.nome}) × R$ ${g.r.valor}`)].join(" + ");
   const valorPagarDepoisServos = servosPagarDepois.reduce((acc, u) => acc + getValorServo(u), 0);
 
   return (
@@ -6586,7 +6752,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <LinhaValor grande l="Projeção de hoje" v={encArrecadado + encAReceber} nota={`${todosEnc.length} cadastrados · arrecadado + a receber`} />
-                <LinhaValor grande l="Previsão total (meta)" v={previsaoTotal} cor="#0a84ff" nota={`${qtdPadrao} × R$ ${VALOR_ENC} + ${qtdItajai} (Itajaí/Paraná) × R$ ${VALOR_ENC_ITAJAI}`} />
+                <LinhaValor grande l="Previsão total (meta)" v={previsaoTotal} cor="#0a84ff" nota={notaPrevisao} />
               </div>
             </Cartao>
 

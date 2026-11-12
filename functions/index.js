@@ -47,6 +47,7 @@ const carregarValores = async () => {
     const d = s.exists ? s.data() : {};
     Object.keys(VALORES_PADRAO).forEach((k) => { const v = Number(d[k]); VALORES[k] = Number.isFinite(v) && v >= 0 ? v : VALORES_PADRAO[k]; });
     Object.keys(UNI_PRECOS_PADRAO).forEach((k) => { const v = Number(d.uniforme?.[k]); UNI_PRECOS[k] = Number.isFinite(v) && v >= 0 ? v : UNI_PRECOS_PADRAO[k]; });
+    REGRAS_ENC = lerRegrasEnc(d);
     valoresLidosEm = Date.now();
   } catch (e) {
     console.error('config/valores:', e.message);
@@ -59,15 +60,38 @@ const comCredito = (v) => Math.round(v * 1.05 * 100) / 100;
 // uniforme usa a conta antiga do front (repassa a taxa do MP)
 const creditoUniforme = (v) => Math.ceil(v / 0.9501 * 100) / 100;
 const centavos = (v) => Math.round(v * 100) / 100;
-// Igrejas e células com valor reduzido (o mesmo de Itajaí). Manter igual em src/App.jsx.
-// Peniel é a célula de Santa Catarina; o nome antigo fica para inscrições já feitas.
-const IGREJAS_VALOR_REDUZIDO = ['Fonte Itajaí', 'Paraná'];
-const CELULAS_VALOR_REDUZIDO = ['Peniel', 'Peniel - Santa Catarina'];
-const isEncItajai = (e) => IGREJAS_VALOR_REDUZIDO.includes(e.igreja) || CELULAS_VALOR_REDUZIDO.includes(e.celula);
+// Valores especiais do encontrista por igreja ou célula (config/valores.encontristaRegras,
+// editado em Configurações → Encontristas). Sem a lista salva, vale a regra antiga:
+// Fonte Itajaí, Paraná e Peniel pelo valor encontristaItajai. Manter igual em src/App.jsx.
+const ALIAS_CELULA = { 'Peniel - Santa Catarina': 'Peniel' }; // nome antigo, inscrições já feitas
+const normNome = (x) => String(x || '').trim().toLowerCase();
+const regrasEncPadrao = (valor) => [
+  { id: 'igreja_fonte_itajai', tipo: 'igreja', nome: 'Fonte Itajaí', valor },
+  { id: 'igreja_parana', tipo: 'igreja', nome: 'Paraná', valor },
+  { id: 'celula_peniel', tipo: 'celula', nome: 'Peniel', valor },
+];
+function lerRegrasEnc(d) {
+  if (!Array.isArray(d && d.encontristaRegras)) {
+    const v = Number(d && d.encontristaItajai);
+    return regrasEncPadrao(Number.isFinite(v) && v >= 0 ? v : VALORES_PADRAO.encontristaItajai);
+  }
+  return d.encontristaRegras
+    .filter((r) => r && ['igreja', 'celula'].includes(r.tipo) && String(r.nome || '').trim() && Number.isFinite(Number(r.valor)) && Number(r.valor) >= 0)
+    .map((r) => ({ tipo: r.tipo, nome: String(r.nome).trim(), valor: Number(r.valor) }));
+}
+let REGRAS_ENC = regrasEncPadrao(VALORES_PADRAO.encontristaItajai);
+// se mais de uma opção bate, vale a mais barata
+const valorEspecialEnc = (e) => {
+  const igreja = normNome(e.igreja);
+  const celula = normNome(ALIAS_CELULA[e.celula] || e.celula);
+  const vs = REGRAS_ENC.filter((r) => (r.tipo === 'igreja' ? igreja : celula) === normNome(r.nome)).map((r) => r.valor);
+  return vs.length ? Math.min(...vs) : null;
+};
 
 const valorEncontrista = (e) => {
   if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);
-  return isEncItajai(e) ? VALORES.encontristaItajai : VALORES.encontrista;
+  const especial = valorEspecialEnc(e);
+  return especial != null ? especial : VALORES.encontrista;
 };
 // cozinha e infantil têm valor próprio; os demais perfis pagam o valor de servo
 const valorServo = (u) => ({ cozinha: VALORES.cozinha, infantil: VALORES.infantil })[u.perfil] ?? VALORES.servo;
