@@ -1132,7 +1132,7 @@ const emprestadaDe = (p) => p?.camisaEmprestada || (p?.modalidade === "emprestim
 // termos, lembrete de jejum e o termo gravado pela function leem daqui. Sem o
 // documento vale o padrão abaixo. Manter igual em functions/index.js.
 const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP", lat: -23.6416302, lng: -46.4163667 };
-const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO };
+const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO, meta: 140 };
 const linkMapsLocal = (l) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${l.nome}, ${l.endereco}`)}`;
 const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} e ${xs[xs.length - 1]}`);
@@ -1164,6 +1164,7 @@ function useEncontro() {
             inicio: d.inicio || ENCONTRO_PADRAO.inicio,
             fim: d.fim || ENCONTRO_PADRAO.fim,
             local: d.local?.nome && d.local?.endereco ? { ...LOCAL_PADRAO, ...d.local } : LOCAL_PADRAO,
+            meta: Number(d.metaEncontristas) > 0 ? Number(d.metaEncontristas) : ENCONTRO_PADRAO.meta,
           });
         },
         () => {},
@@ -1171,6 +1172,50 @@ function useEncontro() {
     [],
   );
   return enc;
+}
+// Meta de encontristas (config/encontro.metaEncontristas): usada no dashboard
+// para vagas, % da meta e previsão total.
+function CampoMetaEncontristas({ t }) {
+  const enc = useEncontro();
+  const [v, setV] = useState(String(enc.meta));
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => { setV(String(enc.meta)); }, [enc.meta]);
+  const n = Number(v);
+  const valido = Number.isInteger(n) && n > 0 && n <= 2000;
+  const mudou = v !== String(enc.meta);
+  const salvar = async () => {
+    if (!valido) { t("Informe um número inteiro maior que zero.", "w"); return; }
+    setSalvando(true);
+    try {
+      await setDoc(doc(db, "config", "encontro"), { metaEncontristas: n }, { merge: true });
+      t("Meta de encontristas salva!");
+    } catch {
+      t("Erro ao salvar a meta.", "w");
+    }
+    setSalvando(false);
+  };
+  return (
+    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Meta de encontristas</div>
+      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
+        Quantidade de vagas do encontro. O dashboard usa para as vagas restantes, a % da meta e a previsão total.
+      </div>
+      <label style={{ display: "block", minWidth: 0 }}>
+        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Meta</div>
+        <div style={{ position: "relative" }}>
+          <input inputMode="numeric" value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ""))} style={{ ...I, marginBottom: 0, paddingRight: 96 }} />
+          <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: G.tm, fontSize: 13 }}>encontristas</span>
+        </div>
+      </label>
+      <button
+        onClick={salvar}
+        disabled={!mudou || !valido || salvando}
+        style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, marginTop: 14, opacity: !mudou || !valido || salvando ? 0.4 : 1, cursor: !mudou || !valido || salvando ? "default" : "pointer" })}
+      >
+        {salvando ? "Salvando..." : "Salvar meta"}
+      </button>
+    </div>
+  );
 }
 function CampoEncontro({ t }) {
   const enc = useEncontro();
@@ -1467,6 +1512,7 @@ function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, in
               rotuloOff="Inscrições encerradas"
               onChange={(ligado) => salvarInscricoesBloqueadas(!ligado)}
             />
+            <CampoMetaEncontristas t={t} />
             <CampoValores t={t} grupo="encontrista" />
           </>
         )}
@@ -6371,7 +6417,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
   }, 0);
 
-  const META_ENC = 140;
+  const META_ENC = encontro.meta;
   const todosEnc = [...encH, ...encM];
   const VALOR_ENC = VALORES.encontrista;
   const VALOR_ENC_ITAJAI = VALORES.encontristaItajai;
