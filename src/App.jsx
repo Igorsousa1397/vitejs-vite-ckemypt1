@@ -9807,6 +9807,46 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     const nM = todos.filter((e) => e.sexo === "Feminino").length;
     const nH = todos.filter((e) => e.sexo === "Masculino").length;
+
+    // exporta o que está filtrado na tela
+    const sexoTxt = (e) => (e.sexo === "Feminino" ? "Mulher" : e.sexo === "Masculino" ? "Homem" : "");
+    const filtroTxt = [sexo === "M" ? "Mulheres" : sexo === "H" ? "Homens" : "Todos", celula !== "todas" ? celula : null, q ? `busca "${busca.trim()}"` : null].filter(Boolean).join(" · ");
+    const nomeArq = `presentes${celula !== "todas" ? "-" + celula.toLowerCase().replace(/[^a-z0-9]+/gi, "-") : ""}${sexo === "M" ? "-mulheres" : sexo === "H" ? "-homens" : ""}`;
+    const exportarXlsx = () =>
+      baixarXlsx(`${nomeArq}.xlsx`, "Presentes", [
+        { header: "Nome", key: "nome", width: 40 },
+        { header: "Sexo", key: "sexo", width: 10 },
+        { header: "Célula", key: "celula", width: 28 },
+      ], lista.map((e) => ({ nome: e.nome, sexo: sexoTxt(e), celula: e.celula || "Sem célula" })));
+    const exportarPdf = async () => {
+      const jsPDF = await carregarJsPDF();
+      const pdf = new jsPDF();
+      const m = 14, W = 210, H = 297;
+      const cols = [{ l: "#", x: m, w: 10 }, { l: "Nome", x: m + 10, w: 110 }, { l: "Sexo", x: m + 122, w: 20 }, { l: "Célula", x: m + 144, w: W - m - (m + 144) }];
+      let y = 18;
+      const cabecalho = () => {
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(9);
+        pdf.setFillColor(230, 230, 230); pdf.rect(m, y - 5, W - m * 2, 7, "F");
+        cols.forEach((c) => pdf.text(c.l, c.x + 1, y));
+        y += 7; pdf.setFont("helvetica", "normal");
+      };
+      pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
+      pdf.text("Presentes — Encontristas", m, y); y += 6;
+      pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(90);
+      pdf.text(`${filtroTxt} · ${lista.length} ${lista.length === 1 ? "pessoa" : "pessoas"} · ${new Date().toLocaleDateString("pt-BR")}`, m, y);
+      pdf.setTextColor(0); y += 9;
+      cabecalho();
+      lista.forEach((e, i) => {
+        if (y > H - 14) { pdf.addPage(); y = 18; cabecalho(); }
+        pdf.setFontSize(9.5);
+        const linha = [String(i + 1), e.nome, sexoTxt(e), e.celula || "Sem célula"];
+        cols.forEach((c, k) => pdf.text(pdf.splitTextToSize(linha[k], c.w - 2)[0] || "", c.x + 1, y));
+        pdf.setDrawColor(225); pdf.line(m, y + 2.2, W - m, y + 2.2);
+        y += 7;
+      });
+      pdf.save(`${nomeArq}.pdf`);
+    };
+
     return (
       <div>
         <Seg opts={[["T", `Todos ${todos.length}`], ["M", `Mulheres ${nM}`], ["H", `Homens ${nH}`]]} val={sexo} set={setSexo} />
@@ -9817,6 +9857,13 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
           <option value="todas">Todas as células</option>
           {celulas.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          {[["PDF", exportarPdf], ["Planilha (XLSX)", exportarXlsx]].map(([l, fn]) => (
+            <button key={l} onClick={fn} disabled={!lista.length} style={{ ...BK({ flex: 1, padding: "12px", borderRadius: 12, fontSize: 13, fontWeight: 700 }), display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: G.td, minHeight: 48, opacity: lista.length ? 1 : 0.5 }}>
+              <Download size={14} /> {l}
+            </button>
+          ))}
+        </div>
         <div style={{ color: G.tm, fontSize: 12, marginBottom: 8 }}>Exibindo <strong style={{ color: G.t }}>{lista.length}</strong></div>
         {lista.length === 0 ? (
           <div style={{ color: G.tm, fontSize: 13, textAlign: "center", padding: "24px 0" }}>Nenhum encontrista com esses filtros.</div>
