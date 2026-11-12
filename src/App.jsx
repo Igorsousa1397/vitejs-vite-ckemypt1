@@ -6400,7 +6400,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     }
    celulasPorQtd[celula] = (celulasPorQtd[celula] || 0) + 1;
   });
-  const celulasOrdenadas = Object.entries(celulasPorQtd).sort((a, b) => b[1] - a[1]);
+  // células da lista que ainda não levam ninguém aparecem zeradas no fim
+  CELULAS.forEach((c) => {
+    if (c !== "Não tenho célula" && !(c in celulasPorQtd)) celulasPorQtd[c] = 0;
+  });
+  const celulasOrdenadas = Object.entries(celulasPorQtd).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
+  const celulasComInscritos = celulasOrdenadas.filter(([c, v]) => v > 0 && c !== "Sem célula").length;
+  const celulasZeradas = celulasOrdenadas.filter(([, v]) => v === 0).length;
   const maxCelula = Math.max(...celulasOrdenadas.map(([, v]) => v), 1);
 
   const PERFIS_ABONADOS_DASH = ['pastor', 'pastor_auxiliar', 'lider_geral'];
@@ -6629,8 +6635,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             </Cartao>
 
             {/* Inscritos por Célula */}
-            <Cartao i={3} titulo="Por Célula" sub={`${celulasOrdenadas.length} ${celulasOrdenadas.length === 1 ? "célula" : "células"} com inscritos`}>
-              {celulasOrdenadas.length === 0 ? (
+            <Cartao i={3} titulo="Por Célula" sub={`${celulasComInscritos} ${celulasComInscritos === 1 ? "célula" : "células"} com inscritos${celulasZeradas ? ` · ${celulasZeradas} sem ninguém` : ""}`}>
+              {!todosEnc.length ? (
                 <div className="empty" style={{ color: G.tm, fontSize: 13, textAlign: 'center', padding: 16 }}>Nenhum inscrito ainda.</div>
               ) : (
                 <>
@@ -6638,9 +6644,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     {celulasVisiveis.map(([celula, qtd], i) => (
                       <div key={celula} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ color: G.tm, fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: "right" }}>{i + 1}</span>
-                        <span style={{ color: celula === "Sem célula" ? G.tm : G.td, fontSize: 12, minWidth: 104, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{celula}</span>
+                        <span style={{ color: celula === "Sem célula" || !qtd ? G.tm : G.td, fontSize: 12, minWidth: 104, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{celula}</span>
                         <BarPct val={qtd} max={maxCelula} color={celula === "Sem célula" ? "#48484a" : "#bf5af2"} />
-                        <span style={{ color: G.t, fontWeight: 700, fontSize: 14, minWidth: 22, textAlign: 'right' }}>{qtd}</span>
+                        <span style={{ color: qtd ? G.t : "#ff3b30", fontWeight: 700, fontSize: 14, minWidth: 22, textAlign: 'right' }}>{qtd}</span>
                       </div>
                     ))}
                   </div>
