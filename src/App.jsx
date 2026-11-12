@@ -2010,12 +2010,14 @@ const fmtISO = (s) =>
   s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.split("-").reverse().join("/") : s || "—";
 const fmtCPF = (c) =>
   c ? String(c).replace(/\D/g, "").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "—";
-// monta o link do WhatsApp: limpa a máscara e prefixa 55 quando necessário
+// monta o link do WhatsApp: limpa a máscara e prefixa 55 quando necessário.
+// Usa api.whatsapp.com/send e não wa.me: o redirecionamento do wa.me estraga os
+// emojis do texto (chegam como "�" no iPhone).
 const waLink = (raw) => {
   const d = (raw || "").replace(/\D/g, "");
   if (!d) return null;
   const num = d.startsWith("55") && d.length >= 12 ? d : `55${d}`;
-  return `https://wa.me/${num}`;
+  return `https://api.whatsapp.com/send?phone=${num}`;
 };
 // Pílulas de escolha única. Vive no módulo: a Inscrição e o Termo usam as mesmas.
 const Radio = ({ val, set, opts }) => (
@@ -6957,7 +6959,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   `Olá ${enc.nome.split(" ")[0]}! Seu check-in foi confirmado 🎉 Bem-vindo(a) ao Encontro com Deus!`,
                 );
                 const a = document.createElement("a");
-                a.href = `https://wa.me/55${tel}?text=${msg}`;
+                a.href = `https://api.whatsapp.com/send?phone=55${tel}&text=${msg}`;
                 a.target = "_blank";
                 a.rel = "noopener noreferrer";
                 document.body.appendChild(a);
@@ -8110,7 +8112,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
                     {(e.pago || st === "pagar_depois") && wa && (
                       <a
-                        href={`${wa}?text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
+                        href={`${wa}&text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -8136,7 +8138,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               if (data.init_point) {
                                 await registrarContato(e);
                                 const msg = `${msgPendente(e.nome)}\n\nPara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}\n\nVocê ainda deseja participar deste encontro? Responda *Sim* ou *Não*. 🙏\n\nAguardamos uma breve resposta, para a melhor organização do evento.`;
-                                window.location.href = `${wa}?text=${encodeURIComponent(msg)}`;
+                                window.location.href = `${wa}&text=${encodeURIComponent(msg)}`;
                               } else {
                                 t("Erro ao gerar link de pagamento", "w");
                               }
@@ -8145,10 +8147,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                             }
                           } else if (st === "pagar_depois") {
                             await registrarContato(e);
-                            window.location.href = `${wa}?text=${encodeURIComponent(msgPagarDepois(e.nome, e.pagarDepoisData))}`;
+                            window.location.href = `${wa}&text=${encodeURIComponent(msgPagarDepois(e.nome, e.pagarDepoisData))}`;
                           } else if (cadastroPendente(e)) {
                             await registrarContato(e);
-                            window.location.href = `${wa}?text=${encodeURIComponent(msgCadastroPendente(e.nome, e.id))}`;
+                            window.location.href = `${wa}&text=${encodeURIComponent(msgCadastroPendente(e.nome, e.id))}`;
                           } else {
                             await registrarContato(e);
                             window.location.href = wa;
