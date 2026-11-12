@@ -9791,7 +9791,57 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     );
   }
   // ── ACHADOS ──────────────────────────────────────────────────────────────────
-  function CartasV({ users, user, role, t }) {
+  // Presentes: lista enxuta dos encontristas (nome, sexo, célula) para a equipe
+  // de Cartas separar os presentes. Desistentes ficam de fora.
+  function PresentesV({ encH = [], encM = [] }) {
+    const [sexo, setSexo] = useState("T");
+    const [celula, setCelula] = useState("todas");
+    const [busca, setBusca] = useState("");
+    const todos = [...encM, ...encH].filter((e) => e.nome && !e.desistiu);
+    const celulas = Array.from(new Set(todos.map((e) => e.celula).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    const q = busca.trim().toLowerCase();
+    const lista = todos
+      .filter((e) => sexo === "T" || (sexo === "M" ? e.sexo === "Feminino" : e.sexo === "Masculino"))
+      .filter((e) => celula === "todas" || e.celula === celula)
+      .filter((e) => !q || e.nome.toLowerCase().includes(q))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    const nM = todos.filter((e) => e.sexo === "Feminino").length;
+    const nH = todos.filter((e) => e.sexo === "Masculino").length;
+    return (
+      <div>
+        <Seg opts={[["T", `Todos ${todos.length}`], ["M", `Mulheres ${nM}`], ["H", `Homens ${nH}`]]} val={sexo} set={setSexo} />
+        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
+          <input value={busca} onChange={(ev) => setBusca(ev.target.value)} placeholder="Buscar por nome..." style={{ ...I, flex: 1, marginBottom: 0 }} />
+        </div>
+        <select value={celula} onChange={(ev) => setCelula(ev.target.value)} style={{ ...I, marginBottom: 10 }} aria-label="Filtrar por célula">
+          <option value="todas">Todas as células</option>
+          {celulas.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <div style={{ color: G.tm, fontSize: 12, marginBottom: 8 }}>Exibindo <strong style={{ color: G.t }}>{lista.length}</strong></div>
+        {lista.length === 0 ? (
+          <div style={{ color: G.tm, fontSize: 13, textAlign: "center", padding: "24px 0" }}>Nenhum encontrista com esses filtros.</div>
+        ) : (
+          <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, overflow: "hidden" }}>
+            {lista.map((e, i) => {
+              const fem = e.sexo === "Feminino";
+              const cor = fem ? "#ff2d92" : "#0a84ff";
+              return (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderTop: i ? `1px solid ${G.cb}` : "none" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: G.t, fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{e.nome}</div>
+                    <div style={{ color: G.tm, fontSize: 12, marginTop: 2 }}>{e.celula || "Sem célula"}</div>
+                  </div>
+                  <Pill c={fem ? "Mulher" : e.sexo === "Masculino" ? "Homem" : "—"} bg={`${cor}1f`} tc={cor} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+  function CartasV({ users, user, role, t, encH = [], encM = [] }) {
+    const [aba, setAba] = useState("cartas");
     const [cartas, setCartas] = useState([]);
     const [busca, setBusca] = useState("");
     const [aberto, setAberto] = useState(false);
@@ -9943,8 +9993,16 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
     const totalPendentes = cartas.filter(c => !c.retirada).length;
     const totalRetiradas = cartas.filter(c => !!c.retirada).length;
 
+    const abas = (
+      <div style={{ marginBottom: 14 }}>
+        <Seg opts={[["cartas", "Cartas"], ["presentes", "Presentes"]]} val={aba} set={setAba} />
+      </div>
+    );
+    if (aba === "presentes") return <div>{abas}<PresentesV encH={encH} encM={encM} /></div>;
+
     return (
       <div>
+        {abas}
         <div style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
           <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
             Quem o servo deve procurar
@@ -15240,7 +15298,7 @@ export default function App() {
             temPermissao("crac") ? <ListV icon="🪪" color={G.green} items={crac} setItems={setCrac} edit={isAdm || canExtra("crac")} t={showT} ph="Nome do encontrista..." /> : <TelaRestrita />
           )}
           {pg === "scartas" && (
-            <CartasV users={users} user={user} role={role} t={showT} />
+            <CartasV users={users} user={user} role={role} t={showT} encH={encH} encM={encM} />
           )}
           {pg === "sonibus" && (
             temPermissao("onibus") ? <OnV user={user} abrirMapa={() => setMapaOnibus(true)} on={on} uOn={uOn} setOn={setOn} encH={encH} encM={encM} edit={isAdm || canExtra("onibus")} t={showT} salvarOnibus={salvarOnibus} deletarOnibus={deletarOnibus} users={users} /> : <TelaRestrita />
@@ -15538,7 +15596,7 @@ export default function App() {
           <CozinhaV edit={canC(role)} t={showT} users={users} />
         )}
         {pg === "cartas" && (
-          <CartasV users={users} user={user} role={role} t={showT} />
+          <CartasV users={users} user={user} role={role} t={showT} encH={encH} encM={encM} />
         )}
         {pg === "uniformes" && (
           <UniV
