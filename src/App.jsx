@@ -9792,12 +9792,12 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   }
   // ── ACHADOS ──────────────────────────────────────────────────────────────────
   // Presentes: lista enxuta dos encontristas (nome, sexo, célula) para a equipe
-  // de Cartas separar os presentes. Desistentes ficam de fora.
+  // de Cartas separar os presentes. Só quem já pagou (pago === true).
   function PresentesV({ encH = [], encM = [] }) {
     const [sexo, setSexo] = useState("T");
     const [celula, setCelula] = useState("todas");
     const [busca, setBusca] = useState("");
-    const todos = [...encM, ...encH].filter((e) => e.nome && !e.desistiu);
+    const todos = [...encM, ...encH].filter((e) => e.nome && e.pago === true && !e.desistiu);
     const celulas = Array.from(new Set(todos.map((e) => e.celula).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
     const q = busca.trim().toLowerCase();
     const lista = todos
