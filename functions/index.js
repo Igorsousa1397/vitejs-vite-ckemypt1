@@ -950,6 +950,55 @@ exports.lembretesAgenda = onSchedule({ schedule: 'every 1 minutes', timeZone: 'A
   }
 });
 
+// ── LEMBRETE DE PAGAMENTO PENDENTE (SERVOS) ──────────────────────────────────
+// Todo dia às 10h, depois que passa a data limite (config/uniformes →
+// dataLimitePagamento), avisa cada servo que ainda está como pendente — a mesma
+// regra do dashboard: ativo, aprovado, não admin, não isento por perfil, e sem
+// pago (true / 'abonado' / 'pagar_depois'). Quem combinou "pagar depois" já tem
+// data própria e não recebe. Para sozinho no fim do encontro.
+const MSG_PAG_PENDENTE = [
+  '⚠️ Pagamento pendente!',
+  'Realize o pagamento ou entre em contato com a liderança para informar a nova data de pagamento.',
+];
+
+exports.lembretePagamentoPendente = onSchedule({ schedule: '0 10 * * *', timeZone: 'America/Sao_Paulo', retryCount: 0 }, async () => {
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // AAAA-MM-DD
+  const cfg = (await db.collection('config').doc('uniformes').get()).data() || {};
+  const prazo = cfg.dataLimitePagamento;
+  if (!prazo || hoje <= prazo) return; // só depois do último dia
+  const enc = await lerEncontro();
+  if (hoje > enc.fim) return;
+
+  // um envio por dia, mesmo se o agendador disparar duas vezes
+  const marca = db.collection('_pag_pendente_notif').doc(hoje);
+  try {
+    await marca.create({ em: new Date().toISOString() });
+  } catch (err) {
+    if (err.code === 6) return; // ALREADY_EXISTS
+    throw err;
+  }
+
+  const pendentes = new Set(
+    (await db.collection('users').get()).docs
+      .filter((d) => {
+        const u = d.data();
+        return u.nome && u.ativo !== false && u.aprovado !== false && u.perfil !== 'admin'
+          && !PERFIS_ISENTOS.includes(u.perfil) && !u.pago;
+      })
+      .map((d) => d.id),
+  );
+  if (!pendentes.size) {
+    await marca.update({ pendentes: 0, enviadas: 0 });
+    return;
+  }
+  const destinos = (await db.collection('tokens').get()).docs
+    .filter((d) => pendentes.has(d.id))
+    .flatMap(aparelhosDoDoc);
+  const enviadas = await enviarPush(destinos, ...MSG_PAG_PENDENTE);
+  await marca.update({ pendentes: pendentes.size, enviadas });
+  console.log(`lembrete pagamento pendente ${hoje}: ${pendentes.size} servos, ${enviadas} aparelhos`);
+});
+
 // ── CRIAR SERVO ──────────────────────────────────────────────────────────────
 exports.criarServo = onRequest({ cors: true, secrets: ['GMAIL_USER', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'] }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
