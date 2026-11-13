@@ -1198,7 +1198,7 @@ function CampoMetaEncontristas({ t }) {
     <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
       <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Meta de encontristas</div>
       <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
-        Quantidade de vagas do encontro. O dashboard usa para as vagas restantes, a % da meta e a previsão total.
+        Só um objetivo para acompanhar no dashboard (% da meta e previsão total). Não limita as inscrições: passar da meta é permitido. Para parar de aceitar inscrições, desligue a chave "Inscrições de encontristas" acima.
       </div>
       <label style={{ display: "block", minWidth: 0 }}>
         <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Meta</div>
@@ -6675,7 +6675,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     : diasParaEncontro === 1 ? `É amanhã · ${diasEncontroTxt}`
     : `Encontro em ${diasEncontroTxt}`;
   const pctPreenchido = Math.round((todosEnc.length / META_ENC) * 100);
-  const vagas = Math.max(META_ENC - todosEnc.length, 0);
+  // meta não é limite: pode passar. Faltam / acima da meta só informam.
+  const faltamMeta = Math.max(META_ENC - todosEnc.length, 0);
+  const acimaMeta = Math.max(todosEnc.length - META_ENC, 0);
+  const baseGrafico = Math.max(META_ENC, todosEnc.length);
   const totalPeriodo = diasOrdenados.reduce((a, [, v]) => a + v, 0);
   const celulasVisiveis = todasCelulas ? celulasOrdenadas : celulasOrdenadas.slice(0, 8);
   // inscritos com valor especial, agrupados pela opção (igreja/célula) que vale para eles
@@ -6686,7 +6689,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   });
   const gruposEspeciais = Object.values(porRegra);
   const qtdEspecial = gruposEspeciais.reduce((a, g) => a + g.qtd, 0);
-  const qtdPadrao = Math.max(META_ENC - qtdEspecial, 0);
+  // passou da meta: a previsão acompanha quem já se inscreveu
+  const qtdPadrao = Math.max(baseGrafico - qtdEspecial, 0);
   const previsaoTotal = qtdPadrao * VALOR_ENC + gruposEspeciais.reduce((a, g) => a + g.qtd * g.r.valor, 0);
   const notaPrevisao = [`${qtdPadrao} × R$ ${VALOR_ENC}`, ...gruposEspeciais.map((g) => `${g.qtd} (${g.r.nome}) × R$ ${g.r.valor}`)].join(" + ");
   const valorPagarDepoisServos = servosPagarDepois.reduce((acc, u) => acc + getValorServo(u), 0);
@@ -6715,14 +6719,14 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               titulo="Encontristas"
               sub={`${todosEnc.length} inscritos · ${encPagos} pagos · meta ${META_ENC}`}
               direita={
-                <Anel partes={[{ v: encPagos / META_ENC, cor: G.green }, { v: Math.max(0, todosEnc.length - encPagos) / META_ENC, cor: "#0a84ff" }]}>
+                <Anel partes={[{ v: encPagos / baseGrafico, cor: G.green }, { v: Math.max(0, todosEnc.length - encPagos) / baseGrafico, cor: "#0a84ff" }]}>
                   <span key={String(pctPreenchido)} className="tick" style={{ color: G.t, fontWeight: 800, fontSize: 13, lineHeight: 1, display: "inline-block" }}>{pctPreenchido}%</span>
                 </Anel>
               }
             >
               <div style={{ marginBottom: 12 }}>
                 <BarraEmpilhada
-                  total={META_ENC}
+                  total={baseGrafico}
                   partes={[
                     { v: encPagos, cor: G.green },
                     { v: encPagarDepois, cor: "#ff9f0a" },
@@ -6741,7 +6745,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   { l: "Pendentes", v: encPendentes, cor: "#ff3b30" },
                   { l: "Pagar depois", v: encPagarDepois, cor: "#ff9f0a", mostrar: encPagarDepois > 0 },
                   { l: "Desistência", v: encDesistencia, cor: "#636366", mostrar: encDesistencia > 0 },
-                  { l: "Vagas", v: vagas, cor: "#2a2a2a", mostrar: vagas > 0 },
+                  { l: "Faltam p/ meta", v: faltamMeta, cor: "#2a2a2a", mostrar: faltamMeta > 0 },
+                  { l: "Acima da meta", v: `+${acimaMeta}`, cor: "#0a84ff", mostrar: acimaMeta > 0 },
                 ]}
               />
 
@@ -6754,7 +6759,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <LinhaValor grande l="Projeção de hoje" v={encArrecadado + encAReceber} nota={`${todosEnc.length} cadastrados · arrecadado + a receber`} />
-                <LinhaValor grande l="Previsão total (meta)" v={previsaoTotal} cor="#0a84ff" nota={notaPrevisao} />
+                <LinhaValor grande l={acimaMeta > 0 ? "Previsão total (inscritos)" : "Previsão total (meta)"} v={previsaoTotal} cor="#0a84ff" nota={notaPrevisao} />
               </div>
             </Cartao>
 
