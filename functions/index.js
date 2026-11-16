@@ -978,8 +978,9 @@ exports.lembretesAgenda = onSchedule({ schedule: 'every 1 minutes', timeZone: 'A
 // Todo dia às 10h, depois que passa a data limite (config/uniformes →
 // dataLimitePagamento), avisa cada servo que ainda está como pendente — a mesma
 // regra do dashboard: ativo, aprovado, não admin, não isento por perfil, e sem
-// pago (true / 'abonado' / 'pagar_depois'). Quem combinou "pagar depois" já tem
-// data própria e não recebe. Para sozinho no fim do encontro.
+// pago (true / 'abonado'). Quem combinou "pagar depois" fica de fora até a data
+// combinada (pagarDepoisData) e volta a receber no dia seguinte a ela, se
+// continuar sem pagar. Para sozinho no fim do encontro.
 const MSG_PAG_PENDENTE = [
   '⚠️ Pagamento pendente!',
   'Realize o pagamento ou entre em contato com a liderança para informar a nova data de pagamento.',
@@ -1006,8 +1007,10 @@ exports.lembretePagamentoPendente = onSchedule({ schedule: '0 10 * * *', timeZon
     (await db.collection('users').get()).docs
       .filter((d) => {
         const u = d.data();
-        return u.nome && u.ativo !== false && u.aprovado !== false && u.perfil !== 'admin'
-          && !PERFIS_ISENTOS.includes(u.perfil) && !u.pago;
+        if (!u.nome || u.ativo === false || u.aprovado === false || u.perfil === 'admin'
+          || PERFIS_ISENTOS.includes(u.perfil)) return false;
+        if (u.pago === 'pagar_depois') return !!u.pagarDepoisData && hoje > u.pagarDepoisData;
+        return !u.pago;
       })
       .map((d) => d.id),
   );
