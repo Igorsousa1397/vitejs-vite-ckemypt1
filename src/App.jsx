@@ -2003,6 +2003,9 @@ const ENC_STATUS = {
 };
 // status que o admin pode setar à mão — "pago" não entra aqui
 const ENC_STATUS_MANUAL = ["pendente", "pagar_depois", "desistiu"];
+// Servo: `pago` pode ser true, 'abonado' ou 'pagar_depois'. Pagar depois é só
+// um novo vencimento combinado; a inscrição continua pendente.
+const servoQuitado = (pago) => pago === true || pago === "abonado";
 const encStatus = (e) =>
   e.pago ? "pago" : e.desistiu ? "desistiu" : e.pagarDepois ? "pagar_depois" : "pendente";
 // aceita "YYYY-MM-DD" (input date) e devolve "DD/MM/YYYY"; outros formatos passam direto
@@ -5311,7 +5314,7 @@ function ServoRestV({ user, encH, encM, t }) {
       </div>
       {/* Direita */}
       <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-        {pg === "home" && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+        {pg === "home" && servoQuitado(user.pago) && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
         {pg === "home" && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
         <button
           onClick={async () => {
@@ -5580,7 +5583,7 @@ function ServoRestV({ user, encH, encM, t }) {
     const slides = [];
     const prazoUniOk = dataLimiteUni && new Date() <= new Date(dataLimiteUni + "T23:59:59");
     if (prox) slides.push({ tipo: "min", data: prox });
-    if (!pago && dataLimitePagamento && role !== "pastor_auxiliar") slides.push({ tipo: "pagamento" });
+    if (!servoQuitado(pago) && (dataLimitePagamento || (pago === "pagar_depois" && user.pagarDepoisData)) && role !== "pastor_auxiliar") slides.push({ tipo: "pagamento" });
     if (meuPedido?.status === "aberto" && prazoUniOk) slides.push({ tipo: "uniforme" });
     if (!meuPedido && prazoUniOk) slides.push({ tipo: "uniforme_sem_pedido" });
     if (meuPedido && !meuPedido.naoQuerUniforme && temPecasUni(meuPedido) && !meuUniPagoSinal && !meuUniPagoIntegral && prazoUniOk) slides.push({ tipo: "uniforme_pagamento" });
@@ -5722,7 +5725,9 @@ function ServoRestV({ user, encH, encM, t }) {
                           cor="#ff453a"
                           rotulo="Pagamento da inscrição"
                           titulo={`Falta pagar ${fmtReal(pixValor)}`}
-                          desc={`Prazo ${prazoCurto(dataLimitePagamento)}`}
+                          desc={pago === "pagar_depois" && user.pagarDepoisData
+                            ? `Pendente · novo vencimento ${prazoCurto(user.pagarDepoisData)}`
+                            : `Prazo ${prazoCurto(dataLimitePagamento)}`}
                         >
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                             <button onClick={pagar('servo_pix')} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3", color: "#fff" }}>
@@ -11247,7 +11252,7 @@ function CozinhaV({ edit, t, users }) {
     if (PERFIS_ISENTOS.includes(u.perfil)) return { k: "isento", l: null, c: "#8e8e93" };
     if (u.pago === true) return { k: "pago", l: "Pago ✓", c: G.green };
     if (u.pago === "abonado") return { k: "abonado", l: "Abonado", c: "#8e8e93" };
-    if (u.pago === "pagar_depois") return { k: "pagar_depois", l: "Pagar depois", c: "#0a84ff" };
+    if (u.pago === "pagar_depois") return { k: "pagar_depois", l: u.pagarDepoisData ? `Pendente · vence ${fmtISO(u.pagarDepoisData).slice(0, 5)}` : "Pendente · pagar depois", c: "#0a84ff" };
     return { k: "pendente", l: "Pendente", c: "#ff3b30" };
   };
 
@@ -11492,7 +11497,7 @@ function CozinhaV({ edit, t, users }) {
         cpf: u.cpf || "",
         nascimento: u.nascimento ? (u.nascimento.includes("-") && u.nascimento.length === 10 ? u.nascimento.split("-").reverse().join("/") : u.nascimento) : "",
         perfil: PERFIS[u.perfil]?.l || u.perfil || "",
-        pago: u.pago ? "Pago" : "Pendente",
+        pago: u.pago === true ? "Pago" : u.pago === "abonado" ? "Abonado" : u.pago === "pagar_depois" ? `Pendente${u.pagarDepoisData ? ` · vence ${fmtISO(u.pagarDepoisData)}` : ""}` : "Pendente",
       })));
     const exportarEscalas = () =>
       baixarXlsx("escalas.xlsx", "Escalas", [
@@ -11760,8 +11765,8 @@ function CozinhaV({ edit, t, users }) {
                     {st.k === "abonado" && <span style={{ color: "#aaa", fontSize: 13, fontWeight: 700 }}>Abonado — pagamento dispensado</span>}
                     {st.k === "pagar_depois" && (
                       <div>
-                        <span style={{ color: "#0a84ff", fontSize: 13, fontWeight: 700 }}>Pagar depois</span>
-                        {u.pagarDepoisData && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📅 {new Date(u.pagarDepoisData + "T12:00:00").toLocaleDateString("pt-BR")}</div>}
+                        <span style={{ color: "#0a84ff", fontSize: 13, fontWeight: 700 }}>Pendente · pagar depois</span>
+                        {u.pagarDepoisData && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>📅 Novo vencimento: {new Date(u.pagarDepoisData + "T12:00:00").toLocaleDateString("pt-BR")}</div>}
                         {u.pagarDepoisObs && <div style={{ color: G.tm, fontSize: 11, marginTop: 2 }}>💬 {u.pagarDepoisObs}</div>}
                       </div>
                     )}
@@ -15234,7 +15239,7 @@ export default function App() {
 
           {/* Direita */}
           <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-            {(pg === "smins" || pg === "home") && user.pago && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
+            {(pg === "smins" || pg === "home") && servoQuitado(user.pago) && <Pill c="Pago ✓" bg="rgba(0,200,81,.15)" tc={G.green} />}
             {(pg === "smins" || pg === "home") && <Pill c={PERFIS[user.perfil]?.l || user.perfil} bg={`${PERFIS[user.perfil]?.c || G.green}18`} tc={PERFIS[user.perfil]?.c || G.green} />}
             <button
               onClick={async () => {
@@ -16674,11 +16679,11 @@ function PerfilV({ user, setUser, t, onSair }) {
           <div style={{ color: G.tm, fontSize: 12, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
             <Pill c={perfil.l} bg={`${perfil.c}1f`} tc={perfil.c} />
-            {user.pago
+            {user.pago === true
               ? <Pill c="Inscrição paga ✓" bg="rgba(0,200,81,.12)" tc={G.green} />
-              : user.pagarDepois
-                ? <Pill c="Pagar depois" bg="rgba(255,159,10,.12)" tc="#ff9f0a" />
-                : <Pill c={`Inscrição pendente · ${fmtReal(valorInscricao)}`} bg="rgba(255,59,48,.12)" tc="#ff6b6b" />}
+              : user.pago === "abonado"
+                ? <Pill c="Inscrição abonada" bg="rgba(142,142,147,.15)" tc="#aeaeb2" />
+                : <Pill c={`Inscrição pendente · ${fmtReal(valorInscricao)}${user.pago === "pagar_depois" && user.pagarDepoisData ? ` · vence ${fmtISO(user.pagarDepoisData)}` : ""}`} bg="rgba(255,59,48,.12)" tc="#ff6b6b" />}
           </div>
         </div>
       </div>
