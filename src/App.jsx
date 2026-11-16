@@ -2848,7 +2848,7 @@ function ConfirmadoV({ encId, onVoltar }) {
         <div style={{ color: "#ff9f0a", fontSize: 14, fontWeight: 600, lineHeight: 1.6, marginBottom: 12 }}>Avisos e comunicados durante o encontro serão enviados por este grupo. É importante que você esteja nele!</div>
 
         <a
-          href="https://chat.whatsapp.com/GxUlwcNxBmOCXRtvotRmZ7?mode=gi_t"
+          href="https://chat.whatsapp.com/CkO0TdUjUzU4AxJbVhAqUC"
           target="_blank"
           rel="noopener noreferrer"
           style={{ display: "block", textDecoration: "none", marginBottom: 16 }}
