@@ -7705,8 +7705,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       );
     };
 
-    const msgPendente = (nome) =>
-      `Olá, ${nome.split(" ")[0]}! 🙏\n\nVi que você se inscreveu no *Encontro com Deus* mas ainda não confirmou sua vaga.\n\nEsse fim de semana pode mudar sua vida de uma forma que você nunca imaginou. Um encontro real com Deus transforma, liberta e renova — e você merece viver isso! 💫\n\nPodemos te ajudar? Ficou com alguma dúvida sobre o pagamento ou sobre o evento? É só falar, estamos aqui! ❤️`;
+    // pendente: pede confirmação ainda hoje (pagar = confirmar; não vai = avisar)
+    const msgPendente = (nome, link) =>
+      `Olá, ${nome.split(" ")[0]}! 🙏\n\nVi que você se inscreveu no *Encontro com Deus*, mas a sua vaga ainda não está confirmada.\n\n⚠️ *As inscrições estão acabando* e as vagas podem se esgotar a qualquer momento.\n\nPor isso, precisamos que você nos confirme *ainda hoje* se vai participar:\n\n✅ *Vou participar:* a confirmação é feita pelo pagamento. Clique aqui para pagar e garantir a sua vaga:\n${link}\n\n❌ *Não vou participar:* responda esta mensagem avisando, para que a vaga possa ser liberada para outra pessoa.\n\nSua resposta hoje é muito importante para organizarmos as inscrições. Se tiver qualquer dúvida sobre o pagamento ou sobre o encontro, é só falar. ❤️`;
     // lembrete do combinado, citando a data quando houver
     const msgPagarDepois = (nome, data) =>
       `Olá, ${nome.split(" ")[0]}! 🙏\n\nPassando para lembrar do nosso combinado sobre a sua inscrição no *Encontro com Deus*: ficou de acertar o pagamento ${data ? `até *${fmtISO(data)}*` : "nos próximos dias"}.\n\nA sua vaga está reservada até lá — assim que o pagamento entrar, ela fica confirmada de vez. 💚\n\nSe alguma coisa mudou e você não puder ir, é só responder esta mensagem que a gente ajusta o seu cadastro.`;
@@ -8147,7 +8148,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               const data = await chamarFn("criarPagamento", { encontristaId: e.id, tipo: "pix" }, true);
                               if (data.init_point) {
                                 await registrarContato(e);
-                                const msg = `${msgPendente(e.nome)}\n\nPara confirmar a sua vaga, clique aqui para pagar: ${data.init_point}\n\nVocê ainda deseja participar deste encontro? Responda *Sim* ou *Não*. 🙏\n\nAguardamos uma breve resposta, para a melhor organização do evento.`;
+                                const msg = msgPendente(e.nome, data.init_point);
                                 window.location.href = `${wa}&text=${encodeURIComponent(msg)}`;
                               } else {
                                 t("Erro ao gerar link de pagamento", "w");
