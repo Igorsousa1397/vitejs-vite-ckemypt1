@@ -9481,9 +9481,11 @@ function RestV({ users, encH, encM, qm, setQm, role, t }) {
   // Busca líderes de célula com suas restrições
   const lideres = (users || []).filter(u => u.perfil === "lider_celula" || u.liderCelula === true);
 
-  // Monta lista de restrições por célula
+  // Monta lista de restrições por célula. Só entram pares de encontristas deste
+  // encontro: o que sobrou de encontros anteriores no doc do líder fica de fora.
+  const nomesAtuais = new Set([...(encH || []), ...(encM || [])].map(e => e.nome).filter(Boolean));
   const grupos = lideres.map(l => {
-    const restricoes = (l.restricoes || []).map(par => par.split('||'));
+    const restricoes = (l.restricoes || []).map(par => par.split('||')).filter(par => par.length === 2 && par.every(n => nomesAtuais.has(n)));
     return { celula: l.celula, restricoes };
   }).filter(g => g.restricoes.length > 0);
 
