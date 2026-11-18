@@ -1132,7 +1132,9 @@ const emprestadaDe = (p) => p?.camisaEmprestada || (p?.modalidade === "emprestim
 // termos, lembrete de jejum e o termo gravado pela function leem daqui. Sem o
 // documento vale o padrão abaixo. Manter igual em functions/index.js.
 const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP", lat: -23.6416302, lng: -46.4163667 };
-const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO, meta: 140 };
+const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO, meta: 140, fecharNaMeta: false };
+// vaga ocupada = pago ou pagar depois, sem desistência (mesma regra de functions/index.js)
+const ocupaVagaEnc = (e) => !!e.nome && !e.desistiu && (!!e.pago || !!e.pagarDepois);
 const linkMapsLocal = (l) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${l.nome}, ${l.endereco}`)}`;
 const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} e ${xs[xs.length - 1]}`);
@@ -1165,6 +1167,7 @@ function useEncontro() {
             fim: d.fim || ENCONTRO_PADRAO.fim,
             local: d.local?.nome && d.local?.endereco ? { ...LOCAL_PADRAO, ...d.local } : LOCAL_PADRAO,
             meta: Number(d.metaEncontristas) > 0 ? Number(d.metaEncontristas) : ENCONTRO_PADRAO.meta,
+            fecharNaMeta: d.fecharNaMeta === true,
           });
         },
         () => {},
@@ -1174,8 +1177,11 @@ function useEncontro() {
   return enc;
 }
 // Meta de encontristas (config/encontro.metaEncontristas): usada no dashboard
-// para vagas, % da meta e previsão total.
-function CampoMetaEncontristas({ t }) {
+// e, com a chave "Fechar inscrições ao atingir a meta" (config/encontro.fecharNaMeta),
+// também é o limite de vagas. Vaga ocupada = pago ou pagar depois. Ao bater a meta,
+// a function fecharInscricoesNaMeta desliga as inscrições e o criarPagamento
+// deixa de gerar link para quem está pendente.
+function CampoMetaEncontristas({ t, ocupadas, salvarInscricoesBloqueadas }) {
   const enc = useEncontro();
   const [v, setV] = useState(String(enc.meta));
   const [salvando, setSalvando] = useState(false);
@@ -1183,38 +1189,69 @@ function CampoMetaEncontristas({ t }) {
   const n = Number(v);
   const valido = Number.isInteger(n) && n > 0 && n <= 2000;
   const mudou = v !== String(enc.meta);
+  // ligar a chave (ou baixar a meta) com as vagas já preenchidas fecha na hora
+  const fecharSeLotado = async (meta, fechar) => {
+    if (fechar && ocupadas >= meta) await salvarInscricoesBloqueadas(true);
+  };
   const salvar = async () => {
     if (!valido) { t("Informe um número inteiro maior que zero.", "w"); return; }
     setSalvando(true);
     try {
       await setDoc(doc(db, "config", "encontro"), { metaEncontristas: n }, { merge: true });
       t("Meta de encontristas salva!");
+      await fecharSeLotado(n, enc.fecharNaMeta);
     } catch {
       t("Erro ao salvar a meta.", "w");
     }
     setSalvando(false);
   };
+  const alternarFechar = async (ligado) => {
+    try {
+      await setDoc(doc(db, "config", "encontro"), { fecharNaMeta: ligado }, { merge: true });
+      t(ligado ? "As inscrições fecham ao atingir a meta." : "A meta não fecha mais as inscrições.");
+      await fecharSeLotado(enc.meta, ligado);
+    } catch {
+      t("Erro ao salvar.", "w");
+    }
+  };
+  const restam = Math.max(enc.meta - ocupadas, 0);
   return (
-    <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-      <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Meta de encontristas</div>
-      <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
-        Só um objetivo para acompanhar no dashboard (% da meta e previsão total). Não limita as inscrições: passar da meta é permitido. Para parar de aceitar inscrições, desligue a chave "Inscrições de encontristas" acima.
-      </div>
-      <label style={{ display: "block", minWidth: 0 }}>
-        <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Meta</div>
-        <div style={{ position: "relative" }}>
-          <input inputMode="numeric" value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ""))} style={{ ...I, marginBottom: 0, paddingRight: 96 }} />
-          <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: G.tm, fontSize: 13 }}>encontristas</span>
+    <>
+      <div className="fu" style={{ background: G.card, border: `1px solid ${G.cb}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ color: G.t, fontWeight: 700, fontSize: 15 }}>Meta de encontristas</div>
+        <div style={{ color: G.tm, fontSize: 12, lineHeight: 1.5, margin: "4px 0 12px" }}>
+          {enc.fecharNaMeta
+            ? "É também o limite de vagas: quando pagos + pagar depois chegarem a este número, as inscrições fecham sozinhas e quem está pendente não consegue mais pagar."
+            : "Só um objetivo para acompanhar no dashboard (% da meta e previsão total). Não limita as inscrições enquanto a chave abaixo estiver desligada."}
         </div>
-      </label>
-      <button
-        onClick={salvar}
-        disabled={!mudou || !valido || salvando}
-        style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, marginTop: 14, opacity: !mudou || !valido || salvando ? 0.4 : 1, cursor: !mudou || !valido || salvando ? "default" : "pointer" })}
-      >
-        {salvando ? "Salvando..." : "Salvar meta"}
-      </button>
-    </div>
+        <label style={{ display: "block", minWidth: 0 }}>
+          <div style={{ color: G.tm, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Meta</div>
+          <div style={{ position: "relative" }}>
+            <input inputMode="numeric" value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ""))} style={{ ...I, marginBottom: 0, paddingRight: 96 }} />
+            <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: G.tm, fontSize: 13 }}>encontristas</span>
+          </div>
+        </label>
+        <div style={{ color: G.td, fontSize: 13, marginTop: 10 }}>
+          Vagas ocupadas (pagos + pagar depois): <b style={{ color: G.t }}>{ocupadas} de {enc.meta}</b>
+          {ocupadas >= enc.meta ? " · meta atingida" : ` · restam ${restam}`}
+        </div>
+        <button
+          onClick={salvar}
+          disabled={!mudou || !valido || salvando}
+          style={BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 14, marginTop: 14, minHeight: 48, opacity: !mudou || !valido || salvando ? 0.4 : 1, cursor: !mudou || !valido || salvando ? "default" : "pointer" })}
+        >
+          {salvando ? "Salvando..." : "Salvar meta"}
+        </button>
+      </div>
+      <Chave
+        titulo="Fechar inscrições ao atingir a meta"
+        desc={`Quando ${enc.meta} encontristas estiverem pagos ou em pagar depois, as inscrições fecham sozinhas e o link de pagamento deixa de funcionar para quem ainda está pendente. Quem está em pagar depois continua podendo pagar. Para reabrir, aumente a meta ou desligue esta chave e depois religue "Inscrições de encontristas".`}
+        ligado={enc.fecharNaMeta}
+        rotuloOn={`Fecha com ${enc.meta} vagas ocupadas`}
+        rotuloOff="Desligado: a meta não fecha as inscrições"
+        onChange={alternarFechar}
+      />
+    </>
   );
 }
 function CampoEncontro({ t }) {
@@ -1628,7 +1665,7 @@ function Chave({ titulo, desc, ligado, rotuloOn, rotuloOff, onChange, i = 0 }) {
   );
 }
 
-function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, inscricoesBloqueadas, salvarInscricoesBloqueadas, cadastroServoBloqueado, salvarCadastroServoBloqueado }) {
+function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, inscricoesBloqueadas, salvarInscricoesBloqueadas, cadastroServoBloqueado, salvarCadastroServoBloqueado, encH = [], encM = [] }) {
   const [tab, setTab] = useState("encontro");
   const gravar = (campos) => setDoc(doc(db, "config", "uniformes"), campos, { merge: true });
   return (
@@ -1651,7 +1688,7 @@ function ConfigV({ dataLimitePagamento, dataLimiteUni, dataLimiteRestante, t, in
               rotuloOff="Inscrições encerradas"
               onChange={(ligado) => salvarInscricoesBloqueadas(!ligado)}
             />
-            <CampoMetaEncontristas t={t} />
+            <CampoMetaEncontristas t={t} ocupadas={[...encH, ...encM].filter(ocupaVagaEnc).length} salvarInscricoesBloqueadas={salvarInscricoesBloqueadas} />
             <CampoValoresEncontrista t={t} />
           </>
         )}
@@ -8153,8 +8190,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                               } else {
                                 t("Erro ao gerar link de pagamento", "w");
                               }
-                            } catch {
-                              t("Erro ao gerar link de pagamento", "w");
+                            } catch (err) {
+                              t(err.message || "Erro ao gerar link de pagamento", "w");
                             }
                           } else if (st === "pagar_depois") {
                             await registrarContato(e);
@@ -15694,6 +15731,8 @@ export default function App() {
             salvarInscricoesBloqueadas={salvarInscricoesBloqueadas}
             cadastroServoBloqueado={cadastroServoBloqueado}
             salvarCadastroServoBloqueado={salvarCadastroServoBloqueado}
+            encH={encH}
+            encM={encM}
           />
         )}
         {pg === "back" && isAdm && (

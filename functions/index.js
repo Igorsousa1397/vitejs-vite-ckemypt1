@@ -1,5 +1,6 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const https = require('https');
 const crypto = require('crypto');
@@ -338,6 +339,11 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
       if (!snap.exists) return res.status(404).json({ error: 'ID não encontrado' });
       const e = snap.data();
       if (e.pago) return res.status(400).json({ error: 'Inscrição já paga' });
+      // vagas esgotadas: só quem já tem vaga (pagar depois) ainda paga
+      if (!e.pagarDepois || e.desistiu) {
+        const lot = await lotacaoEnc();
+        if (lot.lotado) return res.status(409).json({ error: MSG_VAGAS_ESGOTADAS });
+      }
       const base = valorEncontrista(e);
       valor = isCredito ? comCredito(base) : base;
       nome = e.nome;
@@ -535,6 +541,11 @@ exports.inscrever = onRequest({ cors: true }, async (req, res) => {
   try {
     const cfg = await db.doc('config/inscricoes').get();
     if (cfg.exists && cfg.data().bloqueadas) return res.status(403).json({ error: 'As inscrições estão encerradas.' });
+    const lot = await lotacaoEnc();
+    if (lot.lotado) {
+      await fecharInscricoesPorLotacao(lot);
+      return res.status(403).json({ error: 'As inscrições estão encerradas: as vagas se esgotaram.' });
+    }
 
     const cpf = soDigitos(form.cpf);
     if (!cpfValido(cpf)) return res.status(400).json({ error: 'CPF inválido. Confira os números digitados.' });
@@ -650,6 +661,39 @@ function fmtDiasEncontro(enc) {
   const txt = partes.length > 1 && grupos[grupos.length - 1].dias.length > 1 ? partes.join(', ') : partes.join(' e ');
   return `${txt} de ${fim.getUTCFullYear()}`;
 }
+// ── LOTAÇÃO (META DE ENCONTRISTAS) ────────────────────────────────────────────
+// Com config/encontro.fecharNaMeta ligado, a meta (metaEncontristas, padrão 140,
+// igual ao front) vira limite de vagas. Vaga ocupada = pago ou pagar depois, sem
+// desistência — mesma regra de ocupaVagaEnc em src/App.jsx.
+const META_ENC_PADRAO = 140;
+const ocupaVagaEnc = (e) => !!e && !!e.nome && !e.desistiu && (!!e.pago || !!e.pagarDepois);
+async function lotacaoEnc() {
+  const cfg = (await db.doc('config/encontro').get()).data() || {};
+  const meta = Number(cfg.metaEncontristas) > 0 ? Number(cfg.metaEncontristas) : META_ENC_PADRAO;
+  if (cfg.fecharNaMeta !== true) return { lotado: false, meta, ocupadas: null };
+  const ocupadas = (await db.collection('encontristas').get()).docs.filter((d) => ocupaVagaEnc(d.data())).length;
+  return { lotado: ocupadas >= meta, meta, ocupadas };
+}
+async function fecharInscricoesPorLotacao(l) {
+  const ref = db.doc('config/inscricoes');
+  const atual = (await ref.get()).data() || {};
+  if (atual.bloqueadas) return;
+  await ref.set({ bloqueadas: true, fechadasPelaMetaEm: new Date().toISOString(), fechadasCom: l.ocupadas }, { merge: true });
+  console.log(`inscrições fechadas pela meta: ${l.ocupadas}/${l.meta}`);
+}
+const MSG_VAGAS_ESGOTADAS = 'As vagas do Encontro com Deus estão esgotadas. Fale com a liderança.';
+
+// Fecha as inscrições quando alguém passa a ocupar vaga (pagou ou foi para pagar
+// depois) e a conta chega na meta. Só fecha; reabrir é manual em Configurações.
+// Região do Firestore (southamerica-east1).
+exports.fecharInscricoesNaMeta = onDocumentWritten({ document: 'encontristas/{id}', region: 'southamerica-east1' }, async (ev) => {
+  const antes = ev.data?.before?.data();
+  const depois = ev.data?.after?.data();
+  if (!ocupaVagaEnc(depois) || ocupaVagaEnc(antes)) return;
+  const l = await lotacaoEnc();
+  if (l.lotado) await fecharInscricoesPorLotacao(l);
+});
+
 async function lerEncontro() {
   const s = await db.collection('config').doc('encontro').get().catch(() => null);
   const d = s && s.exists ? s.data() : {};
