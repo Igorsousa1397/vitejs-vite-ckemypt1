@@ -5166,7 +5166,7 @@ function ServoRestV({ user, encH, encM, t }) {
             marginBottom: 4,
           }}
         >
-          ⛔ Restrições — {celula}
+          Encontristas — {celula}
         </div>
         <div style={{ color: G.tm, fontSize: 12 }}>
           Marque quem não pode ficar no mesmo quarto.
@@ -15083,7 +15083,7 @@ export default function App() {
       "avisos": [Megaphone, "savs", "Avisos"],
       "uniforme": [Shirt, "suni", "Uniforme"],
       "info": [AlertTriangle, "sinfo", "Ocorrências"],
-      "rest": [ShieldOff, "srest", "Restrições"],
+      "rest": [Users, "srest", "Encontristas"],
       "img": [Image, "simg", "Uso de Imagem"],
       "saude": [PillIcon, "ssaude", "Saúde"],
       "quartos": [BedDouble, "squartos", "Quartos"],
@@ -15258,7 +15258,7 @@ export default function App() {
                 : pg === "savs" ? "Avisos"
                 : pg === "suni" ? "Uniforme"
                 : pg === "sinfo" ? "Ocorrências"
-                : pg === "srest" ? "Restrições"
+                : pg === "srest" ? "Encontristas"
                 : pg === "simg" ? "Uso de Imagem"
                 : pg === "ssaude" ? "Saúde"
                 : pg === "squartos" ? "Quartos"
