@@ -7726,6 +7726,12 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
 
     // só admin/edição. Confirma antes: mexe no valor arrecadado do painel.
+    // pagou pelo Mercado Pago depois de fechar as vagas (webhook): falta devolver
+    const excedentePendente = (e) => !!e.pagoExcedente && !e.pago && !e.excedenteDevolvidoEm;
+    const marcarDevolvido = async (enc) => {
+      if (!(await pedirConfirmacao(`Confirma que o pagamento de ${enc.nome} já foi devolvido pelo Mercado Pago?`, "Devolução feita"))) return;
+      salvar(enc, { excedenteDevolvidoEm: new Date().toISOString() }, "Devolução registrada.");
+    };
     const marcarPago = async (enc) => {
       if (!(await pedirConfirmacao(`Marcar ${enc.nome} como PAGO?`, "Marcar pago"))) return;
       salvar(enc, { pago: true }, "Marcado como pago.");
@@ -7945,6 +7951,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           )}
         </div>
 
+        {(() => {
+          const n = [...encH, ...encM].filter(excedentePendente).length;
+          return n > 0 && (
+            <div role="alert" style={{ border: "1px solid rgba(255,59,48,.45)", background: "rgba(255,59,48,.1)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, color: "#ff6b6b", fontSize: 13, lineHeight: 1.5 }}>
+              <b>⚠️ {n === 1 ? "1 pagamento entrou" : `${n} pagamentos entraram`} depois de fechar as vagas.</b> Devolva pelo Mercado Pago e marque a devolução no card (procure "Devolver pagamento").
+            </div>
+          );
+        })()}
+
         {/* quantos o filtro atual traz */}
         <div style={{ color: G.tm, fontSize: 12, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
           <span>
@@ -8005,7 +8020,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     {e.pago && e.pagamentoId && (
                       <img src="/mp-logo.png" alt="Mercado Pago" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
                     )}
-                    <Pill c={e.pago && !e.pagamentoId ? "Pago fora do app" : ENC_STATUS[st].l} bg={`${cor}1a`} tc={cor} />
+                    {excedentePendente(e)
+                      ? <Pill c="Devolver pagamento" bg="rgba(255,59,48,.15)" tc="#ff6b6b" />
+                      : <Pill c={e.pago && !e.pagamentoId ? "Pago fora do app" : ENC_STATUS[st].l} bg={`${cor}1a`} tc={cor} />}
                   </>
                 }
               >
@@ -8019,6 +8036,24 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         <CampoInfo label="Doença crônica" valor={e.doenca || "Não"} />
                       </div>
                     </Bloco>
+
+                    {e.pagoExcedente && !e.pago && (
+                      <Bloco titulo="Pagamento excedente">
+                        <div style={{ color: e.excedenteDevolvidoEm ? G.td : "#ff6b6b", fontSize: 13, lineHeight: 1.5 }}>
+                          Pagou {fmtReal(Number(e.pagoExcedenteValor || 0))} pelo Mercado Pago
+                          {e.pagoExcedenteEm ? ` em ${new Date(e.pagoExcedenteEm).toLocaleDateString("pt-BR")}` : ""}, depois de fechar as vagas. Não ocupa vaga.
+                          <div style={{ color: G.tm, fontSize: 12, marginTop: 4 }}>ID do pagamento: {e.pagamentoExcedenteId || "—"}</div>
+                          {e.excedenteDevolvidoEm
+                            ? <div style={{ color: G.td, fontSize: 12, marginTop: 4 }}>✓ Devolução registrada em {new Date(e.excedenteDevolvidoEm).toLocaleDateString("pt-BR")}</div>
+                            : <div style={{ fontSize: 12, marginTop: 4 }}>Faça a devolução pelo painel do Mercado Pago.</div>}
+                        </div>
+                        {edit && !e.excedenteDevolvidoEm && (
+                          <button onClick={() => marcarDevolvido(e)} style={{ ...BK({ width: "100%", padding: 12, borderRadius: 10, fontSize: 13, marginTop: 10, minHeight: 48 }), borderColor: "rgba(255,59,48,.45)", color: "#ff6b6b" }}>
+                            Marcar devolução feita
+                          </button>
+                        )}
+                      </Bloco>
+                    )}
 
                     {/* status (some quando pago) + acordo */}
                     {podeAcordo && (

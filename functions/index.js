@@ -319,6 +319,16 @@ async function notificarAdminsNovaInscricao(encontristaId, nome) {
   return enviarPush(destinos, '🙏 Nova inscrição!', `${nome} acabou de se inscrever no Encontro com Deus.`);
 }
 
+// Pagamento de encontrista aprovado depois de fechar as vagas: avisa a liderança
+// para devolver pelo Mercado Pago (a devolução é manual).
+async function notificarAdminsExcedente(nome, valor) {
+  const ids = new Set((await db.collection('users').get()).docs
+    .filter((d) => ['admin', 'lider_geral', 'pastor'].includes(d.data().perfil)).map((d) => d.id));
+  const destinos = (await db.collection('tokens').get()).docs.filter((d) => ids.has(d.id)).flatMap(aparelhosDoDoc);
+  return enviarPush(destinos, '⚠️ Pagamento depois das vagas esgotadas',
+    `${nome || 'Um encontrista'} pagou R$ ${Number(valor || 0).toFixed(2).replace('.', ',')} depois de fechar as vagas. Devolva pelo Mercado Pago.`);
+}
+
 // ── CRIAR PAGAMENTO MERCADO PAGO ─────────────────────────────────────────────
 // O valor nunca vem do cliente: é calculado a partir do tipo e do documento no
 // Firestore, e vai gravado no external_reference para o webhook conferir.
@@ -405,7 +415,17 @@ exports.criarPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] },
     return res.status(500).json({ error: 'Erro ao calcular pagamento' });
   }
 
+  // Link de encontrista vale só até o fim do dia (horário de Brasília), com folga
+  // mínima de 35 min para quem gera tarde da noite. Pagamento que entrar depois de
+  // fechar as vagas é marcado como excedente no webhook.
+  const ehEnc = tipo === 'pix' || tipo === 'credito';
+  const expiraEm = (() => {
+    const fimDoDia = new Date(`${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}T23:59:59-03:00`);
+    const minimo = new Date(Date.now() + 35 * 60 * 1000);
+    return (fimDoDia > minimo ? fimDoDia : minimo).toISOString().replace('Z', '+00:00');
+  })();
   const body = JSON.stringify({
+    ...(ehEnc ? { expires: true, expiration_date_to: expiraEm } : {}),
     items: [{ title: titulo, description: descricao, quantity: 1, unit_price: valor, currency_id: 'BRL' }],
     payer: { name: nome || 'Encontrista', email: texto(email, 120) || 'encontrocomdeus@email.com' },
     external_reference: external,
@@ -505,7 +525,21 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
 
     const agora = new Date().toISOString();
     if (tipo === 'enc') {
-      await db.collection('encontristas').doc(id).set({ pago: true, pagamentoId: paymentId, pagoEm: agora, pagoValor: pago }, { merge: true });
+      const encRef = db.collection('encontristas').doc(id);
+      const e = (await encRef.get()).data() || {};
+      // quem já tem vaga (pago ou pagar depois) sempre confirma; os demais só
+      // se ainda houver vaga. Sem vaga, o pagamento fica como excedente.
+      const temVaga = !!e.pago || (!!e.pagarDepois && !e.desistiu);
+      const lot = temVaga ? { lotado: false } : await lotacaoEnc();
+      if (lot.lotado) {
+        const repetido = e.pagamentoExcedenteId === paymentId;
+        await encRef.set({ pagoExcedente: true, pagamentoExcedenteId: paymentId, pagoExcedenteEm: agora, pagoExcedenteValor: pago }, { merge: true });
+        await logRef.set({ tipo, id, pago, esperado, status: 'excedente', ref: payment.external_reference || '', em: agora });
+        console.warn(`Pagamento ${paymentId} excedente: vagas ${lot.ocupadas}/${lot.meta}`);
+        if (!repetido) await notificarAdminsExcedente(e.nome, pago).catch((err) => console.error('push excedente:', err.message));
+        return res.sendStatus(200);
+      }
+      await encRef.set({ pago: true, pagamentoId: paymentId, pagoEm: agora, pagoValor: pago }, { merge: true });
     } else if (tipo === 'servo') {
       await db.collection('users').doc(id).set({ pago: true, pagamentoId: paymentId, pagoEm: agora, pagoValor: pago }, { merge: true });
     } else if (tipo === 'uniforme_sinal') {
@@ -1352,6 +1386,7 @@ exports.excluirEncontrista = onRequest({ cors: true, invoker: 'public' }, async 
     if (e.pagamentoId) return res.status(400).json({ error: 'Essa inscrição foi paga pelo Mercado Pago e não pode ser excluída.' });
     // só pendente sai: pago, pagar depois e desistiu têm histórico que a liderança usa
     if (e.pago || e.pagarDepois || e.desistiu) return res.status(400).json({ error: 'Só inscrições pendentes podem ser excluídas.' });
+    if (e.pagoExcedente && !e.excedenteDevolvidoEm) return res.status(400).json({ error: 'Esta pessoa tem um pagamento excedente para devolver. Devolva e marque a devolução antes de excluir.' });
 
     const apagarPorCampo = async (col) => {
       const q = await db.collection(col).where('encontristaId', '==', id).get();
