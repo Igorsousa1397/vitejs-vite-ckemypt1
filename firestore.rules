@@ -67,8 +67,12 @@ service cloud.firestore {
     // Functions. Aqui só a liderança logada. Dinheiro e status só pelo admin.
     match /encontristas/{id} {
       allow read: if ativo();
-      allow create: if isAdmin() || temTelaExtra('enc');
-      allow update: if (isLider() || temTelaExtra('enc') || temTelaExtra('checkin')
+      // Check-in liberado (individual ou pelo perfil) tem o mesmo poder do admin
+      // na tela: marca chegada, escolhe ônibus e adiciona encontrista na hora.
+      allow create: if isAdmin() || temTelaExtra('enc')
+        || ((temTelaExtra('checkin') || telaDoPerfil('checkin'))
+            && !request.resource.data.keys().hasAny(['pago', 'pagamentoId', 'pagoEm', 'pagoValor', 'acordo', 'valorAcordado', 'pagarDepois', 'pagoExcedente']));
+      allow update: if (isLider() || temTelaExtra('enc') || temTelaExtra('checkin') || telaDoPerfil('checkin')
                         || temTelaExtra('quartos') || temTelaExtra('onibus'))
         && (isAdmin() || !mudouAlgum(['pago', 'pagamentoId', 'pagoEm', 'pagoValor', 'acordo', 'valorAcordado', 'desistiu', 'pagarDepois', 'pagarDepoisData', 'pagarDepoisEm',
                                          'pagoExcedente', 'pagamentoExcedenteId', 'pagoExcedenteEm', 'pagoExcedenteValor', 'excedenteDevolvidoEm']));

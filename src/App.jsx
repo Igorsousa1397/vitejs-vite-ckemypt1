@@ -4926,17 +4926,20 @@ const exportarPDF = async (termo) => {
     pdf.save(`termo_${termo.nome.trim().replace(/ /g, "_")}.pdf`);
   };
 
-function TermoAdminV({ encH, encM, t, buscaInicial }) {
+// soAguardando: servo com a tela liberada vê só quem falta assinar — sem a aba
+// Assinados, sem os PDFs e sem ler a coleção termos
+function TermoAdminV({ encH, encM, t, buscaInicial, soAguardando = false }) {
   const [aba, setAba] = useState("aguardando");
   const [s, setS] = useState(buscaInicial || "");
   const [termos, setTermos] = useState([]);
 
   useEffect(() => {
+    if (soAguardando) return;
     const unsub = onSnapshot(collection(db, "termos"), (snap) => {
       setTermos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return () => unsub();
-  }, []);
+  }, [soAguardando]);
 
   const todos = [...encH, ...encM];
   // aguardando assinatura: só quem tem vaga (pago ou pagar depois, sem desistência);
@@ -4983,7 +4986,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {[
           ["aguardando", `Aguardando (${cntAguardando})`, "#ff9f0a"],
-          ["assinado", `Assinados (${cntAssinados})`, G.green],
+          ...(soAguardando ? [] : [["assinado", `Assinados (${cntAssinados})`, G.green]]),
         ].map(([key, label, cor]) => (
           <button
             key={key}
@@ -7253,7 +7256,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       { onibus: valor || null },
                       { merge: true },
                     );
-                    if (valor && setPg && setTermoBusca) {
+                    // telaTermo null: quem fez o check-in não tem a tela Termo
+                    if (valor && setPg && setTermoBusca && telaTermo !== null) {
                       setTermoBusca(c.nome);
                       setPg(telaTermo || "stermo");
                     }
@@ -15433,11 +15437,13 @@ export default function App() {
             temPermissao("checkin") 
               ? <CkV ck={ck} setCk={setCk} on={on} edit={
                   Object.values(user?.escala || {}).flat().includes("Check-in")
-                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} /> 
+                } t={showT} sub={ckSub} setSub={setCkSub} gen={ckGen} setGen={setCkGen} setPg={setPg} setTermoBusca={setTermoBusca} telaTermo={temPermissao("termo") ? "stermo" : null} /> 
               : <TelaRestrita />
           )}
           {pg === "stermo" && (
-            temPermissao("termo") ? <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} /> : <TelaRestrita />
+            temPermissao("termo")
+              ? <TermoAdminV encH={encH} encM={encM} t={showT} buscaInicial={termoBusca} soAguardando={!["admin", "lider_geral"].includes(role)} />
+              : <TelaRestrita />
           )}
           {pg === "sach" && (
             temPermissao("ach") ? <AchV ach={ach} setAch={setAch} t={showT} /> : <TelaRestrita />
