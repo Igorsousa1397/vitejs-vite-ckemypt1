@@ -4942,10 +4942,10 @@ function TermoAdminV({ encH, encM, t, buscaInicial, soAguardando = false }) {
     return () => unsub();
   }, [soAguardando]);
 
-  const todos = [...encH, ...encM];
-  // aguardando assinatura: só quem tem vaga (pago ou pagar depois, sem desistência);
-  // pendente de pagamento não entra até pagar ou virar pagar depois
-  const aguardaTermo = (e) => !e.termoAssinado && ocupaVagaEnc(e);
+  // a tela inteira (Aguardando, Assinados e PDFs) só considera quem tem vaga:
+  // pago ou pagar depois, sem desistência. Pendente de pagamento não entra.
+  const todos = [...encH, ...encM].filter(ocupaVagaEnc);
+  const aguardaTermo = (e) => !e.termoAssinado;
 
   const lista = useMemo(() => {
     const filtrado = todos.filter((e) =>
