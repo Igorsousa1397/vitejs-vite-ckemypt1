@@ -70,7 +70,7 @@ service cloud.firestore {
       allow create: if isAdmin() || temTelaExtra('enc');
       allow update: if (isLider() || temTelaExtra('enc') || temTelaExtra('checkin')
                         || temTelaExtra('quartos') || temTelaExtra('onibus'))
-        && (isAdmin() || !mudouAlgum(['pago', 'pagamentoId', 'pagoEm', 'pagoValor', 'acordo', 'valorAcordado', 'desistiu', 'pagarDepois', 'pagarDepoisData',
+        && (isAdmin() || !mudouAlgum(['pago', 'pagamentoId', 'pagoEm', 'pagoValor', 'acordo', 'valorAcordado', 'desistiu', 'pagarDepois', 'pagarDepoisData', 'pagarDepoisEm',
                                          'pagoExcedente', 'pagamentoExcedenteId', 'pagoExcedenteEm', 'pagoExcedenteValor', 'excedenteDevolvidoEm']));
       allow delete: if isAdmin();
 

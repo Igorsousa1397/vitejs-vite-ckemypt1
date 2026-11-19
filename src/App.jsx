@@ -2048,6 +2048,12 @@ const encStatus = (e) =>
 // aceita "YYYY-MM-DD" (input date) e devolve "DD/MM/YYYY"; outros formatos passam direto
 const fmtISO = (s) =>
   s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.split("-").reverse().join("/") : s || "—";
+// data e hora de um ISO no horário de Brasília (planilhas); sem data = "Sem registro"
+const fmtDataHora = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d)) return "Sem registro";
+  return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+};
 const fmtCPF = (c) =>
   c ? String(c).replace(/\D/g, "").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "—";
 // monta o link do WhatsApp: limpa a máscara e prefixa 55 quando necessário.
@@ -7688,21 +7694,23 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       if (st === encStatus(enc)) return;
       if (st === "pendente") {
         limparDraftPd(enc.id);
-        return salvar(enc, { desistiu: false, pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null }, "Status atualizado.");
+        return salvar(enc, { desistiu: false, pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null, pagarDepoisEm: null }, "Status atualizado.");
       }
-      if (st === "pagar_depois") return salvar(enc, { pagarDepois: true, desistiu: false }, "Pagar depois salvo!");
+      if (st === "pagar_depois") return salvar(enc, { pagarDepois: true, desistiu: false, pagarDepoisEm: new Date().toISOString() }, "Pagar depois salvo!");
       if (st === "desistiu") {
         // limpa pagarDepois junto: o check-in monta a lista pelos flags
         // (pago || pagarDepois), então um desistente com a flag antiga continuaria lá
         limparDraftPd(enc.id);
-        return salvar(enc, { desistiu: true, pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null }, "Marcado como desistência.");
+        return salvar(enc, { desistiu: true, pagarDepois: false, pagarDepoisData: null, pagarDepoisObs: null, pagarDepoisEm: null }, "Marcado como desistência.");
       }
     };
 
     const salvarPagarDepois = async (enc, data, obs) => {
       const ok = await salvar(
         enc,
-        { pagarDepois: true, desistiu: false, pagarDepoisData: data || null, pagarDepoisObs: obs || null },
+        { pagarDepois: true, desistiu: false, pagarDepoisData: data || null, pagarDepoisObs: obs || null,
+          // a data em que virou "pagar depois" não muda quando só se edita o combinado
+          ...(enc.pagarDepois && enc.pagarDepoisEm ? {} : { pagarDepoisEm: new Date().toISOString() }) },
         "Pagar depois salvo!",
       );
       if (ok) setEditandoPd((prev) => ({ ...prev, [enc.id]: false }));
@@ -7734,7 +7742,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     };
     const marcarPago = async (enc) => {
       if (!(await pedirConfirmacao(`Marcar ${enc.nome} como PAGO?`, "Marcar pago"))) return;
-      salvar(enc, { pago: true }, "Marcado como pago.");
+      salvar(enc, { pago: true, pagoEm: new Date().toISOString() }, "Marcado como pago.");
     };
     const reverterPago = async (enc) => {
       if (!(await pedirConfirmacao("Reverter este pagamento para PENDENTE?", "Reverter"))) return;
@@ -7743,7 +7751,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       limparDraftPd(enc.id);
       salvar(
         enc,
-        { pago: false, pagarDepois: false, desistiu: false, pagarDepoisData: null, pagarDepoisObs: null },
+        { pago: false, pagoEm: null, pagarDepois: false, desistiu: false, pagarDepoisData: null, pagarDepoisObs: null, pagarDepoisEm: null },
         "Pagamento revertido.",
       );
     };
@@ -7772,6 +7780,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         { header: "Célula", key: "celula", width: 25 },
         { header: "Camiseta", key: "camiseta", width: 14 },
         { header: "Status", key: "status", width: 14 },
+        { header: "Forma de pagamento", key: "forma", width: 20 },
+        { header: "Data do pagamento", key: "pagoEm", width: 18 },
+        { header: "Pagar depois desde", key: "pagarDepoisEm", width: 18 },
         { header: "Check-in", key: "checkin", width: 10 },
       ];
       ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
@@ -7788,6 +7799,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           celula: e.celula || "",
           camiseta: e.camiseta || "",
           status: ENC_STATUS[encStatus(e)].l,
+          forma: e.pago ? (e.pagamentoId ? "Mercado Pago" : "Fora do app") : "",
+          pagoEm: e.pago ? fmtDataHora(e.pagoEm) : "",
+          pagarDepoisEm: !e.pago && e.pagarDepois ? fmtDataHora(e.pagarDepoisEm) : "",
           checkin: e.chegou ? "Sim" : "Não",
         });
       });
