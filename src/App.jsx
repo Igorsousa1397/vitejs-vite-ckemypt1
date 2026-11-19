@@ -18,6 +18,7 @@ import {
   where,
   limit,
   arrayUnion,
+  writeBatch,
 } from "./firebase";
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
@@ -8399,7 +8400,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={async () => {
-              await onSave({
+              const ok = await onSave({
                 ...o,
                 num: f.num ?? o.num,
                 tipo: f.tipo,
@@ -8407,7 +8408,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 limResp: f.limResp ?? 2,
                 limTemplo: f.limTemplo ?? 2,
               });
-              setAberto(false);
+              // troca de número recusada (já existe, rastreio ativo, erro): fica aberto
+              if (ok !== false) setAberto(false);
             }}
             style={BG({ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 })}
           >
@@ -9084,6 +9086,40 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       setConfirmDel(num);
     };
 
+    // Trocar o número muda o id do doc (onibus/{num}) e o vínculo dos
+    // encontristas (encontristas.onibus). Faz tudo num lote só: cria o novo,
+    // move os passageiros do check-in e apaga o antigo — ou nada acontece.
+    const salvarEdicaoOnibus = async (antigo, editado) => {
+      const novoNum = parseInt(editado.num);
+      if (!novoNum || novoNum === antigo.num) {
+        await salvarOnibus({ ...editado, num: antigo.num });
+        return true;
+      }
+      if (on.some((x) => x.num === novoNum)) {
+        t(`Já existe o ônibus ${novoNum}.`, "w");
+        return false;
+      }
+      if (antigo.rastreio?.ativo) {
+        t("Encerre a localização ao vivo deste ônibus antes de trocar o número.", "w");
+        return false;
+      }
+      try {
+        const vinculados = await getDocs(query(collection(db, "encontristas"), where("onibus", "in", [String(antigo.num), antigo.num])));
+        const lote = writeBatch(db);
+        lote.set(doc(db, "onibus", String(novoNum)), { ...editado, num: novoNum });
+        vinculados.docs.forEach((d) => lote.update(d.ref, { onibus: String(novoNum) }));
+        lote.delete(doc(db, "onibus", String(antigo.num)));
+        await lote.commit();
+        setOn((prev) => prev.map((x) => (x.num === antigo.num ? { ...editado, num: novoNum } : x)).sort((a, b) => a.num - b.num));
+        t(`Ônibus ${antigo.num} agora é o ${novoNum}${vinculados.size ? ` · ${vinculados.size} passageiro${vinculados.size === 1 ? "" : "s"} mantido${vinculados.size === 1 ? "" : "s"}` : ""}.`);
+        return true;
+      } catch (err) {
+        console.error("Erro ao trocar número do ônibus:", err);
+        t("Não foi possível trocar o número. Nada foi alterado.", "w");
+        return false;
+      }
+    };
+
     const upd = async (num, fn) => {
       const onibus = on.find((o) => o.num === num);
       if (!onibus) return;
@@ -9404,7 +9440,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
               <ControleRastreio o={o} user={user} t={t} edit={edit} ocupados={ocupados} />
 
-              {edit && <EditOnibus o={o} onSave={salvarOnibus} />}
+              {edit && <EditOnibus o={o} onSave={(editado) => salvarEdicaoOnibus(o, editado)} />}
 
               {o.tipo === "Servos" ? (
                 <>

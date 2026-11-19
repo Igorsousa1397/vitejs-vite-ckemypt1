@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc, query, where, limit, arrayUnion } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, updateDoc, addDoc, deleteDoc, query, where, limit, arrayUnion, writeBatch } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence, setPersistence } from "firebase/auth";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -64,6 +64,7 @@ export {
   addDoc,
   deleteDoc,
   arrayUnion,
+  writeBatch,
   getToken,
   onMessage,
 };
