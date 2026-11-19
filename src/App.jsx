@@ -2948,7 +2948,7 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
         if (data.pago) {
           setEncId(data.id);
           setConfirmado(true);
-        } else if (bloqueadas) {
+        } else if (bloqueadas && !(data.pagarDepois && !data.desistiu)) {
           setEncId(data.id);
           setEncontrista(data);
           // Inscrições encerradas: mostra status, mas não libera pagamento
@@ -3024,7 +3024,7 @@ return (
       {encontrista && (
         <div style={{ textAlign: 'center', width: '100%' }}>
 
-          {bloqueadas ? (
+          {bloqueadas && !(encontrista.pagarDepois && !encontrista.desistiu) ? (
             <div style={{ background: 'rgba(255,59,48,.08)', border: '1px solid rgba(255,59,48,.25)', borderRadius: 14, padding: '14px 16px', color: '#ff6b6b', fontSize: 14, lineHeight: 1.7 }}>
               As inscrições estão encerradas no momento. Não é possível gerar um novo pagamento agora. Entre em contato com a liderança para mais informações.
             </div>

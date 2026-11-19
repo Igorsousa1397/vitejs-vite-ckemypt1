@@ -200,6 +200,8 @@ const encontristaPublico = (id, e, priv = null) => ({
   // booleano, não os valores: este retorno é público (busca por CPF/WhatsApp)
   complementares: temComplementares(e),
   desistiu: !!e.desistiu,
+  // vaga reservada: pode pagar mesmo com as inscrições encerradas
+  pagarDepois: !!e.pagarDepois,
   // CPF, RG e endereço só voltam quando a busca foi pelo CPF.
   // Pelo WhatsApp (número fácil de saber) ficam de fora.
   ...(priv ? { cpf: priv.cpf, rg: priv.rg, endereco: priv.endereco } : {}),
