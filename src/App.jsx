@@ -4938,15 +4938,17 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
     return () => unsub();
   }, []);
 
-  // Todos os encontristas inscritos (pagos, pagar depois ou pendentes com termo iniciado)
   const todos = [...encH, ...encM];
+  // aguardando assinatura: só quem tem vaga (pago ou pagar depois, sem desistência);
+  // pendente de pagamento não entra até pagar ou virar pagar depois
+  const aguardaTermo = (e) => !e.termoAssinado && ocupaVagaEnc(e);
 
   const lista = useMemo(() => {
     const filtrado = todos.filter((e) =>
       e.nome.toLowerCase().includes(s.toLowerCase()),
     );
     if (aba === "aguardando")
-      return filtrado.filter((e) => !e.termoAssinado);
+      return filtrado.filter(aguardaTermo);
     return filtrado.filter((e) => e.termoAssinado);
   }, [todos, aba, s]);
 
@@ -4973,7 +4975,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
     t(`${ok} PDFs baixados${erro > 0 ? ` | ${erro} com erro` : ""}!`);
   };
 
-  const cntAguardando = todos.filter((e) => !e.termoAssinado).length;
+  const cntAguardando = todos.filter(aguardaTermo).length;
   const cntAssinados = todos.filter((e) => e.termoAssinado).length;
 
   return (
@@ -5061,7 +5063,7 @@ function TermoAdminV({ encH, encM, t, buscaInicial }) {
             )}
             {aba === "aguardando" && (
               <div style={{ color: "#ff9f0a", fontSize: 11, marginTop: 2 }}>
-                {enc.pago ? "Pago · aguardando assinatura" : "Inscrito · aguardando assinatura"}
+                {enc.pago ? "Pago · aguardando assinatura" : "Pagar depois · aguardando assinatura"}
               </div>
             )}
           </div>
