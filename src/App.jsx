@@ -4931,6 +4931,8 @@ const exportarPDF = async (termo) => {
 // Assinados, sem os PDFs e sem ler a coleção termos
 function TermoAdminV({ encH, encM, t, buscaInicial, soAguardando = false }) {
   const [aba, setAba] = useState("aguardando");
+  // filtro de sexo da aba Aguardando: null = todos, "H" ou "M"
+  const [sexoAg, setSexoAg] = useState(null);
   const [s, setS] = useState(buscaInicial || "");
   const [termos, setTermos] = useState([]);
 
@@ -4946,15 +4948,20 @@ function TermoAdminV({ encH, encM, t, buscaInicial, soAguardando = false }) {
   // pago ou pagar depois, sem desistência. Pendente de pagamento não entra.
   const todos = [...encH, ...encM].filter(ocupaVagaEnc);
   const aguardaTermo = (e) => !e.termoAssinado;
+  const idsHomens = new Set(encH.map((e) => e.id));
+  const doSexo = (e) => !sexoAg || (sexoAg === "H") === idsHomens.has(e.id);
+  const aguardandoTodos = todos.filter(aguardaTermo);
+  const qtdAgH = aguardandoTodos.filter((e) => idsHomens.has(e.id)).length;
+  const qtdAgM = aguardandoTodos.length - qtdAgH;
 
   const lista = useMemo(() => {
     const filtrado = todos.filter((e) =>
       e.nome.toLowerCase().includes(s.toLowerCase()),
     );
     if (aba === "aguardando")
-      return filtrado.filter(aguardaTermo);
+      return filtrado.filter((e) => aguardaTermo(e) && doSexo(e));
     return filtrado.filter((e) => e.termoAssinado);
-  }, [todos, aba, s]);
+  }, [todos, aba, s, sexoAg]);
 
   const [exportandoTodos, setExportandoTodos] = useState(false);
 
@@ -5015,6 +5022,44 @@ function TermoAdminV({ encH, encM, t, buscaInicial, soAguardando = false }) {
         placeholder="Buscar por nome..."
         style={{ ...I, marginBottom: 10 }}
       />
+
+      {aba === "aguardando" && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          {[
+            [null, "Todos", aguardandoTodos.length, G.t, "rgba(255,255,255,.08)"],
+            ["H", "Homens", qtdAgH, "#0a84ff", "rgba(10,132,255,.14)"],
+            ["M", "Mulheres", qtdAgM, "#ff2d92", "rgba(255,45,146,.14)"],
+          ].map(([sx, rot, n, cor, fundo]) => {
+            const ativo = sexoAg === sx;
+            return (
+              <button
+                key={rot}
+                onClick={() => { vibrar(); setSexoAg(sx); }}
+                aria-pressed={ativo}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  background: ativo ? fundo : G.card,
+                  border: `1px solid ${ativo ? cor : G.cb}`,
+                  borderRadius: 50,
+                  color: ativo ? G.t : G.td,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                {rot}
+                <span style={{ background: fundo, color: cor, borderRadius: 50, padding: "1px 8px", fontSize: 11, fontWeight: 800 }}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {aba === "assinado" && lista.length > 0 && (
         <button
