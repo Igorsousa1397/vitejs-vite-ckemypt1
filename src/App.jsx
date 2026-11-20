@@ -2044,8 +2044,10 @@ const ENC_STATUS_MANUAL = ["pendente", "pagar_depois", "desistiu"];
 // Servo: `pago` pode ser true, 'abonado' ou 'pagar_depois'. Pagar depois é só
 // um novo vencimento combinado; a inscrição continua pendente.
 const servoQuitado = (pago) => pago === true || pago === "abonado";
+// desistiu vem primeiro: quem pagou (até pelo Mercado Pago) e desistiu conta
+// como desistência — libera a vaga; o pagamento continua registrado
 const encStatus = (e) =>
-  e.pago ? "pago" : e.desistiu ? "desistiu" : e.pagarDepois ? "pagar_depois" : "pendente";
+  e.desistiu ? "desistiu" : e.pago ? "pago" : e.pagarDepois ? "pagar_depois" : "pendente";
 // aceita "YYYY-MM-DD" (input date) e devolve "DD/MM/YYYY"; outros formatos passam direto
 const fmtISO = (s) =>
   s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.split("-").reverse().join("/") : s || "—";
@@ -2946,7 +2948,9 @@ function JaInscritoV({ onVoltar, bloqueadas }) {
         if (!/não encontrada/i.test(err.message)) throw err;
       }
       if (data) {
-        if (data.pago) {
+        if (data.desistiu) {
+          setErro('Sua inscrição consta como desistência. Fale com a liderança.');
+        } else if (data.pago) {
           setEncId(data.id);
           setConfirmado(true);
         } else if (bloqueadas && !(data.pagarDepois && !data.desistiu)) {
@@ -6755,16 +6759,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     if (e.acordo && e.valorAcordado != null && !isNaN(e.valorAcordado)) return Number(e.valorAcordado);
     return valorEncPix(e);
   };
-  const encPagosLista = todosEnc.filter(e => e.pago);
+  const encPagosLista = todosEnc.filter(e => e.pago && !e.desistiu);
   const encPendentesLista = todosEnc.filter(e => !e.pago && !e.desistiu);
   const encPagarDepoisLista = todosEnc.filter(e => !e.pago && !e.desistiu && e.pagarDepois);
-  const encDesistenciaLista = todosEnc.filter(e => !e.pago && e.desistiu);
+  const encDesistenciaLista = todosEnc.filter(e => e.desistiu);
   const encPagos = encPagosLista.length;
   const encPagarDepois = encPagarDepoisLista.length;
   const encDesistencia = encDesistenciaLista.length;
   const encPendentes = encPendentesLista.length - encPagarDepois;
   const pctEncPagos = todosEnc.length ? Math.round((encPagos / META_ENC) * 100) : 0;
-  const encArrecadado = encPagosLista.reduce((acc, e) => acc + getValorEnc(e), 0);
+  // dinheiro que entrou: inclui quem pagou e depois desistiu (devolução é à parte)
+  const encArrecadado = todosEnc.filter(e => e.pago).reduce((acc, e) => acc + getValorEnc(e), 0);
   const encAReceber = encPendentesLista.reduce((acc, e) => acc + getValorEnc(e), 0);
 
   // Inscritos por célula  ← depois usa todosEnc
@@ -7702,7 +7707,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const porBusca = (e) => !q || (e.nome || "").toLowerCase().includes(q);
     const casaStatus = (e) => filtroStatus.length === 0 || filtroStatus.includes(encStatus(e));
     const casaSexo = (e) => g === "T" || e.sexo === (g === "M" ? "Feminino" : "Masculino");
-    const cadastroPendente = (e) => !!e.pago && !e.termoAssinado;
+    const cadastroPendente = (e) => !!e.pago && !e.desistiu && !e.termoAssinado;
     const casaCadastro = (e) => !soCadastroPendente || cadastroPendente(e);
     const baseSexo = todos.filter((e) => porCelula(e) && porBusca(e) && casaStatus(e) && casaCadastro(e));
     const baseStatus = todos.filter((e) => porCelula(e) && porBusca(e) && casaSexo(e) && casaCadastro(e));
@@ -7873,6 +7878,17 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const marcarDevolvido = async (enc) => {
       if (!(await pedirConfirmacao(`Confirma que o pagamento de ${enc.nome} já foi devolvido pelo Mercado Pago?`, "Devolução feita"))) return;
       salvar(enc, { excedenteDevolvidoEm: new Date().toISOString() }, "Devolução registrada.");
+    };
+    // pago (inclusive Mercado Pago) que desiste: libera a vaga e sai de check-in,
+    // termos e ônibus; o pagamento fica registrado para a devolução, se houver
+    const desistenciaPago = async (enc) => {
+      if (enc.desistiu) {
+        if (!(await pedirConfirmacao(`Desfazer a desistência de ${enc.nome}? Volta a ocupar uma vaga como pago.`, "Desfazer"))) return;
+        salvar(enc, { desistiu: false, desistiuEm: null }, "Desistência desfeita.");
+        return;
+      }
+      if (!(await pedirConfirmacao(`Marcar ${enc.nome} como DESISTIU? A vaga fica livre e a pessoa sai do check-in, dos termos e do ônibus. O pagamento continua registrado: a devolução, se houver, é feita no Mercado Pago.`, "Marcar desistência"))) return;
+      salvar(enc, { desistiu: true, desistiuEm: new Date().toISOString(), pagarDepois: false, onibus: null }, "Marcado como desistência.");
     };
     const marcarPago = async (enc) => {
       if (!(await pedirConfirmacao(`Marcar ${enc.nome} como PAGO?`, "Marcar pago"))) return;
@@ -8170,7 +8186,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                     )}
                     {excedentePendente(e)
                       ? <Pill c="Devolver pagamento" bg="rgba(255,59,48,.15)" tc="#ff6b6b" />
-                      : <Pill c={e.pago && !e.pagamentoId ? "Pago fora do app" : ENC_STATUS[st].l} bg={`${cor}1a`} tc={cor} />}
+                      : <Pill c={st === "pago" && !e.pagamentoId ? "Pago fora do app" : st === "desistiu" && e.pago ? "Desistiu · pago" : ENC_STATUS[st].l} bg={`${cor}1a`} tc={cor} />}
                   </>
                 }
               >
@@ -8341,7 +8357,16 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                       </button>
                     )}
 
-                    {(e.pago || st === "pagar_depois") && wa && (
+                    {e.pago && edit && (
+                      <button
+                        onClick={() => desistenciaPago(e)}
+                        style={BK({ width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, minHeight: 44, borderColor: e.desistiu ? G.cb : "rgba(142,142,147,.6)", color: e.desistiu ? G.t : "#8e8e93" })}
+                      >
+                        {e.desistiu ? "Desfazer desistência" : "Marcar desistência"}
+                      </button>
+                    )}
+
+                    {(st === "pago" || st === "pagar_depois") && wa && (
                       <a
                         href={`${wa}&text=${encodeURIComponent(`Olá ${e.nome.split(" ")[0]}! Segue o link para acessar seu QR Code do Encontro com Deus: https://servos-peniel.vercel.app?qr=true&id=${e.id}`)}`}
                         target="_blank"
@@ -14924,7 +14949,7 @@ export default function App() {
                 lista
                   // desistiu tem prioridade: registros antigos podem ter ficado
                   // com pagarDepois:true junto da desistência
-                  .filter((e) => e.pago || (e.pagarDepois && !e.desistiu))
+                  .filter(ocupaVagaEnc)
                   .map((e) => ({
                     id: e.id,
                     nome: e.nome,

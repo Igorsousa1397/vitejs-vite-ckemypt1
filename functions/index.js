@@ -541,7 +541,8 @@ exports.webhookPagamento = onRequest({ cors: true, secrets: ['MP_ACCESS_TOKEN'] 
         if (!repetido) await notificarAdminsExcedente(e.nome, pago).catch((err) => console.error('push excedente:', err.message));
         return res.sendStatus(200);
       }
-      await encRef.set({ pago: true, pagamentoId: paymentId, pagoEm: agora, pagoValor: pago }, { merge: true });
+      // pagou: deixa de ser desistência (senão o app mostraria "desistiu" e não contaria a vaga)
+      await encRef.set({ pago: true, desistiu: false, pagamentoId: paymentId, pagoEm: agora, pagoValor: pago }, { merge: true });
     } else if (tipo === 'servo') {
       await db.collection('users').doc(id).set({ pago: true, pagamentoId: paymentId, pagoEm: agora, pagoValor: pago }, { merge: true });
     } else if (tipo === 'uniforme_sinal') {
