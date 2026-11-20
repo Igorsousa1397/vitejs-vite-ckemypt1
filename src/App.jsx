@@ -6997,6 +6997,20 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 }
   // ── CHECK-IN ─────────────────────────────────────────────────────────────────
   function CkV({ ck, setCk, on, edit, t, sub, setSub, gen, setGen, setPg, setTermoBusca, telaTermo }) {
+    // grava no encontrista e avisa se o banco recusar: antes o erro passava
+    // calado e o check-in "voltava" quando a tela recarregava
+    const gravarCk = async (id, upd) => {
+      try {
+        await setDoc(doc(db, "encontristas", id), upd, { merge: true });
+        return true;
+      } catch (err) {
+        console.error("Check-in não salvo:", err?.code || err?.message);
+        t(err?.code === "permission-denied"
+          ? "Check-in NÃO salvo: sua conta não tem permissão. Peça ao admin para liberar a tela Check-in."
+          : "Check-in NÃO salvo. Confira a internet e tente de novo.", "w");
+        return false;
+      }
+    };
     const [s, setS] = useState("");
     const [sh, setSh] = useState(false);
     const [shQr, setShQr] = useState(false);
@@ -7037,11 +7051,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 t(`${enc.nome} já fez check-in ✓`);
                 return;
               }
-              await setDoc(
-                doc(db, "encontristas", enc.id),
-                { chegou: true },
-                { merge: true },
-              );
+              if (!(await gravarCk(enc.id, { chegou: true }))) return;
               vibrar(60);
               t(`✅ Check-in: ${enc.nome}`);
               const encGen = enc.gen === "M" ? "M" : "H";
@@ -7116,7 +7126,13 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         onibus: null,
         criadoEm: new Date().toLocaleString("pt-BR"),
       };
-      await addDoc(collection(db, "encontristas"), novoEnc);
+      try {
+        await addDoc(collection(db, "encontristas"), novoEnc);
+      } catch (err) {
+        console.error("Encontrista não adicionado:", err?.code || err?.message);
+        t("Encontrista NÃO adicionado. Confira a internet ou a permissão da tela Check-in.", "w");
+        return;
+      }
       setF({ nome: "", sob: "", gen: "M" });
       setSh(false);
       t("Encontrista adicionado!");
@@ -7237,11 +7253,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   vibrar(30);
                   const novoOk = !c.ok;
                   setCk(prev => prev.map(x => x.id === c.id ? { ...x, ok: novoOk } : x));
-                  setDoc(
-                    doc(db, "encontristas", c.id),
-                    { chegou: novoOk },
-                    { merge: true },
-                  );
+                  // recusou: desfaz na tela para não parecer salvo
+                  gravarCk(c.id, { chegou: novoOk }).then((ok) => {
+                    if (!ok) setCk(prev => prev.map(x => x.id === c.id ? { ...x, ok: !novoOk } : x));
+                  });
                   setHighlightId(novoOk ? c.id : null);
                   setSub(novoOk ? "conf" : "pend");
                   if (novoOk) {
@@ -7297,11 +7312,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   value={c.on || ""}
                   onChange={async (e) => {
                     const valor = e.target.value;
-                    await setDoc(
-                      doc(db, "encontristas", c.id),
-                      { onibus: valor || null },
-                      { merge: true },
-                    );
+                    if (!(await gravarCk(c.id, { onibus: valor || null }))) return;
                     // telaTermo null: quem fez o check-in não tem a tela Termo
                     if (valor && setPg && setTermoBusca && telaTermo !== null) {
                       setTermoBusca(c.nome);
