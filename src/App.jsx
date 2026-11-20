@@ -14923,9 +14923,13 @@ export default function App() {
     );
   };
 
+  // servo escalado como responsável (líder) de algum ônibus vê a tela Ônibus
+  // para iniciar a rota; editar continua só com a tela liberada
+  const souLiderOnibus = !!user?.nome && (on || []).some((o) => (o.resp || []).includes(user.nome));
   const temPermissao = (tela) => {
     if (role === "admin") return true;
     if (role === "lider_geral") return true;
+    if (tela === "onibus" && souLiderOnibus) return true;
     const telasFixas = ["mins", "avisos", "uniforme", "info", "cartas"];
     if (telasFixas.includes(tela)) return true;
     // Telas extras atribuídas individualmente ao usuário
