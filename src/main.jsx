@@ -11,6 +11,19 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Depois de uma publicação nova, uma aba aberta há tempo ainda aponta para os
+// arquivos da versão anterior (Excel, mapa...), que já não existem: o import
+// falha com 404. O Vite avisa com este evento; recarrega uma vez para pegar a
+// versão atual (no máximo uma vez a cada 30s, para não entrar em loop).
+window.addEventListener('vite:preloadError', (event) => {
+  let ultima = 0;
+  try { ultima = Number(sessionStorage.getItem('recarregouVersao')) || 0; } catch (e) {}
+  if (Date.now() - ultima < 30000) return;
+  try { sessionStorage.setItem('recarregouVersao', String(Date.now())); } catch (e) {}
+  event.preventDefault();
+  window.location.reload();
+});
+
 // Patch de segurança para localStorage em WebViews restritivos (Instagram, WhatsApp iOS)
 try {
   localStorage.setItem('__test__', '1');
