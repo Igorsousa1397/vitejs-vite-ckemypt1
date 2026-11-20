@@ -9039,8 +9039,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         ? (users || []).filter(
             (u) =>
               u.ativo !== false &&
+              u.aprovado !== false &&
               u.nome &&
-              u.nome.toLowerCase().includes(busca.toLowerCase()) &&
+              normalizar(u.nome).includes(normalizar(busca)) &&
               !(atual || []).includes(u.nome),
           ).slice(0, 8)
         : [];
@@ -9057,6 +9058,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             placeholder={ph}
             style={{ ...I, fontSize: 12, padding: "9px 12px", marginBottom: 0 }}
           />
+          {aberto && busca.trim().length > 1 && filtrados.length === 0 && (
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 6 }}>Nenhum servo encontrado com esse nome.</div>
+          )}
           {aberto && busca.length > 0 && filtrados.length > 0 && (
             <div
               style={{
@@ -9503,18 +9507,19 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                         : undefined
                     }
                   />
-                  {edit && (
-                    <AddIn
-                      ph="Adicionar servo..."
-                      onAdd={(n) =>
-                        upd(o.num, (x) => ({
-                          ...x,
-                          servos: [...(x.servos || []), n],
-                        }))
-                      }
-                      mt={8}
-                    />
-                  )}
+                  {/* ônibus de servos: só entra quem é servo cadastrado (busca na
+                      lista de servos), nada de texto livre */}
+                  <AddServoBusca
+                    ph="Buscar servo pelo nome..."
+                    atual={servos}
+                    lim={poltronas}
+                    onPick={(n) =>
+                      upd(o.num, (x) => ({
+                        ...x,
+                        servos: (x.servos || []).includes(n) ? x.servos : [...(x.servos || []), n],
+                      }))
+                    }
+                  />
                 </>
               ) : (
                 <>
