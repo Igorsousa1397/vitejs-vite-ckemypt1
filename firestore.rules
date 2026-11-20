@@ -58,7 +58,7 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update: if isAdmin()
         || (ativo() && request.auth.uid == uid
-            && soMudou(['primeiro', 'restricoes', 'cpf', 'nascimento', 'sexo', 'telefone', 'whatsapp', 'foto']));
+            && soMudou(['primeiro', 'restricoes', 'cpf', 'nascimento', 'sexo', 'telefone', 'whatsapp', 'foto', 'transporte', 'transporteEm']));
       allow delete: if isAdmin();
     }
 

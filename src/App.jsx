@@ -34,7 +34,7 @@ const carregarHtml5Qrcode = () => import("html5-qrcode").then((m) => m.Html5Qrco
 import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes } from "./firebase";
 import "leaflet/dist/leaflet.css";
-import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare, Crosshair } from "lucide-react";
+import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Car, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare, Crosshair } from "lucide-react";
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -5625,7 +5625,7 @@ function ServoRestV({ user, encH, encM, t }) {
     );
   }
   // ── SERVO HOME ───────────────────────────────────────────────────────────────
-  function ServoHomeV({ user, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, users, qh, qm, on, liderMapOverrides, t, abrirMapa }) {
+  function ServoHomeV({ user, setUser, mins, avs, ocorr, setPg, pago, role, uni, dataLimiteUni, dataLimitePagamento, users, qh, qm, on, liderMapOverrides, t, abrirMapa }) {
     const encontro = useEncontro();
     const [cartasGlobais, setCartasGlobais] = useState([]);
     useEffect(() => {
@@ -5684,12 +5684,18 @@ function ServoRestV({ user, encH, encM, t }) {
     if (meuPedido && !meuPedido.naoQuerUniforme && meuUniPagoSinal && !meuUniPagoIntegral && dataLimiteUni) slides.push({ tipo: "uniforme_sinal_pago" });
     if (hoje2 >= dataInicioJejum && hoje2 <= dataEvento) slides.push({ tipo: "jejum" });
     if (minhasCartasTotal > 0) slides.push({ tipo: "cartas" });
+    // falta dizer o transporte: a pergunta vai no cartão de pagamento; quem não
+    // tem cartão de pagamento (já pagou, abonado...) ganha um cartão só dela
+    const precisaTransporte = !user?.transporte;
+    if (precisaTransporte && !slides.some((x) => x.tipo === "pagamento")) slides.unshift({ tipo: "transporte" });
 
+    // com a pergunta de transporte pendente o carrossel não gira sozinho
+    // (senão o cartão troca enquanto a pessoa responde)
     useEffect(() => {
-      if (slides.length <= 1) return;
+      if (slides.length <= 1 || precisaTransporte) return;
       const interval = setInterval(() => setSlide((s) => (s + 1) % slides.length), 10000);
       return () => clearInterval(interval);
-    }, [slides.length]);
+    }, [slides.length, precisaTransporte]);
 
     const slideAtual = slides[slide];
 
@@ -5804,11 +5810,23 @@ function ServoRestV({ user, encH, encM, t }) {
                         desc={`${prox.dia}${dataDiaAgenda(encontro, prox.dia) ? `, ${dataDiaAgenda(encontro, prox.dia)}` : ""} · ${prox.hora}`}
                       />
                     )}
+                    {slideAtual?.tipo === "transporte" && (
+                      <SlideAviso
+                        Ic={Bus}
+                        cor="#0a84ff"
+                        rotulo="Transporte"
+                        titulo="Como você vai para o Encontro?"
+                        desc="Quem vai de ônibus entra na lista dos ônibus de servos."
+                      >
+                        <EscolhaTransporte user={user} setUser={setUser} t={t} />
+                      </SlideAviso>
+                    )}
                     {slideAtual?.tipo === "pagamento" && (() => {
                       const pixValor = valorServoPix(role);
                       const creditoValor = comCredito(pixValor);
                       const pagar = (tipo) => async (e) => {
                         e.stopPropagation();
+                        if (!user?.transporte) { t?.("Escolha o meio de transporte antes de pagar.", "w"); return; }
                         vibrar(50);
                         try { await irParaPagamento(user.id, tipo, { email: user.email || '' }, true); }
                         catch (err) { alert(err.message || 'Erro ao gerar pagamento.'); }
@@ -5823,7 +5841,8 @@ function ServoRestV({ user, encH, encM, t }) {
                             ? `Pendente · novo vencimento ${prazoCurto(user.pagarDepoisData)}`
                             : `Prazo ${prazoCurto(dataLimitePagamento)}`}
                         >
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <EscolhaTransporte user={user} setUser={setUser} t={t} />
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12, opacity: user?.transporte ? 1 : 0.45 }}>
                             <button onClick={pagar('servo_pix')} style={{ ...BG({ width: "100%", padding: 12, borderRadius: 12, fontSize: 13 }), background: "#009ee3", color: "#fff" }}>
                               PIX ou Boleto · {fmtReal(pixValor)}
                             </button>
@@ -6455,6 +6474,58 @@ const prazoCurto = (iso) => {
 
 // Cartão do carrossel da home do servo: ícone na cor do assunto, rótulo,
 // título, texto e, opcionalmente, botões ou uma seta (quando é clicável).
+// Servo diz como vai ao Encontro. Quem marca ônibus entra na lista dos ônibus
+// de servos; quem marca carro não aparece lá. Fica em users/{id}.transporte.
+const TRANSPORTES = [["onibus", "Ônibus", Bus], ["carro", "Carro", Car]];
+const rotuloTransporte = (v) => (v === "onibus" ? "Ônibus" : v === "carro" ? "Carro" : "");
+function EscolhaTransporte({ user, setUser, t }) {
+  const [salvando, setSalvando] = useState(false);
+  const atual = user?.transporte || null;
+  const escolher = async (v) => {
+    if (salvando || v === atual || !user?.id) return;
+    vibrar(30);
+    setSalvando(true);
+    try {
+      const upd = { transporte: v, transporteEm: new Date().toISOString() };
+      await setDoc(doc(db, "users", user.id), upd, { merge: true });
+      setUser?.((prev) => ({ ...prev, ...upd }));
+    } catch (err) {
+      console.error("Transporte não salvo:", err?.code || err?.message);
+      t?.("Não consegui salvar o transporte. Tente de novo.", "w");
+    } finally {
+      setSalvando(false);
+    }
+  };
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <div style={{ color: G.td, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Qual meio de transporte você vai utilizar?</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {TRANSPORTES.map(([v, rot, Ic]) => {
+          const ativo = atual === v;
+          return (
+            <button
+              key={v}
+              onClick={() => escolher(v)}
+              aria-pressed={ativo}
+              disabled={salvando}
+              style={{
+                flex: 1, minHeight: 48, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                borderRadius: 12, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer",
+                background: ativo ? "rgba(0,200,81,.12)" : "#141414",
+                border: `1px solid ${ativo ? G.green : G.cb}`,
+                color: ativo ? G.t : G.td,
+                opacity: salvando ? 0.6 : 1,
+              }}
+            >
+              <Ic size={16} /> {rot}{ativo ? " ✓" : ""}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const SlideAviso = ({ Ic, cor, rotulo, titulo, desc, pill, onClick, children }) => (
   <div
     onClick={onClick}
@@ -9035,7 +9106,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       return lista.filter((e) => e.onibus === String(num) || e.onibus === num);
     };
 
-    const AddServoBusca = ({ ph, atual, lim, onPick }) => {
+    const AddServoBusca = ({ ph, atual, lim, onPick, filtro }) => {
       const [busca, setBusca] = useState("");
       const [aberto, setAberto] = useState(false);
       if (!edit) return null;
@@ -9051,6 +9122,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             (u) =>
               u.ativo !== false &&
               u.aprovado !== false &&
+              (!filtro || filtro(u)) &&
               u.nome &&
               normalizar(u.nome).includes(normalizar(busca)) &&
               !(atual || []).includes(u.nome),
@@ -9520,8 +9592,20 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   />
                   {/* ônibus de servos: só entra quem é servo cadastrado (busca na
                       lista de servos), nada de texto livre */}
+                  {(() => {
+                    // só quem marcou ônibus; quem já está em outro ônibus de servos sai da busca
+                    const vaoDeOnibus = (users || []).filter((u) => u.ativo !== false && u.aprovado !== false && u.transporte === "onibus");
+                    const alocados = new Set(on.filter((x) => x.tipo === "Servos").flatMap((x) => x.servos || []));
+                    const faltam = vaoDeOnibus.filter((u) => !alocados.has(u.nome)).length;
+                    return (
+                      <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>
+                        {vaoDeOnibus.length} {vaoDeOnibus.length === 1 ? "servo marcou" : "servos marcaram"} ônibus · {faltam} sem ônibus
+                      </div>
+                    );
+                  })()}
                   <AddServoBusca
-                    ph="Buscar servo pelo nome..."
+                    ph="Buscar servo que vai de ônibus..."
+                    filtro={(u) => u.transporte === "onibus" && !on.some((x) => x.num !== o.num && x.tipo === "Servos" && (x.servos || []).includes(u.nome))}
                     atual={servos}
                     lim={poltronas}
                     onPick={(n) =>
@@ -11683,6 +11767,7 @@ function CozinhaV({ edit, t, users }) {
         { header: "Nascimento", key: "nascimento", width: 14 },
         { header: "Perfil", key: "perfil", width: 22 },
         { header: "Pago", key: "pago", width: 10 },
+        { header: "Transporte", key: "transporte", width: 12 },
       ], [...users].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")).map((u) => ({
         nome: u.nome || "",
         email: u.email || "",
@@ -11690,6 +11775,7 @@ function CozinhaV({ edit, t, users }) {
         nascimento: u.nascimento ? (u.nascimento.includes("-") && u.nascimento.length === 10 ? u.nascimento.split("-").reverse().join("/") : u.nascimento) : "",
         perfil: PERFIS[u.perfil]?.l || u.perfil || "",
         pago: u.pago === true ? "Pago" : u.pago === "abonado" ? "Abonado" : u.pago === "pagar_depois" ? `Pendente${u.pagarDepoisData ? ` · vence ${fmtISO(u.pagarDepoisData)}` : ""}` : "Pendente",
+        transporte: rotuloTransporte(u.transporte) || "Não respondeu",
       })));
     const exportarEscalas = () =>
       baixarXlsx("escalas.xlsx", "Escalas", [
@@ -15452,6 +15538,7 @@ export default function App() {
         {(pg === "smins" || pg === "home") && (
           <ServoHomeV
             t={showT}
+            setUser={setUser}
             abrirMapa={() => setMapaOnibus(true)}
             liderMapOverrides={liderMapOverrides}
             user={user}
@@ -16952,6 +17039,10 @@ function PerfilV({ user, setUser, t, onSair }) {
       </Cartao>
 
       {/* conta */}
+      <Cartao i={3} titulo="Transporte">
+        <EscolhaTransporte user={user} setUser={setUser} t={t} />
+      </Cartao>
+
       <Cartao i={3} titulo="Conta">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <button
