@@ -9131,6 +9131,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       return lista.filter((e) => e.onibus === String(num) || e.onibus === num);
     };
 
+    // quem já está em qualquer ônibus (responsável, templo ou ônibus de servos)
+    // não aparece em nenhuma busca: cada servo vai num ônibus só
+    const nomesEmOnibus = new Set(on.flatMap((x) => [...(x.resp || []), ...(x.templo || []), ...(x.servos || [])]));
     const AddServoBusca = ({ ph, atual, lim, onPick, filtro }) => {
       const [busca, setBusca] = useState("");
       const [aberto, setAberto] = useState(false);
@@ -9147,6 +9150,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             (u) =>
               u.ativo !== false &&
               u.aprovado !== false &&
+              !nomesEmOnibus.has(u.nome) &&
               (!filtro || filtro(u)) &&
               u.nome &&
               normalizar(u.nome).includes(normalizar(busca)) &&
@@ -9620,8 +9624,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   {(() => {
                     // só quem marcou ônibus; quem já está em outro ônibus de servos sai da busca
                     const vaoDeOnibus = (users || []).filter((u) => u.ativo !== false && u.aprovado !== false && u.transporte === "onibus");
-                    const alocados = new Set(on.filter((x) => x.tipo === "Servos").flatMap((x) => x.servos || []));
-                    const faltam = vaoDeOnibus.filter((u) => !alocados.has(u.nome)).length;
+                    const faltam = vaoDeOnibus.filter((u) => !nomesEmOnibus.has(u.nome)).length;
                     return (
                       <div style={{ color: G.tm, fontSize: 11, marginTop: 8 }}>
                         {vaoDeOnibus.length} {vaoDeOnibus.length === 1 ? "servo marcou" : "servos marcaram"} ônibus · {faltam} sem ônibus
@@ -9630,7 +9633,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                   })()}
                   <AddServoBusca
                     ph="Buscar servo que vai de ônibus..."
-                    filtro={(u) => u.transporte === "onibus" && !on.some((x) => x.num !== o.num && x.tipo === "Servos" && (x.servos || []).includes(u.nome))}
+                    filtro={(u) => u.transporte === "onibus"}
                     atual={servos}
                     lim={poltronas}
                     onPick={(n) =>
