@@ -9510,6 +9510,33 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           );
         }}</ComRastreio>
 
+        {/* resposta dos servos à pergunta de transporte (users.transporte) */}
+        {(() => {
+          const ativos = (users || []).filter((u) => u.nome && u.ativo !== false && u.aprovado !== false);
+          const deCarro = ativos.filter((u) => u.transporte === "carro").sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+          const deOnibus = ativos.filter((u) => u.transporte === "onibus").length;
+          const semResposta = ativos.length - deCarro.length - deOnibus;
+          return (
+            <Acc
+              title="Servos de carro"
+              ax="#ff9f0a"
+              right={<Pill c={`${deCarro.length}`} bg="rgba(255,159,10,.14)" tc="#ff9f0a" />}
+            >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+                {[[deCarro.length, "De carro", "#ff9f0a"], [deOnibus, "De ônibus", "#0a84ff"], [semResposta, "Não responderam", G.tm]].map(([n, rot, cor]) => (
+                  <div key={rot} style={{ background: "#141414", border: `1px solid ${G.cb}`, borderRadius: 12, padding: "10px 12px" }}>
+                    <div style={{ color: cor, fontWeight: 800, fontSize: 20, lineHeight: 1.1 }}>{n}</div>
+                    <div style={{ color: G.tm, fontSize: 11, fontWeight: 600, marginTop: 2 }}>{rot}</div>
+                  </div>
+                ))}
+              </div>
+              {deCarro.length > 0
+                ? <Tags items={deCarro.map((u) => u.nome)} ax="#ff9f0a" />
+                : <div style={{ color: G.tm, fontSize: 12 }}>Nenhum servo marcou carro ainda.</div>}
+            </Acc>
+          );
+        })()}
+
         {edit && (
           <>
             <button
