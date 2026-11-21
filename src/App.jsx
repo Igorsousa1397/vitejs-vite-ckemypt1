@@ -547,6 +547,20 @@ const Tags = ({ items, ax, onX }) => (
     ))}
   </div>
 );
+// Lista em linhas (quartos): número, nome e o "x" de remover com alvo de 44px
+const ListaNomes = ({ items, ax = G.green, onX }) => (
+  <div style={{ marginTop: 8, border: `1px solid ${G.cb}`, borderRadius: 12, overflow: "hidden" }}>
+    {items.map((nome, i) => (
+      <div key={`${nome}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, padding: onX ? "0 0 0 12px" : "0 12px", borderTop: i ? `1px solid ${G.cb}` : "none", background: "#141414" }}>
+        <span style={{ width: 22, color: ax, fontSize: 12, fontWeight: 700, textAlign: "right", flexShrink: 0 }}>{i + 1}.</span>
+        <span style={{ flex: 1, color: G.t, fontSize: 14, lineHeight: 1.35, padding: "10px 0" }}>{nome}</span>
+        {onX && (
+          <button onClick={() => onX(i)} aria-label={`Remover ${nome}`} style={{ width: 44, height: 44, background: "none", border: "none", color: "#ff6b6b", fontSize: 16, cursor: "pointer", flexShrink: 0 }}>✕</button>
+        )}
+      </div>
+    ))}
+  </div>
+);
 const SL = ({ c, mt = 14 }) => (
   <div
     style={{
@@ -16451,7 +16465,7 @@ export default function App() {
         {edit && <EditQuarto q={m} upd={upd} t={t} />}
 
         <SL c={`Servos (${m.servos.length}/${m.limServos || 2})`} mt={0} />
-        <Tags
+        <ListaNomes
           items={m.servos}
           ax={G.green}
           onX={
@@ -16467,7 +16481,7 @@ export default function App() {
         <AddServoSearch quarto={m} updFn={uQM} />
 
         <SL c="Mães" />
-        <Tags
+        <ListaNomes
           items={m.enc}
           ax="#ff9f0a"
           onX={
@@ -16878,7 +16892,7 @@ export default function App() {
               {edit && <EditQuarto q={q} upd={upd} t={t} />}
 
               <SL c={`Servos (${q.servos.length}/${q.limServos || 2})`} mt={0} />
-              <Tags
+              <ListaNomes
                 items={q.servos}
                 ax={G.green}
                 onX={
@@ -16907,7 +16921,7 @@ export default function App() {
 
               <SL c="Encontristas" />
               {q.enc.length > 0 ? (
-                <Tags
+                <ListaNomes
                   items={q.enc}
                   onX={
                     edit
