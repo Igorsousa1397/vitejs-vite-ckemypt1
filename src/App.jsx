@@ -16723,21 +16723,39 @@ export default function App() {
                 ];
                 ws.getRow(1).font = { bold: true, color: { argb: "FF000000" } };
                 ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
-                [...quartos]
-                  .sort((a, b) => a.num - b.num)
-                  .forEach((q) => {
-                    [...(q.enc || [])]
-                      .sort((a, b) => a.localeCompare(b))
-                      .forEach((nomeEnc) => {
-                        const normalizar = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
-                        const encontrista = encontristas.find((e) => normalizar(e.nome) === normalizar(nomeEnc));
-                        ws.addRow({
-                          quarto: q.num,
-                          nome: nomeEnc,
-                          camiseta: encontrista?.camiseta || "",
-                        });
+                const porTamanho = {};
+                const comGente = [...quartos].filter((q) => (q.enc || []).length > 0).sort((a, b) => a.num - b.num);
+                comGente.forEach((q, iq) => {
+                  // linha em branco separando um quarto do outro
+                  if (iq > 0) ws.addRow({});
+                  [...(q.enc || [])]
+                    .sort((a, b) => a.localeCompare(b))
+                    .forEach((nomeEnc) => {
+                      const normalizar = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+                      const encontrista = encontristas.find((e) => normalizar(e.nome) === normalizar(nomeEnc));
+                      const tam = (encontrista?.camiseta || "").trim();
+                      porTamanho[tam || "Sem tamanho"] = (porTamanho[tam || "Sem tamanho"] || 0) + 1;
+                      ws.addRow({
+                        quarto: q.maes ? "Mães" : q.num,
+                        nome: nomeEnc,
+                        camiseta: tam,
                       });
-                  });
+                    });
+                });
+                // total por tamanho de camiseta no fim da aba
+                const ORDEM = ["PP", "P", "M", "G", "GG", "EXG", "G1", "G2", "G3", "G4"];
+                const tamanhos = Object.keys(porTamanho).sort((a, b) => {
+                  const ia = ORDEM.indexOf(a), ib = ORDEM.indexOf(b);
+                  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+                });
+                ws.addRow({});
+                ws.addRow({});
+                const cab = ws.addRow({ nome: "Total por camiseta", camiseta: "Quantidade" });
+                cab.font = { bold: true };
+                cab.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD0D0D0" } };
+                tamanhos.forEach((tm) => ws.addRow({ nome: tm, camiseta: porTamanho[tm] }));
+                const tot = ws.addRow({ nome: "Total", camiseta: Object.values(porTamanho).reduce((x, y) => x + y, 0) });
+                tot.font = { bold: true };
               };
 
               montarAba("Homens", qh, encH || []);
