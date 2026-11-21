@@ -16382,7 +16382,7 @@ export default function App() {
       const fn = updFn || upd;
       // quem já está em algum quarto não aparece de novo
       const sugestoes = busca.trim()
-        ? filtrarPorNome(encConfirmados.filter((e) => !quarto.enc.includes(e.nome) && !encAlocados.has(e.nome)), busca).slice(0, 8)
+        ? filtrarPorNome(encConfirmados.filter((e) => !encAlocados.has(normalizar(e.nome))), busca).slice(0, 8)
         : [];
       const confirmar = (nome) => {
         if (!nome.trim()) return;
@@ -16523,6 +16523,7 @@ export default function App() {
     const [shN, setShN] = useState(false);
     const [mapaAberto, setMapaAberto] = useState(false);
     const [verSemQuarto, setVerSemQuarto] = useState(false);
+    const [buscaPessoa, setBuscaPessoa] = useState("");
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
     const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
@@ -16590,7 +16591,8 @@ export default function App() {
       await salvarQuarto(colecao, atualizado);
     };
 
-    const encAlocados = new Set([...qh, ...qm].flatMap((q) => q.enc || []));
+    // nomes normalizados: o cadastro às vezes tem espaço sobrando no fim do nome
+    const encAlocados = new Set([...qh, ...qm].flatMap((q) => q.enc || []).map(normalizar));
     const ctxQuartos = { edit, servosDisponiveis, encConfirmados, encAlocados, t, upd };
     return (
       <QuartosCtx.Provider value={ctxQuartos}>
@@ -16649,6 +16651,50 @@ export default function App() {
                   Preenchido ({pct}%)
                 </div>
               </div>
+            </div>
+          );
+        })()}
+
+        {/* busca: em que quarto está cada pessoa (encontristas e servos do sexo da aba) */}
+        {(() => {
+          const quartosAba = isH ? qh : qm;
+          const quartoDe = new Map();
+          quartosAba.forEach((q) => [...(q.servos || []), ...(q.enc || [])].forEach((n) => quartoDe.set(normalizar(n), q)));
+          const pessoas = [
+            ...(isH ? encH : encM).filter(ocupaVagaEnc).map((e) => ({ nome: e.nome.trim(), tipo: "Encontrista" })),
+            ...quartosAba.flatMap((q) => (q.servos || []).map((n) => ({ nome: n, tipo: "Servo" }))),
+          ];
+          const achados = buscaPessoa.trim() ? filtrarPorNome(pessoas, buscaPessoa).slice(0, 10) : [];
+          const abrirQuarto = (q) => {
+            vibrar(20);
+            const chave = q.maes ? "maes" : q.num;
+            setAbertos((prev) => ({ ...prev, [chave]: true }));
+            setTimeout(() => document.getElementById(`quarto-${chave}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+          };
+          return (
+            <div style={{ marginBottom: 10 }}>
+              <input
+                value={buscaPessoa}
+                onChange={(e) => setBuscaPessoa(e.target.value)}
+                placeholder="Buscar pessoa nos quartos..."
+                style={{ ...I, marginBottom: 0 }}
+              />
+              {buscaPessoa.trim() && (
+                <div style={estiloListaSug}>
+                  {achados.length === 0 && <div style={{ ...estiloItemSug, color: G.tm, cursor: "default" }}>Ninguém com esse nome.</div>}
+                  {achados.map((p, i) => {
+                    const q = quartoDe.get(normalizar(p.nome));
+                    return (
+                      <div key={`${p.nome}-${i}`} onClick={q ? () => abrirQuarto(q) : undefined} style={{ ...estiloItemSug, gap: 10, cursor: q ? "pointer" : "default" }}>
+                        <span style={{ flex: 1 }}>{p.nome}<span style={{ color: G.tm, fontSize: 12 }}> · {p.tipo}</span></span>
+                        <span style={{ color: q ? G.green : "#ffb340", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
+                          {q ? (q.maes ? "Quarto Mães ›" : `Quarto ${q.num} ›`) : "Sem quarto"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })()}
