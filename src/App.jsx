@@ -1151,7 +1151,7 @@ const emprestadaDe = (p) => p?.camisaEmprestada || (p?.modalidade === "emprestim
 // Datas do encontro (config/encontro: { inicio, fim } em AAAA-MM-DD). Inscrição,
 // termos, lembrete de jejum e o termo gravado pela function leem daqui. Sem o
 // documento vale o padrão abaixo. Manter igual em functions/index.js.
-const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP", lat: -23.6416302, lng: -46.4163667 };
+const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP", lat: -23.638915, lng: -46.4065983 }; // ponto exato do sítio (posição do ônibus 3 estacionado no local, 20/11/2026)
 const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO, meta: 140, fecharNaMeta: false };
 // vaga ocupada = pago ou pagar depois, sem desistência (mesma regra de functions/index.js)
 const ocupaVagaEnc = (e) => !!e.nome && !e.desistiu && (!!e.pago || !!e.pagarDepois);
