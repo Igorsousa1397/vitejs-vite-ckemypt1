@@ -1169,6 +1169,9 @@ const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemb
 const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO, meta: 140, fecharNaMeta: false };
 // vaga ocupada = pago ou pagar depois, sem desistência (mesma regra de functions/index.js)
 // "Quarto 4 · Cozinha": número + nome opcional dado pelo admin (quartos_*.nome)
+// quarto só de servos (logística, cozinha...): todas as camas são de servo e
+// não recebe encontrista
+const limServosQuarto = (q) => (q?.soServos ? q.lim || 0 : q?.limServos || 2);
 const nomeQuarto = (q) => (q?.maes ? "Quarto Mães" : `Quarto ${q?.num}${q?.nome ? ` · ${q.nome}` : ""}`);
 const ocupaVagaEnc = (e) => !!e.nome && !e.desistiu && (!!e.pago || !!e.pagarDepois);
 const linkMapsLocal = (l) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${l.nome}, ${l.endereco}`)}`;
@@ -1674,6 +1677,27 @@ function CampoPrazo({ titulo, desc, valor, onSalvar, t, i }) {
   );
 }
 // liga/desliga de configuração (inscrições, cadastro de servo)
+// chave liga/desliga compacta, para dentro de formulários
+function ChaveSimples({ label, sub, on, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={() => { vibrar(); onToggle(); }}
+      role="switch"
+      aria-checked={on}
+      style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 48, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", color: G.t, fontSize: 14, fontWeight: 700 }}>{label}</span>
+        {sub && <span style={{ display: "block", color: G.tm, fontSize: 12, marginTop: 2 }}>{sub}</span>}
+      </span>
+      <span style={{ width: 48, height: 28, borderRadius: 14, background: on ? G.green : "#3a3a3c", position: "relative", flexShrink: 0, transition: "background var(--d-fast) var(--e-out)" }}>
+        <span style={{ position: "absolute", top: 3, left: on ? 23 : 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", transition: "left var(--d-fast) var(--e-out)" }} />
+      </span>
+    </button>
+  );
+}
+
 function Chave({ titulo, desc, ligado, rotuloOn, rotuloOff, onChange, i = 0 }) {
   const cor = ligado ? G.green : "#ff6b6b";
   return (
@@ -16265,6 +16289,7 @@ export default function App() {
     const [lim, setLim] = useState(q.lim);
     const [limServos, setLimServos] = useState(q.limServos || 2);
     const [nome, setNome] = useState(q.nome || "");
+    const [soServos, setSoServos] = useState(!!q.soServos);
 
     if (!aberto) return (
       <button
@@ -16293,14 +16318,19 @@ export default function App() {
             <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={30} placeholder="Ex.: Cozinha, Mães, Logística" style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
           </div>
         )}
-        <div>
-          <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Servos por quarto</div>
-          <input type="number" min="0" max="10" value={limServos} onChange={(e) => setLimServos(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
-        </div>
+        {!q.maes && (
+          <ChaveSimples label="Quarto só de servos" sub="Todas as camas são de servo; não recebe encontrista" on={soServos} onToggle={() => setSoServos((v) => !v)} />
+        )}
+        {!soServos && (
+          <div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Servos por quarto</div>
+            <input type="number" min="0" max="10" value={limServos} onChange={(e) => setLimServos(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+          </div>
+        )}
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={async () => {
-              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2, nome: nome.trim() || null }));
+              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2, nome: nome.trim() || null, soServos }));
               setAberto(false);
               t("Quarto atualizado!");
             }}
@@ -16318,11 +16348,13 @@ export default function App() {
 
 
     const AddServoSearch = ({ quarto, updFn }) => {
-      const { edit, servosDisponiveis, t } = useContext(QuartosCtx);
+      const { edit, servosDisponiveis, servosLivres, t } = useContext(QuartosCtx);
       const [busca, setBusca] = useState("");
       const [aberto, setAberto] = useState(false);
-      if (!edit || quarto.servos.length >= (quarto.limServos || 2)) return null;
-      const filtrados = busca.trim() ? filtrarPorNome(servosDisponiveis, busca) : servosDisponiveis;
+      if (!edit || quarto.servos.length >= limServosQuarto(quarto)) return null;
+      // quarto de servos aceita qualquer servo livre; os demais, só "Servo de Quarto"
+      const base = quarto.soServos ? servosLivres : servosDisponiveis;
+      const filtrados = busca.trim() ? filtrarPorNome(base, busca) : base;
       return (
         <div style={{ position: "relative", marginTop: 8 }}>
           <input
@@ -16535,7 +16567,7 @@ export default function App() {
     const [buscaPessoa, setBuscaPessoa] = useState("");
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
-    const [f, setF] = useState({ num: "", nome: "", lim: 9, limServos: 2 });
+    const [f, setF] = useState({ num: "", nome: "", lim: 9, limServos: 2, soServos: false });
 
     // Servos sem permissão de gestão só podem ver os quartos do próprio gênero
     const tabRestrita = user?.sexo === "Masculino" ? "H" : "M";
@@ -16561,13 +16593,17 @@ export default function App() {
     ]);
 
     const DIAS_QV = ["Quinta", "Sexta", "Sábado", "Domingo"];
-    const servosDisponiveis = (users || []).filter(
+    const servosLivres = (users || []).filter(
       (u) =>
         u.perfil !== "admin" &&
         u.ativo !== false &&
+        u.aprovado !== false &&
+        !!u.nome &&
         !todosServosAlocados.has(u.nome) &&
-        u.sexo === (isH ? "Masculino" : "Feminino") &&
-        DIAS_QV.some((d) => (u.escala?.[d] || []).includes("Servo de Quarto")),
+        u.sexo === (isH ? "Masculino" : "Feminino"),
+    );
+    const servosDisponiveis = servosLivres.filter((u) =>
+      DIAS_QV.some((d) => (u.escala?.[d] || []).includes("Servo de Quarto")),
     );
 
     const list = isH ? qh : qm.filter((q) => !q.maes);
@@ -16602,7 +16638,7 @@ export default function App() {
 
     // nomes normalizados: o cadastro às vezes tem espaço sobrando no fim do nome
     const encAlocados = new Set([...qh, ...qm].flatMap((q) => q.enc || []).map(normalizar));
-    const ctxQuartos = { edit, servosDisponiveis, encConfirmados, encAlocados, t, upd };
+    const ctxQuartos = { edit, servosDisponiveis, servosLivres, encConfirmados, encAlocados, t, upd };
     return (
       <QuartosCtx.Provider value={ctxQuartos}>
       <div>
@@ -16877,6 +16913,7 @@ export default function App() {
                   value={f.nome || ""}
                   onChange={(e) => setF({ ...f, nome: e.target.value })}
                 />
+                <ChaveSimples label="Quarto só de servos" sub="Todas as camas são de servo; não recebe encontrista" on={!!f.soServos} onToggle={() => setF({ ...f, soServos: !f.soServos })} />
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <span
                     style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
@@ -16894,7 +16931,7 @@ export default function App() {
                     }
                   />
                 </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                {!f.soServos && <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <span
                     style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
                   >
@@ -16910,13 +16947,14 @@ export default function App() {
                       setF({ ...f, limServos: parseInt(e.target.value) ?? 2 })
                     }
                   />
-                </div>
+                </div>}
                 <button
                   onClick={async () => {
                     if (!f.num) return;
                     const nv = {
                       num: parseInt(f.num),
                       ...(f.nome?.trim() ? { nome: f.nome.trim() } : {}),
+                      ...(f.soServos ? { soServos: true } : {}),
                       lim: f.lim,
                       limServos: f.limServos ?? 2,
                       servos: [],
@@ -16925,7 +16963,7 @@ export default function App() {
                     await salvarQuarto(colecao, nv);
                     if (isH) setQh([...qh, nv]);
                     else setQm([...qm, nv]);
-                    setF({ num: "", nome: "", lim: 9, limServos: 2 });
+                    setF({ num: "", nome: "", lim: 9, limServos: 2, soServos: false });
                     setShN(false);
                     t("Quarto criado!");
                   }}
@@ -16977,7 +17015,12 @@ export default function App() {
             <div key={q.num} id={`quarto-${q.num}`}>
             <Acc
               title={nomeQuarto(q)}
-              right={<Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />}
+              right={
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {q.soServos && <Pill c="Servos" bg="rgba(0,200,81,.12)" tc={G.green} />}
+                  <Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />
+                </div>
+              }
               onDel={edit ? () => delQuarto(q.num) : undefined}
               open={!!abertos[q.num]}
               onToggle={() => toggleAcc(q.num)}
@@ -17006,7 +17049,7 @@ export default function App() {
 
               {edit && <EditQuarto q={q} upd={upd} t={t} />}
 
-              <SL c={`Servos (${q.servos.length}/${q.limServos || 2})`} mt={0} />
+              <SL c={`Servos (${q.servos.length}/${limServosQuarto(q)})`} mt={0} />
               <ListaNomes
                 items={q.servos}
                 ax={G.green}
@@ -17020,7 +17063,7 @@ export default function App() {
                     : undefined
                 }
               />
-              {edit && q.servos.length >= (q.limServos || 2) && (
+              {edit && q.servos.length >= limServosQuarto(q) && (
                 <div
                   style={{
                     color: G.tm,
@@ -17029,11 +17072,12 @@ export default function App() {
                     fontStyle: "italic",
                   }}
                 >
-                  Limite de {q.limServos || 2} servos atingido.
+                  Limite de {limServosQuarto(q)} servos atingido.
                 </div>
               )}
               <AddServoSearch quarto={q} updFn={upd} />
 
+              {!q.soServos && (<>
               <SL c="Encontristas" />
               {q.enc.length > 0 ? (
                 <ListaNomes
@@ -17061,6 +17105,7 @@ export default function App() {
                 </div>
               )}
               <AddEncAutocomplete quarto={q} />
+              </>)}
             </Acc>
             </div>
           );
