@@ -9545,7 +9545,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
                 ))}
               </div>
               {deCarro.length > 0
-                ? <Tags items={deCarro.map((u) => u.nome)} ax="#ff9f0a" />
+                ? <ListaNomes items={deCarro.map((u) => u.nome)} ax="#ff9f0a" />
                 : <div style={{ color: G.tm, fontSize: 12 }}>Nenhum servo marcou carro ainda.</div>}
             </Acc>
           );
