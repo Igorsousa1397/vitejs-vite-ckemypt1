@@ -16564,6 +16564,7 @@ export default function App() {
     const [shN, setShN] = useState(false);
     const [mapaAberto, setMapaAberto] = useState(false);
     const [verSemQuarto, setVerSemQuarto] = useState(false);
+    const [verServosSemQuarto, setVerServosSemQuarto] = useState(false);
     const [buscaPessoa, setBuscaPessoa] = useState("");
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
@@ -16771,6 +16772,35 @@ export default function App() {
               {verSemQuarto && (
                 <div style={{ padding: "0 12px 12px" }}>
                   <ListaNomes items={semQuarto.map((e) => e.nome.trim())} ax="#ffb340" />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* servos ativos do sexo da aba que não estão em nenhum quarto */}
+        {(() => {
+          const servosSem = [...servosLivres].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+          const rotulo = isH ? "homens" : "mulheres";
+          if (servosSem.length === 0)
+            return (
+              <div style={{ marginBottom: 10, background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.35)", borderRadius: 13, padding: "12px 14px", color: G.green, fontSize: 13, fontWeight: 700, textAlign: "center" }}>
+                ✓ Todos os servos ({rotulo}) estão alocados
+              </div>
+            );
+          return (
+            <div style={{ marginBottom: 10, background: "rgba(10,132,255,.08)", border: "1px solid rgba(10,132,255,.4)", borderRadius: 13 }}>
+              <button
+                onClick={() => { vibrar(20); setVerServosSemQuarto((v) => !v); }}
+                aria-expanded={verServosSemQuarto}
+                style={{ width: "100%", minHeight: 48, display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "none", border: "none", color: "#64b5ff", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}
+              >
+                <span style={{ flex: 1 }}>{servosSem.length} {servosSem.length === 1 ? "servo sem quarto" : "servos sem quarto"} ({rotulo})</span>
+                <span style={{ color: G.tm, fontSize: 12, fontWeight: 600 }}>{verServosSemQuarto ? "Ocultar ▴" : "Ver lista ▾"}</span>
+              </button>
+              {verServosSemQuarto && (
+                <div style={{ padding: "0 12px 12px" }}>
+                  <ListaNomes items={servosSem.map((u) => u.nome.trim())} ax="#64b5ff" />
                 </div>
               )}
             </div>
