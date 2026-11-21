@@ -16780,7 +16780,10 @@ export default function App() {
 
         {/* servos ativos do sexo da aba que não estão em nenhum quarto */}
         {(() => {
-          const servosSem = [...servosLivres].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+          // pastores não entram na conta de servos sem cama
+          const servosSem = servosLivres
+            .filter((u) => !String(u.perfil || "").startsWith("pastor"))
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
           const rotulo = isH ? "homens" : "mulheres";
           if (servosSem.length === 0)
             return (
