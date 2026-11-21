@@ -16522,6 +16522,7 @@ export default function App() {
     // const [tab, setTab] = useState("M");
     const [shN, setShN] = useState(false);
     const [mapaAberto, setMapaAberto] = useState(false);
+    const [verSemQuarto, setVerSemQuarto] = useState(false);
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
     const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
@@ -16648,6 +16649,39 @@ export default function App() {
                   Preenchido ({pct}%)
                 </div>
               </div>
+            </div>
+          );
+        })()}
+
+        {/* quem tem vaga (pago ou pagar depois) e ainda não está em nenhum quarto;
+            a lista abre ao tocar no aviso */}
+        {(() => {
+          const alocados = new Set([...qh, ...qm].flatMap((x) => x.enc || []).map(normalizar));
+          const semQuarto = (isH ? encH : encM)
+            .filter((e) => ocupaVagaEnc(e) && !alocados.has(normalizar(e.nome)))
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+          const rotulo = isH ? "homens" : "mulheres";
+          if (semQuarto.length === 0)
+            return (
+              <div style={{ marginBottom: 10, background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.35)", borderRadius: 13, padding: "12px 14px", color: G.green, fontSize: 13, fontWeight: 700, textAlign: "center" }}>
+                ✓ Todos os encontristas ({rotulo}) estão alocados
+              </div>
+            );
+          return (
+            <div style={{ marginBottom: 10, background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 13 }}>
+              <button
+                onClick={() => { vibrar(20); setVerSemQuarto((v) => !v); }}
+                aria-expanded={verSemQuarto}
+                style={{ width: "100%", minHeight: 48, display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "none", border: "none", color: "#ffb340", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}
+              >
+                <span style={{ flex: 1 }}>⚠ {semQuarto.length} {semQuarto.length === 1 ? "encontrista sem quarto" : "encontristas sem quarto"} ({rotulo})</span>
+                <span style={{ color: G.tm, fontSize: 12, fontWeight: 600 }}>{verSemQuarto ? "Ocultar ▴" : "Ver lista ▾"}</span>
+              </button>
+              {verSemQuarto && (
+                <div style={{ padding: "0 12px 12px" }}>
+                  <ListaNomes items={semQuarto.map((e) => e.nome.trim())} ax="#ffb340" />
+                </div>
+              )}
             </div>
           );
         })()}
@@ -16951,28 +16985,6 @@ export default function App() {
           );
         })}
 
-        {/* quem tem vaga (pago ou pagar depois) e ainda não está em nenhum quarto */}
-        {(() => {
-          const alocados = new Set([...qh, ...qm].flatMap((x) => x.enc || []).map(normalizar));
-          const semQuarto = (isH ? encH : encM)
-            .filter((e) => ocupaVagaEnc(e) && !alocados.has(normalizar(e.nome)))
-            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-          const rotulo = isH ? "homens" : "mulheres";
-          if (semQuarto.length === 0)
-            return (
-              <div style={{ marginTop: 12, background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.35)", borderRadius: 14, padding: "14px 16px", color: G.green, fontSize: 14, fontWeight: 700, textAlign: "center" }}>
-                ✓ Todos os encontristas ({rotulo}) estão alocados
-              </div>
-            );
-          return (
-            <div style={{ marginTop: 12, background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ color: "#ffb340", fontSize: 14, fontWeight: 700 }}>
-                ⚠ {semQuarto.length} {semQuarto.length === 1 ? "encontrista sem quarto" : "encontristas sem quarto"} ({rotulo})
-              </div>
-              <ListaNomes items={semQuarto.map((e) => e.nome.trim())} ax="#ffb340" />
-            </div>
-          );
-        })()}
       </div>
       </QuartosCtx.Provider>
     );
