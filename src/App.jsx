@@ -16950,6 +16950,29 @@ export default function App() {
             </div>
           );
         })}
+
+        {/* quem tem vaga (pago ou pagar depois) e ainda não está em nenhum quarto */}
+        {(() => {
+          const alocados = new Set([...qh, ...qm].flatMap((x) => x.enc || []).map(normalizar));
+          const semQuarto = (isH ? encH : encM)
+            .filter((e) => ocupaVagaEnc(e) && !alocados.has(normalizar(e.nome)))
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+          const rotulo = isH ? "homens" : "mulheres";
+          if (semQuarto.length === 0)
+            return (
+              <div style={{ marginTop: 12, background: "rgba(0,200,81,.08)", border: "1px solid rgba(0,200,81,.35)", borderRadius: 14, padding: "14px 16px", color: G.green, fontSize: 14, fontWeight: 700, textAlign: "center" }}>
+                ✓ Todos os encontristas ({rotulo}) estão alocados
+              </div>
+            );
+          return (
+            <div style={{ marginTop: 12, background: "rgba(255,159,10,.08)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: "#ffb340", fontSize: 14, fontWeight: 700 }}>
+                ⚠ {semQuarto.length} {semQuarto.length === 1 ? "encontrista sem quarto" : "encontristas sem quarto"} ({rotulo})
+              </div>
+              <ListaNomes items={semQuarto.map((e) => e.nome.trim())} ax="#ffb340" />
+            </div>
+          );
+        })()}
       </div>
       </QuartosCtx.Provider>
     );
