@@ -887,7 +887,7 @@ function MapaQuartos({ aberto, onFechar, sexo, quartos, edit, onAbrirQuarto, t }
   const blocos = mapa?.blocos || [];
   const cols = mapa?.cols || MAPA_VAZIO.cols;
   const porNum = new Map(quartos.map((q) => [q.num, q]));
-  const rotulo = (q) => (q.maes ? "Quarto Mães" : `Quarto ${q.num}`);
+  const rotulo = nomeQuarto;
   const ocupacao = (q) => (q.servos?.length || 0) + (q.enc?.length || 0);
 
   const colide = (b, outros) =>
@@ -1168,6 +1168,8 @@ const emprestadaDe = (p) => p?.camisaEmprestada || (p?.modalidade === "emprestim
 const LOCAL_PADRAO = { nome: "Chácara Maranata", endereco: "Estrada de Sapopemba, km 35,5, nº 12.100, Núcleo Carlos de Campos, Mauá - SP", lat: -23.638915, lng: -46.4065983 }; // ponto exato do sítio (posição do ônibus 3 estacionado no local, 20/11/2026)
 const ENCONTRO_PADRAO = { inicio: "2026-11-20", fim: "2026-11-22", local: LOCAL_PADRAO, meta: 140, fecharNaMeta: false };
 // vaga ocupada = pago ou pagar depois, sem desistência (mesma regra de functions/index.js)
+// "Quarto 4 · Cozinha": número + nome opcional dado pelo admin (quartos_*.nome)
+const nomeQuarto = (q) => (q?.maes ? "Quarto Mães" : `Quarto ${q?.num}${q?.nome ? ` · ${q.nome}` : ""}`);
 const ocupaVagaEnc = (e) => !!e.nome && !e.desistiu && (!!e.pago || !!e.pagarDepois);
 const linkMapsLocal = (l) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${l.nome}, ${l.endereco}`)}`;
 const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -6040,7 +6042,7 @@ function ServoRestV({ user, encH, encM, t }) {
                                 <div key={i} style={{ background: "#111", border: "1px solid #1c1c1c", borderRadius: 12, padding: "12px 12px 12px", borderLeft: `3px solid ${dC[dia]}` }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                                     <span style={{ color: G.t, fontWeight: 700, fontSize: 14, flex: 1, minWidth: 0 }}>{fn}</span>
-                                    {meuQuarto && <Pill c={`Quarto ${meuQuarto.num}`} bg={`${dC[dia]}1f`} tc={dC[dia]} />}
+                                    {meuQuarto && <Pill c={nomeQuarto(meuQuarto)} bg={`${dC[dia]}1f`} tc={dC[dia]} />}
                                     {total > 1 && <Pill c={`${total} na equipe`} bg="rgba(255,255,255,.06)" tc={G.td} />}
                                   </div>
 
@@ -16262,6 +16264,7 @@ export default function App() {
     const [num, setNum] = useState(q.num);
     const [lim, setLim] = useState(q.lim);
     const [limServos, setLimServos] = useState(q.limServos || 2);
+    const [nome, setNome] = useState(q.nome || "");
 
     if (!aberto) return (
       <button
@@ -16284,6 +16287,12 @@ export default function App() {
             <input type="number" min="1" max="30" value={lim} onChange={(e) => setLim(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
           </div>
         </div>
+        {!q.maes && (
+          <div>
+            <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nome (opcional)</div>
+            <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={30} placeholder="Ex.: Cozinha, Mães, Logística" style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
+          </div>
+        )}
         <div>
           <div style={{ color: G.tm, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Servos por quarto</div>
           <input type="number" min="0" max="10" value={limServos} onChange={(e) => setLimServos(e.target.value)} style={{ ...I, fontSize: 13, padding: "8px 12px" }} />
@@ -16291,7 +16300,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={async () => {
-              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2 }));
+              await upd(q.num, (x) => ({ ...x, num: parseInt(num) || q.num, lim: parseInt(lim) || q.lim, limServos: parseInt(limServos) || 2, nome: nome.trim() || null }));
               setAberto(false);
               t("Quarto atualizado!");
             }}
@@ -16526,7 +16535,7 @@ export default function App() {
     const [buscaPessoa, setBuscaPessoa] = useState("");
     // const [abertos, setAbertos] = useState({});
     const toggleAcc = (key) => setAbertos(prev => ({ ...prev, [key]: !prev[key] }));  
-    const [f, setF] = useState({ num: "", lim: 9, limServos: 2 });
+    const [f, setF] = useState({ num: "", nome: "", lim: 9, limServos: 2 });
 
     // Servos sem permissão de gestão só podem ver os quartos do próprio gênero
     const tabRestrita = user?.sexo === "Masculino" ? "H" : "M";
@@ -16688,7 +16697,7 @@ export default function App() {
                       <div key={`${p.nome}-${i}`} onClick={q ? () => abrirQuarto(q) : undefined} style={{ ...estiloItemSug, gap: 10, cursor: q ? "pointer" : "default" }}>
                         <span style={{ flex: 1 }}>{p.nome}<span style={{ color: G.tm, fontSize: 12 }}> · {p.tipo}</span></span>
                         <span style={{ color: q ? G.green : "#ffb340", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
-                          {q ? (q.maes ? "Quarto Mães ›" : `Quarto ${q.num} ›`) : "Sem quarto"}
+                          {q ? `${nomeQuarto(q)} ›` : "Sem quarto"}
                         </span>
                       </div>
                     );
@@ -16782,7 +16791,7 @@ export default function App() {
                       const tam = (encontrista?.camiseta || "").trim();
                       porTamanho[tam || "Sem tamanho"] = (porTamanho[tam || "Sem tamanho"] || 0) + 1;
                       ws.addRow({
-                        quarto: q.maes ? "Mães" : q.num,
+                        quarto: q.maes ? "Mães" : q.nome ? `${q.num} · ${q.nome}` : q.num,
                         nome: nomeEnc,
                         camiseta: tam,
                       });
@@ -16861,6 +16870,13 @@ export default function App() {
                   value={f.num}
                   onChange={(e) => setF({ ...f, num: e.target.value })}
                 />
+                <input
+                  style={I}
+                  placeholder="Nome (opcional): Cozinha, Mães, Logística..."
+                  maxLength={30}
+                  value={f.nome || ""}
+                  onChange={(e) => setF({ ...f, nome: e.target.value })}
+                />
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <span
                     style={{ color: G.tm, fontSize: 13, whiteSpace: "nowrap" }}
@@ -16900,6 +16916,7 @@ export default function App() {
                     if (!f.num) return;
                     const nv = {
                       num: parseInt(f.num),
+                      ...(f.nome?.trim() ? { nome: f.nome.trim() } : {}),
                       lim: f.lim,
                       limServos: f.limServos ?? 2,
                       servos: [],
@@ -16908,7 +16925,7 @@ export default function App() {
                     await salvarQuarto(colecao, nv);
                     if (isH) setQh([...qh, nv]);
                     else setQm([...qm, nv]);
-                    setF({ num: "", lim: 9, limServos: 2 });
+                    setF({ num: "", nome: "", lim: 9, limServos: 2 });
                     setShN(false);
                     t("Quarto criado!");
                   }}
@@ -16959,7 +16976,7 @@ export default function App() {
           return (
             <div key={q.num} id={`quarto-${q.num}`}>
             <Acc
-              title={`Quarto ${q.num}`}
+              title={nomeQuarto(q)}
               right={<Pill c={`${oc}/${q.lim}`} bg={`${bc}18`} tc={bc} />}
               onDel={edit ? () => delQuarto(q.num) : undefined}
               open={!!abertos[q.num]}
