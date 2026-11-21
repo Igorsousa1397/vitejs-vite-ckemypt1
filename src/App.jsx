@@ -6766,9 +6766,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   const ch = ck.filter((c) => c.ok).length, tot = ck.length;
   const oc = ocorr.filter((o) => !o.res).length;
   const tEnc = [...qh, ...qm].length;
+  // mesma conta do cartão de cada ônibus: encontristas do check-in, passageiros
+  // manuais e todos os servos (responsáveis, templo e ônibus de servos)
   const tPass = on.reduce((a, o) => {
-    const passCheckin = [...(encH || []), ...(encM || [])].filter(e => e.onibus === String(o.num) || e.onibus === o.num).length;
-    return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0);
+    const passCheckin = [...(encH || []), ...(encM || [])].filter(e => !e.desistiu && (e.onibus === String(o.num) || e.onibus === o.num)).length;
+    return a + passCheckin + (o.passManual?.length || 0) + (o.servos?.length || 0) + (o.resp?.length || 0) + (o.templo?.length || 0);
   }, 0);
 
   const META_ENC = encontro.meta;
