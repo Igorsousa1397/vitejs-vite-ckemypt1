@@ -8911,6 +8911,64 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       return () => { cancel = true; };
     }, [destino.lat, destino.lng, cacheOk]);
 
+    // Rota de cada ônibus em rota: OSRM da posição atual até o sítio. O "faltam X km"
+    // e a chegada saem do caminho que o ônibus está fazendo, não da linha fixa.
+    // Recalcula quando ele andou mais de 300 m desde o último cálculo (no máximo a
+    // cada 45 s) e, de todo jeito, a cada 3 min.
+    const [rotasBus, setRotasBus] = useState({});
+    const rotasBusRef = useRef({});
+    const buscandoRef = useRef({});
+    useEffect(() => {
+      if (demo || !destino) return;
+      (on || []).forEach((o) => {
+        const r = o.rastreio;
+        if (statusRastreio(o, agora) !== "ao_vivo" || r?.lat == null) return;
+        const atual = rotasBusRef.current[o.num];
+        const aqui = [r.lat, r.lng];
+        const idade = atual ? Date.now() - atual.em : Infinity;
+        const andou = atual ? distM(atual.de, aqui) : Infinity;
+        if (buscandoRef.current[o.num] || (idade < 180000 && (andou < 300 || idade < 45000))) return;
+        buscandoRef.current[o.num] = true;
+        fetch(`https://router.project-osrm.org/route/v1/driving/${r.lng},${r.lat};${destino.lng},${destino.lat}?overview=full&geometries=polyline`)
+          .then((x) => x.json())
+          .then((j) => {
+            const r0 = j.routes?.[0];
+            if (!r0) throw new Error(j.code || "sem rota");
+            const pts = decodePolyline(r0.geometry);
+            const ac = [0];
+            for (let i = 1; i < pts.length; i++) ac.push(ac[i - 1] + distM(pts[i - 1], pts[i]));
+            rotasBusRef.current = { ...rotasBusRef.current, [o.num]: { pts, acum: ac, distancia: r0.distance, duracao: r0.duration, de: aqui, em: Date.now() } };
+            setRotasBus(rotasBusRef.current);
+          })
+          .catch((e) => console.warn("rota do ônibus", o.num, e))
+          .finally(() => { buscandoRef.current[o.num] = false; });
+      });
+      // ônibus que saiu de rota deixa de ter rota própria
+      const ativos = new Set((on || []).filter((o) => statusRastreio(o, agora) === "ao_vivo").map((o) => String(o.num)));
+      if (Object.keys(rotasBusRef.current).some((k) => !ativos.has(k))) {
+        rotasBusRef.current = Object.fromEntries(Object.entries(rotasBusRef.current).filter(([k]) => ativos.has(k)));
+        setRotasBus(rotasBusRef.current);
+      }
+    }, [on, agora, demo, destino?.lat, destino?.lng]);
+
+    // desenha a rota de cada ônibus na cor dele
+    const camadasBusRef = useRef({});
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!L || !map) return;
+      Object.values(camadasBusRef.current).forEach((l) => map.removeLayer(l));
+      const c = {};
+      Object.entries(demo ? {} : rotasBus).forEach(([num, rb]) => {
+        const o = (on || []).find((x) => String(x.num) === num);
+        c[num] = L.polyline(rb.pts, { color: CORES_ONIBUS[o?.tipo] || G.green, weight: 5, opacity: 0.95 }).addTo(map);
+      });
+      camadasBusRef.current = c;
+      // com rota própria dos ônibus, a linha fixa fica só de referência
+      const temProprias = Object.keys(c).length > 0;
+      camadasRef.current.rota?.setStyle({ opacity: temProprias ? 0.3 : 0.9 });
+      camadasRef.current.rotaBase?.setStyle({ opacity: temProprias ? 0.2 : 0.55 });
+    }, [L, rotasBus, demo, geo]);
+
     // desenha igreja, sítio e rota
     useEffect(() => {
       const map = mapRef.current;
@@ -8924,8 +8982,10 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       if (origem) c.igreja = ponto(origem, "⛪", "Igreja");
       if (destino) c.sitio = ponto(destino, "🏕️", "Sítio");
       if (geo) {
-        c.rotaBase = L.polyline(geo, { color: "#000", weight: 9, opacity: 0.55 }).addTo(map);
-        c.rota = L.polyline(geo, { color: "#0a84ff", weight: 5, opacity: 0.9, dashArray: geo.length === 2 ? "8 10" : null }).addTo(map);
+        const temProprias = !demo && Object.keys(rotasBusRef.current).length > 0;
+        c.rotaBase = L.polyline(geo, { color: "#000", weight: 9, opacity: temProprias ? 0.2 : 0.55 }).addTo(map);
+        c.rota = L.polyline(geo, { color: "#0a84ff", weight: 5, opacity: temProprias ? 0.3 : 0.9, dashArray: geo.length === 2 ? "8 10" : null }).addTo(map);
+        c.rotaBase.bringToBack();
       }
       camadasRef.current = c;
       if (!fitRef.current && (geo || origem)) {
@@ -8941,6 +9001,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       const r = o.rastreio;
       if (!r || r.lat == null) return null;
       const bruto = [r.lat, r.lng];
+      if (!demo && rotasBus[o.num]) return { pos: bruto, idx: null };
       if (!geo || geo.length < 3) return { pos: bruto, idx: null };
       const { idx, d } = pontoMaisProximo(geo, bruto);
       return d < 250 ? { pos: geo[idx], idx } : { pos: bruto, idx };
@@ -9021,7 +9082,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         map.fitBounds(L.latLngBounds(Object.values(busRef.current).map((b) => b.cur)), { padding: [60, 60], maxZoom: 14 });
         fitRef.current = true;
       }
-    }, [L, on, geo, agora]);
+    }, [L, on, geo, agora, rotasBus]);
 
     useEffect(() => {
       const map = mapRef.current, b = foco && busRef.current[foco.num];
@@ -9041,7 +9102,15 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
       const st = statusRastreio(o, agora);
       const p = posOnibus(o);
       let restante = null, eta = null, chegou = false;
-      if (p && geo && acum && p.idx != null && geo.length > 2) {
+      const rb = !demo && rotasBus[o.num];
+      if (p && rb) {
+        // quanto falta pelo caminho que o ônibus está fazendo
+        const { idx } = pontoMaisProximo(rb.pts, p.pos);
+        restante = rb.acum[rb.acum.length - 1] - rb.acum[idx];
+        chegou = restante < 300 || (destino && distM(p.pos, [destino.lat, destino.lng]) < 300);
+        const vel = rb.duracao > 0 ? rb.distancia / rb.duracao : null;
+        if (vel && !chegou) eta = agora + (restante / vel) * 1000;
+      } else if (p && geo && acum && p.idx != null && geo.length > 2) {
         restante = acum[acum.length - 1] - acum[p.idx];
         chegou = restante < 300;
         const v = o.rastreio?.velocidade;
