@@ -8918,8 +8918,20 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
     const [rotasBus, setRotasBus] = useState({});
     const rotasBusRef = useRef({});
     const buscandoRef = useRef({});
+    // botão "Atualizar rota": recalcula na hora, sem esperar o intervalo
+    const [forcarRota, setForcarRota] = useState(0);
+    const forcarRotaRef = useRef(false);
+    const [atualizandoRota, setAtualizandoRota] = useState(0);
+    const atualizarRota = () => {
+      vibrar();
+      forcarRotaRef.current = true;
+      setForcarRota((x) => x + 1);
+    };
     useEffect(() => {
       if (demo || !destino) return;
+      const forcar = forcarRotaRef.current;
+      forcarRotaRef.current = false;
+      if (forcar && !(on || []).some((o) => statusRastreio(o, agora) === "ao_vivo")) t?.("Nenhum ônibus em rota agora.", "w");
       (on || []).forEach((o) => {
         const r = o.rastreio;
         if (statusRastreio(o, agora) !== "ao_vivo" || r?.lat == null) return;
@@ -8927,8 +8939,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         const aqui = [r.lat, r.lng];
         const idade = atual ? Date.now() - atual.em : Infinity;
         const andou = atual ? distM(atual.de, aqui) : Infinity;
-        if (buscandoRef.current[o.num] || (idade < 180000 && (andou < 300 || idade < 45000))) return;
+        if (buscandoRef.current[o.num] || (!forcar && idade < 180000 && (andou < 300 || idade < 45000))) return;
         buscandoRef.current[o.num] = true;
+        if (forcar) setAtualizandoRota((x) => x + 1);
         fetch(`https://router.project-osrm.org/route/v1/driving/${r.lng},${r.lat};${destino.lng},${destino.lat}?overview=full&geometries=polyline`)
           .then((x) => x.json())
           .then((j) => {
@@ -8940,8 +8953,14 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
             rotasBusRef.current = { ...rotasBusRef.current, [o.num]: { pts, acum: ac, distancia: r0.distance, duracao: r0.duration, de: aqui, em: Date.now() } };
             setRotasBus(rotasBusRef.current);
           })
-          .catch((e) => console.warn("rota do ônibus", o.num, e))
-          .finally(() => { buscandoRef.current[o.num] = false; });
+          .catch((e) => {
+            console.warn("rota do ônibus", o.num, e);
+            if (forcar) t?.(`Não consegui atualizar a rota do ônibus ${o.num}. Tente de novo.`, "w");
+          })
+          .finally(() => {
+            buscandoRef.current[o.num] = false;
+            if (forcar) setAtualizandoRota((x) => Math.max(0, x - 1));
+          });
       });
       // ônibus que saiu de rota deixa de ter rota própria
       const ativos = new Set((on || []).filter((o) => statusRastreio(o, agora) === "ao_vivo").map((o) => String(o.num)));
@@ -8949,7 +8968,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         rotasBusRef.current = Object.fromEntries(Object.entries(rotasBusRef.current).filter(([k]) => ativos.has(k)));
         setRotasBus(rotasBusRef.current);
       }
-    }, [on, agora, demo, destino?.lat, destino?.lng]);
+    }, [on, agora, demo, destino?.lat, destino?.lng, forcarRota]);
 
     // desenha a rota de cada ônibus na cor dele
     const camadasBusRef = useRef({});
@@ -9157,6 +9176,11 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           {!L && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: G.tm, fontSize: 13 }}>Carregando mapa…</div>}
           {erroRota && (
             <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 500, background: "rgba(255,159,10,.15)", border: "1px solid rgba(255,159,10,.4)", borderRadius: 12, padding: "8px 12px", color: "#ffb340", fontSize: 12 }}>{erroRota}</div>
+          )}
+          {L && !demo && (
+            <button onClick={atualizarRota} disabled={atualizandoRota > 0} aria-label="Atualizar rota" style={{ ...BK({ padding: "7px 10px", borderRadius: 10, fontSize: 12 }), position: "absolute", top: erroRota ? 70 : 12, left: 12, zIndex: 500, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", gap: 6, color: G.t, opacity: atualizandoRota > 0 ? 0.6 : 1 }}>
+              <RotateCcw size={13} color={G.t} /> {atualizandoRota > 0 ? "Atualizando…" : "Atualizar rota"}
+            </button>
           )}
           {L && (
             <button onClick={trocarEstilo} style={{ ...BK({ padding: "7px 10px", borderRadius: 10, fontSize: 12 }), position: "absolute", top: erroRota ? 70 : 12, right: 12, zIndex: 500, background: "rgba(0,0,0,.75)" }}>
