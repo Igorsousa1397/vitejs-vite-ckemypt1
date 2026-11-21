@@ -16223,6 +16223,25 @@ export default function App() {
   // e remontavam — a lista de servos fechava sozinha e o texto digitado sumia.
   // O que eles usam do QV vem pelo contexto.
   const QuartosCtx = createContext(null);
+  // busca por início de palavra, sem acento ("br" acha Bruno, não Gabriel);
+  // quem começa com o texto vem primeiro
+  const casaBuscaNome = (nome, busca) => {
+    const b = normalizar(busca);
+    if (!b) return 0;
+    const n = normalizar(nome);
+    if (n.startsWith(b)) return 2;
+    return n.split(/\s+/).some((p) => p.startsWith(b)) || n.includes(` ${b}`) ? 1 : 0;
+  };
+  const filtrarPorNome = (lista, busca, nomeDe = (x) => x.nome) =>
+    lista
+      .map((x) => [x, casaBuscaNome(nomeDe(x) || "", busca)])
+      .filter(([, sc]) => sc > 0)
+      .sort((a, b) => b[1] - a[1] || (nomeDe(a[0]) || "").localeCompare(nomeDe(b[0]) || "", "pt-BR"))
+      .map(([x]) => x);
+  // lista de sugestões dentro do cartão (não flutuando): flutuando, ela ficava
+  // por baixo dos cartões dos quartos seguintes e aparecia apagada
+  const estiloListaSug = { background: "#1e1e1e", border: "1px solid #2a2a2a", borderRadius: 10, marginTop: 6, maxHeight: 240, overflowY: "auto" };
+  const estiloItemSug = { padding: "12px 14px", minHeight: 44, display: "flex", alignItems: "center", color: G.t, fontSize: 14, cursor: "pointer", userSelect: "none", borderBottom: "1px solid #2a2a2a" };
 
     const EditQuarto = ({ q, upd, t }) => {
     const [aberto, setAberto] = useState(false);
@@ -16280,9 +16299,7 @@ export default function App() {
       const [busca, setBusca] = useState("");
       const [aberto, setAberto] = useState(false);
       if (!edit || quarto.servos.length >= (quarto.limServos || 2)) return null;
-      const filtrados = servosDisponiveis.filter((u) =>
-        (u.nome || "").toLowerCase().includes(busca.toLowerCase()),
-      );
+      const filtrados = busca.trim() ? filtrarPorNome(servosDisponiveis, busca) : servosDisponiveis;
       return (
         <div style={{ position: "relative", marginTop: 8 }}>
           <input
@@ -16297,21 +16314,7 @@ export default function App() {
             style={{ ...I, fontSize: 12, padding: "9px 12px" }}
           />
           {aberto && filtrados.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 999,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                marginTop: 4,
-                maxHeight: 180,
-                overflowY: "auto",
-              }}
-            >
+            <div style={estiloListaSug}>
               {filtrados.map((u) => (
                 <div
                   key={u.id}
@@ -16324,13 +16327,7 @@ export default function App() {
                     setAberto(false);
                     t("✓");
                   }}
-                  style={{
-                    padding: "10px 14px",
-                    color: G.td,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    borderBottom: "1px solid #2a2a2a",
-                  }}
+                  style={estiloItemSug}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.background = "#2a2a2a")
                   }
@@ -16346,15 +16343,10 @@ export default function App() {
           {aberto && busca.length > 0 && filtrados.length === 0 && (
             <div
               style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 999,
                 background: "#1e1e1e",
                 border: "1px solid #2a2a2a",
                 borderRadius: 10,
-                marginTop: 4,
+                marginTop: 6,
                 padding: "10px 14px",
                 color: G.tm,
                 fontSize: 12,
@@ -16368,18 +16360,16 @@ export default function App() {
     };
 
     const AddEncAutocomplete = ({ quarto, updFn }) => {
-      const { edit, encConfirmados, t, upd } = useContext(QuartosCtx);
+      const { edit, encConfirmados, encAlocados, t, upd } = useContext(QuartosCtx);
       const [busca, setBusca] = useState("");
       const [aberto, setAberto] = useState(false);
       const lv = quarto.lim - quarto.servos.length - quarto.enc.length;
       if (!edit || lv <= 0) return null;
       const fn = updFn || upd;
-      const sugestoes = encConfirmados.filter(
-        (e) =>
-          (e.nome || "").toLowerCase().includes(busca.toLowerCase()) &&
-          !quarto.enc.includes(e.nome) &&
-          busca.length > 0,
-      );
+      // quem já está em algum quarto não aparece de novo
+      const sugestoes = busca.trim()
+        ? filtrarPorNome(encConfirmados.filter((e) => !quarto.enc.includes(e.nome) && !encAlocados.has(e.nome)), busca).slice(0, 8)
+        : [];
       const confirmar = (nome) => {
         if (!nome.trim()) return;
         fn(quarto.num, (x) => ({ ...x, enc: [...x.enc, nome.trim()] }));
@@ -16414,37 +16404,16 @@ export default function App() {
             </button>
           </div>
           {aberto && sugestoes.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 999,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                marginTop: 4,
-                maxHeight: 180,
-                overflowY: "auto",
-              }}
-            >
+            <div style={estiloListaSug}>
               {sugestoes.map((e) => (
-                <div
-                  onMouseDown={() => confirmar(e.nome)}
-                  style={{
-                    padding: "12px 14px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
+                <div key={e.id || e.nome} onMouseDown={() => confirmar(e.nome)} style={estiloItemSug}>
                   {e.nome}
                 </div>
               ))}
             </div>
+          )}
+          {aberto && busca.trim().length > 1 && sugestoes.length === 0 && (
+            <div style={{ color: G.tm, fontSize: 12, marginTop: 6 }}>Ninguém sem quarto com esse nome entre quem já fez check-in.</div>
           )}
         </div>
       );
@@ -16606,7 +16575,8 @@ export default function App() {
       await salvarQuarto(colecao, atualizado);
     };
 
-    const ctxQuartos = { edit, servosDisponiveis, encConfirmados, t, upd };
+    const encAlocados = new Set([...qh, ...qm].flatMap((q) => q.enc || []));
+    const ctxQuartos = { edit, servosDisponiveis, encConfirmados, encAlocados, t, upd };
     return (
       <QuartosCtx.Provider value={ctxQuartos}>
       <div>
