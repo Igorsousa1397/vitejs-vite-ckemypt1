@@ -20,7 +20,7 @@ import {
   arrayUnion,
   writeBatch,
 } from "./firebase";
-import { Fragment, useState, useMemo, useEffect, useRef } from "react";
+import { Fragment, useState, useMemo, useEffect, useRef, useSyncExternalStore } from "react";
 import { messaging, getToken, onMessage } from "./firebase";
 import { QRCodeCanvas } from "qrcode.react";
 
@@ -35,6 +35,25 @@ import ReactDOM from "react-dom";
 import { storage, ref, uploadBytes } from "./firebase";
 import "leaflet/dist/leaflet.css";
 import { Send, BellOff, Megaphone, Shirt, AlertTriangle, BedDouble, Bus, Car, Home, Users, CheckSquare, FileText, Calendar, ShieldOff, Camera, Search, CreditCard, Pill as PillIcon, Package, Grid, HandHeart, Settings, ChefHat, List, LogOut, Image, Bell, Trash2, X, Plus, RotateCcw, CheckCircle2, Download, Banknote, User, SlidersHorizontal, ScanLine, UserSquare, Crosshair } from "lucide-react";
+
+// Posição ao vivo dos ônibus (onibus/{num}.rastreio) fica fora do estado do App:
+// com ônibus em rota ela muda a cada poucos segundos, e cada setOn redesenhava
+// o App inteiro — as telas definidas dentro dele eram remontadas e fechavam
+// listas, apagavam o que estava sendo digitado etc. Só mapa, controles de rota
+// e o aviso "em rota" leem daqui.
+const rastreioStore = {
+  mapa: {},
+  ouvintes: new Set(),
+  set(m) { this.mapa = m; this.ouvintes.forEach((f) => f()); },
+};
+const assinarRastreio = (cb) => { rastreioStore.ouvintes.add(cb); return () => rastreioStore.ouvintes.delete(cb); };
+const useRastreioMapa = () => useSyncExternalStore(assinarRastreio, () => rastreioStore.mapa);
+const comRastreio = (lista, mapa) =>
+  (lista || []).map((o) => (o && mapa[o.num] !== undefined ? { ...o, rastreio: mapa[o.num] } : o));
+// render-prop para usar a posição ao vivo dentro de telas grandes sem redesenhá-las
+function ComRastreio({ on, children }) {
+  return children(comRastreio(on, useRastreioMapa()));
+}
 
 const vibrar = (ms = 50) => {
   if ("vibrate" in navigator) navigator.vibrate(ms);
@@ -5751,9 +5770,9 @@ function ServoRestV({ user, encH, encM, t }) {
           })()}
 
           {/* ônibus: responsável liga o compartilhamento; todo mundo acompanha no mapa */}
-          {(() => {
-            const meus = (on || []).filter((o) => (o.resp || []).includes(user?.nome));
-            const emRota = (on || []).filter((o) => statusRastreio(o) === "ao_vivo").length;
+          <ComRastreio on={on}>{(onR) => {
+            const meus = onR.filter((o) => (o.resp || []).includes(user?.nome));
+            const emRota = onR.filter((o) => statusRastreio(o) === "ao_vivo").length;
             if (meus.length === 0 && emRota === 0) return null;
             return (
               <div style={{ marginBottom: 14 }}>
@@ -5776,7 +5795,7 @@ function ServoRestV({ user, encH, encM, t }) {
                 )}
               </div>
             );
-          })()}
+          }}</ComRastreio>
 
           <Seg opts={[["mins", "Agenda"], ["atr", "Escalas"], ["minfo", "Ministrações"]]} val={tab} set={setTab} />
 
@@ -8624,7 +8643,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   // Fica montado no App: se eu sou quem está compartilhando a posição de um ônibus,
   // mantém o GPS ligado e grava a cada ~8s. Sobrevive a recarregar a página.
   function RastreioRunner({ on, user, t }) {
-    const meu = (on || []).find((o) => o.rastreio?.ativo && o.rastreio?.uid === user?.id);
+    const rast = useRastreioMapa();
+    const meu = comRastreio(on, rast).find((o) => o.rastreio?.ativo && o.rastreio?.uid === user?.id);
     const num = meu?.num;
     const ultimoRef = useRef(0);
     const wakeRef = useRef(null);
@@ -8666,7 +8686,9 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
 
   // "Estou no ônibus": o responsável liga o compartilhamento; quem edita ônibus
   // também pode ligar (admin a bordo) ou encerrar.
-  function ControleRastreio({ o, user, t, edit, ocupados = null }) {
+  function ControleRastreio({ o: oBase, user, t, edit, ocupados = null }) {
+    const rast = useRastreioMapa();
+    const o = rast[oBase.num] !== undefined ? { ...oBase, rastreio: rast[oBase.num] } : oBase;
     const [agora, setAgora] = useState(Date.now());
     useEffect(() => {
       const id = setInterval(() => setAgora(Date.now()), 5000);
@@ -8777,7 +8799,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
   };
   const ORDEM_ESTILOS = ["escuro", "claro", "satelite"];
 
-  function MapaOnibusV({ on: onReal, podeConfigurar, onClose, t, rotaInicial = null }) {
+  function MapaOnibusV({ on: onBase, podeConfigurar, onClose, t, rotaInicial = null }) {
+    const onReal = comRastreio(onBase, useRastreioMapa());
     const [rota, setRota] = useState(rotaInicial);
     const [estilo, setEstilo] = useState(() => {
       try { const v = localStorage.getItem("mapa_estilo"); return ESTILOS_MAPA[v] ? v : "escuro"; } catch { return "escuro"; }
@@ -9260,7 +9283,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
         t(`Já existe o ônibus ${novoNum}.`, "w");
         return false;
       }
-      if (antigo.rastreio?.ativo) {
+      if ((rastreioStore.mapa[antigo.num] ?? antigo.rastreio)?.ativo) {
         t("Encerre a localização ao vivo deste ônibus antes de trocar o número.", "w");
         return false;
       }
@@ -9381,8 +9404,8 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
           </div>
         )}
 
-        {(() => {
-          const emRota = on.filter((o) => statusRastreio(o) === "ao_vivo").length;
+        <ComRastreio on={on}>{(onR) => {
+          const emRota = onR.filter((o) => statusRastreio(o) === "ao_vivo").length;
           return (
             <button onClick={abrirMapa} className="press" style={{ ...BK({ width: "100%", padding: "12px 14px", borderRadius: 13, marginBottom: 10, fontSize: 14, display: "flex", alignItems: "center", gap: 10, textAlign: "left" }), borderColor: emRota ? `${G.green}66` : undefined }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: emRota ? G.green : G.tm, boxShadow: emRota ? `0 0 0 4px ${G.green}33` : "none", flexShrink: 0 }} />
@@ -9390,7 +9413,7 @@ function HomeV({ role, user, ck, mins, ocorr, avs, qh, qm, on, nav, edit, encH, 
               <span style={{ color: G.tm, fontSize: 12 }}>{emRota ? `${emRota} em rota` : "Nenhum em rota"} ›</span>
             </button>
           );
-        })()}
+        }}</ComRastreio>
 
         {edit && (
           <>
@@ -14689,6 +14712,7 @@ export default function App() {
   const [qh, setQh] = useState(QH_INIT);
   const [qm, setQm] = useState(QM_INIT);
   const [on, setOn] = useState(ON_INIT);
+  const onChaveRef = useRef("");
   const [mins, setMins] = useState(MINS_INIT);
   // O que já está no servidor. Sem isto a agenda era regravada logo depois de
   // ser lida, e essa escrita estourava "insufficient permissions" para todo
@@ -14976,11 +15000,18 @@ export default function App() {
           });
 
           unsubOnRef.current = onSnapshot(collection(db, "onibus"), (s) => {
-            setOn(
-              s.docs
-                .map((d) => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => a.num - b.num),
-            );
+            const lista = s.docs
+              .map((d) => ({ id: d.id, ...d.data() }))
+              .sort((a, b) => a.num - b.num);
+            const mapa = {};
+            lista.forEach((o) => { mapa[o.num] = o.rastreio || null; });
+            rastreioStore.set(mapa);
+            // só redesenha o App quando muda algo além da posição ao vivo
+            const chave = JSON.stringify(lista.map(({ rastreio, ...resto }) => resto));
+            if (chave !== onChaveRef.current) {
+              onChaveRef.current = chave;
+              setOn(lista);
+            }
           });
           
           // quem não tem a tela Saúde é barrado pelas rules — não é erro do app
